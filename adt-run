@@ -1,0 +1,61 @@
+#!/usr/bin/python2.4
+# usage:
+#	adt-run <options>... --- <virt-server> [<virt-server-arg>...]
+#
+# options:
+#	--build-tree HOST-PATH	} build tree should be copied from here
+#	--build-tree-tb TB-PATH	}  on host or testbed
+#	--user USER	run tests as USER on the testbed
+#
+# invoke in toplevel of package (not necessarily built)
+# with package installed
+
+import optparse
+from optparse import OptionParser
+
+def parse_args():
+	global opts
+	usage = "%prog <options> -- <virt-server>..."
+	parser = OptionParser(usage=usage)
+	pa = parser.add_option
+	pe = parser.add_option
+
+	def cb_vserv(op,optstr,value,parser):
+		print('cb_vserv %s' % `parser.rargs`)
+		parser.values.vserver = list(parser.rargs)
+		del parser.rargs[:]
+
+	def cb_path(op,optstr,value,parser, long,tb):
+		name = long.replace('-','_')
+		parser.values.__dict__[name] = (tb, value)
+
+	def pa_path(long):
+		def papa_tb(long, ca):
+			pa('', long, action='callback', callback=cb_path,
+				nargs=1, type='string', callback_args=ca)
+		papa_tb('--'+long,		(long, False))
+		papa_tb('--'+long+'-tb',	(long, True))
+
+	pa_path('build-tree')
+	pa('','--user', type='string')
+
+	class SpecialOption(optparse.Option): pass
+	vs_op = SpecialOption('','--VSERVER-DUMMY')
+	vs_op.action = 'callback'
+	vs_op.type = None
+	vs_op.default = None
+	vs_op.nargs = 0
+	vs_op.callback = cb_vserv
+	vs_op.callback_args = ( )
+	vs_op.callback_kwargs = { }
+	vs_op.help = 'introduces virtualisation server and args'
+	vs_op._short_opts = []
+	#vs_op._long_opts = ['--DUMMY']
+	vs_op._long_opts = ['---']
+
+	pa(vs_op)
+
+	(opts,args) = parser.parse_args()
+	
+parse_args()
+print opts
