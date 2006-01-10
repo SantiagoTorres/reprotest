@@ -2,16 +2,59 @@
 # usage:
 #	adt-run <options>... --- <virt-server> [<virt-server-arg>...]
 #
-# options:
-#	--build-tree HOST-PATH	} build tree should be copied from here
-#	--build-tree-tb TB-PATH	}  on host or testbed
-#	--user USER	run tests as USER on the testbed
-#
 # invoke in toplevel of package (not necessarily built)
 # with package installed
 
+# exit status:
+#  0 all tests passed
+#  4 at least one test failed
+#  8 no tests in this package
+# 12 erroneous package
+# 16 testbed failure
+# 20 other unexpected failures including bad usage
+
+import signal
 import optparse
+import tempfile
+import sys
+import subprocess
+import traceback
+
 from optparse import OptionParser
+
+tmpdir = None
+testbed = None
+
+signal.signal(signal.SIGINT, signal.SIG_DFL) # undo stupid Python SIGINT thing
+
+class Quit:
+	def __init__(q,ec,m): q.ec = ec; q.m = m
+
+def bomb(m): raise Quit(20, "unexpected error: %s" % m)
+def badpkg(m): raise Quit(12, "erroneous package: %s" % m)
+
+class Path:
+ def __init__(p, tb, path, dir=False):
+	p.tb = tb
+	p.p = path
+	p.dir = dir
+	if p.tb and p.p[:1] != '/':
+		bomb("path specified as being in testbed but"
+			" not absolute: `%s'" % p.p)
+ def path(p):
+	if p.dir: return p.p + '/'
+	else: return p.p
+ def append(p, suffix, dir=False):
+	return Path(p.path() + suffix, dir)
+ def __str__(p):
+	if p.tb: pfx = '/VIRT'
+	else if p.p[:1] == '/': pfx = '/HOST'
+	else pfx = './'
+	return pfx + p.p
+ def onhost(p):
+	if not p.tb: return p.p
+	testbed.open()
+	fixme testbed.command()
 
 def parse_args():
 	global opts
@@ -21,23 +64,27 @@ def parse_args():
 	pe = parser.add_option
 
 	def cb_vserv(op,optstr,value,parser):
-		print('cb_vserv %s' % `parser.rargs`)
 		parser.values.vserver = list(parser.rargs)
 		del parser.rargs[:]
 
-	def cb_path(op,optstr,value,parser, long,tb):
+	def cb_path(op,optstr,value,parser, long,tb,dir):
 		name = long.replace('-','_')
-		parser.values.__dict__[name] = (tb, value)
+		parser.values.__dict__[name] = Path(tb, value, dir)
 
-	def pa_path(long):
-		def papa_tb(long, ca):
+	def pa_path(long, dir, help):
+		def papa_tb(long, ca, pahelp):
 			pa('', long, action='callback', callback=cb_path,
-				nargs=1, type='string', callback_args=ca)
-		papa_tb('--'+long,		(long, False))
-		papa_tb('--'+long+'-tb',	(long, True))
+				nargs=1, type='string', callback_args=ca,
+				help=(help % pahelp), metavar='PATH')
+		papa_tb('--'+long,	(long, False, dir), 'host')
+		papa_tb('--'+long+'-tb',(long, True, dir), 'testbed')
 
-	pa_path('build-tree')
-	pa('','--user', type='string')
+	pa_path('build-tree',	True, 'use build tree from PATH on %s')
+	pa_path('control',	False, 'read control file PATH on %s')
+
+	pa('-d', '--debug', action='store_true', dest='debug');
+	pa('','--user', type='string',
+		help='run tests as USER (needs root on testbed)')
 
 	class SpecialOption(optparse.Option): pass
 	vs_op = SpecialOption('','--VSERVER-DUMMY')
@@ -56,6 +103,118 @@ def parse_args():
 	pa(vs_op)
 
 	(opts,args) = parser.parse_args()
-	
-parse_args()
-print opts
+	if not hasattr(opts,'vserver'):
+		parser.error('you must specifiy --- <virt-server>...')
+
+	if opts.build_tree is None:
+		opts.build_tree = Path('.', tb=False, dir=True)
+	if opts.control is None:
+		opts.control = opts.build_tree.append('debian/tests/control')
+
+class Testbed:
+ def __init__(tb): tb.sp = None
+ def start(tb):
+	p = subprocess.PIPE
+	tb.lastsend = None
+	tb.sp = subprocess.Popen(opts.vserver,
+		stdin=p, stdout=p, stderr=None)
+	tb.expect('ok')
+ def stop(tb):
+	tb.close(tb)
+	if tb.sp is None: return
+	ec = tb.sp.returncode
+	if ec is None:
+		tb.sp.stdout.close()
+		tb.send('quit')
+		tb.sp.stdin.close()
+		ec = tb.sp.wait()
+	if ec:
+		tb.bomb('testbed gave exit status %d after quit' % ec)
+ def open(tb):
+	fixme
+ def close(tb):
+	fixme
+ def bomb(tb, m):
+	if tb.sp is not None:
+		tb.sp.stdout.close()
+		tb.sp.stdin.close()
+		ec = tb.sp.wait()
+		if ec: print >>sys.stderr, ('testbed failing,'
+			' exit status %d' % ec)
+	tb.sp = None
+	raise Quit(16, 'testbed failed: %s' % m)
+ def send(tb, string):
+	try:
+		print >>tb.sp.stdin, string
+		tb.sp.stdin.flush()
+		tb.lastsend = string
+	except:
+		tb.bomb('cannot send to testbed: %s' %
+			formatexception_only(sys.last_type, sys.last_value))
+ def expect(tb, keyword, nresults=-1):
+	l = tb.sp.stdout.readline()
+	if not l: tb.bomb('unexpected eof from the testbed')
+	ll = ll.split()
+	if not ll: tb.bomb('unexpected whitespace-only line from the testbed')
+	if ll[0] != keyword:
+		if tb.lastsend is None:
+			tb.bomb("got banner `%s', expected `%s...'" %
+				(l, keyword))
+		else:
+			tb.bomb("sent `%s', got `%s', expected `%s...'" %
+				(tb.lastsend, l, keyword))
+	ll = ll[1:]
+	if nresults >= 0 and len(ll) != nresults:
+		tb.bomb("sent `%s', got `%s' (%d result parameters),"
+			" expected %d result parameters" %
+			(string, l, len(ll), nresults))
+	return ll
+ def commandr(tb, cmd, nresults, args=()):
+	al = [cmd] + map(urllib.quote, args)
+	tb.send(string.join(cmd))
+	ll = tb.expect('ok')
+	rl = map(urllib.unquote, ll)
+	return rl
+ def command(tb, cmd, args=()):
+	commandr(rb, cmd, 0, args)
+
+def read_control():
+	control = file(hostpath(opts.control), 'r')
+	testbed.close()
+
+def print_exception(ei, msgprefix=''):
+	print >>sys.stderr, msgprefix
+	(et, q, tb) = ei
+	if et is Quit:
+		print >>sys.stderr, 'adt-run: ', q.m
+		return q.ec
+	else:
+		print >>sys.stderr, "adt-run: unexpected, exceptional, error:"
+		traceback.print_exc()
+		return 20
+
+def cleanup():
+	try:
+		if tmpdir is not None:
+			rm_ec = subprocess.call(['rm','-rf','--',tmpdir])
+		testbed.stop()
+		if rm_ec: bomb('rm -rf -- %s failed, code %d' % (tmpdir, ec))
+	except:
+		print_exception(sys.exc_info(),
+			'\nadt-run: error cleaning up:\n')
+		sys.exit(20)
+
+def main():
+	try:
+		parse_args()
+		tmpdir = tempfile.mkdtemp()
+		testbed = Testbed()
+		testbed.start()
+		read_control()
+	except:
+		ec = print_exception(sys.exc_info(), '')
+		cleanup()
+		sys.exit(ec)
+	cleanup()
+
+main()
