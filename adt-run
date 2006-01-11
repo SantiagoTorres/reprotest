@@ -21,6 +21,7 @@ import subprocess
 import traceback
 import urllib
 import string
+import re as regexp
 
 from optparse import OptionParser
 
@@ -209,7 +210,74 @@ class Testbed:
 	return rl[0]
 
 def read_control():
+	global tests
 	control = file(opts.control.onhost(), 'r')
+	lno = 0
+	def badctrl(m): testbed.badpkg('tests/control line %d: %s' % (lno, m))
+	hmap = None # hmap[header_name][index] = (lno, value)
+
+	stanzas = [ ]
+
+	def end_stanza():
+		if hmap is None: continue
+		stanzas.append(hmap)
+		hmap = None
+		hcurrent = None
+	initre = regexp.compile('([A-Z][-0-9a-z]*)\s*\:\s*(.*)$')
+	while 1:
+		l = control.readline()
+		if not l: break
+		lno++
+		if not l.endswith('\n'): badctrl('unterminated line')
+		if regexp.compile('\s*\#').match(l): continue
+		if not regexp.compile('\S').match(l): end_stanza(); continue
+		initmat = initre.match(l)
+		if initmat:
+			(hname, l) = initmat.groups()
+			hname = capwords(hname)
+			if hmap is None:
+				hmap = { ' lno' => lno }
+			if not haskey(hmap, hname): hmap[hname] = [ ]
+			hcurrent = hmap[hname]
+		elif regexp.compile('\s').match(l):
+			if not hcurrent: badctrl('unexpected continuation')
+		else:
+			badctrl('syntax error')
+		hcurrent.append((lno, l))
+	end_stanza()
+
+	def mergesplit(v): return string.join(v).split()
+	for stz in stanzas:
+		try: tests = stz['Tests']
+		except KeyError:
+			report_unsupported_test('*',
+				'no Tests field (near control file line %d)'
+				% stz[lno])
+			continue
+		tests = mergesplit(tests)
+		base = { }
+		restrictions = mergesplit(stz.get('Restrictions',[]))
+		for rname in restrictions:
+			try: rr = globals()['Restriction_'+rname]
+			except KeyError:
+				for t in tests:
+					report_unsupported_test(t,
+						'unsupported restriction %s'
+						% rname)
+				continue
+			
+			if rstr in ['needs-root
+		base['restrictions'] = restrictions
+		base.testsdir = oneonly(Tests-directory:
+
+		try: 
+
+			hcurrent
+			hmap[hname].append(l)
+		if : pass
+		elif
+			
+			tb.badpkg('unterminated line in control')
 	testbed.close()
 
 def print_exception(ei, msgprefix=''):
