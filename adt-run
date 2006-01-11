@@ -19,6 +19,8 @@ import tempfile
 import sys
 import subprocess
 import traceback
+import urllib
+import string
 
 from optparse import OptionParser
 
@@ -33,28 +35,42 @@ class Quit:
 def bomb(m): raise Quit(20, "unexpected error: %s" % m)
 def badpkg(m): raise Quit(12, "erroneous package: %s" % m)
 
+def debug(m):
+	global opts
+	if not opts.debug: return
+	print >>sys.stderr, 'atd-run: debug:', m
+
 class Path:
- def __init__(p, tb, path, dir=False):
+ def __init__(p, tb, path, what, dir=False):
 	p.tb = tb
 	p.p = path
+	p.what = what
 	p.dir = dir
-	if p.tb and p.p[:1] != '/':
-		bomb("path specified as being in testbed but"
-			" not absolute: `%s'" % p.p)
+	if p.tb:
+		if p.p[:1] != '/':
+			bomb("path %s specified as being in testbed but"
+				" not absolute: `%s'" % (what, p.p))
+		p.local = None
+	else:
+		p.local = p.p
+	if p.dir: p.dirsfx = '/'
+	else: p.dirsfx = ''
  def path(p):
-	if p.dir: return p.p + '/'
-	else: return p.p
- def append(p, suffix, dir=False):
-	return Path(p.path() + suffix, dir)
+	return p.p + p.dirsfx
+ def append(p, suffix, what, dir=False):
+	return Path(p.tb, p.path() + suffix, what=what, dir=dir)
  def __str__(p):
 	if p.tb: pfx = '/VIRT'
-	else if p.p[:1] == '/': pfx = '/HOST'
-	else pfx = './'
+	elif p.p[:1] == '/': pfx = '/HOST'
+	else: pfx = './'
 	return pfx + p.p
  def onhost(p):
 	if not p.tb: return p.p
+	if p.local is not None: return p.local
 	testbed.open()
-	fixme testbed.command()
+	p.local = tmpdir + '/tb.' + p.what
+	testbed.command('copyup', (p.path(), p.local + p.dirsfx))
+	return p.local
 
 def parse_args():
 	global opts
@@ -69,7 +85,7 @@ def parse_args():
 
 	def cb_path(op,optstr,value,parser, long,tb,dir):
 		name = long.replace('-','_')
-		parser.values.__dict__[name] = Path(tb, value, dir)
+		parser.values.__dict__[name] = Path(tb, value, long, dir)
 
 	def pa_path(long, dir, help):
 		def papa_tb(long, ca, pahelp):
@@ -107,20 +123,23 @@ def parse_args():
 		parser.error('you must specifiy --- <virt-server>...')
 
 	if opts.build_tree is None:
-		opts.build_tree = Path('.', tb=False, dir=True)
+		opts.build_tree = Path(False, '.', 'build-tree', dir=True)
 	if opts.control is None:
-		opts.control = opts.build_tree.append('debian/tests/control')
+		opts.control = opts.build_tree.append(
+			'debian/tests/control', 'control')
 
 class Testbed:
- def __init__(tb): tb.sp = None
+ def __init__(tb):
+	tb.sp = None
+	tb.lastsend = None
+	tb.scratch = None
  def start(tb):
 	p = subprocess.PIPE
-	tb.lastsend = None
 	tb.sp = subprocess.Popen(opts.vserver,
 		stdin=p, stdout=p, stderr=None)
 	tb.expect('ok')
  def stop(tb):
-	tb.close(tb)
+	tb.close()
 	if tb.sp is None: return
 	ec = tb.sp.returncode
 	if ec is None:
@@ -131,20 +150,25 @@ class Testbed:
 	if ec:
 		tb.bomb('testbed gave exit status %d after quit' % ec)
  def open(tb):
-	fixme
+	if tb.scratch is not None: return
+	p = tb.commandr1('open')
+	tb.scratch = Path(True, p, 'tb-scratch', dir=True)
  def close(tb):
-	fixme
+	if tb.scratch is None: return
+	tb.scratch = None
+	tb.command('close')
  def bomb(tb, m):
 	if tb.sp is not None:
 		tb.sp.stdout.close()
 		tb.sp.stdin.close()
 		ec = tb.sp.wait()
-		if ec: print >>sys.stderr, ('testbed failing,'
+		if ec: print >>sys.stderr, ('adt-run: testbed failing,'
 			' exit status %d' % ec)
 	tb.sp = None
 	raise Quit(16, 'testbed failed: %s' % m)
  def send(tb, string):
 	try:
+		debug('>> '+string)
 		print >>tb.sp.stdin, string
 		tb.sp.stdin.flush()
 		tb.lastsend = string
@@ -154,7 +178,10 @@ class Testbed:
  def expect(tb, keyword, nresults=-1):
 	l = tb.sp.stdout.readline()
 	if not l: tb.bomb('unexpected eof from the testbed')
-	ll = ll.split()
+	if not l.endswith('\n'): tb.bomb('unterminated line from the testbed')
+	l = l.rstrip('\n')
+	debug('<< '+l)
+	ll = l.split()
 	if not ll: tb.bomb('unexpected whitespace-only line from the testbed')
 	if ll[0] != keyword:
 		if tb.lastsend is None:
@@ -171,22 +198,25 @@ class Testbed:
 	return ll
  def commandr(tb, cmd, nresults, args=()):
 	al = [cmd] + map(urllib.quote, args)
-	tb.send(string.join(cmd))
+	tb.send(string.join(al))
 	ll = tb.expect('ok')
 	rl = map(urllib.unquote, ll)
 	return rl
  def command(tb, cmd, args=()):
-	commandr(rb, cmd, 0, args)
+	tb.commandr(cmd, 0, args)
+ def commandr1(tb, cmd, args=()):
+	rl = tb.commandr(cmd, 1, args)
+	return rl[0]
 
 def read_control():
-	control = file(hostpath(opts.control), 'r')
+	control = file(opts.control.onhost(), 'r')
 	testbed.close()
 
 def print_exception(ei, msgprefix=''):
-	print >>sys.stderr, msgprefix
+	if msgprefix: print >>sys.stderr, msgprefix
 	(et, q, tb) = ei
 	if et is Quit:
-		print >>sys.stderr, 'adt-run: ', q.m
+		print >>sys.stderr, 'adt-run:', q.m
 		return q.ec
 	else:
 		print >>sys.stderr, "adt-run: unexpected, exceptional, error:"
@@ -195,9 +225,11 @@ def print_exception(ei, msgprefix=''):
 
 def cleanup():
 	try:
+		rm_ec = 0
 		if tmpdir is not None:
 			rm_ec = subprocess.call(['rm','-rf','--',tmpdir])
-		testbed.stop()
+		if testbed is not None:
+			testbed.stop()
 		if rm_ec: bomb('rm -rf -- %s failed, code %d' % (tmpdir, ec))
 	except:
 		print_exception(sys.exc_info(),
@@ -205,6 +237,8 @@ def cleanup():
 		sys.exit(20)
 
 def main():
+	global testbed
+	global tmpdir
 	try:
 		parse_args()
 		tmpdir = tempfile.mkdtemp()
