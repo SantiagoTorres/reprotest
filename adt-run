@@ -22,6 +22,7 @@ import traceback
 import urllib
 import string
 import re as regexp
+import os
 
 from optparse import OptionParser
 
@@ -35,13 +36,14 @@ class Quit:
 
 def bomb(m): raise Quit(20, "unexpected error: %s" % m)
 def badpkg(m): raise Quit(12, "erroneous package: %s" % m)
+def report(tname, result): print '%-20s %s' % (tname, result)
 
 class Unsupported:
  def __init__(u, lno, m):
 	if lno >= 0: u.m = '%s (control line %d)' % (m, lno)
 	else: u.m = m
  def report(u, tname):
-	print '%-20s SKIP %s' % (tname, u.m)
+	report(tname, 'SKIP %s' % u.m)
 
 def debug(m):
 	global opts
@@ -62,8 +64,10 @@ class Path:
 			bomb("path %s specified as being in testbed but"
 				" not absolute: `%s'" % (what, p.p))
 		p.local = None
+		p.down = p.p
 	else:
 		p.local = p.p
+		p.down = None
 	if p.dir: p.dirsfx = '/'
 	else: p.dirsfx = ''
  def path(p):
@@ -76,12 +80,16 @@ class Path:
 	else: pfx = './'
 	return pfx + p.p
  def onhost(p):
-	if not p.tb: return p.p
 	if p.local is not None: return p.local
 	testbed.open()
-	p.local = tmpdir + '/tb.' + p.what
+	p.local = tmpdir + '/tb-' + p.what
 	testbed.command('copyup', (p.path(), p.local + p.dirsfx))
 	return p.local
+ def ontb(p):
+	if p.down is not None: return p.down
+	p.down = testbed.scratch.p + '/host-' + p.what
+	testbed.command('copydown', (p.path(), p.down + p.dirsfx))
+	return p.down
 
 def parse_args():
 	global opts
@@ -221,6 +229,7 @@ class Testbed:
 
 class FieldBase:
  def __init__(f, fname, stz, base, tnames, vl):
+	assert(vl)
 	f.stz = stz
 	f.base = base
 	f.tnames = tnames
@@ -232,11 +241,8 @@ class FieldBase:
 		r = map((lambda w: (lno, w)), r)
 		return r
 	return flatten(map(distribute, f.vl))
- def atmostone(f, default):
-	if not vl:
-		f.v = default
-		f.lno = -1
-	elif len(vl) == 1:
+ def atmostone(f):
+	if len(vl) == 1:
 		(f.lno, f.v) = vl[0]
 	else:
 		raise Unsupported(f.vl[1][0],
@@ -266,12 +272,46 @@ class Field_Tests(FieldIgnore): pass
 
 class Field_Tests_directory(FieldBase):
  def parse(f):
-	base['testsdir'] = oneonly(f)
+	td = atmostone(f)
+	if td.startswith('/'): raise Unspported(f.lno,
+		'Tests-Directory may not be absolute')
+	base['testsdir'] = td
+
+def run_tests():
+	testbed.close()
+	for t in tests:
+		t.run()
 
 class Test:
  def __init__(t, tname, base):
-	t.tname = tname
+	if '/' in tname: raise Unsupported(base[' lno'],
+		'test name may not contain / character')
 	for k in base: setattr(t,k,base[k])
+	t.tname = tname
+	t.p = opts.build_tree.append(tname, 'test-'+tname)
+	t.p.ontb()
+ def report(t, m):
+	report(t.tname, m)
+ def run(t):
+	testbed.open()
+	so = testbed.scratch.append('stdout-' + t.tname, 'stdout-' + t.tname)
+	se = testbed.scratch.append('stdout-' + t.tname, 'stdout-' + t.tname)
+	rc = testbed.commandr1('execute',(t.p.ontb(),
+		'/dev/null', so.ontb(), se.ontb()))
+	soh = so.onhost()
+	seh = se.onhost()
+	testbed.close()
+	rc = int(rc)
+	stab = os.stat(soh)
+	if stab.st_size != 0:
+		l = file(seh).readline()
+		l = l.rstrip('\n \t\r')
+		if len(l) > 40: l = l[:40] + '...'
+		t.report('FAIL stderr: %s' % l)
+	elif rc != 0:
+		t.report('FAIL non-zero exit status %d' % rc)
+	else:
+		t.report('PASS')
 
 def read_control():
 	global tests
@@ -339,14 +379,13 @@ def read_control():
 					'unknown metadata field %s' % fname)
 				f = fclass(stz, fname, base, tnames, vl)
 				f.parse()
+			tests = []
+			for tname in tnames:
+				t = Test(tname, base)
+				tests.append(t)
 		except Unsupported, u:
 			for tname in tnames: u.report(tname)
 			continue
-		tests = []
-		for tname in tnames:
-			t = Test(tname, base)
-			tests.append(t)
-	testbed.close()
 
 def print_exception(ei, msgprefix=''):
 	if msgprefix: print >>sys.stderr, msgprefix
@@ -381,6 +420,7 @@ def main():
 		testbed = Testbed()
 		testbed.start()
 		read_control()
+		run_tests()
 	except:
 		ec = print_exception(sys.exc_info(), '')
 		cleanup()
