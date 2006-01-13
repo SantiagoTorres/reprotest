@@ -36,10 +36,23 @@ class Quit:
 def bomb(m): raise Quit(20, "unexpected error: %s" % m)
 def badpkg(m): raise Quit(12, "erroneous package: %s" % m)
 
+class Unsupported:
+ def __init__(u, lno, m):
+	if lno >= 0: u.m = '%s (control line %d)' % (m, lno)
+	else: u.m = m
+ def report(u, tname):
+	print '%-20s SKIP %s' % (tname, u.m)
+
 def debug(m):
 	global opts
 	if not opts.debug: return
 	print >>sys.stderr, 'atd-run: debug:', m
+
+def flatten(l):
+	print >>sys.stderr, 'X4', l
+	l = reduce((lambda a,b: a + b), l, []) 
+	print >>sys.stderr, 'X4', l
+	return l
 
 class Path:
  def __init__(p, tb, path, what, dir=False):
@@ -86,7 +99,7 @@ def parse_args():
 
 	def cb_path(op,optstr,value,parser, long,tb,dir):
 		name = long.replace('-','_')
-		parser.values.__dict__[name] = Path(tb, value, long, dir)
+		setattr(parser.values, name, Path(tb, value, long, dir))
 
 	def pa_path(long, dir, help):
 		def papa_tb(long, ca, pahelp):
@@ -209,75 +222,144 @@ class Testbed:
 	rl = tb.commandr(cmd, 1, args)
 	return rl[0]
 
+class FieldBase:
+ def __init__(f, fname, stz, base, tnames, vl):
+	f.stz = stz
+	f.base = base
+	f.tnames = tnames
+	f.vl = vl
+ def words(f):
+	def distribute(vle):
+		print >>sys.stderr, 'X3b', vle
+		(lno, v) = vle
+		r = v.split()
+		print >>sys.stderr, 'X3b', r
+		r = map((lambda w: (lno, w)), r)
+		print >>sys.stderr, 'X3b', r
+		return r
+	print >>sys.stderr, 'X3',f.vl
+	l = map(distribute, f.vl)
+	print >>sys.stderr, 'X3',l
+	l = flatten(l)
+	print >>sys.stderr, 'X3',l
+	return l
+ def atmostone(f, default):
+	if not vl:
+		f.v = default
+		f.lno = -1
+	elif len(vl) == 1:
+		(f.lno, f.v) = vl[0]
+	else:
+		raise Unsupported(f.vl[1][0],
+			'only one %s field allowed' % fn)
+	return f.v
+
+class FieldIgnore(FieldBase):
+ def parse(f): pass
+
+class Restriction:
+ def __init__(r,rname,base): pass
+
+class Restriction_rw_build_tree(Restriction): pass
+
+class Field_Restrictions(FieldBase):
+ def parse(f):
+	for wle in f.words():
+		(lno, rname) = wle
+		rname = rname.replace('-','_')
+		try: rclass = globals()['Restriction_'+rname]
+		except KeyError: raise Unsupported(lno,
+			'unknown restriction %s' % rname)
+		r = rclass(rname, f.base)
+		f.base['restrictions'].append(r)
+
+class Field_Tests(FieldIgnore): pass
+
+class Field_Tests_directory(FieldBase):
+ def parse(f):
+	base['testsdir'] = oneonly(f)
+
+class Test:
+ def __init__(t, tname, base):
+	t.tname = tname
+	for k in base: setattr(t,k,base[k])
+
 def read_control():
 	global tests
 	control = file(opts.control.onhost(), 'r')
 	lno = 0
 	def badctrl(m): testbed.badpkg('tests/control line %d: %s' % (lno, m))
-	hmap = None # hmap[header_name][index] = (lno, value)
+	stz = None # stz[field_name][index] = (lno, value)
 
 	stanzas = [ ]
+	stz = None
 
-	def end_stanza():
-		if hmap is None: continue
-		stanzas.append(hmap)
-		hmap = None
+	def end_stanza(stz):
+		if stz is None: return
+		stz[' errs'] = 0
+		stanzas.append(stz)
+		stz = None
 		hcurrent = None
+
 	initre = regexp.compile('([A-Z][-0-9a-z]*)\s*\:\s*(.*)$')
 	while 1:
 		l = control.readline()
 		if not l: break
-		lno++
+		lno += 1
 		if not l.endswith('\n'): badctrl('unterminated line')
 		if regexp.compile('\s*\#').match(l): continue
-		if not regexp.compile('\S').match(l): end_stanza(); continue
+		if not regexp.compile('\S').match(l): end_stanza(stz); continue
 		initmat = initre.match(l)
 		if initmat:
-			(hname, l) = initmat.groups()
-			hname = capwords(hname)
-			if hmap is None:
-				hmap = { ' lno' => lno }
-			if not haskey(hmap, hname): hmap[hname] = [ ]
-			hcurrent = hmap[hname]
+			(fname, l) = initmat.groups()
+			fname = string.capwords(fname)
+			if stz is None:
+				stz = { ' lno': lno }
+			if not stz.has_key(fname): stz[fname] = [ ]
+			hcurrent = stz[fname]
 		elif regexp.compile('\s').match(l):
 			if not hcurrent: badctrl('unexpected continuation')
 		else:
 			badctrl('syntax error')
 		hcurrent.append((lno, l))
-	end_stanza()
+	end_stanza(stz)
 
-	def mergesplit(v): return string.join(v).split()
+	def testbadctrl(stz, lno, m):
+		report_badctrl(lno, m)
+		stz[' errs'] += 1
+
 	for stz in stanzas:
-		try: tests = stz['Tests']
-		except KeyError:
-			report_unsupported_test('*',
-				'no Tests field (near control file line %d)'
-				% stz[lno])
-			continue
-		tests = mergesplit(tests)
-		base = { }
-		restrictions = mergesplit(stz.get('Restrictions',[]))
-		for rname in restrictions:
-			try: rr = globals()['Restriction_'+rname]
+		try:
+			try: tnames = stz['Tests']
 			except KeyError:
-				for t in tests:
-					report_unsupported_test(t,
-						'unsupported restriction %s'
-						% rname)
-				continue
-			
-			if rstr in ['needs-root
-		base['restrictions'] = restrictions
-		base.testsdir = oneonly(Tests-directory:
-
-		try: 
-
-			hcurrent
-			hmap[hname].append(l)
-		if : pass
-		elif
-			
-			tb.badpkg('unterminated line in control')
+				tnames = ['*']
+				raise Unsupported(stz[' lno'],
+					'no Tests field')
+			print >>sys.stderr, 'X2', tnames
+			tnames = map((lambda lt: lt[1]), tnames)
+			print >>sys.stderr, 'X2', tnames
+			tnames = string.join(tnames).split()
+			base = {
+				'restrictions': [],
+				'testsdir': 'debian/tests'
+			}
+			for fname in stz.keys():
+				if fname.startswith(' '): continue
+				vl = stz[fname]
+				print >>sys.stderr, 'X6', fname,vl
+				try: fclass = globals()['Field_'+
+					fname.replace('-','_')]
+				except KeyError: raise Unsupported(vl[0][0],
+					'unknown metadata field %s' % fname)
+				f = fclass(stz, fname, base, tnames, vl)
+				f.parse()
+		except Unsupported, u:
+			for tname in tnames: u.report(tname)
+			continue
+		tests = []
+		for tname in tnames:
+			t = Test(tname, base)
+			tests.append(t)
 	testbed.close()
 
 def print_exception(ei, msgprefix=''):
