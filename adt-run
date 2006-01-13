@@ -49,10 +49,7 @@ def debug(m):
 	print >>sys.stderr, 'atd-run: debug:', m
 
 def flatten(l):
-	print >>sys.stderr, 'X4', l
-	l = reduce((lambda a,b: a + b), l, []) 
-	print >>sys.stderr, 'X4', l
-	return l
+	return reduce((lambda a,b: a + b), l, []) 
 
 class Path:
  def __init__(p, tb, path, what, dir=False):
@@ -230,19 +227,11 @@ class FieldBase:
 	f.vl = vl
  def words(f):
 	def distribute(vle):
-		print >>sys.stderr, 'X3b', vle
 		(lno, v) = vle
 		r = v.split()
-		print >>sys.stderr, 'X3b', r
 		r = map((lambda w: (lno, w)), r)
-		print >>sys.stderr, 'X3b', r
 		return r
-	print >>sys.stderr, 'X3',f.vl
-	l = map(distribute, f.vl)
-	print >>sys.stderr, 'X3',l
-	l = flatten(l)
-	print >>sys.stderr, 'X3',l
-	return l
+	return flatten(map(distribute, f.vl))
  def atmostone(f, default):
 	if not vl:
 		f.v = default
@@ -335,9 +324,7 @@ def read_control():
 				tnames = ['*']
 				raise Unsupported(stz[' lno'],
 					'no Tests field')
-			print >>sys.stderr, 'X2', tnames
 			tnames = map((lambda lt: lt[1]), tnames)
-			print >>sys.stderr, 'X2', tnames
 			tnames = string.join(tnames).split()
 			base = {
 				'restrictions': [],
@@ -346,7 +333,6 @@ def read_control():
 			for fname in stz.keys():
 				if fname.startswith(' '): continue
 				vl = stz[fname]
-				print >>sys.stderr, 'X6', fname,vl
 				try: fclass = globals()['Field_'+
 					fname.replace('-','_')]
 				except KeyError: raise Unsupported(vl[0][0],
