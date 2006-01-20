@@ -1,0 +1,6 @@
+autodebtest (0.5.0) dapper unstable; urgency=low
+
+  * Initial release of (still largely proof-of-concept) automatic binary
+    package testing framework.
+
+ -- Ian Jackson <iwj@ubuntu.com>  Fri, 20 Jan 2006 17:56:55 +0000
