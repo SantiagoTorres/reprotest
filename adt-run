@@ -1,18 +1,5 @@
 #!/usr/bin/python2.4
-# usage:
-#	adt-run <options>... --- <virt-server> [<virt-server-arg>...]
 #
-# invoke in toplevel of package (not necessarily built)
-# with package installed
-
-# exit status:
-#  0 all tests passed
-#  4 at least one test failed
-#  8 no tests in this package
-# 12 erroneous package
-# 16 testbed failure
-# 20 other unexpected failures including bad usage
-
 # adt-run is part of autodebtest
 # autodebtest is a tool for testing Debian binary packages
 #
@@ -45,11 +32,13 @@ import urllib
 import string
 import re as regexp
 import os
+import errno
 
 from optparse import OptionParser
 
 tmpdir = None
 testbed = None
+errorcode = 0
 
 signal.signal(signal.SIGINT, signal.SIG_DFL) # undo stupid Python SIGINT thing
 
@@ -65,6 +54,8 @@ class Unsupported:
 	if lno >= 0: u.m = '%s (control line %d)' % (m, lno)
 	else: u.m = m
  def report(u, tname):
+	global errorcode
+	errorcode != 2
 	report(tname, 'SKIP %s' % u.m)
 
 def debug(m):
@@ -140,8 +131,9 @@ def parse_args():
 	pa_path('control',	False, 'read control file PATH on %s')
 
 	pa('-d', '--debug', action='store_true', dest='debug');
-	pa('','--user', type='string',
-		help='run tests as USER (needs root on testbed)')
+	# pa('','--user', type='string',
+	#	help='run tests as USER (needs root on testbed)')
+	# nyi
 
 	class SpecialOption(optparse.Option): pass
 	vs_op = SpecialOption('','--VSERVER-DUMMY')
@@ -303,6 +295,10 @@ def run_tests():
 	testbed.close()
 	for t in tests:
 		t.run()
+	if not tests:
+		global errorcode
+		report('*', 'SKIP no tests in this package')
+		errorcode |= 8
 
 class Test:
  def __init__(t, tname, base):
@@ -314,6 +310,10 @@ class Test:
 	t.p.ontb()
  def report(t, m):
 	report(t.tname, m)
+ def reportfail(t, m):
+	global errorcode
+	errorcode |= 4
+	report(t.tname, 'FAIL ' + m)
  def run(t):
 	testbed.open()
 	so = testbed.scratch.append('stdout-' + t.tname, 'stdout-' + t.tname)
@@ -329,15 +329,20 @@ class Test:
 		l = file(seh).readline()
 		l = l.rstrip('\n \t\r')
 		if len(l) > 40: l = l[:40] + '...'
-		t.report('FAIL stderr: %s' % l)
+		t.reportfail('stderr: %s' % l)
 	elif rc != 0:
-		t.report('FAIL non-zero exit status %d' % rc)
+		t.reportfail('non-zero exit status %d' % rc)
 	else:
 		t.report('PASS')
 
 def read_control():
 	global tests
-	control = file(opts.control.onhost(), 'r')
+	try:
+		control = file(opts.control.onhost(), 'r')
+	except IOError, oe:
+		if oe[0] != errno.ENOENT: raise
+		tests = []
+		return
 	lno = 0
 	def badctrl(m): testbed.badpkg('tests/control line %d: %s' % (lno, m))
 	stz = None # stz[field_name][index] = (lno, value)
@@ -431,13 +436,16 @@ def cleanup():
 	except:
 		print_exception(sys.exc_info(),
 			'\nadt-run: error cleaning up:\n')
-		sys.exit(20)
+		os._exit(20)
 
 def main():
 	global testbed
 	global tmpdir
 	try:
 		parse_args()
+	except SystemExit, se:
+		os._exit(20)
+	try:
 		tmpdir = tempfile.mkdtemp()
 		testbed = Testbed()
 		testbed.start()
@@ -446,7 +454,8 @@ def main():
 	except:
 		ec = print_exception(sys.exc_info(), '')
 		cleanup()
-		sys.exit(ec)
+		os._exit(ec)
 	cleanup()
+	os._exit(errorcode)
 
 main()
