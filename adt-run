@@ -100,6 +100,7 @@ class Path:
 	return p.local
  def ontb(p):
 	if p.down is not None: return p.down
+	testbed.open()
 	p.down = testbed.scratch.p + '/host-' + p.what
 	testbed.command('copydown', (p.path(), p.down + p.dirsfx))
 	return p.down
@@ -189,6 +190,7 @@ class Testbed:
  def close(tb):
 	if tb.scratch is None: return
 	tb.scratch = None
+	if tb.sp is None: return
 	tb.command('close')
  def bomb(tb, m):
 	if tb.sp is not None:
@@ -200,14 +202,16 @@ class Testbed:
 	tb.sp = None
 	raise Quit(16, 'testbed failed: %s' % m)
  def send(tb, string):
+	tb.sp.stdin
 	try:
 		debug('>> '+string)
 		print >>tb.sp.stdin, string
 		tb.sp.stdin.flush()
 		tb.lastsend = string
 	except:
-		tb.bomb('cannot send to testbed: %s' %
-			formatexception_only(sys.last_type, sys.last_value))
+		(type, value, dummy) = sys.exc_info()
+		tb.bomb('cannot send to testbed: %s' % traceback.
+			format_exception_only(type, value))
  def expect(tb, keyword, nresults=-1):
 	l = tb.sp.stdout.readline()
 	if not l: tb.bomb('unexpected eof from the testbed')
@@ -306,7 +310,9 @@ class Test:
 		'test name may not contain / character')
 	for k in base: setattr(t,k,base[k])
 	t.tname = tname
-	t.p = opts.build_tree.append(tname, 'test-'+tname)
+	if len(base['testsdir']): tpath = base['testsdir'] + '/' + tname
+	else: tpath = tname
+	t.p = opts.build_tree.append(tpath, 'test-'+tname)
 	t.p.ontb()
  def report(t, m):
 	report(t.tname, m)
