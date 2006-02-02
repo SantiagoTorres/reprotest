@@ -349,12 +349,12 @@ class Test:
 	so = stdouterr('stdout')
 	se = stdouterr('stderr')
 	rc = testbed.commandr1('execute',(t.p.ontb(),
-		'/dev/null', so.ontb(), se.ontb()))
+		'/dev/null', so.ontb(), se.ontb(), opts.build_tree.ontb()))
 	soh = stdouterrh(so, 'stdout')
-	soe = stdouterrh(se, 'stderr')
+	seh = stdouterrh(se, 'stderr')
 	testbed.close()
 	rc = int(rc)
-	stab = os.stat(soh)
+	stab = os.stat(seh)
 	if stab.st_size != 0:
 		l = file(seh).readline()
 		l = l.rstrip('\n \t\r')
