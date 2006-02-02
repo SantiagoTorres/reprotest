@@ -67,11 +67,12 @@ def flatten(l):
 	return reduce((lambda a,b: a + b), l, []) 
 
 class Path:
- def __init__(p, tb, path, what, dir=False):
+ def __init__(p, tb, path, what, dir=False, tbscratch=False):
 	p.tb = tb
 	p.p = path
 	p.what = what
 	p.dir = dir
+	p.tbscratch = tbscratch
 	if p.tb:
 		if p.p[:1] != '/':
 			bomb("path %s specified as being in testbed but"
@@ -86,7 +87,8 @@ class Path:
  def path(p):
 	return p.p + p.dirsfx
  def append(p, suffix, what, dir=False):
-	return Path(p.tb, p.path() + suffix, what=what, dir=dir)
+	return Path(p.tb, p.path() + suffix, what=what, dir=dir,
+			tbscratch=p.tbscratch)
  def __str__(p):
 	if p.tb: pfx = '/VIRT'
 	elif p.p[:1] == '/': pfx = '/HOST'
@@ -94,7 +96,7 @@ class Path:
 	return pfx + p.p
  def onhost(p, lpath = None):
 	if p.local is not None:
-		if lpath is not none: assert(p.local == lpath)
+		if lpath is not None: assert(p.local == lpath)
 		return p.local
 	testbed.open()
 	p.local = lpath
@@ -102,9 +104,15 @@ class Path:
 	testbed.command('copyup', (p.path(), p.local + p.dirsfx))
 	return p.local
  def ontb(p):
-	if p.down is not None: return p.down
+	print 'ontb', p, testbed.scratch
 	testbed.open()
+	if p.tbscratch is not None:
+		if p.tbscratch != testbed.scratch:
+			p.down = None
+	if p.down is not None: return p.down
+	assert(not p.tb)
 	p.down = testbed.scratch.p + '/host-' + p.what
+	p.tbscratch = testbed.scratch
 	testbed.command('copydown', (p.path(), p.down + p.dirsfx))
 	return p.down
 
@@ -133,7 +141,7 @@ def parse_args():
 
 	pa_path('build-tree',	True, 'use build tree from PATH on %s')
 	pa_path('control',	False, 'read control file PATH on %s')
-	pa_path('output-dir',	False, 'write stderr/out files in PATH on %s')
+	pa_path('output-dir',	True, 'write stderr/out files in PATH on %s')
 
 	pa('-d', '--debug', action='store_true', dest='debug');
 	# pa('','--user', type='string',
@@ -191,6 +199,7 @@ class Testbed:
 	if tb.scratch is not None: return
 	p = tb.commandr1('open')
 	tb.scratch = Path(True, p, 'tb-scratch', dir=True)
+	tb.scratch.tbscratch = tb.scratch
  def close(tb):
 	if tb.scratch is None: return
 	tb.scratch = None
@@ -317,7 +326,6 @@ class Test:
 	if len(base['testsdir']): tpath = base['testsdir'] + '/' + tname
 	else: tpath = tname
 	t.p = opts.build_tree.append(tpath, 'test-'+tname)
-	t.p.ontb()
  def report(t, m):
 	report(t.tname, m)
  def reportfail(t, m):
@@ -325,13 +333,29 @@ class Test:
 	errorcode |= 4
 	report(t.tname, 'FAIL ' + m)
  def run(t):
+	print 'run', t
 	testbed.open()
-	so = testbed.scratch.append('stdout-' + t.tname, 'stdout-' + t.tname)
-	se = testbed.scratch.append('stdout-' + t.tname, 'stdout-' + t.tname)
+	def stdouterr(oe):
+		idstr = oe + '-' + t.tname
+		print 'stdouterr', oe, idstr, opts.output_dir
+		if opts.output_dir is not None and opts.output_dir.tb:
+			return opts.output_dir.append(idstr)
+		else:
+			return testbed.scratch.append(idstr, idstr)
+	def stdouterrh(p, oe):
+		idstr = oe + '-' + t.tname
+		if opts.output_dir is None or opts.output_dir.tb:
+			return p.onhost()
+		else:
+			return p.onhost(opts.output_dir.onhost() + '/' + idstr)
+	so = stdouterr('stdout')
+	print 'so', so
+	se = stdouterr('stderr')
+	print 'commandr1', t.p, so, se
 	rc = testbed.commandr1('execute',(t.p.ontb(),
 		'/dev/null', so.ontb(), se.ontb()))
-	soh = so.onhost()
-	seh = se.onhost()
+	soh = stdouterrh(so, 'stdout')
+	soe = stdouterrh(se, 'stderr')
 	testbed.close()
 	rc = int(rc)
 	stab = os.stat(soh)
@@ -459,6 +483,8 @@ def main():
 		tmpdir = tempfile.mkdtemp()
 		testbed = Testbed()
 		testbed.start()
+		testbed.open()
+		testbed.close()
 		read_control()
 		run_tests()
 	except:
