@@ -67,7 +67,7 @@ def flatten(l):
 	return reduce((lambda a,b: a + b), l, []) 
 
 class Path:
- def __init__(p, tb, path, what, dir=False, tbscratch=False):
+ def __init__(p, tb, path, what, dir=False, tbscratch=None):
 	p.tb = tb
 	p.p = path
 	p.what = what
@@ -104,13 +104,13 @@ class Path:
 	testbed.command('copyup', (p.path(), p.local + p.dirsfx))
 	return p.local
  def ontb(p):
-	print 'ontb', p, testbed.scratch
 	testbed.open()
 	if p.tbscratch is not None:
 		if p.tbscratch != testbed.scratch:
 			p.down = None
 	if p.down is not None: return p.down
-	assert(not p.tb)
+	if p.tb:
+		bomb("testbed scratch path " + str(p) + " survived testbed")
 	p.down = testbed.scratch.p + '/host-' + p.what
 	p.tbscratch = testbed.scratch
 	testbed.command('copydown', (p.path(), p.down + p.dirsfx))
@@ -333,11 +333,9 @@ class Test:
 	errorcode |= 4
 	report(t.tname, 'FAIL ' + m)
  def run(t):
-	print 'run', t
 	testbed.open()
 	def stdouterr(oe):
 		idstr = oe + '-' + t.tname
-		print 'stdouterr', oe, idstr, opts.output_dir
 		if opts.output_dir is not None and opts.output_dir.tb:
 			return opts.output_dir.append(idstr)
 		else:
@@ -349,9 +347,7 @@ class Test:
 		else:
 			return p.onhost(opts.output_dir.onhost() + '/' + idstr)
 	so = stdouterr('stdout')
-	print 'so', so
 	se = stdouterr('stderr')
-	print 'commandr1', t.p, so, se
 	rc = testbed.commandr1('execute',(t.p.ontb(),
 		'/dev/null', so.ontb(), se.ontb()))
 	soh = stdouterrh(so, 'stdout')
