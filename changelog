@@ -1,9 +1,10 @@
 autodebtest (0.5.2) unstable; urgency=low
 
   * New --output-dir option to adt-run.
-  * Bugfixes.
+  * Bugfixes (including new mandatory cwd argument to `execute'
+    virt server command).
 
- -- Ian Jackson <iwj@ubuntu.com>  Thu,  2 Feb 2006 18:50:35 +0000
+ -- Ian Jackson <iwj@ubuntu.com>  Thu,  2 Feb 2006 19:44:18 +0000
 
 autodebtest (0.5.1) dapper; urgency=low
 
