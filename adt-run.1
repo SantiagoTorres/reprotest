@@ -40,6 +40,16 @@ should be used as the test control file instead of
 in the build tree.  Note that it is not an error for this file not to
 exist; that just means that there are no tests.
 .TP
+.BR \-\-output\-dir [ \-tb ] " " \fIoutput\-dir\fR
+Specifies that stderr and stdout from the tests should be placed in
+.IR output\-dir .
+The files are named
+.BI stderr\- test
+and
+.BI stdout\- test
+for each test
+.IR test .
+.TP
 .BR \-d " | " \-\-debug
 Enables debugging output.  Probably not hugely interesting.
 .TP
