@@ -92,10 +92,13 @@ class Path:
 	elif p.p[:1] == '/': pfx = '/HOST'
 	else: pfx = './'
 	return pfx + p.p
- def onhost(p):
-	if p.local is not None: return p.local
+ def onhost(p, lpath = None):
+	if p.local is not None:
+		if lpath is not none: assert(p.local == lpath)
+		return p.local
 	testbed.open()
-	p.local = tmpdir + '/tb-' + p.what
+	p.local = lpath
+	if p.local is None: p.local = tmpdir + '/tb-' + p.what
 	testbed.command('copyup', (p.path(), p.local + p.dirsfx))
 	return p.local
  def ontb(p):
@@ -130,6 +133,7 @@ def parse_args():
 
 	pa_path('build-tree',	True, 'use build tree from PATH on %s')
 	pa_path('control',	False, 'read control file PATH on %s')
+	pa_path('output-dir',	False, 'write stderr/out files in PATH on %s')
 
 	pa('-d', '--debug', action='store_true', dest='debug');
 	# pa('','--user', type='string',
