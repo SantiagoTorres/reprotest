@@ -1,8 +1,9 @@
-autodebtest (0.5.3) unstable; urgency=low
+autopkgtest (0.5.3) unstable; urgency=low
 
+  * Rename package autodebtest => autopkgtest.
   * Remove a leftover debugging print from adt-virt-chroot.
 
- --
+ -- Ian Jackson <iwj@ubuntu.com>  Tue,  7 Feb 2006 18:02:08 +0000
 
 autodebtest (0.5.2) dapper; urgency=low
 

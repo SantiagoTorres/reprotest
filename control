@@ -1,18 +1,20 @@
-Source: autodebtest
+Source: autopkgtest
 Maintainer: Ian Jackson <iwj@ubuntu.com>
 Section: devel
 Priority: optional
 Standards-Version: 3.6.2
 Build-Depends: debhelper (>= 4.0.2)
 
-Package: autodebtest
+Package: autopkgtest
 Architecture: all
 Depends: python2.4
+Conflicts: autopkgtest (<< 0.5.3)
+Replaces: autopkgtest (<< 0.5.3)
 Description: automatic as-installed testing for Debian packages
- autodebtest runs tests on binary packages.  The tests are run on the
+ autopkgtest runs tests on binary packages.  The tests are run on the
  package as installed on a testbed system (which may be found via a
  virtualisation or containment system).  The tests are expected to be
  supplied in the corresponding Debian source package.  See adt-run(1)
- and /usr/share/doc/autodebtest.
+ and /usr/share/doc/autopkgtest.
  .
  Status: this release is still pretty much a proof of concept.
