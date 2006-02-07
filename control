@@ -8,8 +8,8 @@ Build-Depends: debhelper (>= 4.0.2)
 Package: autopkgtest
 Architecture: all
 Depends: python2.4
-Conflicts: autopkgtest (<< 0.5.3)
-Replaces: autopkgtest (<< 0.5.3)
+Conflicts: autodebtest (<< 0.5.3)
+Replaces: autodebtest (<< 0.5.3)
 Description: automatic as-installed testing for Debian packages
  autopkgtest runs tests on binary packages.  The tests are run on the
  package as installed on a testbed system (which may be found via a
