@@ -1,4 +1,4 @@
-autopkgtest (0.5.3) unstable; urgency=low
+autopkgtest (0.5.3) dapper; urgency=low
 
   * Rename package autodebtest => autopkgtest.
   * Remove a leftover debugging print from adt-virt-chroot.
