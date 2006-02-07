@@ -1,3 +1,9 @@
+autodebtest (0.5.3) unstable; urgency=low
+
+  * Remove a leftover debugging print from adt-virt-chroot.
+
+ --
+
 autodebtest (0.5.2) dapper; urgency=low
 
   * New --output-dir option to adt-run.
