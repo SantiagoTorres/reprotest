@@ -1,9 +1,9 @@
 #!/usr/bin/python2.4
 #
-# adt-run is part of autodebtest
-# autodebtest is a tool for testing Debian binary packages
+# adt-run is part of autopkgtest
+# autopkgtest is a tool for testing Debian binary packages
 #
-# autodebtest is Copyright (C) 2006 Canonical Ltd.
+# autopkgtest is Copyright (C) 2006 Canonical Ltd.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -20,7 +20,7 @@
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
 # See the file CREDITS for a full list of credits information (often
-# installed as /usr/share/doc/autodebtest/CREDITS).
+# installed as /usr/share/doc/autopkgtest/CREDITS).
 
 import signal
 import optparse
