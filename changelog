@@ -1,4 +1,4 @@
-autodebtest (0.5.2) unstable; urgency=low
+autodebtest (0.5.2) dapper; urgency=low
 
   * New --output-dir option to adt-run.
   * Bugfixes (including new mandatory cwd argument to `execute'
