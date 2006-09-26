@@ -1,3 +1,9 @@
+autopkgtest (0.6.0~0iwj-wip0) edgy; urgency=low
+
+  * Work-in-progress for Xen support.
+
+ -- Ian Jackson <iwj@ubuntu.com>  Tue, 26 Sep 2006 18:05:50 +0100
+
 autopkgtest (0.5.3) dapper; urgency=low
 
   * Rename package autodebtest => autopkgtest.
