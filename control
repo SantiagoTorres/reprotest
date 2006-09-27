@@ -18,3 +18,7 @@ Description: automatic as-installed testing for Debian packages
  and /usr/share/doc/autopkgtest.
  .
  Status: this release is still pretty much a proof of concept.
+
+Package: autopkgtest-xen
+Architecture: all
+Depends: pbuilder, libadns1-bin, chiark-utils-bin
