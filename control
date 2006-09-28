@@ -21,4 +21,4 @@ Description: automatic as-installed testing for Debian packages
 
 Package: autopkgtest-xen
 Architecture: all
-Depends: pbuilder, libadns1-bin, chiark-utils-bin
+Depends: pbuilder, libadns1-bin, chiark-utils-bin, iproute
