@@ -23,8 +23,12 @@
 # installed as /usr/share/doc/autopkgtest/CREDITS).
 
 p=autopkgtest
+px=autopkgtext-xenlvm
 
-build build-arch build-indep:
+build build-indep:
+	$(MAKE)
+
+build-arch:
 binary-arch:
 
 binary binary-indep: checkdir
@@ -32,7 +36,10 @@ binary binary-indep: checkdir
 	dh_clean
 	dh_installdirs usr
 
-	$(MAKE) install prefix=debian/$p/usr
+	$(MAKE) install-here prefix=debian/$p/usr
+	$(MAKE) -C xen install \
+		prefix=debian/$(px)/usr \
+		etc=debian/$(px)/etc cfg_suffix=''
 
 	cat CREDITS debian/copyright.suffix \
 		>debian/$p/usr/share/doc/$p/copyright
