@@ -23,7 +23,8 @@
 # installed as /usr/share/doc/autopkgtest/CREDITS).
 
 p=autopkgtest
-px=autopkgtext-xenlvm
+px=autopkgtest-xenlvm
+topdir=`pwd`
 
 build build-indep:
 	$(MAKE)
@@ -37,21 +38,25 @@ binary binary-indep: checkdir
 	dh_installdirs usr
 
 	$(MAKE) install-here prefix=debian/$p/usr
-	$(MAKE) -C xen install \
-		prefix=debian/$(px)/usr \
-		etc=debian/$(px)/etc cfg_suffix=''
+	$(MAKE) -C xen install pkgname=$(px) \
+		prefix=$(topdir)/debian/$(px)/usr \
+		etcdir=$(topdir)/debian/$(px)/etc cfg_suffix=''
 
 	cat CREDITS debian/copyright.suffix \
 		>debian/$p/usr/share/doc/$p/copyright
+	dh_installinit -p $(px) --onlyscripts --name=adtxenlvm -- defaults 19
 	dh_compress
 	dh_link
 	dh_md5sums
 	dh_fixperms
 	dh_gencontrol
+	dh_installdeb
+	dh_installchangelogs
 	dh_builddeb
 
 clean: checkdir
 	dh_testroot
+	$(MAKE) clean
 	dh_clean
 
 checkdir:

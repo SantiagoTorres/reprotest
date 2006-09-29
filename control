@@ -10,7 +10,7 @@ Architecture: all
 Depends: python2.4
 Conflicts: autodebtest (<< 0.5.3)
 Replaces: autodebtest (<< 0.5.3)
-Suggest: autopkgtest-xenlvm
+Suggests: autopkgtest-xenlvm
 Description: automatic as-installed testing for Debian packages
  autopkgtest runs tests on binary packages.  The tests are run on the
  package as installed on a testbed system (which may be found via a
@@ -21,7 +21,7 @@ Description: automatic as-installed testing for Debian packages
 Package: autopkgtest-xenlvm
 Architecture: all
 Depends: pbuilder, libadns1-bin, chiark-utils-bin, iproute
-Suggest: autopkgtest
+Suggests: autopkgtest
 Description: Xen/LVM2 based testbed snapshot system
  Machinery for setting up a Xen domain which can be resumed over and
  over again, discarding changes made each time.  This can be useful
