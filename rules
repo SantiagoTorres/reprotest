@@ -22,6 +22,8 @@
 # See the file CREDITS for a full list of credits information (often
 # installed as /usr/share/doc/autopkgtest/CREDITS).
 
+SHELL=/bin/bash
+
 p=autopkgtest
 px=autopkgtest-xenlvm
 topdir=`pwd`
@@ -38,8 +40,10 @@ binary binary-indep: checkdir
 	dh_installdirs usr
 
 	$(MAKE) install-here prefix=debian/$p/usr
-	$(MAKE) -C xen install pkgname=$(px) \
+	$(MAKE) -C xen install \
+		pkgname=autopkgtest-xenlvm \
 		prefix=$(topdir)/debian/$(px)/usr \
+		sharedir=$(topdir)/debian/$(px)/usr/share/autopkgtest/xenlvm \
 		etcdir=$(topdir)/debian/$(px)/etc cfg_suffix=''
 
 	cat CREDITS debian/copyright.suffix \
