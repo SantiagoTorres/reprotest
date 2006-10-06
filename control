@@ -30,4 +30,4 @@ Description: Xen/LVM2 based testbed snapshot system
  .
  You will need a working Xen setup to make use of this software.  Your
  network administrator will need to provide support for the testbeds'
- networking requirements.  See the README for details
+ networking requirements.  See the README for documentation.

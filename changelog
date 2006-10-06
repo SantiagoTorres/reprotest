@@ -1,8 +1,9 @@
-autopkgtest (0.6.0~0iwj-wip0) edgy; urgency=low
+autopkgtest (0.6.0) edgy; urgency=low
 
-  * Work-in-progress for Xen support.
+  * autopkgtest-xenlvm: new package with Xen/LVM management
+    scripts productised.  Not yet glued into autopkgtest proper.
 
- -- Ian Jackson <iwj@ubuntu.com>  Tue, 26 Sep 2006 18:05:50 +0100
+ -- Ian Jackson <iwj@ubuntu.com>  Fri,  6 Oct 2006 20:45:41 +0100
 
 autopkgtest (0.5.3) dapper; urgency=low
 
