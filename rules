@@ -25,7 +25,7 @@
 SHELL=/bin/bash
 
 p=autopkgtest
-px=autopkgtest-xenlvm
+x=xenlvm
 topdir=`pwd`
 
 build build-indep:
@@ -41,14 +41,15 @@ binary binary-indep: checkdir
 
 	$(MAKE) install-here prefix=debian/$p/usr
 	$(MAKE) -C xen install \
-		pkgname=autopkgtest-xenlvm \
-		prefix=$(topdir)/debian/$(px)/usr \
-		sharedir=$(topdir)/debian/$(px)/usr/share/autopkgtest/xenlvm \
-		etcdir=$(topdir)/debian/$(px)/etc cfg_suffix=''
+		pkgname=$p-$x \
+		prefix=$(topdir)/debian/$p-$x/usr \
+		sharedir_lnfrom=/usr/share/$p/$x \
+		sharedir=$(topdir)/debian/$p-$x/usr/share/$p/$x \
+		etcdir=$(topdir)/debian/$p-$x/etc cfg_suffix=''
 
 	cat CREDITS debian/copyright.suffix \
 		>debian/$p/usr/share/doc/$p/copyright
-	dh_installinit -p $(px) --onlyscripts --name=adtxenlvm -- defaults 19
+	dh_installinit -p $p-$x --onlyscripts --name=adt$x -- defaults 19
 	dh_compress
 	dh_link
 	dh_md5sums
