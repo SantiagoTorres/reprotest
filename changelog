@@ -1,3 +1,12 @@
+autopkgtest (0.6.1) unstable; urgency=low
+
+  * autopkgtest-xenlvm: filter output from debootstrap to make
+    the amount of output more reasonable.  set -o pipefail.
+    Create a timestamp file on image creation.  Warn if ipv4
+    forwarding is turned off.
+
+ --
+
 autopkgtest (0.6.0) edgy; urgency=low
 
   * autopkgtest-xenlvm: new package with Xen/LVM management
