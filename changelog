@@ -1,3 +1,12 @@
+autopkgtest (0.6.2~iwj) unstable; urgency=low
+
+  * Split VirtSubproc off from adt-virt-chroot in preparation
+    for adt-virt-xenlvm.
+  * Concatenate arguments to dchroot et al, to stop them looking inside
+    the args and getting confused.
+
+ -- Ian Jackson <ian@davenant.greenend.org.uk>  Thu, 12 Oct 2006 19:18:40 +0100
+
 autopkgtest (0.6.1) edgy; urgency=low
 
   * autopkgtest-xenlvm: filter output from debootstrap to make
