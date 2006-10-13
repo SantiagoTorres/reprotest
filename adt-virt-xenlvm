@@ -1,0 +1,76 @@
+#!/usr/bin/python2.4
+#
+# adt-virt-xenlvm is part of autopkgtest
+# autopkgtest is a tool for testing Debian binary packages
+#
+# autopkgtest is Copyright (C) 2006 Canonical Ltd.
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+#
+# See the file CREDITS for a full list of credits information (often
+# installed as /usr/share/doc/autopkgtest/CREDITS).
+
+import sys
+import os
+
+try: our_base = os.environ['AUTOPKGTEST_BASE']
+except KeyError: our_base = '/usr/share/autopkgtest';
+sys.path.insert(1, our_base+'/python')
+
+import string
+from optparse import OptionParser
+import VirtSubproc as vsp
+
+def parse_args():
+	global down, debuglevel
+
+	usage = "%prog [<adt-xenlvm options>]"
+
+
+
+
+	(opts,args) = parser.parse_args()
+	if len(args) != 1: pe("need exactly one arg, xenlvm specification")
+
+	vsp.debuglevel = opts.debug
+
+	xenlvm_arg = args[0]
+	if not xenlvm_arg: pe("xenlvm specification may not be empty")
+	if xenlvm_arg == '=': down = ['dxenlvm','-q']
+	elif xenlvm_arg == '=': down = ['dxenlvm','-q']
+	elif xenlvm_arg[0] == '=': down = ['dxenlvm','-q','-c',xenlvm_arg[1:]]
+	elif xenlvm_arg[0] == '/': down = ['xenlvm',xenlvm_arg,'--']
+	else: pe("xenlvm spec must be =[DXENLVM] or /PATH/TO/XENLVM")
+
+	if opts.gain_root != None: down = opts.gain_root.split() + down
+
+	vsp.debug("down = %s" % string.join(down))
+	vsp.down = down
+
+def hook_open():
+	global downtmp
+	vsp.execute('true', downp=True)
+	downtmp = vsp.execute('mktemp -t -d', downp=True, outp=True)
+	return downtmp
+
+def hook_stop():
+	vsp.execute('rm -rf --', c[1:2])
+	os.mkdir(c[1])
+
+def hook_cleanup():
+	vsp.execute('rm -rf --', [downtmp], downp=True)
+
+parse_args()
+vsp.main()
