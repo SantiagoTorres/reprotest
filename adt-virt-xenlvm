@@ -34,43 +34,44 @@ from optparse import OptionParser
 import VirtSubproc as vsp
 
 def parse_args():
-	global down, debuglevel
+	global down, debuglevel, xlargs
 
 	usage = "%prog [<adt-xenlvm options>]"
 
-
-
-
-	(opts,args) = parser.parse_args()
-	if len(args) != 1: pe("need exactly one arg, xenlvm specification")
-
-	vsp.debuglevel = opts.debug
-
-	xenlvm_arg = args[0]
-	if not xenlvm_arg: pe("xenlvm specification may not be empty")
-	if xenlvm_arg == '=': down = ['dxenlvm','-q']
-	elif xenlvm_arg == '=': down = ['dxenlvm','-q']
-	elif xenlvm_arg[0] == '=': down = ['dxenlvm','-q','-c',xenlvm_arg[1:]]
-	elif xenlvm_arg[0] == '/': down = ['xenlvm',xenlvm_arg,'--']
-	else: pe("xenlvm spec must be =[DXENLVM] or /PATH/TO/XENLVM")
-
-	if opts.gain_root != None: down = opts.gain_root.split() + down
-
+	fixme must check args fit --<var>=<value> as expected by adt-xenlvm
+	fixme then put set of args into global xlargs
+	fixme fix these next two lines:
 	vsp.debug("down = %s" % string.join(down))
 	vsp.down = down
 
 def hook_open():
 	global downtmp
+	hook_cleanup()
+	withholder = subprocess.Popen(
+		['adt-xenlvm-with-testbed'] + xlargs +
+		 ['--','sh','-ec','echo y; exec cat'],
+		stdin=subprocess.PIPE, stdout=subprocess.PIPE )
+	l = withholder.stdin.readline(2)
+	rc = withholder.poll()
+	if rc is not None: bomb("with-testbed failed, code %d" % rc)
+	if l != "y\n": bomb("with-testbed sh gave wrong output `%s', not `l'"
+			% l.rstrip("\n"))
+	
+	fixme make temp dir somewhere more predictable
 	vsp.execute('true', downp=True)
 	downtmp = vsp.execute('mktemp -t -d', downp=True, outp=True)
 	return downtmp
 
 def hook_stop():
+	fixme make this right
 	vsp.execute('rm -rf --', c[1:2])
 	os.mkdir(c[1])
 
 def hook_cleanup():
+	fixme make this right
 	vsp.execute('rm -rf --', [downtmp], downp=True)
+
+fixme other hooks, main program
 
 parse_args()
 vsp.main()
