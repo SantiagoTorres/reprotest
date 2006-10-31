@@ -6,7 +6,7 @@ autopkgtest (0.6.2~iwj) unstable; urgency=low
     the args and getting confused.
   * New adt-virt-xenlvm WIP
 
- --
+ -- Ian Jackson <ian@davenant.greenend.org.uk>  Tue, 31 Oct 2006 15:03:05 +0000
 
 autopkgtest (0.6.1) edgy; urgency=low
 
