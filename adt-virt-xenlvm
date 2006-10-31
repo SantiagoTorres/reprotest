@@ -33,10 +33,13 @@ import string
 from optparse import OptionParser
 import VirtSubproc as vsp
 
+witholder = None
+
 def parse_args():
 	global down, debuglevel, xlargs
 
 	usage = "%prog [<adt-xenlvm options>]"
+	for a in 
 
 	fixme must check args fit --<var>=<value> as expected by adt-xenlvm
 	fixme then put set of args into global xlargs
@@ -45,33 +48,35 @@ def parse_args():
 	vsp.down = down
 
 def hook_open():
-	global downtmp
 	hook_cleanup()
 	withholder = subprocess.Popen(
 		['adt-xenlvm-with-testbed'] + xlargs +
 		 ['--','sh','-ec','echo y; exec cat'],
 		stdin=subprocess.PIPE, stdout=subprocess.PIPE )
-	l = withholder.stdin.readline(2)
+	l = withholder.stdout.readline(2)
 	rc = withholder.poll()
 	if rc is not None: bomb("with-testbed failed, code %d" % rc)
 	if l != "y\n": bomb("with-testbed sh gave wrong output `%s', not `l'"
 			% l.rstrip("\n"))
-	
-	fixme make temp dir somewhere more predictable
-	vsp.execute('true', downp=True)
-	downtmp = vsp.execute('mktemp -t -d', downp=True, outp=True)
+	downtmp = '/root/adt-downtmp'
+	vsp.execute('mkdir %s' % downtmp, downp=True)
 	return downtmp
 
 def hook_stop():
-	fixme make this right
-	vsp.execute('rm -rf --', c[1:2])
-	os.mkdir(c[1])
+	withholder.stdin.close()
+	withholder.stdout.close()
+	rc = withholder.wait()
+	withholder = None
+	if rc: bomb("with-testbed failed at shutdown, code %d" % rc)
 
 def hook_cleanup():
-	fixme make this right
-	vsp.execute('rm -rf --', [downtmp], downp=True)
-
-fixme other hooks, main program
-
+	if withholder is not None:
+		withholder.stdin.close()
+		withholder.stdout.close()
+		rc = withholder.wait()
+		withholder = None
+		if rc: print >>sys.stderr, (
+			"with-testbed failed during cleanup, code %d" % rc)
+	
 parse_args()
 vsp.main()
