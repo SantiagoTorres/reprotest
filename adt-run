@@ -67,12 +67,14 @@ def flatten(l):
 	return reduce((lambda a,b: a + b), l, []) 
 
 class Path:
- def __init__(p, tb, path, what, dir=False, tbscratch=None):
+ def __init__(p, tb, path, what, dir=False, tbscratch=None, xfmap=None
+		lpath=None):
 	p.tb = tb
 	p.p = path
 	p.what = what
 	p.dir = dir
 	p.tbscratch = tbscratch
+	p.lpath = None
 	if p.tb:
 		if p.p[:1] != '/':
 			bomb("path %s specified as being in testbed but"
@@ -94,26 +96,65 @@ class Path:
 	elif p.p[:1] == '/': pfx = '/HOST'
 	else: pfx = './'
 	return pfx + p.p
+
+ def xfmapcopy(p, cud, dstdir):
+	if p.xfmap is None: return
+	srcdir = os.path.dirname(p.path()+'/')
+	dstdir = p.xfmapdstdir+'/'
+	for f in p.xfmap(file(p.local)):
+		if '/' in f: bomb("control file %s mentions other filename"
+				"containing slash" % p.what)
+		testbed.command(cud, (srcdir+f, dstdir+f))
+
  def onhost(p, lpath = None):
+	if lpath is not None:
+		if p.lpath is not None: assert(p.lpath == lpath)
+		p.lpath = lpath
 	if p.local is not None:
-		if lpath is not None: assert(p.local == lpath)
+		if p.lpath is not None: assert(p.local == p.lpath)
 		return p.local
 	testbed.open()
-	p.local = lpath
-	if p.local is None: p.local = tmpdir + '/tb-' + p.what
+
+	if p.xfmap is None:
+		p.local = p.lpath
+		if p.local is None: p.local = tmpdir + '/tb-' + p.what
+	else:
+		assert(p.lpath is None)
+		assert(not p.dir)
+		p.xfmapdstdir = tmpdir + '/tbd-' + p.what
+		os.mkdir(p.xfmapdstdir)
+		p.local = p.xfmapdstdir + '/' + os.path.basename(p.down)
+
 	testbed.command('copyup', (p.path(), p.local + p.dirsfx))
+	p.xfmapcopy('copyup')
+
 	return p.local
+
+ def maybe_onhost(p):
+	if p.lpath is None: return None
+	return p.onhost()
+
  def ontb(p):
 	testbed.open()
+
 	if p.tbscratch is not None:
 		if p.tbscratch != testbed.scratch:
 			p.down = None
 	if p.down is not None: return p.down
 	if p.tb:
 		bomb("testbed scratch path " + str(p) + " survived testbed")
-	p.down = testbed.scratch.p + '/host-' + p.what
+
+	if p.xfmap is None:
+		p.down = testbed.scratch.p + '/host-' + p.what		
+	else:
+		assert(not p.dir)
+		p.xfmapdstdir = testbed.scratch.p + '/hostd-' + p.what
+		testbed.command('mkdir '+p.xfmapdstdir)
+		p.down = p.xfmapdstdir + '/' + os.path.basename(p.local)
+
 	p.tbscratch = testbed.scratch
 	testbed.command('copydown', (p.path(), p.down + p.dirsfx))
+	p.xfmapcopy('copydown')
 	return p.down
 
 def parse_args():
@@ -127,26 +168,38 @@ def parse_args():
 		parser.values.vserver = list(parser.rargs)
 		del parser.rargs[:]
 
-	def cb_path(op,optstr,value,parser, long,tb,dir):
+	def cb_path(op,optstr,value,parser, long,tb,dir,xfmap):
 		name = long.replace('-','_')
-		setattr(parser.values, name, Path(tb, value, long, dir))
+		path = Path(tb, value, long, dir, xfmap=xfmap)
+		setattr(parser.values, name, path)
 
-	def pa_path(long, dir, help):
+	def pa_path(long, help, dir=False, xfmap=None):
 		def papa_tb(long, ca, pahelp):
 			pa('', long, action='callback', callback=cb_path,
 				nargs=1, type='string', callback_args=ca,
 				help=(help % pahelp), metavar='PATH')
-		papa_tb('--'+long,	(long, False, dir), 'host')
-		papa_tb('--'+long+'-tb',(long, True, dir), 'testbed')
+		papa_tb('--'+long,	(long, False, dir, xfmap), 'host')
+		papa_tb('--'+long+'-tb',(long, True, dir, xfmap), 'testbed')
 
-	pa_path('build-tree',	True, 'use build tree from PATH on %s')
-	pa_path('control',	False, 'read control file PATH on %s')
-	pa_path('output-dir',	True, 'write stderr/out files in PATH on %s')
+	pa_path('build-tree',	'use build tree from PATH on %s', dir=True)
+	pa_path('build-source', 'use tests in DSC on %s (building it)', xfmap=xfmap_dsc)
+	#nyi pa_path('install-binary', 'install package found in PATH on %s')
+	#nyi pa_path('install-from-source', 'build and install package found'+
+	#			' in PATH on %s', xfmap=xfmap_dsc)
+	#nyi these install-* options need cb_path to be able to make a list
+	# nyi: without-depends,with-depends-only,with-depends,with-recommends
+	# nyi: package-filter-dependency
+	# nyi: package-filter-from-source
+	pa_path('install-binary', 'build source package PATH on %s')
+	pa_path('control',    'read control file PATH on %s')
+	pa_path('output-dir', 'write stderr/out files in PATH on %s', dir=True)
 
+	# nyi: on testbed gain root command
 	pa('-d', '--debug', action='store_true', dest='debug');
-	# pa('','--user', type='string',
-	#	help='run tests as USER (needs root on testbed)')
-	# nyi
+	pa('','--user', type='string', dest='user', metavar='USER',
+		help='run tests as USER (needs root on testbed)')
+	pa('','--fakeroot', type='string', dest='fakeroot', metavar='FAKEROOT',
+		help='prefix debian/rules build with FAKEROOT')
 
 	class SpecialOption(optparse.Option): pass
 	vs_op = SpecialOption('','--VSERVER-DUMMY')
@@ -168,11 +221,72 @@ def parse_args():
 	if not hasattr(opts,'vserver'):
 		parser.error('you must specifiy --- <virt-server>...')
 
-	if opts.build_tree is None:
-		opts.build_tree = Path(False, '.', 'build-tree', dir=True)
+	if opts.build_tree is not None and opts.build_source is not None:
+		parser.error('do not specify both --build-tree and'
+				' --build-source')
+
 	if opts.control is None:
 		opts.control = opts.build_tree.append(
 			'debian/tests/control', 'control')
+
+def finalise_options():
+	global opts, testbed
+
+	if opts.build_tree is None and opts.build_source is None:
+		opts.build_tree = Path(False, '.', 'build-tree', dir=True)
+
+	if opts.user is None and 'root-on-testbed' not in caps:
+		opts.user = ''
+
+	if opts.user is None:
+		su = 'suggested-normal-user='
+		ul = [
+			e[length(su):]
+			for e in caps
+			if e.startswith(su)
+			]
+		if len(ul) > 1:
+			print >>sys.stderr, "warning: virtualisation"
+				" system offers several suggested-normal-user"
+				" values: "+('/'.join(ul))+", using "+ul[0]
+		if ul:
+			opts.user = ul[0]
+		else:
+			opts.user = ''
+
+	if opts.user:
+		if 'root-on-testbed' not in caps:
+			print >>sys.stderr, "warning: virtualisation"
+				" system does not offer root on testbed,"
+				" but --user option specified: failure likely"
+		opts.user_wrap = lambda x: 'su %s -c "%s"' % (opts.user, x)
+	else:
+		opts.user_wrap = lambda x: x
+
+	if opts.fakeroot is None:
+		opts.fakeroot = ''
+		if opts.user or
+		   'root-on-testbed' not in testbed.caps:
+			opts.fakeroot = 'fakeroot'
+
+logpath_counters = {}
+
+def logpath(idstr):
+	# if idstr ends with `-' then a counter is appended
+	if idstr.endswith('-'):
+		if not logpath_counters.has_key(idstr):
+			logpath_counters[idstr] = 1
+		else:
+			logpath_counters[idstr] += 1
+		idstr.append(`logpath_counters[idstr]`)
+	idstr = 'log-' + idstr
+	if opts.output_dir is None:
+		return testbed.scratch.append(idstr, idstr)
+	elif opts.output_dir.tb:
+		return opts.output_dir.append(idstr, idstr)
+	else:
+		return Path(True, testbed.scratch.p, idstr,
+			lpath=opts.output_dir.p+'/'+idstr)
 
 class Testbed:
  def __init__(tb):
@@ -184,6 +298,7 @@ class Testbed:
 	tb.sp = subprocess.Popen(opts.vserver,
 		stdin=p, stdout=p, stderr=None)
 	tb.expect('ok')
+	tb.caps = tb.command('capabilities')
  def stop(tb):
 	tb.close()
 	if tb.sp is None: return
@@ -247,7 +362,8 @@ class Testbed:
 			(string, l, len(ll), nresults))
 	return ll
  def commandr(tb, cmd, nresults, args=()):
-	al = [cmd] + map(urllib.quote, args)
+	if type(cmd) is str: cmd = [cmd]
+	al = cmd + map(urllib.quote, args)
 	tb.send(string.join(al))
 	ll = tb.expect('ok')
 	rl = map(urllib.unquote, ll)
@@ -280,6 +396,45 @@ class FieldBase:
 			'only one %s field allowed' % fn)
 	return f.v
 
+def build_some_source(keyletter, dsc, binaries=False):
+	idstr = 'build'+keyletter
+	testbed.open()
+	bd = testbed.scratch.append(idstr, idstr)
+	script = [
+			'exec 3>&1 >&2'
+			'mkdir '+bd.ontb(),
+			'cd '+bd.ontb(),
+			'dpkg-source -x '+dsc.ontb()+' >&2',
+			'cd */.',
+			'pwd >&3',
+			opts.user_wrap('debian/rules build'),
+			]
+	if binaries:
+		script = script + [
+			opts.user_wrap(opts.fakeroot+' debian/rules binary'),
+			'cd ..',
+			'echo *.deb >&3',
+			]
+
+	script = '\n'.join(script)
+	so = testbed.scratch.append(idstr+'-tree-path')
+	se = logpath('log-'+idstr)
+	rc = testbed.commandr1(['execute',
+		','.join(map(urllib.quote, ['sh','-xec',script]))],
+		'/dev/null',so.ontb(),se.ontb(), testbed.scratch.ontb())
+	sod = file(so.onhost()).read().split("\n")
+	build_tree = Path(True, sod[0], idstr+'-tree', dir=True)
+	se.maybe_onhost()
+	return (build_tree,)
+
+def acquire_built_source():
+	global opts
+
+	if opts.build_source:
+		assert(opts.build_tree is None)
+		bss = build_some_source('t', opts.build_source)
+		opts.build_tree = bss[0]
+
 class FieldIgnore(FieldBase):
  def parse(f): pass
 
@@ -309,7 +464,6 @@ class Field_Tests_directory(FieldBase):
 	base['testsdir'] = td
 
 def run_tests():
-	testbed.close()
 	for t in tests:
 		t.run()
 	if not tests:
@@ -352,7 +506,6 @@ class Test:
 		'/dev/null', so.ontb(), se.ontb(), opts.build_tree.ontb()))
 	soh = stdouterrh(so, 'stdout')
 	seh = stdouterrh(se, 'stderr')
-	testbed.close()
 	rc = int(rc)
 	stab = os.stat(seh)
 	if stab.st_size != 0:
@@ -481,6 +634,7 @@ def main():
 		testbed.start()
 		testbed.open()
 		testbed.close()
+		finalise_options()
 		read_control()
 		run_tests()
 	except:

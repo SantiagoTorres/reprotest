@@ -27,12 +27,110 @@ host.  The package should be installed on the testbed.
 
 .SH OPTIONS
 .TP
-.BR \-\-build\-tree [ \-tb ] " " \fIdirectory\fR
+.BR --build-tree [ -tb ] " " \fIdirectory\fR
 Specifies that the built source tree can be found in
 .IR directory .
-(Default: adt\-run's current directory, on the host.)
+(Default: adt-run's current directory, on the host.)
 .TP
-.BR \-\-control [ \-tb ] " " \fIcontrol\fR
+.BR --build-source [ -tb ] " " \fIfilename\fR
+Specifies that the source to use for the tests can be found in
+.IR filename
+(which should be a \fB.dsc\fR).  The source will be unpacked
+and built, and the tests from this build tree will be run.
+.TP
+.BR --use-source [ -tb ] " " \fIfilename\fR
+Specifies that the source to use for the tests can be found in
+.IR filename
+(which should be a \fB.dsc\fR), and that the packages from this
+build should be the ones tested, and used to satisfy any dependencies;
+this option is like \fB--build-source\fR and \fB--from-source\fR combined.
+.TP
+.BR --user " " \fIusername\fR
+Specifies that commands on the testbed should generally be run as
+\fIusername\fR; this option does not make much sense unless the
+virtualisation environment provides root on the testbed.  Commands are
+run via \fBsu -c\fR; affected commands are tests (other than those
+which declare that they need root), source package builds and source
+package binary generation (via fakeroot).  If the testbed advertises
+the \fBroot-on-testbed\fR and \fBsuggest-normal-user=\fR capabilities,
+the suggested normal is used as the default; otherwise the default is
+to run commands as the testbed's default user (this can be explicitly
+requested by specifying the empty string for \fIusername\fR).
+.TP
+.BR --fakeroot " " \fIfakeroot-command\fR
+Specifies that \fBdebian/rules binary\fR should be run via
+\fIfakeroot-command\fR.  The default is \fBfakeroot\fR if the testbed
+doesn't offer us root or if we are running \fBdebian/rules build\fR as
+a normal user according to a specified or default value of
+\fB--user\fR, and no wrapper otherwise.
+
+The default is to run without any special
+measures if the test
+
+Specifies that commands on the testbed should generally be run as
+\fIusername\fR; this option does not make much sense unless the
+virtualisation environment provides root on the testbed.  Commands
+are run via \fBsu -c\fR; affected commands are tests (other than those
+which declare that they need root), source package builds and source
+package binary generation (except if \fB--fakeroot\fR is specified -
+see below).
+
+Specifies that \fIfilename\fR (which should be a \fB.deb\fR) should be
+unconditionally installed on the testbed before any tests are run (but
+after any necessary building).  This can be used to test a specific
+binary package.
+.TP
+.BR --install-binary [ -tb ] " " \fIfilename\fR
+Specifies that \fIfilename\fR (which should be a \fB.deb\fR) should be
+unconditionally installed on the testbed before any tests are run (but
+after any necessary building).  This can be used to test a specific
+binary package.
+.TP
+.BR --from-source [ -tb ] " " \fIsource\fR
+Specifies that \fIsource\fR (which should be a \fB.dsc\fR) should be
+built on the testbed and then the resulting \fB.deb\fR's
+used to satisfy dependencies where necessary.
+.TP
+.BR --install-from-source [ -tb ] " " \fIsource\fR
+Specifies that \fIsource\fR (which should be a \fB.dsc\fR) should be
+built on the testbed and then (some subset of) the \fB.deb\fR's which
+result should be installed.
+;.TP
+;.BR --without-depends | --with-depends-only | --with-depends | --with-recommends
+;Specifies dependency handling: These options control whether
+;dependencies necessary for building and installing the packages as
+;requested will be installed (and possibly deinstalled, if there are
+;conflicts).
+;.IP
+;Each option controls installation of the dependencies for
+;all subsequent
+;.BR --build-source ", " --install-package " and " --install-from-source
+;options, until the next dependency handling option; the last
+;dependency handling option controls whether dependencies specified in
+;the actual test control file are installed.
+;.IP
+;The four handling modes are to honour, respectively: no dependencies, only
+;\fBDepends\fR, everything except \fBRecommends\fR and \fBSuggests\fR,
+;and everything except \fBSuggests\fR.
+;The default is \fB--without-depends\fR (it is as if this was
+;specified at the start of the command line).
+;.TP
+;.BR --package-filter-dependency " [!]\fIpattern\fR[,[!]\fIpattern\fR...]"
+;Limits the packages installed (or removed) due to dependencies to
+;those matching the specified filter.  The filter is a comma-separated
+;list of glob patterns (which must match the whole package name); each
+;optionally preceded by \fB!\fR (which indicates that matching packages
+;should not be installed).  The first pattern found determines; if no
+;pattern matches, then the package is taken to match the filter iff the
+;last pattern had a \fB!\fR.
+.TP
+.BR --package-filter-from-source " [!]\fIpattern\fR[,[!]\fIpattern\fR...]"
+Limits the packages installed directly due to
+.B --install-from-source
+directives; the patterns are interpreted as for
+.BR --package-filter-dependency .
+.TP
+.BR --control [ -tb ] " " \fIcontrol\fR
 Specifies that
 .I control
 should be used as the test control file instead of
@@ -40,31 +138,38 @@ should be used as the test control file instead of
 in the build tree.  Note that it is not an error for this file not to
 exist; that just means that there are no tests.
 .TP
-.BR \-\-output\-dir [ \-tb ] " " \fIoutput\-dir\fR
+.BR --output-dir [ -tb ] " " \fIoutput-dir\fR
 Specifies that stderr and stdout from the tests should be placed in
-.IR output\-dir .
+.IR output-dir .
 The files are named
-.BI stderr\- test
+.BI stderr- test
 and
-.BI stdout\- test
+.BI stdout- test
 for each test
-.IR test .
+.IR test ,
+and
+.BR log-buildt " (for the build logs from " --build-source ),
+.BI log-buildi- i
+.RI "(for the build logs from the " i th
+.BR --install-from-source ),
+.BI log-install- j
+.RI "(for the installation logs from the " j "th installation or removal)".
 .TP
-.BR \-d " | " \-\-debug
+.BR -d " | " --debug
 Enables debugging output.  Probably not hugely interesting.
 .TP
-\fB\-\-\-\fR \fIvirt\-server virt\-server\-arg\fR...
+\fB---\fR \fIvirt-server virt-server-arg\fR...
 Specifies the virtualisation regime server, as a command and arguments
 to invoke.  All the remaining arguments and options after
-.B \-\-\-
+.B ---
 are passed to the virtualisation server program.
 
 .SS NOTES
 Some options which come in variants with and without
-.BR \-tb .
+.BR -tb .
 These specify paths on the testbed and the host, respectively.  The
 data will be copied by
-.B adt\-run
+.B adt-run
 to where it is needed.
 
 .SH OUTPUT FORMAT
@@ -85,7 +190,7 @@ will be reported when the name of the test is not known or not
 applicable: for example, when there are no tests in the package, or a
 there is a test stanza which contains features not understood by this
 version of
-.BR adt\-run .
+.BR adt-run .
 In this case
 .B *
 will appear where the name of the test should be.
@@ -108,7 +213,7 @@ will appear where the name of the test should be.
 20	other unexpected failures including bad usage
 
 .SH SEE ALSO
-\fBadt\-virt\-chroot\fR(1)
+\fBadt-virt-chroot\fR(1)
 
 .SH BUGS
 This tool still lacks many important features.
