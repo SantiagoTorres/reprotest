@@ -24,39 +24,51 @@
 
 import sys
 import os
+import re as regexp
+import string
+from optparse import OptionParser
 
 try: our_base = os.environ['AUTOPKGTEST_BASE']
 except KeyError: our_base = '/usr/share/autopkgtest';
 sys.path.insert(1, our_base+'/python')
 
-import string
-from optparse import OptionParser
 import VirtSubproc as vsp
 
 witholder = None
 
 def parse_args():
-	global down, debuglevel, xlargs
+	global debuglevel, xlargs, gain_root
 
-	usage = "%prog [<adt-xenlvm options>]"
-	for a in 
+	usage = "%prog <options> [-- <adt-xenlvm options>]"
+	parser = OptionParser(usage=usage)
+	pa = parser.add_option
+	pe = parser.error
 
-	fixme must check args fit --<var>=<value> as expected by adt-xenlvm
-	fixme then put set of args into global xlargs
-	fixme fix these next two lines:
-	vsp.debug("down = %s" % string.join(down))
-	vsp.down = down
+	pa('-r', '--gain-root', type='string', dest='gain_root');
+	pa('-d', '--debug', action='store_true', dest='debug');
+
+	(opts,xlargs) = parser.parse_args()
+	vsp.debuglevel = opts.debug
+
+	if opts.gain_root = None: gain_root = []
+	else: gain_root = opts.gain_root.split()
+	vsp.down = gain_root + ['adt-xenlvm-on-testbed'] + xlargs + ['--']
 
 def hook_open():
 	hook_cleanup()
 	withholder = subprocess.Popen(
-		['adt-xenlvm-with-testbed'] + xlargs +
+		gain_root + ['adt-xenlvm-with-testbed'] + xlargs +
 		 ['--','sh','-ec','echo y; exec cat'],
 		stdin=subprocess.PIPE, stdout=subprocess.PIPE )
 	l = withholder.stdout.readline(2)
 	rc = withholder.poll()
-	if rc is not None: bomb("with-testbed failed, code %d" % rc)
-	if l != "y\n": bomb("with-testbed sh gave wrong output `%s', not `l'"
+	if rc is not None:
+		withholder.stdin.close()
+		withholder.stdout.close()
+		withholder = None
+		bomb("with-testbed failed, code %d" % rc)
+	if l != "y\n":
+		bomb("with-testbed sh gave wrong output `%s', not `l'"
 			% l.rstrip("\n"))
 	downtmp = '/root/adt-downtmp'
 	vsp.execute('mkdir %s' % downtmp, downp=True)
@@ -77,6 +89,9 @@ def hook_cleanup():
 		withholder = None
 		if rc: print >>sys.stderr, (
 			"with-testbed failed during cleanup, code %d" % rc)
-	
+
+def hook_capabilities():
+	return ('revert','root-on-testbed','suggest-normal-user=adtxenu')
+
 parse_args()
 vsp.main()

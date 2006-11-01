@@ -53,6 +53,7 @@ def cmdnumargs(c, ce, nargs=0):
 
 def cmd_capabilities(c, ce):
 	cmdnumargs(c, ce)
+	return caller.hook_capabilities()
 
 def cmd_quit(c, ce):
 	cmdnumargs(c, ce)
@@ -311,6 +312,7 @@ def mainloop():
 		sys.exit(16)
 
 def main():
+	debug("down = %s" % string.join(down))
 	ok()
 	prepare()
 	mainloop()

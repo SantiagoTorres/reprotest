@@ -24,19 +24,20 @@
 
 import sys
 import os
+import string
+from optparse import OptionParser
 
 try: our_base = os.environ['AUTOPKGTEST_BASE']
 except KeyError: our_base = '/usr/share/autopkgtest';
 sys.path.insert(1, our_base+'/python')
 
-import string
-from optparse import OptionParser
 import VirtSubproc as vsp
+capabilities = []
 
 def parse_args():
 	global down, debuglevel
 
-	usage = "%prog [options] =<dchroot>|/path/to/chroot"
+	usage = "%prog [<options>] =<dchroot>|/path/to/chroot"
 	parser = OptionParser(usage=usage)
 	pa = parser.add_option
 	pe = parser.error
@@ -57,9 +58,12 @@ def parse_args():
 	elif chroot_arg[0] == '/': down = ['chroot',chroot_arg,'--']
 	else: pe("chroot spec must be =[DCHROOT] or /PATH/TO/CHROOT")
 
-	if opts.gain_root != None: down = opts.gain_root.split() + down
+	if opts.gain_root != None:
+		down = opts.gain_root.split() + down
 
-	vsp.debug("down = %s" % string.join(down))
+	if opts.gain_root or os.getuid()==0:
+		capabilities.append('root-on-testbed')
+
 	vsp.down = down
 
 def hook_open():
@@ -74,6 +78,9 @@ def hook_stop():
 
 def hook_cleanup():
 	vsp.execute('rm -rf --', [downtmp], downp=True)
+
+def hook_capabilities():
+	return capabilities
 
 parse_args()
 vsp.main()
