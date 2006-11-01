@@ -5,8 +5,9 @@ autopkgtest (0.6.2~iwj) unstable; urgency=low
   * Concatenate arguments to dchroot et al, to stop them looking inside
     the args and getting confused.
   * New adt-virt-xenlvm WIP
+  * New adt_normaluser configuration option for adt-xenlvm-*
 
- -- Ian Jackson <ian@davenant.greenend.org.uk>  Tue, 31 Oct 2006 15:03:05 +0000
+ -- Ian Jackson <ian@davenant.greenend.org.uk>  Wed,  1 Nov 2006 16:55:03 +0000
 
 autopkgtest (0.6.1) edgy; urgency=low
 
