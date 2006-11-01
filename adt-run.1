@@ -27,12 +27,78 @@ host.  The package should be installed on the testbed.
 
 .SH OPTIONS
 .TP
-.BR --build-tree [ -tb ] " " \fIdirectory\fR
+.BR --tests-tree [ -tb ] " " \fIdirectory\fR
 Specifies that the built source tree can be found in
 .IR directory .
 (Default: adt-run's current directory, on the host.)
 .TP
-.BR --build-source [ -tb ] " " \fIfilename\fR
+.BR --source [ -tb ] " " \fIdsc\fR
+Builds \fIdsc\fR, and then uses the tests in that tree, as well as
+testing the packages from this build and using them to satisfy
+dependencies.  Equivalent to \fB--source-tests\fI and
+\fB--source-binaries\fI (except that it only does the build once).
+.TP
+.BR --source-tests [ -tb ] " " \fIdsc\fR
+Builds \fIdsc\fR (installing dependencies as appropriate), and then
+uses the tests in that tree.  The packages tested will be those
+installed on the testbed, not the ones from this build.
+.TP
+.BR --source-testsinstall [ -tb ] " " \fIdsc\fR
+Builds \fIdsc\fR (installing dependencies as appropriate), and then
+installs the packages which result (subject to
+\fB--package-filter-source-install\fR).  The packages tested will be
+those installed on the testbed, not the ones from this build.  This is
+like \fB--source-tests\fR except that the packages from the build are
+installed even if they are not required as a dependency for any test.
+.TP
+.BR --source-binaries [ -tb ] " " \fIdsc\fR
+Builds \fIdsc\fR (installing dependencies as appropriate), and then
+use the resulting binary packages to satisfy dependencies (instead of
+packages from the default archive).
+
+
+Only dependencies mentioned by
+tests, or binary packages built by or provided directly to
+\fBadt-run\fR, are affected: dependencies mentioned by binary packages
+installed implicitly
+
+  The dependencies affected are
+
+
+which are themselves installed deliberately by the test 
+.  Binary packages
+installed implicitly by 
+
+
+direct \Test-Depends lines, 
+
+installs the packages which result (subject to
+\fB--package-filter-source-install\fR).  The packages tested will be
+those installed on the testbed, not the ones from this build.
+
+
+
+
+Equivalent to \fB--source-tests\fR but 
+
+; also uses the tests in the
+resulting build tree.  
+
+
+and then
+uses the tests in that tree.  The packages tested will be those
+installed on the testbed, not the ones from this build.
+.TP
+
+
+
+, as well as
+testing the packages from this build and using them to satisfy
+dependencies.  Equivalent to \fB--source-tests\fI and
+\fB--source-binaries\fI (except that it only does the build once).
+
+
+
 Specifies that the source to use for the tests can be found in
 .IR filename
 (which should be a \fB.dsc\fR).  The source will be unpacked

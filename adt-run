@@ -181,9 +181,21 @@ def parse_args():
 		papa_tb('--'+long,	(long, False, dir, xfmap), 'host')
 		papa_tb('--'+long+'-tb',(long, True, dir, xfmap), 'testbed')
 
-	pa_path('build-tree',	'use build tree from PATH on %s', dir=True)
-	pa_path('build-source', 'use tests in DSC on %s (building it)', xfmap=xfmap_dsc)
-	#nyi pa_path('install-binary', 'install package found in PATH on %s')
+	pa_path('tests-tree',		'TREE',	'use tests in build tree TREE (found on %s)',			dir=True)
+
+	pa_pkg('source',		'DSC',	'build DSC (on %s) on testbed and use its tests and packages',	testsrc=True, pkgsrc=True)
+	pa_pkg('source-tests',		'DSC',	'use tests in DSC (found on %s), building it on testbed',	testsrc=True, pkgsrc=False)
+	pa_pkg('source-testsinstall',	'DSC',	'build DSC (found on %s), use its tests, and install its'
+						' binaries (even when apparently not required)',		testsrc=True, pkgsrc='*')
+
+	pa_pkg('source-binaries',	'DSC',	'build DSC (on %s) on testbed and use its binary packages'
+						' as test targets and to satisfy dependencies',			testsrc=False, pkgsrc=True)
+	pa_pkg('source-installbinaries','DSC', 'build DSC (on %s) on testbed and install its binary'
+						' packages (even when apparently not required)',		testsrc=False, pkgsrc='*')
+
+	pa_pkg('install-binary',	'DEB',	'install package DEB (found on %s) on testbed',			testsrc=None, pkgsrc=None)
+
+
 	#nyi pa_path('install-from-source', 'build and install package found'+
 	#			' in PATH on %s', xfmap=xfmap_dsc)
 	#nyi these install-* options need cb_path to be able to make a list
@@ -194,12 +206,9 @@ def parse_args():
 	pa_path('control',    'read control file PATH on %s')
 	pa_path('output-dir', 'write stderr/out files in PATH on %s', dir=True)
 
-	# nyi: on testbed gain root command
+	pa('','--user',			help=	'run tests as USER (needs root on testbed)',			type='string', dest='user')
+	pa('','--fakeroot',		help=	'prefix debian/rules build with FAKEROOT'			type='string', dest='fakeroot')
 	pa('-d', '--debug', action='store_true', dest='debug');
-	pa('','--user', type='string', dest='user', metavar='USER',
-		help='run tests as USER (needs root on testbed)')
-	pa('','--fakeroot', type='string', dest='fakeroot', metavar='FAKEROOT',
-		help='prefix debian/rules build with FAKEROOT')
 
 	class SpecialOption(optparse.Option): pass
 	vs_op = SpecialOption('','--VSERVER-DUMMY')
@@ -221,19 +230,19 @@ def parse_args():
 	if not hasattr(opts,'vserver'):
 		parser.error('you must specifiy --- <virt-server>...')
 
-	if opts.build_tree is not None and opts.build_source is not None:
+	if opts.tests_tree is not None and opts.build_source is not None:
 		parser.error('do not specify both --build-tree and'
 				' --build-source')
 
 	if opts.control is None:
-		opts.control = opts.build_tree.append(
+		opts.control = opts.tests_tree.append(
 			'debian/tests/control', 'control')
 
 def finalise_options():
 	global opts, testbed
 
-	if opts.build_tree is None and opts.build_source is None:
-		opts.build_tree = Path(False, '.', 'build-tree', dir=True)
+	if opts.tests_tree is None and opts.build_source is None:
+		opts.tests_tree = Path(False, '.', 'build-tree', dir=True)
 
 	if opts.user is None and 'root-on-testbed' not in caps:
 		opts.user = ''
@@ -423,17 +432,17 @@ def build_some_source(keyletter, dsc, binaries=False):
 		','.join(map(urllib.quote, ['sh','-xec',script]))],
 		'/dev/null',so.ontb(),se.ontb(), testbed.scratch.ontb())
 	sod = file(so.onhost()).read().split("\n")
-	build_tree = Path(True, sod[0], idstr+'-tree', dir=True)
+	tests_tree = Path(True, sod[0], idstr+'-tree', dir=True)
 	se.maybe_onhost()
-	return (build_tree,)
+	return (tests_tree,)
 
 def acquire_built_source():
 	global opts
 
 	if opts.build_source:
-		assert(opts.build_tree is None)
+		assert(opts.tests_tree is None)
 		bss = build_some_source('t', opts.build_source)
-		opts.build_tree = bss[0]
+		opts.tests_tree = bss[0]
 
 class FieldIgnore(FieldBase):
  def parse(f): pass
@@ -441,7 +450,7 @@ class FieldIgnore(FieldBase):
 class Restriction:
  def __init__(r,rname,base): pass
 
-class Restriction_rw_build_tree(Restriction): pass
+class Restriction_rw_tests_tree(Restriction): pass
 
 class Field_Restrictions(FieldBase):
  def parse(f):
@@ -479,7 +488,7 @@ class Test:
 	t.tname = tname
 	if len(base['testsdir']): tpath = base['testsdir'] + '/' + tname
 	else: tpath = tname
-	t.p = opts.build_tree.append(tpath, 'test-'+tname)
+	t.p = opts.tests_tree.append(tpath, 'test-'+tname)
  def report(t, m):
 	report(t.tname, m)
  def reportfail(t, m):
@@ -503,7 +512,7 @@ class Test:
 	so = stdouterr('stdout')
 	se = stdouterr('stderr')
 	rc = testbed.commandr1('execute',(t.p.ontb(),
-		'/dev/null', so.ontb(), se.ontb(), opts.build_tree.ontb()))
+		'/dev/null', so.ontb(), se.ontb(), opts.tests_tree.ontb()))
 	soh = stdouterrh(so, 'stdout')
 	seh = stdouterrh(se, 'stderr')
 	rc = int(rc)
