@@ -33,6 +33,7 @@ import string
 import re as regexp
 import os
 import errno
+import fnmatch
 
 from optparse import OptionParser
 
@@ -67,7 +68,58 @@ def flatten(l):
 	return reduce((lambda a,b: a + b), l, []) 
 
 class Path:
- def __init__(p, tb, path, what, dir=False, tbscratch=None, xfmap=None
+	# p.path[tb]	None or path	not None => path known
+	# p.file[tb]	None or path	not None => file exists
+	# p.what
+	# p.spec_tb
+	# p.tb_scratch
+
+ def ensure_path(p, tb=False):
+	if tb and not p.spec_tb:
+		if not testbed.scratch:
+			error "called ensure_path for `%s' when testbed closed"
+				% what
+		if not p.tb_scratch or p.tb_scratch is not testbed.scratch:
+			
+
+	if p.path[tb] is not None: return
+	if tb: p.path[tb] = p.tb_tmpdir
+	else: p.path[tb] = tmpdir
+	p.path[tb] += '/'+p.what
+
+ def ensure_file(p, tb=False):
+	if p.file[tb] is not None: return
+	p.ensure_path(tb)
+	testbed.open()
+	
+
+ def write(p, tb=False):
+	p.ensure_path(tb)
+	return p.path[tb]
+ def read(p, tb=False):
+	p.ensure_file(tb)
+
+class InputPath:
+class OutputPath:
+class OutputPath:
+
+ def __init__(p, path, spec_tb, what, dir=False):
+	if p.tb:
+		if p.p[:1] != '/':
+			bomb("path %s specified as being in testbed but"
+				" not absolute: `%s'" % (what, p.p))
+	p.path[spec_tb] = p.file[spec_tb] = path
+	p.what = what
+
+
+	if spec_tb:
+		p.
+tb_path = path
+		p.tb_onpath = path
+		p.tb_onhost = None
+	
+
+4 def __init__(p, tb, path, what, dir=False, tbscratch=None, xfmap=None
 		lpath=None):
 	p.tb = tb
 	p.p = path
@@ -157,6 +209,13 @@ class Path:
 	p.xfmapcopy('copydown')
 	return p.down
 
+def Action:
+ def __init__(a, kind, path, arghandling, ix):
+	a.kind = kind
+	a.path = path
+	a.ah = arghandling
+	a.what = '%s%s' % (kind,ix); ix++
+
 def parse_args():
 	global opts
 	usage = "%prog <options> -- <virt-server>..."
@@ -164,51 +223,127 @@ def parse_args():
 	pa = parser.add_option
 	pe = parser.add_option
 
+	arghandling = {
+		'dsc_tests': True,
+		'dsc_filter': '*',
+		'deb_forbuilds': 'auto',
+		'deb_fortests': 'auto',
+		'tb': False,
+		'override_control': None
+	}
+	initial_arghandling = arghandling.copy()
+	n_actions = 0
+
+	#----------
+	# actions (ie, test sets to run, sources to build, binaries to use):
+
+	def cb_action(op,optstr,value,parser, long,kindpath,is_act):
+		parser.largs.append((value,kindpath))
+		n_actions += is_act
+
+	def pa_action(long, metavar, kindpath, help, is_act=True):
+		pa('','--'+long, action='callback', callback=cb_action,
+			nargs=1, type='string',
+			callback_args=(long,kindpath,is_act), help=help)
+
+	pa_action('build-tree',		'TREE', '@/',
+		help='run tests from build tree TREE')
+
+	pa_action('source',		'DSC', '@.dsc',
+		help='build DSC and use its tests and/or'
+		    ' generated binary packages')
+
+	pa_action('binary',		'DEB', '@.deb',
+	       help='use binary package DEB according'
+		    ' to most recent --binaries-* settings')
+
+	pa_action('override-control',	'CONTROL', ('control',), is_act=0,
+	       help='run tests from control file CONTROL instead,
+		    ' (applies to next test suite only)')
+
+	#----------
+	# argument handling settings (what ways to use action
+	#  arguments, and pathname processing):
+
+	def cb_setah(option, opt_str, value, parser, toset,setval):
+		if type(setval) == list:
+			if not value in setval:
+				parser.error('value for %s option (%s) is not '
+				 'one of the permitted values (%s)' %
+				 (value, opt_str, setval.join(' ')))
+		elif setval is not None:
+			value = setval
+		for v in toset:
+			arghandling[v] = value
+		parser.largs.append(arghandling.copy())
+
+	def pa_setah(long, affected,effect, **kwargs):
+		type = metavar; if type: type = 'string'
+		pa('',long, action='callback', callback=cb_setah,
+		   callback_args=(affected,effect), **kwargs)
+		     ' according to most recent --binaries-* settings')
+
+	#---- paths: host or testbed:
+	#
+	pa_setah('--paths-testbed', ['tb'],True,
+		help='subsequent path specifications refer to the testbed')
+	pa_setah('--paths-host', ['tb'],False,
+		help='subsequent path specifications refer to the host')
+
+	#---- source processing settings:
+
+	pa_setah('--sources-tests', ['dsc_tests'],True,
+		help='run tests from builds of subsequent sources')
+	pa_setah('--sources-no-tests', ['dsc_tests'],False,
+		help='do not run tests from builds of subsequent sources')
+
+	pa_setah('--built-binaries-filter', ['dsc_filter'],None,
+		type=string, metavar='PATTERN-LIST',
+		help='from subsequent sources, use binaries matching'
+		     ' PATTERN-LIST (comma-separated glob patterns)'
+		     ' according to most recent --binaries-* settings')
+	pa_setah('--no-built-binaries', ['dsc_filter'], '_',
+		help='from subsequent sources, do not use any binaries')
+
+	#---- binary package processing settings:
+
+	def pa_setahbins(long,toset,how):
+	 pa_setah(long, toset,['ignore','auto','install'],
+		type=string, metavar='IGNORE|AUTO|INSTALL', default='auto',
+		help=how+' ignore binaries, install them as needed'
+			' for dependencies, or unconditionally install'
+			' them, respectively')
+	pa_setahbins('--binaries', ['deb_forbuilds','deb_fortests'], '')
+	pa_setahbins('--binaries-forbuilds', ['deb_forbuilds'], 'for builds, ')
+	pa_setahbins('--binaries-fortests', ['deb_fortests'], 'for tests, ')
+
+	#----------
+	# general options:
+
 	def cb_vserv(op,optstr,value,parser):
 		parser.values.vserver = list(parser.rargs)
 		del parser.rargs[:]
 
-	def cb_path(op,optstr,value,parser, long,tb,dir,xfmap):
+	def cb_path(op,optstr,value,parser, long,dir,xfmap):
 		name = long.replace('-','_')
-		path = Path(tb, value, long, dir, xfmap=xfmap)
+		path = Path(arghandling['tb'], value, long, dir, xfmap=xfmap)
 		setattr(parser.values, name, path)
 
 	def pa_path(long, help, dir=False, xfmap=None):
-		def papa_tb(long, ca, pahelp):
-			pa('', long, action='callback', callback=cb_path,
-				nargs=1, type='string', callback_args=ca,
-				help=(help % pahelp), metavar='PATH')
-		papa_tb('--'+long,	(long, False, dir, xfmap), 'host')
-		papa_tb('--'+long+'-tb',(long, True, dir, xfmap), 'testbed')
+		pa('','--'+long, action='callback', callback=cb_path,
+			nargs=1, type='string', callback_args=(long,dir,xfmap),
+			help=, metavar='PATH')
 
-	pa_path('tests-tree',		'TREE',	'use tests in build tree TREE (found on %s)',			dir=True)
+	pa_path('output-dir', 'write stderr/out files in PATH', dir=True)
 
-	pa_pkg('source',		'DSC',	'build DSC (on %s) on testbed and use its tests and packages',	testsrc=True, pkgsrc=True)
-	pa_pkg('source-tests',		'DSC',	'use tests in DSC (found on %s), building it on testbed',	testsrc=True, pkgsrc=False)
-	pa_pkg('source-testsinstall',	'DSC',	'build DSC (found on %s), use its tests, and install its'
-						' binaries (even when apparently not required)',		testsrc=True, pkgsrc='*')
-
-	pa_pkg('source-binaries',	'DSC',	'build DSC (on %s) on testbed and use its binary packages'
-						' as test targets and to satisfy dependencies',			testsrc=False, pkgsrc=True)
-	pa_pkg('source-installbinaries','DSC', 'build DSC (on %s) on testbed and install its binary'
-						' packages (even when apparently not required)',		testsrc=False, pkgsrc='*')
-
-	pa_pkg('install-binary',	'DEB',	'install package DEB (found on %s) on testbed',			testsrc=None, pkgsrc=None)
-
-
-	#nyi pa_path('install-from-source', 'build and install package found'+
-	#			' in PATH on %s', xfmap=xfmap_dsc)
-	#nyi these install-* options need cb_path to be able to make a list
-	# nyi: without-depends,with-depends-only,with-depends,with-recommends
-	# nyi: package-filter-dependency
-	# nyi: package-filter-from-source
-	pa_path('install-binary', 'build source package PATH on %s')
-	pa_path('control',    'read control file PATH on %s')
-	pa_path('output-dir', 'write stderr/out files in PATH on %s', dir=True)
-
-	pa('','--user',			help=	'run tests as USER (needs root on testbed)',			type='string', dest='user')
-	pa('','--fakeroot',		help=	'prefix debian/rules build with FAKEROOT'			type='string', dest='fakeroot')
+	pa('','--user',			type='string', dest='user',
+		help='run tests as USER (needs root on testbed)')
+	pa('','--fakeroot',		type='string', dest='fakeroot',
+		help='prefix debian/rules build with FAKEROOT')
 	pa('-d', '--debug', action='store_true', dest='debug');
+
+	#----------
+	# actual meat:
 
 	class SpecialOption(optparse.Option): pass
 	vs_op = SpecialOption('','--VSERVER-DUMMY')
@@ -221,7 +356,6 @@ def parse_args():
 	vs_op.callback_kwargs = { }
 	vs_op.help = 'introduces virtualisation server and args'
 	vs_op._short_opts = []
-	#vs_op._long_opts = ['--DUMMY']
 	vs_op._long_opts = ['---']
 
 	pa(vs_op)
@@ -229,20 +363,37 @@ def parse_args():
 	(opts,args) = parser.parse_args()
 	if not hasattr(opts,'vserver'):
 		parser.error('you must specifiy --- <virt-server>...')
+	if not n_actions:
+		parser.error('nothing to do specified')
 
-	if opts.tests_tree is not None and opts.build_source is not None:
-		parser.error('do not specify both --build-tree and'
-				' --build-source')
+	arghandling = initial_arghandling
+	opts.actions = []
+	ix = 0
+	for act in args:
+		if type(act) == dict:
+			arghandling = act
+			continue
+		elif type(act) == tuple:
+			pass
+		elif type(act) == string:
+			act = (act,act)
+		else:
+			error "unknown action in list `%s' having"
+			      "type `%s' % (act, type(act))
+		(path, kindpath) = act
 
-	if opts.control is None:
-		opts.control = opts.tests_tree.append(
-			'debian/tests/control', 'control')
+		if type(kindpath) is tuple:		kind = kindpath[0]
+		elif kindpath.endswith('/'):		kind = 'tree'
+		elif kindpath.endswith('.deb'):		kind = 'deb'
+		elif kindpath.endswith('.dsc'):		kind = 'dsc'
+		else: parser.error("do not know how to handle filename \`%s';"
+			" specify --source --binary or --build-tree")
+
+		opts.actions.append(Action(kind, path, arghandling, ix))
+		ix++
 
 def finalise_options():
 	global opts, testbed
-
-	if opts.tests_tree is None and opts.build_source is None:
-		opts.tests_tree = Path(False, '.', 'build-tree', dir=True)
 
 	if opts.user is None and 'root-on-testbed' not in caps:
 		opts.user = ''
@@ -405,36 +556,6 @@ class FieldBase:
 			'only one %s field allowed' % fn)
 	return f.v
 
-def build_some_source(keyletter, dsc, binaries=False):
-	idstr = 'build'+keyletter
-	testbed.open()
-	bd = testbed.scratch.append(idstr, idstr)
-	script = [
-			'exec 3>&1 >&2'
-			'mkdir '+bd.ontb(),
-			'cd '+bd.ontb(),
-			'dpkg-source -x '+dsc.ontb()+' >&2',
-			'cd */.',
-			'pwd >&3',
-			opts.user_wrap('debian/rules build'),
-			]
-	if binaries:
-		script = script + [
-			opts.user_wrap(opts.fakeroot+' debian/rules binary'),
-			'cd ..',
-			'echo *.deb >&3',
-			]
-
-	script = '\n'.join(script)
-	so = testbed.scratch.append(idstr+'-tree-path')
-	se = logpath('log-'+idstr)
-	rc = testbed.commandr1(['execute',
-		','.join(map(urllib.quote, ['sh','-xec',script]))],
-		'/dev/null',so.ontb(),se.ontb(), testbed.scratch.ontb())
-	sod = file(so.onhost()).read().split("\n")
-	tests_tree = Path(True, sod[0], idstr+'-tree', dir=True)
-	se.maybe_onhost()
-	return (tests_tree,)
 
 def acquire_built_source():
 	global opts
@@ -630,6 +751,124 @@ def cleanup():
 			'\nadt-run: error cleaning up:\n')
 		os._exit(20)
 
+def source_rules_command(act,script,which,work,results_lines=0):
+	script = "exec 3>&1 >&2\n" + '\n'.join(script)
+	so = TemporaryPath('%s-%s-results' % (what,which))
+	se = TemporaryPath('%s-%s-log' & (what,which))
+	rc = testbed.commandr1(['execute',
+		','.join(map(urllib.quote, ['sh','-xec',script]))],
+		'/dev/null', so.write(True), se.write(True), work.write(True))
+	results = file(so.read()).read().split("\n")
+	if rc:
+		act.bomb("%s failed with exit code %d" % (which,rc), se)
+	if results_lines is not None and len(results) != results_lines:
+		act.bomb("got %d lines of results from %s where %d expected"
+			% (len(results), which, results_lines), se)
+	if results_lines==1: return results[0]
+	return results
+
+def build_source(act,ah):
+	prepare_testbed_for_action()
+
+	what = act.ah['what']
+	dsc_what = what+'/'+os.path.basename(act.path)
+	dsc = InputPath(dsc_what, act.path, arghandling['tb'])
+
+	if not dsc.spec_tb:
+		dsc_file = open(dsc.read())
+		in_files = False
+		re = regexp.compile('^\s+[0-9a-f]+\s+\d+\s+([^/.][^/]*)$')
+		for l in dsc_file():
+			if l.startswith('Files:'): in_files = True
+			elif l.startswith('#'): pass
+			elif not l.startswith(' '): in_files = False
+			elif not in_files: pass
+
+			m = re.match(l)
+			if not m: act.bomb(".dsc contains unparseable line"
+					" in Files: `%s'" % (`dsc`,l))
+
+			subfile = dsc.enclosingdir().append('/'+m.groups(0))
+			subfile.ensure_file(True)
+	dsc.ensure_file(True)
+	
+	work = AccumulationPath(what+'/build', dir=True)
+
+	script = [
+			'cd '+work.write(True),
+			'gdebi '+dsc.read(True),
+			'dpkg-source -x '+dsc.read(True),
+			'cd */.',
+			'pwd >&3',
+			opts.user_wrap('debian/rules build'),
+	]
+	result_pwd = source_rules_command(act,script,what,'build',work,1)
+
+	if os.path.dirname(result_pwd) != work.read(True):
+		act.bomb("results dir `%s' is not in expected parent dir `%s'"
+			% (results[0], work.read(True)), se)
+
+	ah.tests_tree = work.append('/'+os.path.basename(results[0]))
+	if ah['dsc_tests']:
+		ah.tests_tree.preserve_now()
+
+	ah.binaries = []
+	if ah['dsc_filter'] != '_':
+		script = [
+			'cd '+work.write(True)+'/*/.',
+			opts.user_wrap(opts.fakeroot+' debian/rules binary'),
+			'cd ..',
+			'echo *.deb >&3',
+			]
+		result_debs = source_rules_command(act,script,what,
+				'debian/rules binary',work,1)
+		if result_debs == '*': debs = []
+		else: debs = debs.split(' ')
+		re = regexp.compile('^([-+.0-9a-z]+)_[^_/]+(?:_[^_/]+)\.deb$')
+		for deb in debs:
+			m = re.match(deb)
+			if not m: act.bomb("badly-named binary `%s'" % deb, se)
+			package = m.groups(deb)
+			for pat in ah['dsc_filter'].split(','):
+				if fnmatch.fnmatchcase(package,pat):
+					deb_path = work.read()+'/'+deb
+					deb_what = package+'_'+what+'.deb'
+					bin = InputPath(deb_what,deb_path,True)
+					bin.preserve_now()
+					record_binary(bin,'builds')
+					ah.binaries.append(bin)
+					break
+
+def record_binary(
+
+def process_actions():
+	global binaries
+
+	binaries = {}
+	ix = 0
+	for act opts.actions:
+		if act.kind == 'deb':
+			record_binary(act,'builds')
+		if act.kind == 'dsc':
+			build_source(act)
+			# build_source records tree location in ah
+
+	binaries = {}
+	control_override = None
+	for (kind,path,ah) in opts.actions:
+		if kind == 'control':
+			control_override = act
+		if kind == 'deb':
+			record_binary(act,'tests')
+		if kind == 'dsc':
+			for bin in act.binaries: record_binary(bin,'tests')
+			if not act.ah['dsc_tests']: continue
+			run_tests(act,control_override)
+			control_override = None
+		if kind == 'tree':
+			run_tests(act,control_override)
+			control_override = None
+
 def main():
 	global testbed
 	global tmpdir
@@ -642,10 +881,8 @@ def main():
 		testbed = Testbed()
 		testbed.start()
 		testbed.open()
-		testbed.close()
 		finalise_options()
-		read_control()
-		run_tests()
+		process_actions()
 	except:
 		ec = print_exception(sys.exc_info(), '')
 		cleanup()

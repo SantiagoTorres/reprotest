@@ -35,81 +35,35 @@ Specifies that the built source tree can be found in
 .BR --source [ -tb ] " " \fIdsc\fR
 Builds \fIdsc\fR, and then uses the tests in that tree, as well as
 testing the packages from this build and using them to satisfy
-dependencies.  Equivalent to \fB--source-tests\fI and
-\fB--source-binaries\fI (except that it only does the build once).
+dependencies.  Equivalent to \fB--source-binaries-tests\fR.  Order is
+significant: each \fB--source\fR* option only affects the packages
+used pursuant to \fIsubsequent\fR \fB--source\fR or \fB--binary\fR options.
 .TP
-.BR --source-tests [ -tb ] " " \fIdsc\fR
+.BR --source [[ -forbuilds | -installforbuilds ][ -fortests | installfortests ]| -binaries | -install ][ -tests ][ -tb "] \fIdsc\fR"
 Builds \fIdsc\fR (installing dependencies as appropriate), and then
-uses the tests in that tree.  The packages tested will be those
-installed on the testbed, not the ones from this build.
+uses the resulting binary packages to satisfy dependencies (not
+\fBinstall\fR, or just \fBbinaries\fR), installs the resulting
+binaries unconditionally (subject to
+\fB--package-filter-source-install\fR) (\fBinstall\fR*), or uses the
+resulting build tree's test suite (\fBtests\fR).  The scope of the use
+of the generated binary packages can be limited to building other
+source packages (\fBforbuilds\fR, only available if the virtualisation used
+supports filesystem rollback) or running the tests
+(\fBforbinaries\fR).  The subcomponents of the \fB--source-\fR* option
+must be specified in the order shown.
 .TP
-.BR --source-testsinstall [ -tb ] " " \fIdsc\fR
-Builds \fIdsc\fR (installing dependencies as appropriate), and then
-installs the packages which result (subject to
-\fB--package-filter-source-install\fR).  The packages tested will be
-those installed on the testbed, not the ones from this build.  This is
-like \fB--source-tests\fR except that the packages from the build are
-installed even if they are not required as a dependency for any test.
+.BR --binary [ -tb ] " " \fIfilename\fR
+Specifies that \fIfilename\fR (which should be a \fB.deb\fR) should
+be used to satisfy dependencies, both during building and testing,
+(which will include using it as the specific package under test).
+Equivalent to \fB--binary-forbuilds-fortests\fR.
 .TP
-.BR --source-binaries [ -tb ] " " \fIdsc\fR
-Builds \fIdsc\fR (installing dependencies as appropriate), and then
-use the resulting binary packages to satisfy dependencies (instead of
-packages from the default archive).
-
-
-Only dependencies mentioned by
-tests, or binary packages built by or provided directly to
-\fBadt-run\fR, are affected: dependencies mentioned by binary packages
-installed implicitly
-
-  The dependencies affected are
-
-
-which are themselves installed deliberately by the test 
-.  Binary packages
-installed implicitly by 
-
-
-direct \Test-Depends lines, 
-
-installs the packages which result (subject to
-\fB--package-filter-source-install\fR).  The packages tested will be
-those installed on the testbed, not the ones from this build.
-
-
-
-
-Equivalent to \fB--source-tests\fR but 
-
-; also uses the tests in the
-resulting build tree.  
-
-
-and then
-uses the tests in that tree.  The packages tested will be those
-installed on the testbed, not the ones from this build.
-.TP
-
-
-
-, as well as
-testing the packages from this build and using them to satisfy
-dependencies.  Equivalent to \fB--source-tests\fI and
-\fB--source-binaries\fI (except that it only does the build once).
-
-
-
-Specifies that the source to use for the tests can be found in
-.IR filename
-(which should be a \fB.dsc\fR).  The source will be unpacked
-and built, and the tests from this build tree will be run.
-.TP
-.BR --use-source [ -tb ] " " \fIfilename\fR
-Specifies that the source to use for the tests can be found in
-.IR filename
-(which should be a \fB.dsc\fR), and that the packages from this
-build should be the ones tested, and used to satisfy any dependencies;
-this option is like \fB--build-source\fR and \fB--from-source\fR combined.
+.BR --binary [ -installforbuilds | -forbuilds ][ -installfortests | -fortests ] -tb "] \fIpkg\fR"
+Uses the specified binary package to satisfy dependencies, or
+unconditionally installs it (\fBinstall\fR), during building
+(\fBforbuilds\fR) or during testing (\fBfortests\fR), as specified.
+Order is significant: each \fB--source\fR* option only affects the
+packages installed pursuant to \fIsubsequent\fR \fB--source\fR or \fB--binary\fR options.
 .TP
 .BR --user " " \fIusername\fR
 Specifies that commands on the testbed should generally be run as
@@ -133,18 +87,6 @@ a normal user according to a specified or default value of
 The default is to run without any special
 measures if the test
 
-Specifies that commands on the testbed should generally be run as
-\fIusername\fR; this option does not make much sense unless the
-virtualisation environment provides root on the testbed.  Commands
-are run via \fBsu -c\fR; affected commands are tests (other than those
-which declare that they need root), source package builds and source
-package binary generation (except if \fB--fakeroot\fR is specified -
-see below).
-
-Specifies that \fIfilename\fR (which should be a \fB.deb\fR) should be
-unconditionally installed on the testbed before any tests are run (but
-after any necessary building).  This can be used to test a specific
-binary package.
 .TP
 .BR --install-binary [ -tb ] " " \fIfilename\fR
 Specifies that \fIfilename\fR (which should be a \fB.deb\fR) should be
