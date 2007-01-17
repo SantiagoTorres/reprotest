@@ -25,131 +25,80 @@ adt\-run should be invoked (unless options to the contrary are
 supplied) in the top level directory of the built source tree, on the
 host.  The package should be installed on the testbed.
 
-.SH OPTIONS
+.SH PROCESSING INSTRUCTIONS
 .TP
-.BR --tests-tree [ -tb ] " " \fIdirectory\fR
-Specifies that the built source tree can be found in
-.IR directory .
-(Default: adt-run's current directory, on the host.)
+.BR --tests-tree " " \fIdirectory\fR
+Specifies that tests from the built source tree
+.IR directory
+should be run.
 .TP
-.BR --source [ -tb ] " " \fIdsc\fR
-Builds \fIdsc\fR, and then uses the tests in that tree, as well as
-testing the packages from this build and using them to satisfy
-dependencies.  Equivalent to \fB--source-binaries-tests\fR.  Order is
-significant: each \fB--source\fR* option only affects the packages
-used pursuant to \fIsubsequent\fR \fB--source\fR or \fB--binary\fR options.
+.BR --source " " \fIdsc\fR
+Builds \fIdsc\fR.  The resulting binaries will (by default) be used to
+satisfy dependencies.  The tests from that built tree will also be run
+(by default).  The ordering is significant: each \fB--source\fR option
+should precede options whose dependencies are to be satisfied by the
+binaries it produces.
 .TP
-.BR --source [[ -forbuilds | -installforbuilds ][ -fortests | installfortests ]| -binaries | -install ][ -tests ][ -tb "] \fIdsc\fR"
-Builds \fIdsc\fR (installing dependencies as appropriate), and then
-uses the resulting binary packages to satisfy dependencies (not
-\fBinstall\fR, or just \fBbinaries\fR), installs the resulting
-binaries unconditionally (subject to
-\fB--package-filter-source-install\fR) (\fBinstall\fR*), or uses the
-resulting build tree's test suite (\fBtests\fR).  The scope of the use
-of the generated binary packages can be limited to building other
-source packages (\fBforbuilds\fR, only available if the virtualisation used
-supports filesystem rollback) or running the tests
-(\fBforbinaries\fR).  The subcomponents of the \fB--source-\fR* option
-must be specified in the order shown.
+.BR --binary " " \fIdeb\fR
+Specifies that \fIdeb\fR should be used.  By default it will be used
+to satisfy dependencies, both during building and testing, but not
+necessarily installed.  The ordering is significant, as for
+\fB--source\fR.
 .TP
-.BR --binary [ -tb ] " " \fIfilename\fR
-Specifies that \fIfilename\fR (which should be a \fB.deb\fR) should
-be used to satisfy dependencies, both during building and testing,
-(which will include using it as the specific package under test).
-Equivalent to \fB--binary-forbuilds-fortests\fR.
+.I filename
+Bare filename arguments are processed as if
+.BR --tests-tree ", " --source " or " --binary
+was specified; the nature of the argument is guessed from the form of
+the filename.  (So in the case of \fB--tests-tree\fR, either the
+option must be specified, or the filename must end in a slash.)
+.SH PROCESSING OPTIONS
+These affect modify processing instructions.  Unless stated
+otherwise, they affect all subsequent options.
 .TP
-.BR --binary [ -installforbuilds | -forbuilds ][ -installfortests | -fortests ] -tb "] \fIpkg\fR"
-Uses the specified binary package to satisfy dependencies, or
-unconditionally installs it (\fBinstall\fR), during building
-(\fBforbuilds\fR) or during testing (\fBfortests\fR), as specified.
-Order is significant: each \fB--source\fR* option only affects the
-packages installed pursuant to \fIsubsequent\fR \fB--source\fR or \fB--binary\fR options.
+.BR --paths-testbed | --paths-host
+Specifies that subsequent pathnames in command-line arguments refer to
+files on the testbed, or on the host, respectively.  The default is
+\fB--paths-host\fR.
 .TP
-.BR --user " " \fIusername\fR
-Specifies that commands on the testbed should generally be run as
-\fIusername\fR; this option does not make much sense unless the
-virtualisation environment provides root on the testbed.  Commands are
-run via \fBsu -c\fR; affected commands are tests (other than those
-which declare that they need root), source package builds and source
-package binary generation (via fakeroot).  If the testbed advertises
-the \fBroot-on-testbed\fR and \fBsuggest-normal-user=\fR capabilities,
-the suggested normal is used as the default; otherwise the default is
-to run commands as the testbed's default user (this can be explicitly
-requested by specifying the empty string for \fIusername\fR).
+.BR --sources-tests | --sources-no-tests
+Specifies that the tests in subsequent \fB--source\fR arguments should
+(or should not) be run.
 .TP
-.BR --fakeroot " " \fIfakeroot-command\fR
-Specifies that \fBdebian/rules binary\fR should be run via
-\fIfakeroot-command\fR.  The default is \fBfakeroot\fR if the testbed
-doesn't offer us root or if we are running \fBdebian/rules build\fR as
-a normal user according to a specified or default value of
-\fB--user\fR, and no wrapper otherwise.
-
-The default is to run without any special
-measures if the test
-
+.BR --built-binaries-filter= \fIpattern\fB,\fIpattern\fB,\fR...
+Specifies that only binaries whose package names match one of the
+specified patterns should be used; others will be ignored.  This
+option applies to subsequent \fB--source\fR arguments.
 .TP
-.BR --install-binary [ -tb ] " " \fIfilename\fR
-Specifies that \fIfilename\fR (which should be a \fB.deb\fR) should be
-unconditionally installed on the testbed before any tests are run (but
-after any necessary building).  This can be used to test a specific
-binary package.
+.BR --no-built-binaries
+Specifies that all built binaries should be ignored completely;
+equivalent to
+.BR --built-binaries-filter=_
+(since no package name ever contains \fB_\fR).
 .TP
-.BR --from-source [ -tb ] " " \fIsource\fR
-Specifies that \fIsource\fR (which should be a \fB.dsc\fR) should be
-built on the testbed and then the resulting \fB.deb\fR's
-used to satisfy dependencies where necessary.
+.B --binaries=ignore | --binaries=auto | --binaries=install
+Specifies that binary package (in subsequently specified
+\fB--binary\fR arguments, or resulting from subsequently specified
+\fB--source\fR arguments and not filtered out) should be ignored, used
+only to satisfy dependencies, or installed unconditionally,
+respectively.  Equivalent to specifying both
+.BR --binaries-forbuilds " and " --binaries-fortests .
 .TP
-.BR --install-from-source [ -tb ] " " \fIsource\fR
-Specifies that \fIsource\fR (which should be a \fB.dsc\fR) should be
-built on the testbed and then (some subset of) the \fB.deb\fR's which
-result should be installed.
-;.TP
-;.BR --without-depends | --with-depends-only | --with-depends | --with-recommends
-;Specifies dependency handling: These options control whether
-;dependencies necessary for building and installing the packages as
-;requested will be installed (and possibly deinstalled, if there are
-;conflicts).
-;.IP
-;Each option controls installation of the dependencies for
-;all subsequent
-;.BR --build-source ", " --install-package " and " --install-from-source
-;options, until the next dependency handling option; the last
-;dependency handling option controls whether dependencies specified in
-;the actual test control file are installed.
-;.IP
-;The four handling modes are to honour, respectively: no dependencies, only
-;\fBDepends\fR, everything except \fBRecommends\fR and \fBSuggests\fR,
-;and everything except \fBSuggests\fR.
-;The default is \fB--without-depends\fR (it is as if this was
-;specified at the start of the command line).
-;.TP
-;.BR --package-filter-dependency " [!]\fIpattern\fR[,[!]\fIpattern\fR...]"
-;Limits the packages installed (or removed) due to dependencies to
-;those matching the specified filter.  The filter is a comma-separated
-;list of glob patterns (which must match the whole package name); each
-;optionally preceded by \fB!\fR (which indicates that matching packages
-;should not be installed).  The first pattern found determines; if no
-;pattern matches, then the package is taken to match the filter iff the
-;last pattern had a \fB!\fR.
+.BI --binaries-forbuilds= ...
+Like \fB--binaries=\fR but only changes the handling during package
+building: packages will be ignored, used for dependencies, or
+unconditionally installed, when a source package is built.
 .TP
-.BR --package-filter-from-source " [!]\fIpattern\fR[,[!]\fIpattern\fR...]"
-Limits the packages installed directly due to
-.B --install-from-source
-directives; the patterns are interpreted as for
-.BR --package-filter-dependency .
+.BI --binaries-fortests= ...
+Like \fB--binaries=\fR but only changes the handling during testing:
+packages will be ignored, used for dependencies (including as the
+package under test), or unconditionally installed, when tests are run
+(as a result of either \fB--source\fR or \fB--build-tree\fR).
+.SH OTHER OPTIONS
 .TP
-.BR --control [ -tb ] " " \fIcontrol\fR
-Specifies that
-.I control
-should be used as the test control file instead of
-.B debian/tests/control
-in the build tree.  Note that it is not an error for this file not to
-exist; that just means that there are no tests.
-.TP
-.BR --output-dir [ -tb ] " " \fIoutput-dir\fR
+.BI --output-dir " " \fIoutput-dir\fR
 Specifies that stderr and stdout from the tests should be placed in
 .IR output-dir .
-The files are named
+The files were previously named
 .BI stderr- test
 and
 .BI stdout- test
@@ -162,6 +111,42 @@ and
 .BR --install-from-source ),
 .BI log-install- j
 .RI "(for the installation logs from the " j "th installation or removal)".
+Names have probably changed since this manual was written.
+.TP
+.BI --user= user
+Run builds and tests as \fIuser\fR on the testbed.  This needs root on
+the testbed; if root on the testbed is not available then builds and
+tests run as whatever user is provided.
+.TP
+.BI --gain-root= gain-root
+Prefixes
+.B debian/rules binary
+with
+.RB gain-root .  The default is not to use anything, except that if
+\fB--user\fR is supplied or root on the testbed is not available the
+default is \fBfakeroot\fR.
+.TP
+.BI --tmp-dir= tmpdir
+Specifies that \fItmpdir\fR should be used instead of a fresh
+temporary directory on the host.  \fItmpdir\fR will be created if
+necessary, and emptied of all of its contents before \fBadt-run\fR
+starts, and it will not be cleaned out afterwards.  \fItmpdir\fR is
+not affected by \fB--paths-testbed\fR.
+.B NOTE
+again that all of the contents of \fItmpdir\fR will be \fBdeleted\fR.
+.TP
+.BI --gnupg-home= dir
+Uses \fIdir\fR as the \fBGNUPGHOME\fR for local apt archive signing.
+The specified directory should not contain keyrings containing other
+unrelated keys, since \fBadt-run\fR does not specify to \fBgpg\fR
+which keys to use.  The default is
+.BR $HOME/.autopkgtest .
+\fB--paths-testbed\fR has no effect on this option.
+.TP
+.B --gnupg-home=fresh
+Use a fresh temporary directory and generate fresh keys each run.
+This can be very slow and depends on the availability of sufficient
+quantities of high-quality entropy.
 .TP
 .BR -d " | " --debug
 Enables debugging output.  Probably not hugely interesting.
@@ -172,18 +157,10 @@ to invoke.  All the remaining arguments and options after
 .B ---
 are passed to the virtualisation server program.
 
-.SS NOTES
-Some options which come in variants with and without
-.BR -tb .
-These specify paths on the testbed and the host, respectively.  The
-data will be copied by
-.B adt-run
-to where it is needed.
-
 .SH OUTPUT FORMAT
 During a normal test run, one line is printed for each test.  This
-consists of the name of the test, some horizontal whitespace, and
-either
+consists of a short string identifying the test, some horizontal
+whitespace, and either
 .B PASS
 or
 .BR FAIL " reason"
@@ -191,6 +168,10 @@ or
 .BR SKIP " reason"
 where the pass/fail indication is separated by any reason by some
 horizontal whitespace.
+
+The string to identify the test consists of a short alphanumeric
+string invented by \fBadt-run\fR to distinguish different command-line
+arguments, followed by a hyphen and the test name.
 
 Sometimes a
 .B SKIP
@@ -202,6 +183,21 @@ version of
 In this case
 .B *
 will appear where the name of the test should be.
+
+Also, the output:
+.BR blame:  ...
+may be produced, where the right hand side is
+.BI arg: argument
+(representing a pathname found in a command line argument),
+.BI dsc: package
+(a source package name),
+.BI deb: package
+(a binary package name)
+or possibly other strings to be determined.  In case of an erroneous
+package (see \fBEXIT STATUS\fR) this indicates which arguments and/or
+packages might have contributed to the problem; the ones which were
+processed most recently and which are therefore most likely to be the
+cause of a problem are listed last.
 
 .SH EXIT STATUS
 0	all tests passed
