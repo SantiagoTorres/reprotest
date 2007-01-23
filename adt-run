@@ -412,29 +412,25 @@ def parse_args():
 		opts.actions.append(Action(kind, af, arghandling, what))
 
 def finalise_options():
-	global opts, testbed
+	global opts, tb
 
-	if opts.user is None and 'root-on-testbed' not in caps:
+	if opts.user is None and 'root-on-testbed' not in tb.caps:
 		opts.user = ''
 
 	if opts.user is None:
 		su = 'suggested-normal-user='
 		ul = [
 			e[length(su):]
-			for e in caps
+			for e in tb.caps
 			if e.startswith(su)
 			]
-		if len(ul) > 1:
-			print >>sys.stderr, "warning: virtualisation"
-				" system offers several suggested-normal-user"
-				" values: "+('/'.join(ul))+", using "+ul[0]
 		if ul:
 			opts.user = ul[0]
 		else:
 			opts.user = ''
 
 	if opts.user:
-		if 'root-on-testbed' not in caps:
+		if 'root-on-testbed' not in tb.caps:
 			print >>sys.stderr, "warning: virtualisation"
 				" system does not offer root on testbed,"
 				" but --user option specified: failure likely"
@@ -445,7 +441,7 @@ def finalise_options():
 	if opts.gainroot is None:
 		opts.gainroot = ''
 		if opts.user or
-		   'root-on-testbed' not in testbed.caps:
+		   'root-on-testbed' not in tb.caps:
 			opts.gainroot = 'fakeroot'
 
 	if opts.gnupghome.startswith('~/'):
@@ -494,7 +490,7 @@ class Testbed:
 	if tb.sp is None: return
 	tb.command('close')
  def prepare(tb):
-	if tb.modified and 'reset' in caps:
+	if tb.modified and 'reset' in tb.caps:
 		tb.command('reset')
 		tb.blamed = []
 	tb.modified = False
@@ -603,7 +599,7 @@ class Restriction:
 
 class Restriction_rw_tests_tree(Restriction): pass
 class Restriction_breaks_testbed(Restriction):
-	if 'reset' not in caps:
+	if 'reset' not in tb.caps:
 		raise Unsupported(f.lno,
 			'Test breaks testbed but testbed cannot reset')
 
@@ -1014,6 +1010,8 @@ def build_source(act):
 
 def process_actions():
 	global binaries
+
+	tb.open()
 	binaries = Binaries()
 
 	b.reset()
