@@ -72,10 +72,6 @@ def hook_open():
 	downtmp = vsp.execute('mktemp -t -d', downp=True, outp=True)
 	return downtmp
 
-def hook_stop():
-	vsp.execute('rm -rf --', c[1:2])
-	os.mkdir(c[1])
-
 def hook_cleanup():
 	vsp.execute('rm -rf --', [downtmp], downp=True)
 

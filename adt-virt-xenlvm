@@ -35,6 +35,7 @@ sys.path.insert(1, our_base+'/python')
 import VirtSubproc as vsp
 
 witholder = None
+downtmp = '/root/adt-downtmp'
 
 def parse_args():
 	global debuglevel, xlargs, gain_root
@@ -54,8 +55,8 @@ def parse_args():
 	else: gain_root = opts.gain_root.split()
 	vsp.down = gain_root + ['adt-xenlvm-on-testbed'] + xlargs + ['--']
 
-def hook_open():
-	hook_cleanup()
+def do_open():
+	assert(withholder is None)
 	withholder = subprocess.Popen(
 		gain_root + ['adt-xenlvm-with-testbed'] + xlargs +
 		 ['--','sh','-ec','echo y; exec cat'],
@@ -70,25 +71,27 @@ def hook_open():
 	if l != "y\n":
 		bomb("with-testbed sh gave wrong output `%s', not `l'"
 			% l.rstrip("\n"))
-	downtmp = '/root/adt-downtmp'
-	vsp.execute('mkdir %s' % downtmp, downp=True)
-	return downtmp
+	vsp.execute('mkdir %s' % downtmp, downp=True)	
 
-def hook_stop():
+def do_close():
 	withholder.stdin.close()
 	withholder.stdout.close()
 	rc = withholder.wait()
 	withholder = None
-	if rc: bomb("with-testbed failed at shutdown, code %d" % rc)
+	if rc: bomb("with-testbed failed when closing/resetting, code %d" % rc)
+
+def hook_open():
+	hook_cleanup()
+	do_open()
+	return downtmp
+
+def hook_reset():
+	do_close()
+	do_open()
 
 def hook_cleanup():
 	if withholder is not None:
-		withholder.stdin.close()
-		withholder.stdout.close()
-		rc = withholder.wait()
-		withholder = None
-		if rc: print >>sys.stderr, (
-			"with-testbed failed during cleanup, code %d" % rc)
+		do_close()
 
 def hook_capabilities():
 	return ('revert','root-on-testbed','suggest-normal-user=adtxenu')
