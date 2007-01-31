@@ -1,3 +1,9 @@
+autopkgtest (0.6.2~iwj.1) unstable; urgency=low
+
+  * WIP making xen work again in feisty
+
+ -- Ian Jackson <ian@davenant.greenend.org.uk>  Wed, 31 Jan 2007 15:10:58 +0000
+
 autopkgtest (0.6.2~iwj) unstable; urgency=low
 
   * Split VirtSubproc off from adt-virt-chroot in preparation
