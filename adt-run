@@ -114,7 +114,7 @@ class AutoFile:
  def _wrong(p, how):
 	xtra = ''
 	if p.has_key('spec'): xtra = ' spec[%s]=%s' % (p.spec, p.spec_tb)
-	error "internal error: %s (%s)" % (how, p.__str__())
+	error ("internal error: %s (%s)" % (how, p.__str__()))
 
  def _ensure_path(p, tbp):
 	if p.path[tbp] is None:
@@ -129,7 +129,8 @@ class AutoFile:
 	if p.dir and not p.file[tbp]:
 		if not tbp:
 			try: os.mkdir(p.path[tbp])
-			except IOError, oe: if oe.errno != errno.EEXIST: raise
+			except IOError, oe:
+				if oe.errno != errno.EEXIST: raise
 		else:
 			cmdl = ['sh','-ec',
 				'test -d "$1" || mkdir "$1"',
@@ -177,7 +178,7 @@ class AutoFile:
 			bomb("directory `%s' specified for "
 			     "non-directory %s" % (pf[tbp], p.what))
 
-class InputFile(Path):
+class InputFile(AutoFile):
  def __init__(p, what, spec, spec_tbp=False):
 	AutoFile.__init__(p, what)
 	p.spec = spec
@@ -185,13 +186,13 @@ class InputFile(Path):
 	p.path[spec_tbp] = p.file[spec_tbp] = spec
 	p._check()
 
-class InputDir(Path):
+class InputDir(AutoFile):
  def __init__(p, what, spec, spec_tbp=False):
 	InputFile.__init__(p,what,spec,spec_tbp)
 	p.dir = '/'
 	p._check()
 
-class OutputFile(Path):
+class OutputFile(AutoFile):
  def __init__(p, what, spec, spec_tbp=False):
 	AutoFile.__init__(p, what)
 	p.spec = spec
@@ -199,13 +200,13 @@ class OutputFile(Path):
 	p.path[spec_tbp] = spec
 	p._check()
 
-class OutputDir(Path):
+class OutputDir(AutoFile):
  def __init__(p, what, spec, spec_tbp=False):
 	OutputFile.__init__(p,what,spec,spec_tbp)
  	p.dir = '/'
 	p._check()
 
-class TemporaryFile(Path):
+class TemporaryFile(AutoFile):
  def __init__(p, what):
 	AutoFile.__init__(p, what)
 
@@ -261,7 +262,7 @@ def parse_args():
 		    ' to most recent --binaries-* settings')
 
 	pa_action('override-control',	'CONTROL', ('control',), is_act=0,
-	       help='run tests from control file CONTROL instead,
+	       help='run tests from control file CONTROL instead,'
 		    ' (applies to next test suite only)')
 
 	#----------
@@ -281,10 +282,10 @@ def parse_args():
 		parser.largs.append(arghandling.copy())
 
 	def pa_setah(long, affected,effect, **kwargs):
-		type = metavar; if type: type = 'string'
+		type = metavar
+		if type: type = 'string'
 		pa('',long, action='callback', callback=cb_setah,
 		   callback_args=(affected,effect), **kwargs)
-		     ' according to most recent --binaries-* settings')
 
 	#---- paths: host or testbed:
 	#
@@ -352,7 +353,7 @@ def parse_args():
 	pa('-d', '--debug', action='store_true', dest='debug');
 	pa('','--gnupg-home',		type='string', dest='gnupghome',
 		default='~/.autopkgtest/gpg',
-		help='use GNUPGHOME rather than ~/.autopkgtest (for
+		help='use GNUPGHOME rather than ~/.autopkgtest (for'
 			" signing private apt archive);"
 			" `fresh' means generate new key each time.")
 
@@ -392,8 +393,8 @@ def parse_args():
 		elif type(act) == string:
 			act = (act,act)
 		else:
-			error "unknown action in list `%s' having"
-			      "type `%s' % (act, type(act))
+			error("unknown action in list `%s' having"
+			      "type `%s'" % (act, type(act)))
 		(pathstr, kindpath) = act
 
 		constructor = InputPath
@@ -406,7 +407,7 @@ def parse_args():
 		else: parser.error("do not know how to handle filename \`%s';"
 			" specify --source --binary or --build-tree")
 
-		what = '%s%s' % (kind,ix); ix++
+		what = '%s%s' % (kind,ix); ix += 1
 
 		af = constructor(what+'-'+kind, pathstr, arghandling['tb'])
 		opts.actions.append(Action(kind, af, arghandling, what))
@@ -431,17 +432,17 @@ def finalise_options():
 
 	if opts.user:
 		if 'root-on-testbed' not in tb.caps:
-			print >>sys.stderr, "warning: virtualisation"
+			print >>sys.stderr, ("warning: virtualisation"
 				" system does not offer root on testbed,"
-				" but --user option specified: failure likely"
+				" but --user option specified: failure likely")
 		opts.user_wrap = lambda x: 'su %s -c "%s"' % (opts.user, x)
 	else:
 		opts.user_wrap = lambda x: x
 
 	if opts.gainroot is None:
 		opts.gainroot = ''
-		if opts.user or
-		   'root-on-testbed' not in tb.caps:
+		if (opts.user or
+		    'root-on-testbed' not in tb.caps):
 			opts.gainroot = 'fakeroot'
 
 	if opts.gnupghome.startswith('~/'):
@@ -553,7 +554,7 @@ class Testbed:
 	rl = tb.commandr(cmd, 1, args)
 	return rl[0]
  def execute(tb, what, cmdargs,
-		si='/dev/null', so='/dev/null', se=None, cwd=None)
+		si='/dev/null', so='/dev/null', se=None, cwd=None):
 	if cwd is None: cwd = tb.tbscratch.write(True)
 	se_use = se
 	if se_use is None:
@@ -599,7 +600,7 @@ class Restriction:
 
 class Restriction_rw_tests_tree(Restriction): pass
 class Restriction_breaks_testbed(Restriction):
-	if 'reset' not in tb.caps:
+	if 'reset' not in testbed.caps:
 		raise Unsupported(f.lno,
 			'Test breaks testbed but testbed cannot reset')
 
@@ -821,8 +822,10 @@ class Binaries:
 		if oe.errno != errno.ENOENT: raise
 
 	try: os.mkdir(opts.gnupghome, 0700)
-	except IOError, oe: if oe.errno != errno.EEXIST: raise
-		script = '
+	except IOError, oe:
+		if oe.errno != errno.EEXIST: raise
+
+	script = '''
   cd "$1"
   exec >key-gen-log 2>&1
   cat <<"END" >key-gen-params
@@ -835,16 +838,16 @@ Name-Email: autopkgtest@example.com
 END
   set -x
   gpg --homedir="$1" --batch --gen-key key-gen-params
-			'
-		cmdl = ['sh','-ec',script,'x',opts.gnupghome]
-		rc = subprocess.call(cmdl)
-		if rc:
-			try:
-				f = open(opts.gnupghome+'/key-gen-log')
-				tp = file.read()
-			except IOError, e: tp = e
-			print >>sys.stderr, tp
-			bomb('key generation failed, code %d' % rc)
+		'''
+	cmdl = ['sh','-ec',script,'x',opts.gnupghome]
+	rc = subprocess.call(cmdl)
+	if rc:
+		try:
+			f = open(opts.gnupghome+'/key-gen-log')
+			tp = file.read()
+		except IOError, e: tp = e
+		print >>sys.stderr, tp
+		bomb('key generation failed, code %d' % rc)
 
  def reset(b):
 	shutil.rmtree(b.dir.read())
@@ -873,14 +876,14 @@ END
 		b.install.append(pkg)
 
  def publish(b):
-	script = '
+	script = '''
   cd "$1"
   apt-ftparchive packages . >Packages
   gzip -f Packages
   apt-ftparchive release . >Release
   gpg --homedir="$2" --batch --detach-sign --armour -o Release.gpg Release
   gpg --homedir="$2" --batch --export >archive-key.pgp
-	'
+		'''
 	cmdl = ['sh','-ec',script,'x',b.dir.write(),opts.gnupghome]
 	rc = subprocess.call(cmd)
 	if rc: bomb('apt-ftparchive or signature failed, code %d' % rc)
@@ -888,10 +891,10 @@ END
 	b.dir.invalidate(True)
 	apt_source = b.dir.read(True)
 
-	script = '
+	script = '''
   apt-key add archive-key.pgp
   echo "deb file:///'+apt_source+'/ /" >/etc/apt/sources.list.d/autopkgtest
-	'
+		'''
 	(rc,se) = testbed.execute('aptkey-'+what, ['sh','-ec','script'], b.dir)
 	if rc: bomb('apt setup failed with exit code %d' % rc, se)
 
