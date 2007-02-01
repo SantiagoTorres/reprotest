@@ -251,8 +251,7 @@ def command():
 	r = f(c, ce)
 	if not r: r = []
 	r.insert(0, 'ok')
-	ru = map(urllib.quote, r)
-	print string.join(ru)
+	print string.join(r)
 
 def cleanup():
 	global downtmp, cleaning

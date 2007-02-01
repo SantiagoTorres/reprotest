@@ -26,6 +26,7 @@ import sys
 import os
 import re as regexp
 import string
+import subprocess
 from optparse import OptionParser
 
 try: our_base = os.environ['AUTOPKGTEST_BASE']
@@ -34,7 +35,7 @@ sys.path.insert(1, our_base+'/python')
 
 import VirtSubproc as vsp
 
-witholder = None
+withholder = None
 downtmp = '/root/adt-downtmp'
 
 def parse_args():
@@ -51,11 +52,12 @@ def parse_args():
 	(opts,xlargs) = parser.parse_args()
 	vsp.debuglevel = opts.debug
 
-	if opts.gain_root = None: gain_root = []
+	if opts.gain_root is None: gain_root = []
 	else: gain_root = opts.gain_root.split()
 	vsp.down = gain_root + ['adt-xenlvm-on-testbed'] + xlargs + ['--']
 
 def do_open():
+	global withholder
 	assert(withholder is None)
 	withholder = subprocess.Popen(
 		gain_root + ['adt-xenlvm-with-testbed'] + xlargs +
@@ -74,6 +76,7 @@ def do_open():
 	vsp.execute('mkdir %s' % downtmp, downp=True)	
 
 def do_close():
+	global withholder
 	withholder.stdin.close()
 	withholder.stdout.close()
 	rc = withholder.wait()
@@ -90,11 +93,12 @@ def hook_reset():
 	do_open()
 
 def hook_cleanup():
+	global withholder
 	if withholder is not None:
 		do_close()
 
 def hook_capabilities():
-	return ('revert','root-on-testbed','suggest-normal-user=adtxenu')
+	return ['revert','root-on-testbed','suggest-normal-user=adtxenu']
 
 parse_args()
 vsp.main()
