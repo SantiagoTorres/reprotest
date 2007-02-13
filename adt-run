@@ -74,7 +74,27 @@ class Unsupported:
 def debug(m):
 	global opts
 	if not opts.debug: return
-	print >>sys.stderr, 'atd-run: debug:', m
+	for l in m.rstrip('\n').split('\n'):
+		print >>sys.stderr, 'atd-run: debug:', l
+
+def rmtree(what, pathname):
+	debug('//rmtree (%s) %s' % (what, pathname))
+	shutil.rmtree(pathname)
+
+def debug_subprocess(what, cmdl=None, script=None):
+	o = '$ '+what+':'
+	if cmdl is not None:
+		ol = []
+		for x in cmdl:
+			if x is script: x = '<SCRIPT>'
+			ol.append(x.	replace('\\','\\\\').
+					replace(' ','\\ ')	)
+		o += ' '+ ' '.join(ol)
+	if script is not None:
+		o += '\n'
+		for l in script.rstrip('\n').split('\n'):
+			o += '$     '+l+'\n'
+	debug(o)
 
 def flatten(l):
 	return reduce((lambda a,b: a + b), l, []) 
@@ -85,51 +105,55 @@ class AutoFile:
 	# p.what
 	# p.path[tb]	None or path	not None => path known
 	# p.file[tb]	None or path	not None => file exists
-	# p.spec	string or not set
-	# p.spec_tbp	True or False, or not set
+	# p.spec	string or None
+	# p.spec_tbp	True or False, or not set if spec is None
 	# p.dir		'' or '/'
 
  def __init__(p, what):
 	p.what = what
 	p.path = [None,None]
 	p.file = [None,None]
+	p.spec = None
 	p.dir = ''
 
  def __str__(p):
-	out = p.what
 	def ptbp(tbp):
-		if p.path[tbp] is None: out += '-'
-		elif p.file[tbp] is None: out += '?'+p.path[tbp]
-		else: out += '!'+p.path[tbp]
+		if p.path[tbp] is None: out = '-'
+		elif p.file[tbp] is None: out = '?'+p.path[tbp]
+		else: out = '!'+p.path[tbp]
 		out += p.dir
-	ptbp(False)
+		return out
+	out = p.what
+	out += ptbp(False)
 	out += '|'
-	ptbp(False)
-	if p.has_key('spec'):
-		if p.spec_tb: out += '<'
-		else: out += '>'
+	out += ptbp(True)
+	if p.spec is not None:
+		if p.spec_tbp: out += '>'
+		else: out += '<'
 		out += p.spec
 	return out
 
  def _wrong(p, how):
 	xtra = ''
-	if p.has_key('spec'): xtra = ' spec[%s]=%s' % (p.spec, p.spec_tb)
-	error ("internal error: %s (%s)" % (how, p.__str__()))
+	if p.spec is not None: xtra = ' spec[%s]=%s' % (p.spec, p.spec_tb)
+	raise ("internal error: %s (%s)" % (how, str(p)))
 
  def _ensure_path(p, tbp):
 	if p.path[tbp] is None:
 		if not tbp:
-			p.path[tbp] = tmpdir+'/'+what
+			p.path[tbp] = tmpdir+'/'+p.what
 		else:
-			p.path[tbp] = testbed.scratch.path[True]+'/'+what
+			p.path[tbp] = testbed.scratch.path[True]+'/'+p.what
 
  def write(p, tbp=False):
+	p._debug('write %s...' % 'HT'[tbp])
 	p._ensure_path(tbp)
 
 	if p.dir and not p.file[tbp]:
 		if not tbp:
+			p._debug('mkdir H')
 			try: os.mkdir(p.path[tbp])
-			except IOError, oe:
+			except OSError, oe:
 				if oe.errno != errno.EEXIST: raise
 		else:
 			cmdl = ['sh','-ec',
@@ -144,31 +168,44 @@ class AutoFile:
 	return p.path[tbp]
 
  def read(p, tbp=False):
-	if p.file[not tbp] is None: p._wrong("requesting read but nonexistent")
+	p._debug('read %s...' % 'HT'[tbp])
 	p._ensure_path(tbp)
 
 	if p.file[tbp] is None:
+		if p.file[not tbp] is None:
+			p._wrong("requesting read but nonexistent")
 		cud = ['copyup','copydown'][tbp]
 		src = p.file[not tbp] + p.dir
-		dst = p.file[tbp] + p.dir
+		dst = p.path[tbp] + p.dir
 		testbed.command(cud, (src, dst))
+		p.file[tbp] = p.path[tbp]
 
 	return p.file[tbp]
 
  def subpath(p, what, leaf, constructor):
+	p._debug('subpath %s /%s %s...' % (what, leaf, `constructor`))
 	if not p.dir: p._wrong("creating subpath of non-directory")
 	return constructor(what, p.spec+p.dir+leaf, p.spec_tbp)
  def sibling(p, what, leaf, constructor):
+	p._debug('sibling %s /%s %s...' % (what, leaf, `constructor`))
 	dir = os.path.dirname(p.spec)
 	if dir: dir += '/'
 	return constructor(what, dir+leaf, p.spec_tbp)
 
  def invalidate(p, tbp=False):
 	p.file[tbp] = None
+	p._debug('invalidated %s' % 'HT'[tbp])
+
+ def _debug(p, m):
+	debug('/%s#%x: %s' % (p.what, id(p), m))
+
+ def _constructed(p):
+	p._debug('constructed: '+str(p))
+	p._check()
 
  def _check(p):
 	for tbp in [False,True]:
-	 for pf in [t.path, t.file]:
+	 for pf in [p.path, p.file]:
 		if pf[tbp] is None: continue
 		if not pf[tbp]: bomb('empty path specified for '+p.what)
 		if p.dir and pf[tbp].endswith('/'):
@@ -179,36 +216,47 @@ class AutoFile:
 			     "non-directory %s" % (pf[tbp], p.what))
 
 class InputFile(AutoFile):
- def __init__(p, what, spec, spec_tbp=False):
+ def _init(p, what, spec, spec_tbp=False):
 	AutoFile.__init__(p, what)
 	p.spec = spec
 	p.spec_tbp = spec_tbp
 	p.path[spec_tbp] = p.file[spec_tbp] = spec
-	p._check()
-
-class InputDir(AutoFile):
  def __init__(p, what, spec, spec_tbp=False):
-	InputFile.__init__(p,what,spec,spec_tbp)
+	p._init(what,spec,spec_tbp)
+	p._constructed()
+
+class InputDir(InputFile):
+ def __init__(p, what, spec, spec_tbp=False):
+	InputFile._init(p,what,spec,spec_tbp)
 	p.dir = '/'
-	p._check()
+	p._constructed()
 
 class OutputFile(AutoFile):
- def __init__(p, what, spec, spec_tbp=False):
+ def _init(p, what, spec, spec_tbp=False):
 	AutoFile.__init__(p, what)
 	p.spec = spec
 	p.spec_tbp = spec_tbp
 	p.path[spec_tbp] = spec
-	p._check()
-
-class OutputDir(AutoFile):
  def __init__(p, what, spec, spec_tbp=False):
-	OutputFile.__init__(p,what,spec,spec_tbp)
+	p._init(what,spec,spec_tbp)
+	p._constructed()
+
+class OutputDir(OutputFile):
+ def __init__(p, what, spec, spec_tbp=False):
+	OutputFile._init(p,what,spec,spec_tbp)
  	p.dir = '/'
-	p._check()
+	p._constructed()
 
 class TemporaryFile(AutoFile):
  def __init__(p, what):
 	AutoFile.__init__(p, what)
+	p._constructed()
+
+class TemporaryDir(AutoFile):
+ def __init__(p, what):
+	AutoFile.__init__(p, what)
+	p.dir = '/'
+	p._constructed()
 
 #---------- parsing and representation of the arguments
 
@@ -222,7 +270,7 @@ class Action:
 
 def parse_args():
 	global opts
-	usage = "%prog <options> -- <virt-server>..."
+	usage = "%prog <options> --- <virt-server>..."
 	parser = OptionParser(usage=usage)
 	pa = parser.add_option
 	pe = parser.add_option
@@ -236,14 +284,15 @@ def parse_args():
 		'override_control': None
 	}
 	initial_arghandling = arghandling.copy()
-	n_actions = 0
+	n_non_actions = 0
 
 	#----------
 	# actions (ie, test sets to run, sources to build, binaries to use):
 
 	def cb_action(op,optstr,value,parser, long,kindpath,is_act):
+		print >>sys.stderr, "cb_action", is_act
 		parser.largs.append((value,kindpath))
-		n_actions += is_act
+		n_non_actions += not(is_act)
 
 	def pa_action(long, metavar, kindpath, help, is_act=True):
 		pa('','--'+long, action='callback', callback=cb_action,
@@ -281,9 +330,9 @@ def parse_args():
 			arghandling[v] = value
 		parser.largs.append(arghandling.copy())
 
-	def pa_setah(long, affected,effect, **kwargs):
+	def pa_setah(long, affected,effect, metavar=None, **kwargs):
 		type = metavar
-		if type: type = 'string'
+		if type is not None: type = 'string'
 		pa('',long, action='callback', callback=cb_setah,
 		   callback_args=(affected,effect), **kwargs)
 
@@ -302,7 +351,7 @@ def parse_args():
 		help='do not run tests from builds of subsequent sources')
 
 	pa_setah('--built-binaries-filter', ['dsc_filter'],None,
-		type=string, metavar='PATTERN-LIST',
+		type='string', metavar='PATTERN-LIST',
 		help='from subsequent sources, use binaries matching'
 		     ' PATTERN-LIST (comma-separated glob patterns)'
 		     ' according to most recent --binaries-* settings')
@@ -313,7 +362,7 @@ def parse_args():
 
 	def pa_setahbins(long,toset,how):
 	 pa_setah(long, toset,['ignore','auto','install'],
-		type=string, metavar='IGNORE|AUTO|INSTALL', default='auto',
+		type='string', metavar='IGNORE|AUTO|INSTALL', default='auto',
 		help=how+' ignore binaries, install them as needed'
 			' for dependencies, or unconditionally install'
 			' them, respectively')
@@ -378,7 +427,7 @@ def parse_args():
 	(opts,args) = parser.parse_args()
 	if not hasattr(opts,'vserver'):
 		parser.error('you must specifiy --- <virt-server>...')
-	if not n_actions:
+	if n_non_actions >= len(parser.largs):
 		parser.error('nothing to do specified')
 
 	arghandling = initial_arghandling
@@ -390,20 +439,20 @@ def parse_args():
 			continue
 		elif type(act) == tuple:
 			pass
-		elif type(act) == string:
+		elif type(act) == str:
 			act = (act,act)
 		else:
-			error("unknown action in list `%s' having"
-			      "type `%s'" % (act, type(act)))
+			raise ("unknown action in list `%s' having"
+			      " type `%s'" % (act, type(act)))
 		(pathstr, kindpath) = act
 
-		constructor = InputPath
+		constructor = InputFile
 		if type(kindpath) is tuple:		kind = kindpath[0]
 		elif kindpath.endswith('.deb'):		kind = 'deb'
 		elif kindpath.endswith('.dsc'):		kind = 'dsc'
 		elif kindpath.endswith('/'):
 			kind = 'tree'
-			constructor = InputPathDir
+			constructor = InputDir
 		else: parser.error("do not know how to handle filename \`%s';"
 			" specify --source --binary or --build-tree")
 
@@ -415,14 +464,14 @@ def parse_args():
 def finalise_options():
 	global opts, tb
 
-	if opts.user is None and 'root-on-testbed' not in tb.caps:
+	if opts.user is None and 'root-on-testbed' not in testbed.caps:
 		opts.user = ''
 
 	if opts.user is None:
 		su = 'suggested-normal-user='
 		ul = [
 			e[length(su):]
-			for e in tb.caps
+			for e in testbed.caps
 			if e.startswith(su)
 			]
 		if ul:
@@ -431,7 +480,7 @@ def finalise_options():
 			opts.user = ''
 
 	if opts.user:
-		if 'root-on-testbed' not in tb.caps:
+		if 'root-on-testbed' not in testbed.caps:
 			print >>sys.stderr, ("warning: virtualisation"
 				" system does not offer root on testbed,"
 				" but --user option specified: failure likely")
@@ -442,7 +491,7 @@ def finalise_options():
 	if opts.gainroot is None:
 		opts.gainroot = ''
 		if (opts.user or
-		    'root-on-testbed' not in tb.caps):
+		    'root-on-testbed' not in testbed.caps):
 			opts.gainroot = 'fakeroot'
 
 	if opts.gnupghome.startswith('~/'):
@@ -466,6 +515,7 @@ class Testbed:
 	tb.blamed = []
  def start(tb):
 	p = subprocess.PIPE
+	debug_subprocess('vserver', opts.vserver)
 	tb.sp = subprocess.Popen(opts.vserver,
 		stdin=p, stdout=p, stderr=None)
 	tb.expect('ok')
@@ -484,7 +534,7 @@ class Testbed:
  def open(tb):
 	if tb.scratch is not None: return
 	pl = tb.commandr('open')
-	tb.scratch = OutputDir('tb-scratch', pl[0], True)
+	tb.scratch = InputDir('tb-scratch', pl[0], True)
  def close(tb):
 	if tb.scratch is None: return
 	tb.scratch = None
@@ -495,7 +545,7 @@ class Testbed:
 		tb.command('reset')
 		tb.blamed = []
 	tb.modified = False
-	binaries.publish(act)
+	binaries.publish()
  def needs_reset(tb):
 	tb.modified = True
  def blame(tb, m):
@@ -520,7 +570,7 @@ class Testbed:
 		(type, value, dummy) = sys.exc_info()
 		tb.bomb('cannot send to testbed: %s' % traceback.
 			format_exception_only(type, value))
- def expect(tb, keyword, nresults=-1):
+ def expect(tb, keyword, nresults=None):
 	l = tb.sp.stdout.readline()
 	if not l: tb.bomb('unexpected eof from the testbed')
 	if not l.endswith('\n'): tb.bomb('unterminated line from the testbed')
@@ -536,37 +586,41 @@ class Testbed:
 			tb.bomb("sent `%s', got `%s', expected `%s...'" %
 				(tb.lastsend, l, keyword))
 	ll = ll[1:]
-	if nresults >= 0 and len(ll) != nresults:
+	if nresults is not None and len(ll) != nresults:
 		tb.bomb("sent `%s', got `%s' (%d result parameters),"
 			" expected %d result parameters" %
 			(string, l, len(ll), nresults))
 	return ll
- def commandr(tb, cmd, nresults, args=()):
+ def commandr(tb, cmd, args=(), nresults=None):
+	# pass args=[None,...] or =(None,...) to avoid more url quoting
 	if type(cmd) is str: cmd = [cmd]
-	al = cmd + map(urllib.quote, args)
+	if len(args) and args[0] is None: args = args[1:]
+	else: args = map(urllib.quote, args)
+	al = cmd + args
 	tb.send(string.join(al))
 	ll = tb.expect('ok', nresults)
 	rl = map(urllib.unquote, ll)
 	return rl
  def command(tb, cmd, args=()):
-	tb.commandr(cmd, 0, args)
+	tb.commandr(cmd, args, 0)
  def commandr1(tb, cmd, args=()):
-	rl = tb.commandr(cmd, 1, args)
+	rl = tb.commandr(cmd, args, 1)
 	return rl[0]
  def execute(tb, what, cmdargs,
 		si='/dev/null', so='/dev/null', se=None, cwd=None):
-	if cwd is None: cwd = tb.tbscratch.write(True)
+	if cwd is None: cwd = tb.scratch.write(True)
 	se_use = se
 	if se_use is None:
-		se_use = TemporaryFile('xerr-'+what).write(True)
-	rc = tb.commandr1(['execute',
-		','.join(map(urllib.quote, cmdargs))],
-		si, so, se_use, cwd)
+		se_af = TemporaryFile('xerr-'+what)
+		se_use = se_af.write(True)
+	rc = tb.commandr1('execute', [None,
+				','.join(map(urllib.quote, cmdargs)),
+				si, so, se_use, cwd])
 	try: rc = int(rc)
 	except ValueError: bomb("execute for %s gave invalid response `%s'"
 					% (what,rc))
 	if se is not None: return rc
-	return (rc, file(se.read()).read())
+	return (rc, file(se_af.read()).read())
 
 #---------- representation of test control files: Field*, Test, etc.
 
@@ -600,6 +654,7 @@ class Restriction:
 
 class Restriction_rw_tests_tree(Restriction): pass
 class Restriction_breaks_testbed(Restriction):
+ def __init__(r, rname, base):
 	if 'reset' not in testbed.caps:
 		raise Unsupported(f.lno,
 			'Test breaks testbed but testbed cannot reset')
@@ -692,7 +747,7 @@ def read_control(act, tree, control_override):
 
 	try:
 		control = file(control_af.read(), 'r')
-	except IOError, oe:
+	except OSError, oe:
 		if oe[0] != errno.ENOENT: raise
 		return []
 
@@ -782,7 +837,7 @@ def cleanup():
 	try:
 		rm_ec = 0
 		if tmpdir is not None:
-			shutil.rmtree(tmpdir)
+			rmtree('tmpdir', tmpdir)
 		if testbed is not None:
 			testbed.stop()
 		if rm_ec: bomb('rm -rf -- %s failed, code %d' % (tmpdir, ec))
@@ -811,6 +866,8 @@ def determine_package(act):
 class Binaries:
  def __init__(b):
 	b.dir = TemporaryDir('binaries')
+	b.dir.write()
+	ok = False
 
 	if opts.gnupghome is None:
 		opts.gnupghome = tmpdir+'/gnupg'
@@ -818,11 +875,18 @@ class Binaries:
 	try:
 		for x in ['pubring','secring']:
 			os.stat(opts.gnupghome + '/' + x + '.gpg')
-	except IOError, oe:
+		ok = True
+	except OSError, oe:
 		if oe.errno != errno.ENOENT: raise
 
-	try: os.mkdir(opts.gnupghome, 0700)
-	except IOError, oe:
+	if ok: debug('# no key generation needed')
+	else: b.genkey()
+
+ def genkey(b):
+	try:
+		os.mkdir(os.path.dirname(opts.gnupghome), 02755)
+		os.mkdir(opts.gnupghome, 0700)
+	except OSError, oe:
 		if oe.errno != errno.EEXIST: raise
 
 	script = '''
@@ -840,17 +904,19 @@ END
   gpg --homedir="$1" --batch --gen-key key-gen-params
 		'''
 	cmdl = ['sh','-ec',script,'x',opts.gnupghome]
+	debug_subprocess('genkey', cmdl, script=script)
 	rc = subprocess.call(cmdl)
 	if rc:
 		try:
 			f = open(opts.gnupghome+'/key-gen-log')
 			tp = file.read()
-		except IOError, e: tp = e
+		except OSError, e: tp = e
 		print >>sys.stderr, tp
 		bomb('key generation failed, code %d' % rc)
 
  def reset(b):
-	shutil.rmtree(b.dir.read())
+	rmtree('binaries', b.dir.read())
+	b.dir.invalidate()
 	b.dir.write()
 	b.install = []
 	b.blamed = []
@@ -864,11 +930,11 @@ END
 	dest = b.dir.subpath('binaries--'+leafname, leafname, OutputFile)
 
 	try: os.remove(dest.write())
-	except IOError, oe:
+	except OSError, oe:
 		if oe.errno != errno.ENOENT: raise e
 
 	try: os.link(af.read(), dest.write())
-	except IOError, oe:
+	except OSError, oe:
 		if oe.errno != errno.EXDEV: raise e
 		shutil.copy(af.read(), dest)
 
@@ -885,7 +951,8 @@ END
   gpg --homedir="$2" --batch --export >archive-key.pgp
 		'''
 	cmdl = ['sh','-ec',script,'x',b.dir.write(),opts.gnupghome]
-	rc = subprocess.call(cmd)
+	debug_subprocess('ftparchive', cmdl, script)
+	rc = subprocess.call(cmdl)
 	if rc: bomb('apt-ftparchive or signature failed, code %d' % rc)
 
 	b.dir.invalidate(True)
@@ -895,7 +962,10 @@ END
   apt-key add archive-key.pgp
   echo "deb file:///'+apt_source+'/ /" >/etc/apt/sources.list.d/autopkgtest
 		'''
-	(rc,se) = testbed.execute('aptkey-'+what, ['sh','-ec','script'], b.dir)
+	debug_subprocess('apt-key', script=script)
+	(rc,se) = testbed.execute('apt-key',
+				['sh','-ec',script],
+				cwd=b.dir.write(True))
 	if rc: bomb('apt setup failed with exit code %d' % rc, se)
 
 	testbed.blamed += b.blamed
@@ -913,6 +983,7 @@ def source_rules_command(act,script,which,work,results_lines=0):
 	script = "exec 3>&1 >&2\n" + '\n'.join(script)
 	so = TemporaryFile('%s-%s-results' % (what,which))
 	se = TemporaryFile('%s-%s-log' & (what,which))
+	debug_subprocess('source-rules-command/'+act, script=script)
 	rc = testbed.execute('%s-%s' % (what,which),
 			['sh','-xec',script],
 			so=so, se=se, cwd= work.write(True))
@@ -925,11 +996,11 @@ def source_rules_command(act,script,which,work,results_lines=0):
 	return results
 
 def build_source(act):
-	act.blame = 'arg:'+act.af.spec()
+	act.blame = 'arg:'+act.af.spec
 	testbed.blame(act.blame)
 	testbed.needs_reset()
 
-	what = act.ah['what']
+	what = act.what
 	dsc = act.af
 	basename = dsc.spec
 	dsc_what = what+'/'+basename
@@ -937,21 +1008,23 @@ def build_source(act):
 	dsc_file = open(dsc.read())
 	in_files = False
 	fre = regexp.compile('^\s+[0-9a-f]+\s+\d+\s+([^/.][^/]*)$')
-	for l in dsc_file():
-		if l.startswith('Files:'): in_files = True
+	for l in dsc_file:
+		l = l.rstrip('\n')
+		if l.startswith('Files:'): in_files = True; continue
 		elif l.startswith('#'): pass
 		elif not l.startswith(' '):
 			in_files = False
 			if l.startswith('Source:'):
 				act.blame = 'dsc:'+l[7:].strip()
 				testbed.blame(act.blame)
-		elif not in_files: pass
+		if not in_files: continue
 
-		m = re.match(l)
+		m = fre.match(l)
 		if not m: badpkg(".dsc contains unparseable line"
-				" in Files: `%s'" % (`dsc`,l))
+				" in Files: `%s'" % l)
+		leaf = m.groups(0)[0]
 		subfile = dsc.sibling(
-				dsc_what+'/'+m.groups(0), m.groups(0),
+				dsc_what+'/'+leaf, leaf,
 				InputFile)
 		subfile.read(True)
 	dsc.read(True)
@@ -1014,10 +1087,10 @@ def build_source(act):
 def process_actions():
 	global binaries
 
-	tb.open()
+	testbed.open()
 	binaries = Binaries()
 
-	b.reset()
+	binaries.reset()
 	for act in opts.actions:
 		testbed.prepare()
 		if act.kind == 'deb':
@@ -1029,7 +1102,7 @@ def process_actions():
 		if act.kind == 'dsc':
 			build_source(act)
 
-	b.reset()
+	binaries.reset()
 	control_override = None
 	for act in opts.actions:
 		testbed.prepare()
