@@ -59,6 +59,11 @@ def cmd_quit(c, ce):
 	cmdnumargs(c, ce)
 	raise Quit(0, '')
 
+def cmd_close(c, ce):
+	cmdnumargs(c, ce)
+	if not downtmp: bomb("`close' when not open")
+	cleanup()
+
 def execute_raw(what, instr, *popenargs, **popenargsk):
 	debug(" ++ %s" % string.join(popenargs[0]))
 	sp = subprocess.Popen(*popenargs, **popenargsk)
