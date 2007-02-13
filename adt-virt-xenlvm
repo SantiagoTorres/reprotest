@@ -27,6 +27,8 @@ import os
 import re as regexp
 import string
 import subprocess
+import fnmatch
+import signal
 from optparse import OptionParser
 
 try: our_base = os.environ['AUTOPKGTEST_BASE']
@@ -37,9 +39,25 @@ import VirtSubproc as vsp
 
 withholder = None
 downtmp = '/root/adt-downtmp'
+pauses = None
+event_counters = { }
+
+def check_pause(kind):
+	if not event_counters.has_key(kind): event_counters[kind] = 0
+	event = '%s#%d' % (kind, event_counters[kind])
+	event_counters[kind] += 1
+	for pattern in pauses:
+		if not '#' in pattern: matched = kind == pattern
+		else: matched = fnmatch.fnmatchcase(event,pattern)
+		if matched: break
+	if not matched:
+		return
+	print >>sys.stderr, ("----- adt-virt-xenlvm pause (event=%s),"
+				" stopping -----" % event)
+	os.kill(0, signal.SIGSTOP)
 
 def parse_args():
-	global debuglevel, xlargs, gain_root
+	global debuglevel, xlargs, gain_root, console, pauses
 
 	usage = "%prog <options> [-- <adt-xenlvm options>]"
 	parser = OptionParser(usage=usage)
@@ -48,6 +66,7 @@ def parse_args():
 
 	pa('-r', '--gain-root', type='string', dest='gain_root');
 	pa('-d', '--debug', action='store_true', dest='debug');
+	pa('','--pause', type='string', dest='pause', default='');
 
 	(opts,xlargs) = parser.parse_args()
 	vsp.debuglevel = opts.debug
@@ -55,6 +74,8 @@ def parse_args():
 	if opts.gain_root is None: gain_root = []
 	else: gain_root = opts.gain_root.split()
 	vsp.down = gain_root + ['adt-xenlvm-on-testbed'] + xlargs + ['--']
+
+	pauses = opts.pause.split(',')
 
 def do_open():
 	global withholder
@@ -77,6 +98,7 @@ def do_open():
 
 def do_close():
 	global withholder
+	check_pause('close')
 	withholder.stdin.close()
 	withholder.stdout.close()
 	rc = withholder.wait()
@@ -89,10 +111,12 @@ def hook_open():
 	return downtmp
 
 def hook_reset():
+	check_pause('reset')
 	do_close()
 	do_open()
 
 def hook_cleanup():
+	check_pause('cleanup')
 	global withholder
 	if withholder is not None:
 		do_close()
