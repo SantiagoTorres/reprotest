@@ -64,9 +64,12 @@ def cmd_close(c, ce):
 	if not downtmp: bomb("`close' when not open")
 	cleanup()
 
+def preexecfn():
+	caller.hook_forked_inchild()
+
 def execute_raw(what, instr, *popenargs, **popenargsk):
 	debug(" ++ %s" % string.join(popenargs[0]))
-	sp = subprocess.Popen(*popenargs, **popenargsk)
+	sp = subprocess.Popen(preexec_fn=preexecfn, *popenargs, **popenargsk)
 	if instr is None: popenargsk['stdin'] = devnull_read
 	(out, err) = sp.communicate(instr)
 	if err: bomb("%s unexpectedly produced stderr output `%s'" %
@@ -186,7 +189,6 @@ def copyupdown(c, ce, upp):
 	localfd = None
 	deststdout = devnull_read
 	srcstdin = devnull_read
-	preexecfns = [None, None]
 	if not dirsp:
 		modestr = ''
 		if upp:
@@ -231,11 +233,12 @@ def copyupdown(c, ce, upp):
 	subprocs = [None,None]
 	debug(" +< %s" % string.join(cmdls[0]))
 	subprocs[0] = subprocess.Popen(cmdls[0], stdin=srcstdin,
-			stdout=subprocess.PIPE, preexec_fn=preexecfns[0])
+			stdout=subprocess.PIPE, preexec_fn=preexecfn)
 	debug(" +> %s" % string.join(cmdls[1]))
 	subprocs[1] = subprocess.Popen(cmdls[1], stdin=subprocs[0].stdout,
-			stdout=deststdout, preexec_fn=preexecfns[1])
+			stdout=deststdout, preexec_fn=preexecfn)
 	for sdn in [1,0]:
+		debug(" +"+"<>"[sdn]+"?");
 		status = subprocs[sdn].wait()
 		if status: bomb("%s %s failed, status %d" %
 			(wh, ['source','destination'][sdn], status))
@@ -260,6 +263,7 @@ def command():
 
 def cleanup():
 	global downtmp, cleaning
+	debug("cleanup...");
 	cleaning = True
 	if downtmp: caller.hook_cleanup()
 	cleaning = False

@@ -105,6 +105,11 @@ def do_close():
 	withholder = None
 	if rc: bomb("with-testbed failed when closing/resetting, code %d" % rc)
 
+def hook_forked_inchild():
+	if withholder is not None:
+		withholder.stdin.close()
+		withholder.stdout.close()
+
 def hook_open():
 	hook_cleanup()
 	do_open()
