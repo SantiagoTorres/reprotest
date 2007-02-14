@@ -988,15 +988,18 @@ END
 def source_rules_command(act,script,what,which,work,results_lines=0):
 	script = "exec 3>&1 >&2\n" + '\n'.join(script)
 	so = TemporaryFile('%s-%s-results' % (what,which))
-	se = TemporaryFile('%s-%s-log' & (what,which))
-	debug_subprocess('source-rules-command/'+act, script=script)
+	se = TemporaryFile('%s-%s-log' % (what,which))
+	debug_subprocess('source-rules-command/%s/%s' % (act.what, which),
+			script=script)
 	rc = testbed.execute('%s-%s' % (what,which),
 			['sh','-xec',script],
-			so=so, se=se, cwd= work.write(True))
+			so=so.write(True), se=se.write(True),
+			cwd= work.write(True))
 	results = file(so.read()).read().split("\n")
-	if rc: badpkg_se("%s failed with exit code %d" % (which,rc), se)
+	se = file(se.read()).read()
+	if rc: badpkg("%s failed with exit code %d" % (which,rc), se)
 	if results_lines is not None and len(results) != results_lines:
-		badpkg_se("got %d lines of results from %s where %d expected"
+		badpkg("got %d lines of results from %s where %d expected"
 			% (len(results), which, results_lines), se)
 	if results_lines==1: return results[0]
 	return results
@@ -1038,17 +1041,20 @@ def build_source(act):
 
 	script = [
 			'cd '+work.write(True),
-			'gdebi '+dsc.read(True),
+			'apt-get update',
+			'apt-get -y install build-essential',
+			'gdebi '+dsc.read(True) +'||apt-get -y install dpatch bison',
 			'dpkg-source -x '+dsc.read(True),
 			'cd */.',
+			'dpkg-checkbuilddeps',
 			'pwd >&3',
 			opts.user_wrap('debian/rules build'),
 	]
 	result_pwd = source_rules_command(act,script,what,'build',work,1)
 
 	if os.path.dirname(result_pwd) != work.read(True):
-		badpkg_se("results dir `%s' is not in expected parent dir `%s'"
-			% (results[0], work.read(True)), se)
+		badpkg("results dir `%s' is not in expected parent dir `%s'"
+			% (results[0], work.read(True)))
 
 	act.tests_tree = InputDir(what+'-tests-tree',
 				work.read(True)+os.path.basename(results[0]),
