@@ -78,7 +78,7 @@ def debug(m):
 		print >>sys.stderr, 'atd-run: debug:', l
 
 def rmtree(what, pathname):
-	debug('//rmtree (%s) %s' % (what, pathname))
+	debug('/ %s rmtree %s' % (what, pathname))
 	shutil.rmtree(pathname)
 
 def debug_subprocess(what, cmdl=None, script=None):
@@ -140,6 +140,9 @@ class AutoFile:
 
  def _ensure_path(p, tbp):
 	if p.path[tbp] is None:
+		if '/' in p.what:
+			p._debug('tmp-parent %s...' % 'HT'[tbp])
+			TemporaryDir(os.path.dirname(p.what)).write(tbp)
 		if not tbp:
 			p.path[tbp] = tmpdir+'/'+p.what
 		else:
@@ -159,7 +162,7 @@ class AutoFile:
 			cmdl = ['sh','-ec',
 				'test -d "$1" || mkdir "$1"',
 				'x', p.path[tbp]]
-			tf_what = urllib.quote(p.what).replace('/',' ')
+			tf_what = urllib.quote(p.what).replace('/','%2F')
 			(rc,se) = testbed.execute('mkdir-'+tf_what, cmdl)
 			if rc: bomb('failed to create directory %s' %
 				p.path[tbp], se)
@@ -187,7 +190,7 @@ class AutoFile:
 	if not p.dir: p._wrong("creating subpath of non-directory")
 	return constructor(what, p.spec+p.dir+leaf, p.spec_tbp)
  def sibling(p, what, leaf, constructor):
-	p._debug('sibling %s /%s %s...' % (what, leaf, `constructor`))
+	p._debug('sibling what=%s leaf=%s %s...' % (what, leaf, `constructor`))
 	dir = os.path.dirname(p.spec)
 	if dir: dir += '/'
 	return constructor(what, dir+leaf, p.spec_tbp)
@@ -197,7 +200,7 @@ class AutoFile:
 	p._debug('invalidated %s' % 'HT'[tbp])
 
  def _debug(p, m):
-	debug('/%s#%x: %s' % (p.what, id(p), m))
+	debug('/ %s#%x: %s' % (p.what, id(p), m))
 
  def _constructed(p):
 	p._debug('constructed: '+str(p))
@@ -458,7 +461,10 @@ def parse_args():
 
 		what = '%s%s' % (kind,ix); ix += 1
 
-		af = constructor(what+'-'+kind, pathstr, arghandling['tb'])
+		if kind == 'dsc': fwhatx = '/' + os.path.basename(pathstr)
+		else: fwhatx = '-'+kind
+
+		af = constructor(what+fwhatx, pathstr, arghandling['tb'])
 		opts.actions.append(Action(kind, af, arghandling, what))
 
 def finalise_options():
@@ -979,7 +985,7 @@ END
 
 #---------- processing of sources (building)
 
-def source_rules_command(act,script,which,work,results_lines=0):
+def source_rules_command(act,script,what,which,work,results_lines=0):
 	script = "exec 3>&1 >&2\n" + '\n'.join(script)
 	so = TemporaryFile('%s-%s-results' % (what,which))
 	se = TemporaryFile('%s-%s-log' & (what,which))
@@ -1003,7 +1009,6 @@ def build_source(act):
 	what = act.what
 	dsc = act.af
 	basename = dsc.spec
-	dsc_what = what+'/'+basename
 
 	dsc_file = open(dsc.read())
 	in_files = False
@@ -1024,7 +1029,7 @@ def build_source(act):
 				" in Files: `%s'" % l)
 		leaf = m.groups(0)[0]
 		subfile = dsc.sibling(
-				dsc_what+'/'+leaf, leaf,
+				what+'/'+leaf, leaf,
 				InputFile)
 		subfile.read(True)
 	dsc.read(True)
@@ -1045,7 +1050,7 @@ def build_source(act):
 		badpkg_se("results dir `%s' is not in expected parent dir `%s'"
 			% (results[0], work.read(True)), se)
 
-	act.tests_tree = InputDir(dsc_what+'tests-tree',
+	act.tests_tree = InputDir(what+'-tests-tree',
 				work.read(True)+os.path.basename(results[0]),
 				InputDir)
 	if act.ah['dsc_tests']:
@@ -1063,7 +1068,7 @@ def build_source(act):
 			'echo *.deb >&3',
 			]
 		result_debs = source_rules_command(act,script,what,
-				'debian/rules binary',work,1)
+				'binary',work,1)
 		if result_debs == '*': debs = []
 		else: debs = debs.split(' ')
 		re = regexp.compile('^([-+.0-9a-z]+)_[^_/]+(?:_[^_/]+)\.deb$')
