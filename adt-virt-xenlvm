@@ -90,9 +90,9 @@ def do_open():
 		withholder.stdin.close()
 		withholder.stdout.close()
 		withholder = None
-		bomb("with-testbed failed, code %d" % rc)
+		vsp.bomb("with-testbed failed, code %d" % rc)
 	if l != "y\n":
-		bomb("with-testbed sh gave wrong output `%s', not `l'"
+		vsp.bomb("with-testbed sh gave wrong output `%s', not `l'"
 			% l.rstrip("\n"))
 	vsp.execute('mkdir %s' % downtmp, downp=True)	
 
@@ -103,7 +103,8 @@ def do_close():
 	withholder.stdout.close()
 	rc = withholder.wait()
 	withholder = None
-	if rc: bomb("with-testbed failed when closing/resetting, code %d" % rc)
+	if rc: vsp.bomb("with-testbed failed when closing/resetting,"
+			" code %d" % rc)
 
 def hook_forked_inchild():
 	if withholder is not None:
