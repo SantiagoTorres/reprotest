@@ -78,6 +78,12 @@ def debug(m):
 	for l in m.rstrip('\n').split('\n'):
 		print >>sys.stderr, 'atd-run: debug:', l
 
+def mkdir_okexist(pathname, mode=02755):
+	try:
+		os.mkdir(pathname, mode)
+	except OSError, oe:
+		if oe.errno != errno.EEXIST: raise
+
 def rmtree(what, pathname):
 	debug('/ %s rmtree %s' % (what, pathname))
 	shutil.rmtree(pathname)
@@ -155,9 +161,7 @@ class AutoFile:
 	if p.dir and not p.file[tbp]:
 		if not tbp:
 			p._debug('mkdir H')
-			try: os.mkdir(p.path[tbp])
-			except OSError, oe:
-				if oe.errno != errno.EEXIST: raise
+			mkdir_okexist(p.path[tbp])
 		else:
 			cmdl = ['sh','-ec',
 				'test -d "$1" || mkdir "$1"',
@@ -488,7 +492,15 @@ def parse_args():
 		opts.actions.append(Action(kind, af, arghandling, what))
 
 def finalise_options():
-	global opts, tb
+	global opts, tb, tmpdir
+
+	if opts.tmpdir is not None:
+		rmtree('tmpdir(specified)',opts.tmpdir)
+		mkdir_okexist(opts.tmpdir, 0700)
+		tmpdir = opts.tmpdir
+	else:
+		assert(tmpdir is None)
+		tmpdir = tempfile.mkdtemp()
 
 	if opts.user is None and 'root-on-testbed' not in testbed.caps:
 		opts.user = ''
@@ -539,7 +551,11 @@ class Testbed:
 	tb.scratch = None
 	tb.modified = False
 	tb.blamed = []
+	tb._debug('init')
+ def _debug(tb, m):
+	debug('** '+m)
  def start(tb):
+	tb._debug('start')
 	p = subprocess.PIPE
 	debug_subprocess('vserver', opts.vserver)
 	tb.sp = subprocess.Popen(opts.vserver,
@@ -547,6 +563,7 @@ class Testbed:
 	tb.expect('ok')
 	tb.caps = tb.commandr('capabilities')
  def stop(tb):
+	tb._debug('stop')
 	tb.close()
 	if tb.sp is None: return
 	ec = tb.sp.returncode
@@ -558,25 +575,32 @@ class Testbed:
 	if ec:
 		tb.bomb('testbed gave exit status %d after quit' % ec)
  def open(tb):
+	tb._debug('open, scratch=%s' % tb.scratch)
 	if tb.scratch is not None: return
 	pl = tb.commandr('open')
 	tb.scratch = InputDir('tb-scratch', pl[0], True)
  def close(tb):
+	tb._debug('close, scratch=%s' % tb.scratch)
 	if tb.scratch is None: return
 	tb.scratch = None
 	if tb.sp is None: return
 	tb.command('close')
  def prepare(tb):
+	tb._debug('prepare, modified=%s' % tb.modified)
 	if tb.modified and 'reset' in tb.caps:
+		tb._debug('reset **')
 		tb.command('reset')
 		tb.blamed = []
 	tb.modified = False
 	binaries.publish()
  def needs_reset(tb):
+	tb._debug('needs_reset, previously=%s' % tb.modified)
 	tb.modified = True
  def blame(tb, m):
+	tb._debug('blame += %s' % m)
 	tb.blamed.append(m)
  def bomb(tb, m):
+	tb._debug('bomb %s' % m)
 	if tb.sp is not None:
 		tb.sp.stdout.close()
 		tb.sp.stdin.close()
@@ -709,8 +733,8 @@ class Field_Tests_directory(FieldBase):
 		'Tests-Directory may not be absolute')
 	base['testsdir'] = td
 
-def run_tests(stanzas):
-	global errorcode
+def run_tests(stanzas, tree):
+	global errorcode, testbed
 	for stanza in stanzas:
 		tests = stanza[' tests']
 		if not tests:
@@ -718,7 +742,7 @@ def run_tests(stanzas):
 			errorcode |= 8
 		for t in tests:
 			testbed.prepare()
-			t.run()
+			t.run(tree)
 			if 'breaks-testbed' in t.restrictions:
 				testbed.needs_reset()
 		testbed.needs_reset()
@@ -729,30 +753,30 @@ class Test:
 		'test name may not contain / character')
 	for k in base: setattr(t,k,base[k])
 	t.tname = tname
-	t.what = act_what+'-'+tname
-	if len(base['testsdir']): tpath = base['testsdir'] + '/' + tname
-	else: tpath = tname
-	t.af = RelativeInputFile(t.what, opts.tests_tree, tpath)
+	t.what = act_what+'t-'+tname
+	if len(base['testsdir']): t.path = base['testsdir'] + '/' + tname
+	else: t.path = tname
  def report(t, m):
 	report(t.what, m)
  def reportfail(t, m):
 	global errorcode
 	errorcode |= 4
 	report(t.what, 'FAIL ' + m)
- def run(t):
+ def run(t, tree):
 	def stdouterr(oe):
 		idstr = t.what + '-' + oe
 		if opts.output_dir is not None and opts.output_dir.tb:
 			use_dir = opts.output_dir
 		else:
 			use_dir = testbed.scratch
-		return RelativeOutputFile(t.what, use_dir, t.what)
+		return RelativeOutputFile(idstr, use_dir, idstr)
 
+	af = RelativeInputFile(t.what, tree, t.path)
 	so = stdouterr('stdout')
 	se = stdouterr('stderr')
 	rc = testbed.execute('test-'+t.what,
-		[opts.user_wrap(t.af.read(True))],
-		so=so, se=se, cwd=opts.tests_tree.write(True))
+		[opts.user_wrap(af.read(True))],
+		so=so.write(True), se=se.write(True), cwd=tree.write(True))
 			
 	stab = os.stat(se.read())
 	if stab.st_size != 0:
@@ -865,7 +889,7 @@ def print_exception(ei, msgprefix=''):
 def cleanup():
 	try:
 		rm_ec = 0
-		if tmpdir is not None:
+		if opts.tmpdir is None and tmpdir is not None:
 			rmtree('tmpdir', tmpdir)
 		if testbed is not None:
 			testbed.stop()
@@ -901,6 +925,7 @@ class Binaries:
 	if opts.gnupghome is None:
 		opts.gnupghome = tmpdir+'/gnupg'
 
+	b._debug('initialising')
 	try:
 		for x in ['pubring','secring']:
 			os.stat(opts.gnupghome + '/' + x + '.gpg')
@@ -908,15 +933,17 @@ class Binaries:
 	except OSError, oe:
 		if oe.errno != errno.ENOENT: raise
 
-	if ok: debug('# no key generation needed')
+	if ok: b._debug('no key generation needed')
 	else: b.genkey()
 
+ def _debug(b, s):
+	debug('* '+s)
+
  def genkey(b):
-	try:
-		os.mkdir(os.path.dirname(opts.gnupghome), 02755)
-		os.mkdir(opts.gnupghome, 0700)
-	except OSError, oe:
-		if oe.errno != errno.EEXIST: raise
+	b._debug('preparing for key generation')
+
+	mkdir_okexist(os.path.dirname(opts.gnupghome), 02755)
+	mkdir_okexist(opts.gnupghome, 0700)
 
 	script = '''
   cd "$1"
@@ -944,6 +971,7 @@ END
 		bomb('key generation failed, code %d' % rc)
 
  def reset(b):
+	b._debug('reset')
 	rmtree('binaries', b.dir.read())
 	b.dir.invalidate()
 	b.dir.write()
@@ -951,6 +979,9 @@ END
 	b.blamed = []
 
  def register(b, act, pkg, af, forwhat, blamed):
+	b._debug('register what=%s deb_%s=%s pkg=%s af=%s'
+		% (act.what, forwhat, act.ah['deb_'+forwhat], pkg, str(af)))
+
 	if act.ah['deb_'+forwhat] == 'ignore': return
 
 	b.blamed += testbed.blamed
@@ -971,6 +1002,8 @@ END
 		b.install.append(pkg)
 
  def publish(b):
+	b._debug('publish')
+
 	script = '''
   cd "$1"
   apt-ftparchive packages . >Packages
@@ -989,7 +1022,7 @@ END
 
 	script = '''
   apt-key add archive-key.pgp
-  echo "deb file:///'+apt_source+'/ /" >/etc/apt/sources.list.d/autopkgtest
+  echo "deb file:///'''+apt_source+'''/ /" >/etc/apt/sources.list.d/autopkgtest
 		'''
 	debug_subprocess('apt-key', script=script)
 	(rc,se) = testbed.execute('apt-key',
@@ -1000,12 +1033,15 @@ END
 	testbed.blamed += b.blamed
 
 	for pkg in b.install:
+		b._debug('publish install %s' % pkg)
 		testbed.blame(pkg)
 		debug_subprocess('apt-get(b.install)', script=script)
 		(rc,se) = testbed.execute('install-%s'+act.what,
 			['apt-get','-qy','install',pkg])
 		if rc: badpkg("installation of %s failed, exit code %d"
 				% (pkg, rc), se)
+
+	b._debug('publish done')
 
 #---------- processing of sources (building)
 
@@ -1096,8 +1132,11 @@ def build_source(act):
 
 	act.blamed = copy.copy(testbed.blamed)
 
+	def debug_b(m): debug('* <dsc:%s> %s' % (act.what, m))
 	act.binaries = []
-	if act.ah['dsc_filter'] != '_':
+	filter = act.ah['dsc_filter']
+	debug_b('filter=%s' % filter)
+	if filter != '_':
 		script = [
 			'cd '+work.write(True)+'/*/.',
 			opts.user_wrap(opts.gainroot+' debian/rules binary'),
@@ -1108,29 +1147,48 @@ def build_source(act):
 				'binary',work,1)
 		if result_debs == '*': debs = []
 		else: debs = result_debs.split(' ')
+		debug_b('debs='+`debs`)
 		re = regexp.compile('^([-+.0-9a-z]+)_[^_/]+(?:_[^_/]+)\.deb$')
 		for deb in debs:
 			m = re.match(deb)
 			if not m: badpkg("badly-named binary `%s'" % deb)
 			pkg = m.groups()[0]
-			for pat in act.ah['dsc_filter'].split(','):
-				if not fnmatch.fnmatchcase(pkg,pat): continue
+			debug_b(' deb=%s, pkg=%s' % (deb,pkg))
+			for pat in filter.split(','):
+				debug_b('  pat=%s' % pat)
+				if not fnmatch.fnmatchcase(pkg,pat):
+					debug_b('   no match')
+					continue
 				deb_what = pkg+'_'+what+'.deb'
 				bin = RelativeInputFile(deb_what,work,deb,True)
+				debug_b('  deb_what=%s, bin=%s' %
+					(deb_what, str(bin)))
 				binaries.register(act,pkg,bin,
 					'forbuilds',testbed.blamed)
+				act.binaries.append((pkg,bin))
 				break
+		debug_b('all done.')
 
 #---------- main processing loop and main program
 
 def process_actions():
 	global binaries
 
+	def debug_a1(m): debug('@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ '+m)
+	def debug_a2(m): debug('@@@@@@@@@@@@@@@@@@@@ '+m)
+	def debug_a3(m): debug('@@@@@@@@@@ '+m)
+
+	debug_a1('starting')
 	testbed.open()
 	binaries = Binaries()
 
 	binaries.reset()
+
+	debug_a1('builds ...')
 	for act in opts.actions:
+		debug_a2('%s %s' %
+			(act.kind, act.what))
+
 		testbed.prepare()
 		if act.kind == 'deb':
 			blame('arg:'+act.af.spec)
@@ -1141,31 +1199,40 @@ def process_actions():
 		if act.kind == 'dsc':
 			build_source(act)
 
+	debug_a1('builds done.')
+
 	binaries.reset()
 	control_override = None
+
+	debug_a1('tests ...')
 	for act in opts.actions:
-		testbed.prepare()
+		debug_a2('test %s %s' % (act.kind, act.what))
+
+		testbed.needs_reset()
 		if act.kind == 'control':
 			control_override = act.af
 		if act.kind == 'deb':
-			binaries.register(act,act.pkg,act.af,'tests',
+			binaries.register(act,act.pkg,act.af,'fortests',
 				['deb:'+act.pkg])
 		if act.kind == 'dsc':
 			for (pkg,bin) in act.binaries:
-				binaries.register(act,pkg,bin,'tests',
+				binaries.register(act,pkg,bin,'fortests',
 					act.blamed)
 			if act.ah['dsc_tests']:
+				debug_a3('read control ...')
 				stanzas = read_control(act, act.tests_tree,
 						control_override)
 				testbed.blamed += act.blamed
-				run_tests(stanzas)
+				debug_a3('run_tests ...')
+				run_tests(stanzas, act.tests_tree)
 			control_override = None
 		if act.kind == 'tree':
 			testbed.blame('arg:'+act.af.spec)
-			stanzas = read_control(act, act.af,
-					control_override)
-			run_tests(stanzas)
+			stanzas = read_control(act, act.af, control_override)
+			debug_a3('run_tests ...')
+			run_tests(stanzas, act.af)
 			control_override = None
+	debug_a1('tests done.')
 
 def main():
 	global testbed
@@ -1175,7 +1242,6 @@ def main():
 	except SystemExit, se:
 		os._exit(20)
 	try:
-		tmpdir = tempfile.mkdtemp()
 		testbed = Testbed()
 		testbed.start()
 		finalise_options()
