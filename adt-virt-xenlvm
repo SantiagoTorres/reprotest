@@ -128,7 +128,7 @@ def hook_cleanup():
 		do_close()
 
 def hook_capabilities():
-	return ['revert','root-on-testbed','suggest-normal-user=adtxenu']
+	return ['revert','root-on-testbed','suggested-normal-user=adtxenu']
 
 parse_args()
 vsp.main()
