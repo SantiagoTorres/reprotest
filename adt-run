@@ -1108,10 +1108,10 @@ def build_source(act):
 
 	script = [
 			'cd '+work.write(True),
-			'apt-get update >&4',
-			'apt-get -qy install build-essential >&4',
-			'gdebi '+dsc.read(True) +'>&4 ||apt-get -y install dpatch bison >&4', # fixme fixme
-			'dpkg-source -x '+dsc.read(True)+' >&4',
+			'apt-get update',
+			'apt-get -qy install build-essential',
+			'gdebi '+dsc.read(True) +' ||apt-get -y install dpatch bison', # fixme fixme
+			'dpkg-source -x '+dsc.read(True),
 			'cd */.',
 			'dpkg-checkbuilddeps',
 			'pwd >&3',
