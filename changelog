@@ -1,3 +1,9 @@
+autopkgtest (0.6.2~iwj.2) unstable; urgency=low
+
+  * adt-xenlvm: fix up adt_normaluser so that it actually works.
+
+ -- Ian Jackson <ian@davenant.greenend.org.uk>  Thu, 15 Feb 2007 17:36:16 +0000
+
 autopkgtest (0.6.2~iwj.1) unstable; urgency=low
 
   * WIP making xen work again in feisty
