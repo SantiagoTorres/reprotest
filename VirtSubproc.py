@@ -29,6 +29,7 @@ import urllib
 import signal
 import subprocess
 import traceback
+import re as regexp
 
 debuglevel = None
 progname = "<VirtSubproc>"
@@ -47,9 +48,11 @@ def bomb(m):
 
 def ok(): print 'ok'
 
-def cmdnumargs(c, ce, nargs=0):
-	if len(c) == nargs + 1: return
-	bomb("wrong number of arguments to command `%s'" % ce[0])
+def cmdnumargs(c, ce, nargs=0, noptargs=0):
+	if len(c) < 1+nargs:
+		bomb("too few arguments to command `%s'" % ce[0])
+	if noptargs is not None and len(c) > 1+nargs+noptargs:
+		bomb("too many arguments to command `%s'" % ce[0])
 
 def cmd_capabilities(c, ce):
 	cmdnumargs(c, ce)
@@ -142,8 +145,23 @@ def down_python_script(gobody, functions=''):
 	return cmdl
 
 def cmd_execute(c, ce):
-	cmdnumargs(c, ce, 5)
+	cmdnumargs(c, ce, 5, None)
+	debug_re = regexp.compile('debug=(\d+)\-(\d+)$')
+	debug_g = None
+	for kw in ce[6:]:
+		if kw.startswith('debug='):
+			if debug_g: bomb("multiple debug= in execute")
+			m = debug_re.match(kw)
+			if not m: bomb("invalid execute debug arg `%s'" % kw)
+			debug_g = m.groups()
+		else: bomb("invalid execute kw arg `%s'" % kw)
+		
 	gobody = "	import sys\n"
+	stdout = None
+	if debug_g:
+		(tfd,hfd) = m.groups()
+		gobody += "	os.dup2(1,%d)\n" % int(tfd)
+		stdout = int(hfd)
 	for ioe in range(3):
 		gobody += "	setfd(%d,'%s',%d)\n" % (
 			ioe, ce[ioe+2], ioe>0 )
@@ -164,7 +182,7 @@ def cmd_execute(c, ce):
 		"		os._exit(127)\n")
 	cmdl = down_python_script(gobody)
 
-	(status, out) = execute_raw('sub-python', None, cmdl,
+	(status, out) = execute_raw('sub-python', None, cmdl, stdout=stdout,
 				stdin=devnull_read, stderr=subprocess.PIPE)
 	if out: bomb("sub-python unexpected produced stdout"
 			" visible to us `%s'" % out)
