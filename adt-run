@@ -35,6 +35,7 @@ import os
 import errno
 import fnmatch
 import shutil
+import copy
 
 from optparse import OptionParser
 signal.signal(signal.SIGINT, signal.SIG_DFL) # undo stupid Python SIGINT thing
@@ -118,19 +119,18 @@ class AutoFile:
 
  def __str__(p):
 	def ptbp(tbp):
-		if p.path[tbp] is None: out = '-'
-		elif p.file[tbp] is None: out = '?'+p.path[tbp]
-		else: out = '!'+p.path[tbp]
-		out += p.dir
-		return out
+		if p.path[tbp] is None: return '-'+p.dir
+		elif p.file[tbp] is None: return p.path[tbp]+p.dir+'?'
+		else: return p.path[tbp]+p.dir+'!'
 	out = p.what
+	if p.spec is not None:
+		if p.spec_tbp: out += '#'
+		else: out += '='
+		out += p.spec
+	out += ':'
 	out += ptbp(False)
 	out += '|'
 	out += ptbp(True)
-	if p.spec is not None:
-		if p.spec_tbp: out += '>'
-		else: out += '<'
-		out += p.spec
 	return out
 
  def _wrong(p, how):
@@ -183,17 +183,7 @@ class AutoFile:
 		testbed.command(cud, (src, dst))
 		p.file[tbp] = p.path[tbp]
 
-	return p.file[tbp]
-
- def subpath(p, what, leaf, constructor):
-	p._debug('subpath %s /%s %s...' % (what, leaf, `constructor`))
-	if not p.dir: p._wrong("creating subpath of non-directory")
-	return constructor(what, p.spec+p.dir+leaf, p.spec_tbp)
- def sibling(p, what, leaf, constructor):
-	p._debug('sibling what=%s leaf=%s %s...' % (what, leaf, `constructor`))
-	dir = os.path.dirname(p.spec)
-	if dir: dir += '/'
-	return constructor(what, dir+leaf, p.spec_tbp)
+	return p.file[tbp] + p.dir
 
  def invalidate(p, tbp=False):
 	p.file[tbp] = None
@@ -218,12 +208,32 @@ class AutoFile:
 			bomb("directory `%s' specified for "
 			     "non-directory %s" % (pf[tbp], p.what))
 
+ def _relative_init(p, what, parent, leaf, onlyon_tbp, setfiles, sibling):
+	AutoFile.__init__(p,what)
+	sh_on = ''; sh_sibl = ''
+	if onlyon_tbp is not None: sh_on = ' (on %s)' % ('HT'[onlyon_tbp])
+	if sibling: sh_sibl=' (sibling)'
+	parent._debug('using as base: %s: %s%s%s' %
+			(str(parent), leaf, sh_on, sh_sibl))
+	if not sibling and not parent.dir:
+		parent._wrong('asked for non-sibling relative path of non-dir')
+	if sibling: trim = os.path.dirname
+	else: trim = lambda x: x
+	for tbp in [False,True]:
+		if parent.path[tbp] is None: continue
+		trimmed = trim(parent.path[tbp])
+		if trimmed: trimmed += '/'
+		p.path[tbp] = trimmed + leaf
+		if setfiles and (onlyon_tbp is None or onlyon_tbp == tbp):
+			p.file[tbp] = p.path[tbp]
+
 class InputFile(AutoFile):
  def _init(p, what, spec, spec_tbp=False):
 	AutoFile.__init__(p, what)
 	p.spec = spec
 	p.spec_tbp = spec_tbp
-	p.path[spec_tbp] = p.file[spec_tbp] = spec
+	p.path[spec_tbp] = spec
+	p.file[p.spec_tbp] = p.path[p.spec_tbp]
  def __init__(p, what, spec, spec_tbp=False):
 	p._init(what,spec,spec_tbp)
 	p._constructed()
@@ -248,6 +258,16 @@ class OutputDir(OutputFile):
  def __init__(p, what, spec, spec_tbp=False):
 	OutputFile._init(p,what,spec,spec_tbp)
  	p.dir = '/'
+	p._constructed()
+
+class RelativeInputFile(AutoFile):
+ def __init__(p, what, parent, leaf, onlyon_tbp=None, sibling=False):
+	p._relative_init(what, parent, leaf, onlyon_tbp, True, sibling)
+	p._constructed()
+
+class RelativeOutputFile(AutoFile):
+ def __init__(p, what, parent, leaf, sibling=False):
+	p._relative_init(what, parent, leaf, None, False, sibling)
 	p._constructed()
 
 class TemporaryFile(AutoFile):
@@ -476,7 +496,7 @@ def finalise_options():
 	if opts.user is None:
 		su = 'suggested-normal-user='
 		ul = [
-			e[length(su):]
+			e[len(su):]
 			for e in testbed.caps
 			if e.startswith(su)
 			]
@@ -613,15 +633,18 @@ class Testbed:
 	rl = tb.commandr(cmd, args, 1)
 	return rl[0]
  def execute(tb, what, cmdargs,
-		si='/dev/null', so='/dev/null', se=None, cwd=None):
+		si='/dev/null', so='/dev/null', se=None, cwd=None,
+		dump_fd=None):
 	if cwd is None: cwd = tb.scratch.write(True)
 	se_use = se
 	if se_use is None:
 		se_af = TemporaryFile('xerr-'+what)
 		se_use = se_af.write(True)
-	rc = tb.commandr1('execute', [None,
-				','.join(map(urllib.quote, cmdargs)),
-				si, so, se_use, cwd])
+	cmdl = [None,
+		','.join(map(urllib.quote, cmdargs)),
+		si, so, se_use, cwd]
+	if dump_fd is not None: cmdl += ['debug=%d-%d' % (dump_fd,2)]
+	rc = tb.commandr1('execute', cmdl)
 	try: rc = int(rc)
 	except ValueError: bomb("execute for %s gave invalid response `%s'"
 					% (what,rc))
@@ -658,6 +681,7 @@ class FieldIgnore(FieldBase):
 class Restriction:
  def __init__(r,rname,base): pass
 
+class Restriction_rw_build_tree(Restriction): pass
 class Restriction_rw_tests_tree(Restriction): pass
 class Restriction_breaks_testbed(Restriction):
  def __init__(r, rname, base):
@@ -708,7 +732,7 @@ class Test:
 	t.what = act_what+'-'+tname
 	if len(base['testsdir']): tpath = base['testsdir'] + '/' + tname
 	else: tpath = tname
-	t.af = opts.tests_tree.subpath('test-'+tname, tpath, InputFile)
+	t.af = RelativeInputFile(t.what, opts.tests_tree, tpath)
  def report(t, m):
 	report(t.what, m)
  def reportfail(t, m):
@@ -717,12 +741,12 @@ class Test:
 	report(t.what, 'FAIL ' + m)
  def run(t):
 	def stdouterr(oe):
-		idstr = oe + '-' + t.what
+		idstr = t.what + '-' + oe
 		if opts.output_dir is not None and opts.output_dir.tb:
 			use_dir = opts.output_dir
 		else:
 			use_dir = testbed.scratch
-		return use_dir.subpath(idstr, idstr, OutputFile)
+		return RelativeOutputFile(t.what, use_dir, t.what)
 
 	so = stdouterr('stdout')
 	se = stdouterr('stderr')
@@ -748,9 +772,8 @@ def read_control(act, tree, control_override):
 		control_af = control_override
 		testbed.blame('arg:'+control_override.spec)
 	else:
-		control_af = tree.subpath(act.what+'-testcontrol',
-			'debian/tests/control', InputFile)
-
+		control_af = RelativeInputFile(act.what+'-testcontrol',
+			tree, 'debian/tests/control')
 	try:
 		control = file(control_af.read(), 'r')
 	except OSError, oe:
@@ -933,7 +956,7 @@ END
 	b.blamed += testbed.blamed
 
 	leafname = pkg+'.deb'
-	dest = b.dir.subpath('binaries--'+leafname, leafname, OutputFile)
+	dest = RelativeOutputFile('binaries--'+leafname, b.dir, leafname)
 
 	try: os.remove(dest.write())
 	except OSError, oe:
@@ -978,6 +1001,7 @@ END
 
 	for pkg in b.install:
 		testbed.blame(pkg)
+		debug_subprocess('apt-get(b.install)', script=script)
 		(rc,se) = testbed.execute('install-%s'+act.what,
 			['apt-get','-qy','install',pkg])
 		if rc: badpkg("installation of %s failed, exit code %d"
@@ -986,7 +1010,15 @@ END
 #---------- processing of sources (building)
 
 def source_rules_command(act,script,what,which,work,results_lines=0):
-	script = "exec 3>&1 >&2\n" + '\n'.join(script)
+	if opts.debug:
+		trace = "%s-%s-trace" % (what,which)
+		script = [	"mkfifo -m600 "+trace,
+				"tee <"+trace+" /dev/stderr >&4 &",
+				"exec >"+trace+" 2>&1"	] + script
+
+	script = [	"exec 3>&1 >&2",
+			"set -x"	] + script
+	script = '\n'.join(script)
 	so = TemporaryFile('%s-%s-results' % (what,which))
 	se = TemporaryFile('%s-%s-log' % (what,which))
 	debug_subprocess('source-rules-command/%s/%s' % (act.what, which),
@@ -994,8 +1026,8 @@ def source_rules_command(act,script,what,which,work,results_lines=0):
 	rc = testbed.execute('%s-%s' % (what,which),
 			['sh','-xec',script],
 			so=so.write(True), se=se.write(True),
-			cwd= work.write(True))
-	results = file(so.read()).read().split("\n")
+			cwd= work.write(True), dump_fd=4)
+	results = file(so.read()).read().rstrip('\n').split("\n")
 	se = file(se.read()).read()
 	if rc: badpkg("%s failed with exit code %d" % (which,rc), se)
 	if results_lines is not None and len(results) != results_lines:
@@ -1031,9 +1063,8 @@ def build_source(act):
 		if not m: badpkg(".dsc contains unparseable line"
 				" in Files: `%s'" % l)
 		leaf = m.groups(0)[0]
-		subfile = dsc.sibling(
-				what+'/'+leaf, leaf,
-				InputFile)
+		subfile = RelativeInputFile(what+'/'+leaf, dsc, leaf,
+				sibling=True)
 		subfile.read(True)
 	dsc.read(True)
 	
@@ -1041,10 +1072,10 @@ def build_source(act):
 
 	script = [
 			'cd '+work.write(True),
-			'apt-get update',
-			'apt-get -y install build-essential',
-			'gdebi '+dsc.read(True) +'||apt-get -y install dpatch bison',
-			'dpkg-source -x '+dsc.read(True),
+			'apt-get update >&4',
+			'apt-get -qy install build-essential >&4',
+			'gdebi '+dsc.read(True) +'>&4 ||apt-get -y install dpatch bison >&4', # fixme fixme
+			'dpkg-source -x '+dsc.read(True)+' >&4',
 			'cd */.',
 			'dpkg-checkbuilddeps',
 			'pwd >&3',
@@ -1052,18 +1083,18 @@ def build_source(act):
 	]
 	result_pwd = source_rules_command(act,script,what,'build',work,1)
 
-	if os.path.dirname(result_pwd) != work.read(True):
+	if os.path.dirname(result_pwd)+'/' != work.read(True):
 		badpkg("results dir `%s' is not in expected parent dir `%s'"
-			% (results[0], work.read(True)))
+			% (result_pwd, work.read(True)))
 
 	act.tests_tree = InputDir(what+'-tests-tree',
-				work.read(True)+os.path.basename(results[0]),
-				InputDir)
+				work.read(True)+os.path.basename(result_pwd),
+				True)
 	if act.ah['dsc_tests']:
 		act.tests_tree.read()
 		act.tests_tree.invalidate(True)
 
-	act.blamed = testbed.blamed.copy()
+	act.blamed = copy.copy(testbed.blamed)
 
 	act.binaries = []
 	if act.ah['dsc_filter'] != '_':
@@ -1076,22 +1107,19 @@ def build_source(act):
 		result_debs = source_rules_command(act,script,what,
 				'binary',work,1)
 		if result_debs == '*': debs = []
-		else: debs = debs.split(' ')
+		else: debs = result_debs.split(' ')
 		re = regexp.compile('^([-+.0-9a-z]+)_[^_/]+(?:_[^_/]+)\.deb$')
 		for deb in debs:
 			m = re.match(deb)
 			if not m: badpkg("badly-named binary `%s'" % deb)
-			pkg = m.groups(0)
+			pkg = m.groups()[0]
 			for pat in act.ah['dsc_filter'].split(','):
-				if fnmatch.fnmatchcase(pkg,pat):
-					deb_af = work.read()+'/'+deb
-					deb_what = pkg+'_'+what+'.deb'
-					bin = InputFile(deb_what,deb_af,True)
-					bin.preserve_now()
-					binaries.register(act,pkg,bin,'builds',
-						testbed.blamed)
-					act.binaries.subpath((pkg,bin))
-					break
+				if not fnmatch.fnmatchcase(pkg,pat): continue
+				deb_what = pkg+'_'+what+'.deb'
+				bin = RelativeInputFile(deb_what,work,deb,True)
+				binaries.register(act,pkg,bin,
+					'forbuilds',testbed.blamed)
+				break
 
 #---------- main processing loop and main program
 
@@ -1108,8 +1136,8 @@ def process_actions():
 			blame('arg:'+act.af.spec)
 			determine_package(act)
 			blame('deb:'+act.pkg)
-			binaries.register(act,act.pkg,act.af,'builds',
-				testbed.blamed)
+			binaries.register(act,act.pkg,act.af,
+				'forbuilds',testbed.blamed)
 		if act.kind == 'dsc':
 			build_source(act)
 
@@ -1130,13 +1158,13 @@ def process_actions():
 				stanzas = read_control(act, act.tests_tree,
 						control_override)
 				testbed.blamed += act.blamed
-				run_tests(act, stanzas)
+				run_tests(stanzas)
 			control_override = None
 		if act.kind == 'tree':
 			testbed.blame('arg:'+act.af.spec)
 			stanzas = read_control(act, act.af,
 					control_override)
-			run_tests(act, stanzas)
+			run_tests(stanzas)
 			control_override = None
 
 def main():
