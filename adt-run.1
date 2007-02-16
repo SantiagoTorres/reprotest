@@ -30,7 +30,11 @@ host.  The package should be installed on the testbed.
 .BR --tests-tree " " \fIdirectory\fR
 Specifies that tests from the built source tree
 .IR directory
-should be run.
+should be run.  Note that the packages that would normally be
+installed as a result of \fB*\fR in the tests' \fBDepends\fR field
+(which includes the case where the \fBDepends\fR field is not
+specified) are \fInot\fR installed.  The caller must explicitly
+instruct \fBadt-run\fR to install any relevant packages.
 .TP
 .BR --source " " \fIdsc\fR
 Builds \fIdsc\fR.  The resulting binaries will (by default) be used to

@@ -164,7 +164,7 @@ class AutoFile:
 			mkdir_okexist(p.path[tbp])
 		else:
 			cmdl = ['sh','-ec',
-				'test -d "$1" || mkdir "$1"',
+				'test -d "$1" || mkdir -p "$1"',
 				'x', p.path[tbp]]
 			tf_what = urllib.quote(p.what).replace('/','%2F')
 			(rc,se) = testbed.execute('mkdir-'+tf_what, cmdl)
@@ -522,7 +522,7 @@ def finalise_options():
 			print >>sys.stderr, ("warning: virtualisation"
 				" system does not offer root on testbed,"
 				" but --user option specified: failure likely")
-		opts.user_wrap = lambda x: 'su %s -c "%s"' % (opts.user, x)
+		opts.user_wrap = lambda x: "su %s -c '%s'" % (opts.user, x)
 	else:
 		opts.user_wrap = lambda x: x
 
@@ -562,6 +562,7 @@ class Testbed:
 		stdin=p, stdout=p, stderr=None)
 	tb.expect('ok')
 	tb.caps = tb.commandr('capabilities')
+	tb._need_reset_apt = False
  def stop(tb):
 	tb._debug('stop')
 	tb.close()
@@ -579,20 +580,52 @@ class Testbed:
 	if tb.scratch is not None: return
 	pl = tb.commandr('open')
 	tb.scratch = InputDir('tb-scratch', pl[0], True)
+	tb.deps_processed = []
+ def mungeing_apt(tb):
+	if not 'revert' in tb.caps:
+		tb._need_reset_apt = True
+ def reset_apt(tb):
+	if not tb._need_reset_apt: return
+	what = 'aptget-update-reset'
+	cmdl = ['apt-get','-qy','update']
+	(rc,se) = tb.execute(what, cmdl)
+	if rc:
+		print >>sys.stderr, se, ("\n" "warning: failed to restore"
+				" testbed apt cache, exit code %d" % rc)
+	tb._need_reset_apt = False
  def close(tb):
 	tb._debug('close, scratch=%s' % tb.scratch)
 	if tb.scratch is None: return
 	tb.scratch = None
 	if tb.sp is None: return
 	tb.command('close')
- def prepare(tb):
-	tb._debug('prepare, modified=%s' % tb.modified)
-	if tb.modified and 'reset' in tb.caps:
+ def prepare(tb, deps_new):
+	tb._debug('prepare, modified=%s, deps_processed=%s, deps_new=%s' %
+		(tb.modified, tb.deps_processed, deps_new))
+	if 'revert' in tb.caps and (tb.modified or
+	    [d for d in tb.deps_processed if d not in deps_new]):
 		tb._debug('reset **')
 		tb.command('reset')
 		tb.blamed = []
-	tb.modified = False
 	binaries.publish()
+	tb.modified = False
+	tb._install_deps(deps_new)
+ def _install_deps(tb, deps_new):
+	tb._debug(' installing dependencies '+`deps_new`)
+	tb.deps_processed = deps_new
+	if not deps_new: return
+	dstr = ', '.join(deps_new)
+	script = binaries.apt_pkg_gdebi_script(
+		dstr, [[
+		'from GDebi.DebPackage import DebPackage',
+		'd = DebPackage(cache)',
+		'res = d.satisfyDependsStr(arg)',
+		]])
+	cmdl = ['python','-c',script]
+	what = 'install-deps'
+	debug_subprocess(what, cmdl, script=script)
+	(rc,se) = testbed.execute(what, cmdl)
+	if rc: badpkg('dependency install failed, exit code %d' % rc, se)
  def needs_reset(tb):
 	tb._debug('needs_reset, previously=%s' % tb.modified)
 	tb.modified = True
@@ -709,7 +742,7 @@ class Restriction_rw_build_tree(Restriction): pass
 class Restriction_rw_tests_tree(Restriction): pass
 class Restriction_breaks_testbed(Restriction):
  def __init__(r, rname, base):
-	if 'reset' not in testbed.caps:
+	if 'revert' not in testbed.caps:
 		raise Unsupported(f.lno,
 			'Test breaks testbed but testbed cannot reset')
 
@@ -726,12 +759,23 @@ class Field_Restrictions(FieldBase):
 
 class Field_Tests(FieldIgnore): pass
 
+class Field_Depends(FieldBase):
+ def parse(f):
+	dl = map(lambda x: x.strip(),
+		flatten(map(lambda x: x.split(','), f.vl)))
+	re = regexp.compile('[^-.+:~]')
+	for d in dl:
+		if re.search(d):
+			badpkg("Test Depends field contains dependency"
+			       " `%s' with invalid characters" % d)
+	f.base['depends'] = dl
+
 class Field_Tests_directory(FieldBase):
  def parse(f):
 	td = atmostone(f)
 	if td.startswith('/'): raise Unspported(f.lno,
 		'Tests-Directory may not be absolute')
-	base['testsdir'] = td
+	f.base['testsdir'] = td
 
 def run_tests(stanzas, tree):
 	global errorcode, testbed
@@ -741,28 +785,48 @@ def run_tests(stanzas, tree):
 			report('*', 'SKIP no tests in this package')
 			errorcode |= 8
 		for t in tests:
-			testbed.prepare()
+			t.prepare()
 			t.run(tree)
 			if 'breaks-testbed' in t.restrictions:
 				testbed.needs_reset()
 		testbed.needs_reset()
 
 class Test:
- def __init__(t, tname, base, act_what):
+ def __init__(t, tname, base, act):
 	if '/' in tname: raise Unsupported(base[' lno'],
 		'test name may not contain / character')
 	for k in base: setattr(t,k,base[k])
 	t.tname = tname
-	t.what = act_what+'t-'+tname
+	t.act = act
+	t.what = act.what+'t-'+tname
 	if len(base['testsdir']): t.path = base['testsdir'] + '/' + tname
 	else: t.path = tname
+	t._debug('constructed; path=%s' % t.path)
+	t._debug(' .depends=%s' % t.depends)
+ def _debug(t, m):
+	debug('& %s: %s' % (t.what, m))
  def report(t, m):
 	report(t.what, m)
  def reportfail(t, m):
 	global errorcode
 	errorcode |= 4
 	report(t.what, 'FAIL ' + m)
+ def prepare(t):
+	t._debug('preparing')
+	dn = []
+	for d in t.depends:
+		t._debug(' processing dependency '+d)
+		if not '*' in d:
+			t._debug('  literal dependency '+d)
+			dn.append(d)
+		else:
+			for (pkg,bin) in t.act.binaries:
+				d = d.replace('*',pkg)
+				t._debug('  synthesised dependency '+d)
+				dn.append(d)
+	testbed.prepare(dn)
  def run(t, tree):
+	t._debug('running')
 	def stdouterr(oe):
 		idstr = t.what + '-' + oe
 		if opts.output_dir is not None and opts.output_dir.tb:
@@ -771,12 +835,14 @@ class Test:
 			use_dir = testbed.scratch
 		return RelativeOutputFile(idstr, use_dir, idstr)
 
+	t.act.work.write(True)
+
 	af = RelativeInputFile(t.what, tree, t.path)
 	so = stdouterr('stdout')
 	se = stdouterr('stderr')
 	rc = testbed.execute('test-'+t.what,
 		[opts.user_wrap(af.read(True))],
-		so=so.write(True), se=se.write(True), cwd=tree.write(True))
+		so=so.write(True), se=se.write(True), cwd=tree.read(True))
 			
 	stab = os.stat(se.read())
 	if stab.st_size != 0:
@@ -855,7 +921,8 @@ def read_control(act, tree, control_override):
 			tnames = string.join(tnames).split()
 			base = {
 				'restrictions': [],
-				'testsdir': 'debian/tests'
+				'testsdir': 'debian/tests',
+				'depends' : '*'
 			}
 			for fname in stz.keys():
 				if fname.startswith(' '): continue
@@ -867,7 +934,7 @@ def read_control(act, tree, control_override):
 				f = fclass(stz, fname, base, tnames, vl)
 				f.parse()
 			for tname in tnames:
-				t = Test(tname, base, act.what)
+				t = Test(tname, base, act)
 				stz[' tests'].append(t)
 		except Unsupported, u:
 			for tname in tnames: u.report(tname)
@@ -892,6 +959,7 @@ def cleanup():
 		if opts.tmpdir is None and tmpdir is not None:
 			rmtree('tmpdir', tmpdir)
 		if testbed is not None:
+			testbed.reset_apt()
 			testbed.stop()
 		if rm_ec: bomb('rm -rf -- %s failed, code %d' % (tmpdir, ec))
 	except:
@@ -970,6 +1038,41 @@ END
 		print >>sys.stderr, tp
 		bomb('key generation failed, code %d' % rc)
 
+ def apt_configs(b):
+	return {
+		"Dir::Etc::sourcelist": b.dir.read(True)+'sources.list',
+	}
+
+ def apt_pkg_gdebi_script(b, arg, middle):
+	script = [
+		'import apt_pkg',
+		'import urllib',
+		'arg = urllib.unquote("%s")' % urllib.quote(arg),
+		]
+	for (k,v) in b.apt_configs().iteritems():
+		v = urllib.quote(v)
+		script.append('apt_pkg.Config.Set("%s",urllib.unquote("%s"))'
+				% (k, v))
+	script += [
+		'from GDebi.Cache import Cache',
+		'cache = Cache()',
+		]
+	for m in middle:
+		script += m + [
+		'print res',
+		'print d.missingDeps',
+		'print d.requiredChanges',
+		'assert(res)',
+		'cache.commit()',
+		''
+		]
+	return '\n'.join(script)
+ def apt_get(b):
+	ag = ['apt-get','-qy']
+	for kv in b.apt_configs().iteritems():
+		ag += ['-o', '%s=%s' % kv]
+	return ag
+
  def reset(b):
 	b._debug('reset')
 	rmtree('binaries', b.dir.read())
@@ -977,6 +1080,7 @@ END
 	b.dir.write()
 	b.install = []
 	b.blamed = []
+	b.registered = set()
 
  def register(b, act, pkg, af, forwhat, blamed):
 	b._debug('register what=%s deb_%s=%s pkg=%s af=%s'
@@ -1001,13 +1105,15 @@ END
 	if act.ah['deb_'+forwhat] == 'install':
 		b.install.append(pkg)
 
+	b.registered.add(pkg)
+
  def publish(b):
 	b._debug('publish')
 
 	script = '''
   cd "$1"
   apt-ftparchive packages . >Packages
-  gzip -f Packages
+  gzip <Packages >Packages.gz
   apt-ftparchive release . >Release
   gpg --homedir="$2" --batch --detach-sign --armour -o Release.gpg Release
   gpg --homedir="$2" --batch --export >archive-key.pgp
@@ -1020,24 +1126,54 @@ END
 	b.dir.invalidate(True)
 	apt_source = b.dir.read(True)
 
+	so = TemporaryFile('vlds')
 	script = '''
-  apt-key add archive-key.pgp
-  echo "deb file:///'''+apt_source+'''/ /" >/etc/apt/sources.list.d/autopkgtest
+  apt-key add archive-key.pgp >&2
+  echo "deb file://'''+apt_source+''' /" >sources.list
+  cat /etc/apt/sources.list >>sources.list
+  if [ "x`ls /var/lib/dpkg/updates`" != x ]; then
+    echo >&2 "/var/lib/dpkg/updates contains some files, aargh"; exit 1
+  fi
+  '''+ ' '.join(b.apt_get()) +''' update >&2
+  cat /var/lib/dpkg/status
 		'''
+	testbed.mungeing_apt()
 	debug_subprocess('apt-key', script=script)
 	(rc,se) = testbed.execute('apt-key',
 				['sh','-ec',script],
-				cwd=b.dir.write(True))
+				so=so.write(True), cwd=b.dir.write(True))
 	if rc: bomb('apt setup failed with exit code %d' % rc, se)
 
 	testbed.blamed += b.blamed
 
+	b._debug('publish reinstall checking...')
+	pkgs_reinstall = set()
+	pkg = None
+	for l in file(so.read()):
+		if l.startswith('Package: '):
+			pkg = l[9:].rstrip()
+		elif l.startswith('Status: install '):
+			if pkg in b.registered:
+				pkgs_reinstall.add(pkg)
+				b._debug(' publish reinstall needs '+pkg)
+
+	if pkgs_reinstall:
+		for pkg in pkgs_reinstall: testbed.blame(pkg)
+		what = 'apt-get-reinstall'
+		cmdl = (b.apt_get() + ['--reinstall','install'] +
+			[pkg for pkg in pkgs_reinstall])
+		debug_subprocess(what, cmdl)
+		(rc,se) = testbed.execute(what, cmdl)
+		if rc: badpkg("installation of basic binarries failed,"
+				" exit code %d" % rc, se)
+
+	b._debug('publish install...')
 	for pkg in b.install:
-		b._debug('publish install %s' % pkg)
+		what = 'apt-get-install-%s' % pkg
 		testbed.blame(pkg)
-		debug_subprocess('apt-get(b.install)', script=script)
-		(rc,se) = testbed.execute('install-%s'+act.what,
-			['apt-get','-qy','install',pkg])
+		cmdl = b.apt_get() + ['install',pkg]
+		debug_subprocess(what, cmdl)
+		(rc,se) = testbed.execute(what, cmdl)
 		if rc: badpkg("installation of %s failed, exit code %d"
 				% (pkg, rc), se)
 
@@ -1103,32 +1239,56 @@ def build_source(act):
 				sibling=True)
 		subfile.read(True)
 	dsc.read(True)
-	
+
+	script = binaries.apt_pkg_gdebi_script(
+		dsc.read(True), [[
+		'from GDebi.DscSrcPackage import DscSrcPackage',
+		'd = DscSrcPackage(cache, arg)',
+		'res = d.checkDeb()',
+		 ],[
+		'from GDebi.DebPackage import DebPackage',
+		'd = DebPackage(cache)',
+		'res = d.satisfyDependsStr("build-essential")',
+		]])
+	cmdl = ['python','-c',script]
+	whatp = what+'-builddeps'
+	debug_subprocess(whatp, cmdl, script=script)
+	(rc,se) = testbed.execute(what, cmdl)
+	if rc: badpkg('build-depends install failed, exit code %d' % rc, se)
+
 	work = TemporaryDir(what+'-build')
 
 	script = [
 			'cd '+work.write(True),
-			'apt-get update',
-			'apt-get -qy install build-essential',
-			'gdebi '+dsc.read(True) +' ||apt-get -y install dpatch bison', # fixme fixme
+		]
+	if opts.user: script += [
+			'chown '+opts.user+' .',
+			'dsc=dsc.read(True) '+
+				opts.user_wrap('dpkg-source -x $dsc')
+		]
+	else: script += [
 			'dpkg-source -x '+dsc.read(True),
+		]
+	script += [
 			'cd */.',
 			'dpkg-checkbuilddeps',
 			'pwd >&3',
 			opts.user_wrap('debian/rules build'),
-	]
+		]
 	result_pwd = source_rules_command(act,script,what,'build',work,1)
 
 	if os.path.dirname(result_pwd)+'/' != work.read(True):
 		badpkg("results dir `%s' is not in expected parent dir `%s'"
 			% (result_pwd, work.read(True)))
 
+	act.work = work
 	act.tests_tree = InputDir(what+'-tests-tree',
 				work.read(True)+os.path.basename(result_pwd),
 				True)
 	if act.ah['dsc_tests']:
 		act.tests_tree.read()
 		act.tests_tree.invalidate(True)
+		act.work.invalidate(True)
 
 	act.blamed = copy.copy(testbed.blamed)
 
@@ -1189,7 +1349,7 @@ def process_actions():
 		debug_a2('%s %s' %
 			(act.kind, act.what))
 
-		testbed.prepare()
+		testbed.prepare([])
 		if act.kind == 'deb':
 			blame('arg:'+act.af.spec)
 			determine_package(act)
@@ -1198,6 +1358,8 @@ def process_actions():
 				'forbuilds',testbed.blamed)
 		if act.kind == 'dsc':
 			build_source(act)
+		if act.kind == 'tree':
+			act.binaries = []
 
 	debug_a1('builds done.')
 
