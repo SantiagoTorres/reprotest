@@ -158,11 +158,13 @@ def cmd_execute(c, ce):
 		
 	gobody = "	import sys\n"
 	stdout = None
+	tfd = None
 	if debug_g:
 		(tfd,hfd) = m.groups()
 		gobody += "	os.dup2(1,%d)\n" % int(tfd)
 		stdout = int(hfd)
 	for ioe in range(3):
+		if ioe == tfd: continue
 		gobody += "	setfd(%d,'%s',%d)\n" % (
 			ioe, ce[ioe+2], ioe>0 )
 	gobody += "	os.chdir(urllib.unquote('" + ce[5] +"'))\n"
