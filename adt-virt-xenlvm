@@ -103,7 +103,7 @@ def do_close():
 	withholder.stdout.close()
 	rc = withholder.wait()
 	withholder = None
-	if rc: vsp.bomb("with-testbed failed when closing/resetting,"
+	if rc: vsp.bomb("with-testbed failed when closing/reverting,"
 			" code %d" % rc)
 
 def hook_forked_inchild():
@@ -116,8 +116,8 @@ def hook_open():
 	do_open()
 	return downtmp
 
-def hook_reset():
-	check_pause('reset')
+def hook_revert():
+	check_pause('revert')
 	do_close()
 	do_open()
 

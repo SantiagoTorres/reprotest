@@ -107,12 +107,12 @@ def cmd_open(c, ce):
 	downtmp = caller.hook_open()
 	return [downtmp]
 
-def cmd_reset(c, ce):
+def cmd_revert(c, ce):
 	cmdnumargs(c, ce)
-	if not downtmp: bomb("`reset' when not open")
+	if not downtmp: bomb("`revert' when not open")
 	if not 'revert' in caller.hook_capabilities():
-		bomb("`reset' when `revert' not advertised")
-	caller.hook_reset()
+		bomb("`revert' when `revert' not advertised")
+	caller.hook_revert()
 
 def down_python_script(gobody, functions=''):
 	# Many things are made much harder by the inability of
