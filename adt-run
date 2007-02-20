@@ -975,17 +975,17 @@ def cleanup():
 
 def determine_package(act):
 	cmd = 'dpkg-deb --info --'.split(' ')+[act.af.read(),'control']
-	running = Popen(cmd, stdout=PIPE)
+	running = subprocess.Popen(cmd, stdout=subprocess.PIPE)
 	output = running.communicate()[0]
 	rc = running.wait()
 	if rc: badpkg('failed to parse binary package, code %d' % rc)
 	re = regexp.compile('^\s*Package\s*:\s*([0-9a-z][-+.0-9a-z]*)\s*$')
 	act.pkg = None
-	for l in '\n'.split(output):
-		m = re.match(output)
+	for l in output.split('\n'):
+		m = re.match(l)
 		if not m: continue
 		if act.pkg: badpkg('two Package: lines in control file')
-		act.pkg = m.groups
+		act.pkg = m.groups()[0]
 	if not act.pkg: badpkg('no good Package: line in control file')
 
 class Binaries:
@@ -1119,6 +1119,7 @@ END
   apt-ftparchive packages . >Packages
   gzip <Packages >Packages.gz
   apt-ftparchive release . >Release
+  rm -f Release.gpg
   gpg --homedir="$2" --batch --detach-sign --armour -o Release.gpg Release
   gpg --homedir="$2" --batch --export >archive-key.pgp
 		'''
@@ -1355,9 +1356,9 @@ def process_actions():
 
 		testbed.prepare([])
 		if act.kind == 'deb':
-			blame('arg:'+act.af.spec)
+			testbed.blame('arg:'+act.af.spec)
 			determine_package(act)
-			blame('deb:'+act.pkg)
+			testbed.blame('deb:'+act.pkg)
 			binaries.register(act,act.pkg,act.af,
 				'forbuilds',testbed.blamed)
 		if act.kind == 'dsc':
