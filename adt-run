@@ -551,6 +551,7 @@ class Testbed:
 	tb.scratch = None
 	tb.modified = False
 	tb.blamed = []
+	tb._ephemeral = []
 	tb._debug('init')
  def _debug(tb, m):
 	debug('** '+m)
@@ -607,9 +608,12 @@ class Testbed:
 		tb._debug('reset **')
 		tb.command('reset')
 		tb.blamed = []
+		for af in tb._ephemeral: af.invalidate(True)
 	binaries.publish()
 	tb.modified = False
 	tb._install_deps(deps_new)
+ def register_ephemeral(tb, af):
+	tb._ephemeral.append(af)
  def _install_deps(tb, deps_new):
 	tb._debug(' installing dependencies '+`deps_new`)
 	tb.deps_processed = deps_new
@@ -1287,8 +1291,8 @@ def build_source(act):
 				True)
 	if act.ah['dsc_tests']:
 		act.tests_tree.read()
-		act.tests_tree.invalidate(True)
-		act.work.invalidate(True)
+		testbed.register_ephemeral(act.work)
+		testbed.register_ephemeral(act.tests_tree)
 
 	act.blamed = copy.copy(testbed.blamed)
 
