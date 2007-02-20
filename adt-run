@@ -47,21 +47,75 @@ testbed = None		# Testbed
 errorcode = 0		# exit status that we are going to use
 binaries = None		# Binaries (.debs we have registered)
 
+#---------- output handling
+#
+#  There are at least the following kinds of output:
+#
+#   stderr_stream
+#   1. stderr output which consists of
+#   1a. our errors
+#   1b. stuff printed to stderr by our direct subprocesses
+#         including the virtualisation server and testbed
+#	  commands we don't expect to fail
+#
+#   trace_stream
+#   2. trace information, which consists of
+#   2a. our trace information from calls to debug()
+#   2b. progress information and stderr output from scripts
+#        we run on the host
+#   2c. progress information and stderr output from scripts
+#        we run on the testbed including tests and builds
+#
+#   xxxx
+#   3. actual test results (printed to our stdout)
+#
+# Capture of stderr output 1b and 2b is achieved by replumbing our
+# stderr if necessary.
+
+stderr_stream = sys.stderr
+trace_stream = None
+
+def pstderr(m):
+	print >>stderr_stream, m
+
+def debug(m):
+	if trace_stream is None: return
+	for l in m.rstrip('\n').split('\n'):
+		s = 'atd-run: debug: ' + l
+		print >>trace_stream, s
+
+def report(tname, result):
+	xxxx   xxxx
+	m = '%-20s %s' % (tname, result)
+	print m
+	if trace_stream: print >>trace_stream, m
+
+def debug_trace_shfrag(tmpdir, what, fd=None):
+	if not opts.debug: return ''
+	trace = "%s/%s-trace" % (tmpdir,what)
+	if fd is None: fd = 2
+	script = '''
+			rm -f -- "TRACE"
+			mkfifo -m600 "TRACE"
+			tee <"TRACE" /dev/stderr >&FD &
+			exec 2>"TRACE"
+		'''
+	script = script.replace('TRACE',trace).replace('FD',`fd`)
+	return script
+
 #---------- errors we define
 
 class Quit:
 	def __init__(q,ec,m): q.ec = ec; q.m = m
 
 def bomb(m, se=''):
-	print >>sys.stderr, se
+	pstderr(se)
 	raise Quit(20, "unexpected error: %s" % m)
 
 def badpkg(m, se=''):
-	print >>sys.stderr, se
+	pstderr(se)
 	print 'blame: ', ' '.join(testbed.blamed)
 	raise Quit(12, "erroneous package: %s" % m)
-
-def report(tname, result): print '%-20s %s' % (tname, result)
 
 class Unsupported:
  def __init__(u, lno, m):
@@ -72,11 +126,7 @@ class Unsupported:
 	errorcode != 2
 	report(tname, 'SKIP %s' % u.m)
 
-def debug(m):
-	global opts
-	if not opts.debug: return
-	for l in m.rstrip('\n').split('\n'):
-		print >>sys.stderr, 'atd-run: debug:', l
+#---------- convenience function
 
 def mkdir_okexist(pathname, mode=02755):
 	try:
@@ -317,7 +367,6 @@ def parse_args():
 	# actions (ie, test sets to run, sources to build, binaries to use):
 
 	def cb_action(op,optstr,value,parser, long,kindpath,is_act):
-		print >>sys.stderr, "cb_action", is_act
 		parser.largs.append((value,kindpath))
 		n_non_actions += not(is_act)
 
@@ -426,7 +475,7 @@ def parse_args():
 		help='run tests as USER (needs root on testbed)')
 	pa('','--gain-root',		type='string', dest='gainroot',
 		help='prefix debian/rules binary with GAINROOT')
-	pa('-d', '--debug', action='store_true', dest='debug');
+	pa('-q', '--quiet', action='store_false', dest='debug', default=True);
 	pa('','--gnupg-home',		type='string', dest='gnupghome',
 		default='~/.autopkgtest/gpg',
 		help='use GNUPGHOME rather than ~/.autopkgtest (for'
@@ -491,8 +540,8 @@ def parse_args():
 		af = constructor(what+fwhatx, pathstr, arghandling['tb'])
 		opts.actions.append(Action(kind, af, arghandling, what))
 
-def finalise_options():
-	global opts, tb, tmpdir
+def setup_trace():
+	global debug_stream, tmpdir
 
 	if opts.tmpdir is not None:
 		rmtree('tmpdir(specified)',opts.tmpdir)
@@ -501,6 +550,14 @@ def finalise_options():
 	else:
 		assert(tmpdir is None)
 		tmpdir = tempfile.mkdtemp()
+
+	if opts.debug:
+		debug_stream = sys.stderr
+	elif opts.tmpdir is not None:
+		debug_stream = open(opts.tmpdir+'/trace', 'a', 0)
+
+def finalise_options():
+	global opts, tb
 
 	if opts.user is None and 'root-on-testbed' not in testbed.caps:
 		opts.user = ''
@@ -519,7 +576,7 @@ def finalise_options():
 
 	if opts.user:
 		if 'root-on-testbed' not in testbed.caps:
-			print >>sys.stderr, ("warning: virtualisation"
+			pstderr("warning: virtualisation"
 				" system does not offer root on testbed,"
 				" but --user option specified: failure likely")
 		opts.user_wrap = lambda x: "su %s -c '%s'" % (opts.user, x)
@@ -591,8 +648,8 @@ class Testbed:
 	cmdl = ['apt-get','-qy','update']
 	(rc,se) = tb.execute(what, cmdl)
 	if rc:
-		print >>sys.stderr, se, ("\n" "warning: failed to restore"
-				" testbed apt cache, exit code %d" % rc)
+		pstderr("\n" "warning: failed to restore"
+			" testbed apt cache, exit code %d" % rc)
 	tb._need_reset_apt = False
  def close(tb):
 	tb._debug('close, scratch=%s' % tb.scratch)
@@ -642,8 +699,8 @@ class Testbed:
 		tb.sp.stdout.close()
 		tb.sp.stdin.close()
 		ec = tb.sp.wait()
-		if ec: print >>sys.stderr, ('adt-run: testbed failing,'
-			' exit status %d' % ec)
+		if ec: pstderr('adt-run: testbed failing,'
+				' exit status %d' % ec)
 	tb.sp = None
 	raise Quit(16, 'testbed failed: %s' % m)
  def send(tb, string):
@@ -696,6 +753,7 @@ class Testbed:
  def execute(tb, what, cmdargs,
 		si='/dev/null', so='/dev/null', se=None, cwd=None,
 		dump_fd=None):
+	xxx make this right
 	if cwd is None: cwd = tb.scratch.write(True)
 	se_use = se
 	if se_use is None:
@@ -704,13 +762,14 @@ class Testbed:
 	cmdl = [None,
 		','.join(map(urllib.quote, cmdargs)),
 		si, so, se_use, cwd]
-	if dump_fd is not None: cmdl += ['debug=%d-%d' % (dump_fd,2)]
+	if debug_stream and dump_fd is not None:
+		cmdl += ['debug=%d-%d' % (dump_fd,debug_stream.fileno())]
 	rc = tb.commandr1('execute', cmdl)
 	try: rc = int(rc)
 	except ValueError: bomb("execute for %s gave invalid response `%s'"
 					% (what,rc))
 	if se is not None: return rc
-	return (rc, file(se_af.read()).read())
+	return (rc, open(se_af.read()).read())
 
 #---------- representation of test control files: Field*, Test, etc.
 
@@ -847,10 +906,10 @@ class Test:
 	rc = testbed.execute('test-'+t.what,
 		[opts.user_wrap(af.read(True))],
 		so=so.write(True), se=se.write(True), cwd=tree.read(True))
-			
+
 	stab = os.stat(se.read())
 	if stab.st_size != 0:
-		l = file(se.read()).readline()
+		l = open(se.read()).readline()
 		l = l.rstrip('\n \t\r')
 		if len(l) > 40: l = l[:40] + '...'
 		t.reportfail('status: %d, stderr: %s' % (rc, l))
@@ -869,7 +928,7 @@ def read_control(act, tree, control_override):
 		control_af = RelativeInputFile(act.what+'-testcontrol',
 			tree, 'debian/tests/control')
 	try:
-		control = file(control_af.read(), 'r')
+		control = open(control_af.read(), 'r')
 	except OSError, oe:
 		if oe[0] != errno.ENOENT: raise
 		return []
@@ -947,17 +1006,19 @@ def read_control(act, tree, control_override):
 	return stanzas
 
 def print_exception(ei, msgprefix=''):
-	if msgprefix: print >>sys.stderr, msgprefix
+	if msgprefix: pstderr(msgprefix)
 	(et, q, tb) = ei
 	if et is Quit:
-		print >>sys.stderr, 'adt-run:', q.m
+		pstderr('adt-run: ' + q.m)
 		return q.ec
 	else:
-		print >>sys.stderr, "adt-run: unexpected, exceptional, error:"
-		traceback.print_exc()
+		pstderr("adt-run: unexpected, exceptional, error:")
+		traceback.print_exc(None, sys.stderr)
+		if debug_stream: traceback.print_exc(None, debug_stream)
 		return 20
 
 def cleanup():
+	global debug_stream
 	try:
 		rm_ec = 0
 		if opts.tmpdir is None and tmpdir is not None:
@@ -966,6 +1027,9 @@ def cleanup():
 			testbed.reset_apt()
 			testbed.stop()
 		if rm_ec: bomb('rm -rf -- %s failed, code %d' % (tmpdir, ec))
+		if debug_stream and debug_stream is not sys.stderr:
+			debug_stream.close()
+			debug_stream = None
 	except:
 		print_exception(sys.exc_info(),
 			'\nadt-run: error cleaning up:\n')
@@ -1017,9 +1081,9 @@ class Binaries:
 	mkdir_okexist(os.path.dirname(opts.gnupghome), 02755)
 	mkdir_okexist(opts.gnupghome, 0700)
 
-	script = '''
+	script = debug_trace_shfrag(tmpdir, 'genkey') + '''
+  exec >&2
   cd "$1"
-  exec >key-gen-log 2>&1
   cat <<"END" >key-gen-params
 Key-Type: DSA
 Key-Length: 1024
@@ -1039,7 +1103,7 @@ END
 			f = open(opts.gnupghome+'/key-gen-log')
 			tp = file.read()
 		except OSError, e: tp = e
-		print >>sys.stderr, tp
+		pstderr(tp)
 		bomb('key generation failed, code %d' % rc)
 
  def apt_configs(b):
@@ -1114,7 +1178,8 @@ END
  def publish(b):
 	b._debug('publish')
 
-	script = '''
+	script = debug_trace_shfrag(tmpdir, 'ftparchive') + '''
+  exec >&2
   cd "$1"
   apt-ftparchive packages . >Packages
   gzip <Packages >Packages.gz
@@ -1132,20 +1197,22 @@ END
 	apt_source = b.dir.read(True)
 
 	so = TemporaryFile('vlds')
-	script = '''
-  apt-key add archive-key.pgp >&2
+	script = debug_trace_shfrag(testbed.scratch.write(True),
+			'apt-key', 4) + '''
+  exec 3>&1 >&2
+  apt-key add archive-key.pgp
   echo "deb file://'''+apt_source+''' /" >sources.list
   cat /etc/apt/sources.list >>sources.list
   if [ "x`ls /var/lib/dpkg/updates`" != x ]; then
     echo >&2 "/var/lib/dpkg/updates contains some files, aargh"; exit 1
   fi
   '''+ ' '.join(b.apt_get()) +''' update >&2
-  cat /var/lib/dpkg/status
+  cat /var/lib/dpkg/status >&3
 		'''
 	testbed.mungeing_apt()
 	debug_subprocess('apt-key', script=script)
 	(rc,se) = testbed.execute('apt-key',
-				['sh','-ec',script],
+				['sh','-ec',script], dump_fd=4,
 				so=so.write(True), cwd=b.dir.write(True))
 	if rc: bomb('apt setup failed with exit code %d' % rc, se)
 
@@ -1154,7 +1221,7 @@ END
 	b._debug('publish reinstall checking...')
 	pkgs_reinstall = set()
 	pkg = None
-	for l in file(so.read()):
+	for l in open(so.read()):
 		if l.startswith('Package: '):
 			pkg = l[9:].rstrip()
 		elif l.startswith('Status: install '):
@@ -1187,15 +1254,10 @@ END
 #---------- processing of sources (building)
 
 def source_rules_command(act,script,what,which,work,results_lines=0):
-	if opts.debug:
-		trace = "%s-%s-trace" % (what,which)
-		script = [	"mkfifo -m600 "+trace,
-				"tee <"+trace+" /dev/stderr >&4 &",
-				"exec >"+trace+" 2>&1"	] + script
-
 	script = [	"exec 3>&1 >&2",
 			"set -x"	] + script
-	script = '\n'.join(script)
+	script = debug_trace_shfrag('.', '%s-%s' % (what,which),
+			4) + '\n'.join(script)
 	so = TemporaryFile('%s-%s-results' % (what,which))
 	se = TemporaryFile('%s-%s-log' % (what,which))
 	debug_subprocess('source-rules-command/%s/%s' % (act.what, which),
@@ -1204,8 +1266,8 @@ def source_rules_command(act,script,what,which,work,results_lines=0):
 			['sh','-xec',script],
 			so=so.write(True), se=se.write(True),
 			cwd= work.write(True), dump_fd=4)
-	results = file(so.read()).read().rstrip('\n').split("\n")
-	se = file(se.read()).read()
+	results = open(so.read()).read().rstrip('\n').split("\n")
+	se = open(se.read()).read()
 	if rc: badpkg("%s failed with exit code %d" % (which,rc), se)
 	if results_lines is not None and len(results) != results_lines:
 		badpkg("got %d lines of results from %s where %d expected"
@@ -1409,6 +1471,7 @@ def main():
 	except SystemExit, se:
 		os._exit(20)
 	try:
+		setup_trace()
 		testbed = Testbed()
 		testbed.start()
 		finalise_options()
