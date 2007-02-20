@@ -606,7 +606,7 @@ class Testbed:
 	if 'revert' in tb.caps and (tb.modified or
 	    [d for d in tb.deps_processed if d not in deps_new]):
 		tb._debug('reset **')
-		tb.command('reset')
+		tb.command('revert')
 		tb.blamed = []
 		for af in tb._ephemeral: af.invalidate(True)
 	binaries.publish()
@@ -748,7 +748,7 @@ class Restriction_breaks_testbed(Restriction):
  def __init__(r, rname, base):
 	if 'revert' not in testbed.caps:
 		raise Unsupported(f.lno,
-			'Test breaks testbed but testbed cannot reset')
+			'Test breaks testbed but testbed cannot revert')
 
 class Field_Restrictions(FieldBase):
  def parse(f):
