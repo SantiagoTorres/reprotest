@@ -411,7 +411,10 @@ def parse_args():
 			nargs=1, type='string',
 			callback_args=(long,kindpath,is_act), help=help)
 
-	pa_action('build-tree',		'TREE', '@/',
+	pa_action('built-tree',		'TREE', '@/',
+		help='run tests from build tree TREE')
+
+	pa_action('unbuilt-tree',	'TREE', '@//',
 		help='run tests from build tree TREE')
 
 	pa_action('source',		'DSC', '@.dsc',
@@ -565,6 +568,9 @@ def parse_args():
 		if type(kindpath) is tuple:		kind = kindpath[0]
 		elif kindpath.endswith('.deb'):		kind = 'deb'
 		elif kindpath.endswith('.dsc'):		kind = 'dsc'
+		elif kindpath.endswith('//'):
+			kind = 'ubtree'
+			constructor = InputDir
 		elif kindpath.endswith('/'):
 			kind = 'tree'
 			constructor = InputDir
@@ -716,7 +722,7 @@ class Testbed:
 	tb.modified = False
 	tb._install_deps(deps_new)
  def register_ephemeral(tb, af):
-	tb._ephemeral.append(af)
+	if not getattr(af,'spec_tbp',False): tb._ephemeral.append(af)
  def _install_deps(tb, deps_new):
 	tb._debug(' installing dependencies '+`deps_new`)
 	tb.deps_processed = deps_new
@@ -875,25 +881,31 @@ class Restriction_breaks_testbed(Restriction):
 	if 'revert' not in testbed.caps:
 		raise Unsupported(f.lno,
 			'Test breaks testbed but testbed cannot revert')
+class Restriction_needs_root(Restriction):
+ def __init__(r, rname, base):
+	if 'root-on-testbed' not in testbed.caps:
+		raise Unsupported(f.lno,
+			'Test needs root on testbed which is not available')
 
 class Field_Restrictions(FieldBase):
  def parse(f):
 	for wle in f.words():
 		(lno, rname) = wle
-		rname = rname.replace('-','_')
-		try: rclass = globals()['Restriction_'+rname]
+		nrname = rname.replace('-','_')
+		try: rclass = globals()['Restriction_'+nrname]
 		except KeyError: raise Unsupported(lno,
 			'unknown restriction %s' % rname)
-		r = rclass(rname, f.base)
+		r = rclass(nrname, f.base)
 		f.base['restrictions'].append(r)
 
 class Field_Tests(FieldIgnore): pass
 
 class Field_Depends(FieldBase):
  def parse(f):
+	print >>sys.stderr, "Field_Depends:", `f.stz`, `f.base`, `f.tnames`, `f.vl`
 	dl = map(lambda x: x.strip(),
-		flatten(map(lambda x: x.split(','), f.vl)))
-	re = regexp.compile('[^-.+:~]')
+		flatten(map(lambda (lno, v): v.split(','), f.vl)))
+	re = regexp.compile('[^-.+:~0-9a-z()<>=*]')
 	for d in dl:
 		if re.search(d):
 			badpkg("Test Depends field contains dependency"
@@ -970,8 +982,10 @@ class Test:
 	af = RelativeInputFile(t.what, tree, t.path)
 	so = stdouterr('stdout')
 	se = stdouterr('stderr')
-	rc = testbed.execute('test-'+t.what,
-		[opts.user_wrap(af.read(True))],
+	tf = af.read(True)
+	if 'needs-root' not in t.restrictions:
+		tf = opts.user_wrap(tf)
+	rc = testbed.execute('test-'+t.what, [tf],
 		so=so.write(True), se=se.write(True), cwd=tree.read(True))
 
 	so_read = so.read()
@@ -1326,14 +1340,15 @@ END
 
 #---------- processing of sources (building)
 
-def source_rules_command(act,script,what,which,work,results_lines=0):
+def source_rules_command(act,script,what,which,work,cwd,
+				results_lines=0,xargs=[]):
 	script = [	"exec 3>&1 >&2",
 			"set -x"	] + script
 	script = '\n'.join(script)
 	so = TemporaryFile('%s-%s-results' % (what,which))
 	rc = testbed.execute('%s-%s' % (what,which),
-			['sh','-xec',script], script=script,
-			so=so.write(True), cwd= work.write(True))
+			['sh','-ec',script]+xargs, script=script,
+			so=so.write(True), cwd=cwd)
 	results = open(so.read()).read().rstrip('\n').split("\n")
 	if rc: badpkg("%s failed with exit code %d" % (which,rc))
 	if results_lines is not None and len(results) != results_lines:
@@ -1348,31 +1363,44 @@ def build_source(act):
 	testbed.needs_reset()
 
 	what = act.what
-	dsc = act.af
-	basename = dsc.spec
+	basename = act.af.spec
 
-	dsc_file = open(dsc.read())
-	in_files = False
-	fre = regexp.compile('^\s+[0-9a-f]+\s+\d+\s+([^/.][^/]*)$')
-	for l in dsc_file:
-		l = l.rstrip('\n')
-		if l.startswith('Files:'): in_files = True; continue
-		elif l.startswith('#'): pass
-		elif not l.startswith(' '):
-			in_files = False
-			if l.startswith('Source:'):
-				act.blame = 'dsc:'+l[7:].strip()
-				testbed.blame(act.blame)
-		if not in_files: continue
+	if act.kind == 'dsc':
+		dsc = act.af
+		dsc_file = open(dsc.read())
+		in_files = False
+		fre = regexp.compile('^\s+[0-9a-f]+\s+\d+\s+([^/.][^/]*)$')
+		for l in dsc_file:
+			l = l.rstrip('\n')
+			if l.startswith('Files:'): in_files = True; continue
+			elif l.startswith('#'): pass
+			elif not l.startswith(' '):
+				in_files = False
+				if l.startswith('Source:'):
+					act.blame = 'dsc:'+l[7:].strip()
+					testbed.blame(act.blame)
+			if not in_files: continue
 
-		m = fre.match(l)
-		if not m: badpkg(".dsc contains unparseable line"
-				" in Files: `%s'" % l)
-		leaf = m.groups(0)[0]
-		subfile = RelativeInputFile(what+'/'+leaf, dsc, leaf,
-				sibling=True)
-		subfile.read(True)
-	dsc.read(True)
+			m = fre.match(l)
+			if not m: badpkg(".dsc contains unparseable line"
+					" in Files: `%s'" % l)
+			leaf = m.groups(0)[0]
+			subfile = RelativeInputFile(what+'/'+leaf, dsc, leaf,
+					sibling=True)
+			subfile.read(True)
+		dsc.read(True)
+
+	if act.kind == 'ubtree':
+		debiancontrol = RelativeInputFile(what+'-debiancontrol',
+			act.af, 'debian/control')
+		dsc = TemporaryFile(what+'-fakedsc')
+		dsc_w = open(dsc.write(), 'w')
+		for l in open(debiancontrol.read()):
+			l = l.rstrip('\n')
+			if not len(l): break
+			print >>dsc_w, l
+		print >>dsc_w, 'Binary: none-so-this-is-not-a-package-name'
+		dsc_w.close()
 
 	script = binaries.apt_pkg_gdebi_script(
 		dsc.read(True), [[
@@ -1384,6 +1412,7 @@ def build_source(act):
 		'd = DebPackage(cache)',
 		'res = d.satisfyDependsStr("build-essential")',
 		]])
+
 	cmdl = ['python','-c',script]
 	whatp = what+'-builddeps'
 	rc = testbed.execute(what, cmdl, script=script)
@@ -1392,23 +1421,44 @@ def build_source(act):
 	work = TemporaryDir(what+'-build')
 
 	script = [
-			'cd '+work.write(True),
-		]
+		'arg="$1"',
+		'origpwd=`pwd`',
+		'cd '+work.write(True)
+	]
+
+	if act.kind == 'ubtree':
+		spec = '%s/real-tree' % work.write(True)
+		create_command = '''
+			rm -rf "$spec"
+			mkdir "$spec"
+			cp -rP --preserve=timestamps,links -- "$origpwd"/. "$spec"/.
+			'''
+		initcwd = act.af.read(True)
+
+	if act.kind == 'dsc':
+		spec = dsc.read(True)
+		create_command = '''
+			dpkg-source -x $spec
+			'''
+		initcwd = work.write(True)
+
 	if opts.user: script += [
 			'chown '+opts.user+' .',
-			'dsc=dsc.read(True) '+
-				opts.user_wrap('dpkg-source -x $dsc')
-		]
+			'spec="$arg" '+opts.user_wrap(create_command)
+			]
 	else: script += [
-			'dpkg-source -x '+dsc.read(True),
+			'spec="$arg"',
+			create_command
 		]
+
 	script += [
 			'cd */.',
 			'dpkg-checkbuilddeps',
 			'pwd >&3',
 			opts.user_wrap('debian/rules build'),
 		]
-	result_pwd = source_rules_command(act,script,what,'build',work,1)
+	result_pwd = source_rules_command(act,script,what,'build',work,
+			cwd=initcwd, results_lines=1, xargs=['x',spec])
 
 	if os.path.dirname(result_pwd)+'/' != work.read(True):
 		badpkg("results dir `%s' is not in expected parent dir `%s'"
@@ -1425,7 +1475,7 @@ def build_source(act):
 
 	act.blamed = copy.copy(testbed.blamed)
 
-	def debug_b(m): debug('* <dsc:%s> %s' % (act.what, m))
+	def debug_b(m): debug('* <%s:%s> %s' % (act.kind, act.what, m))
 	act.binaries = []
 	filter = act.ah['dsc_filter']
 	debug_b('filter=%s' % filter)
@@ -1437,7 +1487,7 @@ def build_source(act):
 			'echo *.deb >&3',
 			]
 		result_debs = source_rules_command(act,script,what,
-				'binary',work,1)
+				'binary',work,work.write(True),results_lines=1)
 		if result_debs == '*': debs = []
 		else: debs = result_debs.split(' ')
 		debug_b('debs='+`debs`)
@@ -1475,6 +1525,9 @@ def process_actions():
 	testbed.open()
 	binaries = Binaries()
 
+	for act in opts.actions:
+		testbed.register_ephemeral(act.af)
+
 	binaries.reset()
 
 	debug_a1('builds ...')
@@ -1489,7 +1542,7 @@ def process_actions():
 			testbed.blame('deb:'+act.pkg)
 			binaries.register(act,act.pkg,act.af,
 				'forbuilds',testbed.blamed)
-		if act.kind == 'dsc':
+		if act.kind == 'dsc' or act.kind == 'ubtree':
 			build_source(act)
 		if act.kind == 'tree':
 			act.binaries = []
@@ -1509,10 +1562,11 @@ def process_actions():
 		if act.kind == 'deb':
 			binaries.register(act,act.pkg,act.af,'fortests',
 				['deb:'+act.pkg])
-		if act.kind == 'dsc':
+		if act.kind == 'dsc' or act.kind == 'ubtree':
 			for (pkg,bin) in act.binaries:
 				binaries.register(act,pkg,bin,'fortests',
 					act.blamed)
+		if act.kind == 'dsc':
 			if act.ah['dsc_tests']:
 				debug_a3('read control ...')
 				stanzas = read_control(act, act.tests_tree,
@@ -1521,7 +1575,7 @@ def process_actions():
 				debug_a3('run_tests ...')
 				run_tests(stanzas, act.tests_tree)
 			control_override = None
-		if act.kind == 'tree':
+		if act.kind == 'tree' or act.kind == 'ubtree':
 			testbed.blame('arg:'+act.af.spec)
 			stanzas = read_control(act, act.af, control_override)
 			debug_a3('run_tests ...')

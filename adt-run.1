@@ -27,7 +27,7 @@ host.  The package should be installed on the testbed.
 
 .SH PROCESSING INSTRUCTIONS
 .TP
-.BR --tests-tree " " \fIdirectory\fR
+.BR --built-tree " " \fIdirectory\fR
 Specifies that tests from the built source tree
 .IR directory
 should be run.  Note that the packages that would normally be
@@ -43,6 +43,13 @@ satisfy dependencies.  The tests from that built tree will also be run
 should precede options whose dependencies are to be satisfied by the
 binaries it produces.
 .TP
+.BR --unbuilt-tree " " \fIdirectory\fR
+Specifies that tests from the unbuilt source tree
+.IR directory
+should be run.  This is very similar to specifing \fB--source\fR
+except that a directory tree (which should be pristine) is supplied,
+instead of a source package.
+.TP
 .BR --binary " " \fIdeb\fR
 Specifies that \fIdeb\fR should be used.  By default it will be used
 to satisfy dependencies, both during building and testing, but not
@@ -51,10 +58,11 @@ necessarily installed.  The ordering is significant, as for
 .TP
 .I filename
 Bare filename arguments are processed as if
-.BR --tests-tree ", " --source " or " --binary
+.BR --built-tree ", " --source ", " --unbuilt-tree " or " --binary
 was specified; the nature of the argument is guessed from the form of
-the filename.  (So in the case of \fB--tests-tree\fR, either the
-option must be specified, or the filename must end in a slash.)
+the filename.  In the case of \fB--built-tree\fR, either the
+option must be specified, or the filename must end in a slash; two
+slashes at the end are taken to mean \fB--unbuilt-tree\fR.
 .SH PROCESSING OPTIONS
 These affect modify processing instructions.  Unless stated
 otherwise, they affect all subsequent options.
@@ -65,13 +73,13 @@ files on the testbed, or on the host, respectively.  The default is
 \fB--paths-host\fR.
 .TP
 .BR --sources-tests | --sources-no-tests
-Specifies that the tests in subsequent \fB--source\fR arguments should
-(or should not) be run.
+Specifies that the tests in subsequent \fB--source\fR and
+\fB--unbuilt-tree\fR arguments should (or should not) be run.
 .TP
 .BR --built-binaries-filter= \fIpattern\fB,\fIpattern\fB,\fR...
 Specifies that only binaries whose package names match one of the
 specified patterns should be used; others will be ignored.  This
-option applies to subsequent \fB--source\fR arguments.
+option applies to subsequent \fB--source\fR and \fB--unbuilt-tree\fR arguments.
 .TP
 .BR --no-built-binaries
 Specifies that all built binaries should be ignored completely;
@@ -82,7 +90,7 @@ equivalent to
 .B --binaries=ignore | --binaries=auto | --binaries=install
 Specifies that binary package (in subsequently specified
 \fB--binary\fR arguments, or resulting from subsequently specified
-\fB--source\fR arguments and not filtered out) should be ignored, used
+\fB--source\fR or \fB--unbuilt-tree\fR arguments and not filtered out) should be ignored, used
 only to satisfy dependencies, or installed unconditionally,
 respectively.  Equivalent to specifying both
 .BR --binaries-forbuilds " and " --binaries-fortests .
@@ -96,7 +104,7 @@ unconditionally installed, when a source package is built.
 Like \fB--binaries=\fR but only changes the handling during testing:
 packages will be ignored, used for dependencies (including as the
 package under test), or unconditionally installed, when tests are run
-(as a result of either \fB--source\fR or \fB--build-tree\fR).
+(as a result of \fB--source\fR, \fB--built-tree\fR or \fB--unbuilt-tree\fR).
 .SH OTHER OPTIONS
 .TP
 .BI --output-dir " " \fIoutput-dir\fR
