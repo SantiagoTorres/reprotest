@@ -946,12 +946,12 @@ class Test:
 	dn = []
 	for d in t.depends:
 		t._debug(' processing dependency '+d)
-		if not '*' in d:
+		if not '_' in d:
 			t._debug('  literal dependency '+d)
 			dn.append(d)
 		else:
 			for (pkg,bin) in t.act.binaries:
-				d = d.replace('*',pkg)
+				d = d.replace('_',pkg)
 				t._debug('  synthesised dependency '+d)
 				dn.append(d)
 	testbed.prepare(dn)
@@ -1065,7 +1065,7 @@ def read_control(act, tree, control_override):
 			base = {
 				'restrictions': [],
 				'testsdir': 'debian/tests',
-				'depends' : '*'
+				'depends' : '_'
 			}
 			for fname in stz.keys():
 				if fname.startswith(' '): continue
