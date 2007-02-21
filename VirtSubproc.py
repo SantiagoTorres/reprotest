@@ -56,7 +56,7 @@ def cmdnumargs(c, ce, nargs=0, noptargs=0):
 
 def cmd_capabilities(c, ce):
 	cmdnumargs(c, ce)
-	return caller.hook_capabilities()
+	return caller.hook_capabilities() + ['execute-debug']
 
 def cmd_quit(c, ce):
 	cmdnumargs(c, ce)
@@ -127,7 +127,7 @@ def down_python_script(gobody, functions=''):
 			"	if write: rw = os.O_WRONLY|os.O_CREAT\n"
 			"	else: rw = os.O_RDONLY\n"
 			"	nfd = os.open(fname, rw, mode)\n"
-			"	os.dup2(nfd,fd)\n"
+			"	if fd >= 0: os.dup2(nfd,fd)\n"
 			+ functions +
 			"def go():\n" )
 	script += (	"	os.environ['TMPDIR']= urllib.unquote('%s')\n" %
@@ -161,12 +161,14 @@ def cmd_execute(c, ce):
 	tfd = None
 	if debug_g:
 		(tfd,hfd) = m.groups()
-		gobody += "	os.dup2(1,%d)\n" % int(tfd)
+		tfd = int(tfd)
+		gobody += "	os.dup2(1,%d)\n" % tfd
 		stdout = int(hfd)
 	for ioe in range(3):
-		if ioe == tfd: continue
+		ioe_tfd = ioe
+		if ioe == tfd: ioe_tfd = -1
 		gobody += "	setfd(%d,'%s',%d)\n" % (
-			ioe, ce[ioe+2], ioe>0 )
+			ioe_tfd, ce[ioe+2], ioe>0 )
 	gobody += "	os.chdir(urllib.unquote('" + ce[5] +"'))\n"
 	gobody += "	cmd = '%s'\n" % ce[1]
 	gobody += ("	cmd = cmd.split(',')\n"
