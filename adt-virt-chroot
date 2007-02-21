@@ -3,7 +3,7 @@
 # adt-virt-chroot is part of autopkgtest
 # autopkgtest is a tool for testing Debian binary packages
 #
-# autopkgtest is Copyright (C) 2006 Canonical Ltd.
+# autopkgtest is Copyright (C) 2006-2007 Canonical Ltd.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
