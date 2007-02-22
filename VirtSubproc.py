@@ -148,12 +148,17 @@ def cmd_execute(c, ce):
 	cmdnumargs(c, ce, 5, None)
 	debug_re = regexp.compile('debug=(\d+)\-(\d+)$')
 	debug_g = None
+	envs = []
 	for kw in ce[6:]:
 		if kw.startswith('debug='):
 			if debug_g: bomb("multiple debug= in execute")
 			m = debug_re.match(kw)
 			if not m: bomb("invalid execute debug arg `%s'" % kw)
 			debug_g = m.groups()
+		elif kw.startswith('env='):
+			es = kw[4:]; eq = es.find('=')
+			if eq <= 0: bomb("invalid env arg `%s'" % kw)
+			envs.append((es[:eq], es[eq+1:]))
 		else: bomb("invalid execute kw arg `%s'" % kw)
 		
 	gobody = "	import sys\n"
@@ -169,6 +174,10 @@ def cmd_execute(c, ce):
 		if ioe == tfd: ioe_tfd = -1
 		gobody += "	setfd(%d,'%s',%d)\n" % (
 			ioe_tfd, ce[ioe+2], ioe>0 )
+	for e in envs:
+		gobody += ("	os.environ[urllib.unquote('%s')]"
+			   " = urllib.unquote('%s')\n"
+				% tuple(map(urllib.quote, e)))
 	gobody += "	os.chdir(urllib.unquote('" + ce[5] +"'))\n"
 	gobody += "	cmd = '%s'\n" % ce[1]
 	gobody += ("	cmd = cmd.split(',')\n"
