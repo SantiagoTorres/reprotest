@@ -79,24 +79,29 @@ def pstderr(m):
 	print >>sys.stderr, m
 	if trace_stream is not None: print >>trace_stream, m
 
-def debug(m):
-	if not opts.debug and trace_stream is None: return
+def debug(m, minlevel=0):
+	if opts.debuglevel < minlevel: return
+	if opts.quiet and trace_stream is None: return
+	p = 'adt-run: debug'
+	if minlevel: p += `minlevel`
+	p += ': '
 	for l in m.rstrip('\n').split('\n'):
-		s = 'atd-run: debug: ' + l
-		if opts.debug: print >>sys.stderr, s
+		s = p + l
+		if not opts.quiet: print >>sys.stderr, s
 		if trace_stream is not None: print >>trace_stream, s
 
-def debug_file(hp):
+def debug_file(hp, minlevel=0):
+	if opts.debuglevel < minlevel: return
 	def do_copy(stream, what):
 		rc = subprocess.call(['cat',hp], stdout=stream)
 		if rc: bomb('cat failed copying data from %s'
 			    ' to %s, exit code %d' % (hp, what, rc))
-	if opts.debug: do_copy(sys.stderr, 'stderr')
+	if not opts.quiet: do_copy(sys.stderr, 'stderr')
 	if trace_stream is not None: do_copy(trace_stream, 'trace log')
 
 class Errplumb:
  def __init__(ep, critical=False):
-	to_stderr = critical or opts.debug
+	to_stderr = critical or not opts.quiet
 	count = to_stderr + (trace_stream is not None)
 	if count == 0:
 		ep.stream = open('/dev/null','w')
@@ -167,7 +172,7 @@ def mkdir_okexist(pathname, mode=02755):
 		if oe.errno != errno.EEXIST: raise
 
 def rmtree(what, pathname):
-	debug('/ %s rmtree %s' % (what, pathname))
+	debug('/ %s rmtree %s' % (what, pathname), 2)
 	shutil.rmtree(pathname)
 
 def debug_subprocess(what, cmdl=None, script=None):
@@ -179,11 +184,12 @@ def debug_subprocess(what, cmdl=None, script=None):
 			ol.append(x.	replace('\\','\\\\').
 					replace(' ','\\ ')	)
 		o += ' '+ ' '.join(ol)
-	if script is not None:
-		o += '\n'
+	debug(o)
+	if script is not None and opts.debuglevel >= 1:
+		o = ''
 		for l in script.rstrip('\n').split('\n'):
 			o += '$     '+l+'\n'
-	debug(o)
+		debug(o,1)
 
 def flatten(l):
 	return reduce((lambda a,b: a + b), l, []) 
@@ -278,7 +284,7 @@ class AutoFile:
 	p._debug('invalidated %s' % 'HT'[tbp])
 
  def _debug(p, m):
-	debug('/ %s#%x: %s' % (p.what, id(p), m))
+	debug('/ %s#%x: %s' % (p.what, id(p), m), 3)
 
  def _constructed(p):
 	p._debug('constructed: '+str(p))
@@ -517,7 +523,8 @@ def parse_args():
 		help='run tests as USER (needs root on testbed)')
 	pa('','--gain-root',		type='string', dest='gainroot',
 		help='prefix debian/rules binary with GAINROOT')
-	pa('-q', '--quiet', action='store_false', dest='debug', default=True);
+	pa('-q', '--quiet', action='store_false', dest='quiet', default=False);
+	pa('-d', '--debug', action='count', dest='debuglevel', default=0);
 	pa('','--gnupg-home',		type='string', dest='gnupghome',
 		default='~/.autopkgtest/gpg',
 		help='use GNUPGHOME rather than ~/.autopkgtest (for'
@@ -604,7 +611,7 @@ def setup_trace():
 	if opts.logfile is not None:
 		trace_stream = open(opts.logfile, 'w', 0)
 
-	debug('#options: '+`opts`)
+	debug('options: '+`opts`, 1)
 
 def finalise_options():
 	global opts, tb
@@ -661,8 +668,8 @@ class Testbed:
 	tb._ephemeral = []
 	tb._debug('init')
 	tb._need_reset_apt = False
- def _debug(tb, m):
-	debug('** '+m)
+ def _debug(tb, m, minlevel=0):
+	debug('** '+m, minlevel)
  def start(tb):
 	tb._debug('start')
 	p = subprocess.PIPE
@@ -711,7 +718,7 @@ class Testbed:
 	tb.command('close')
  def prepare(tb, deps_new):
 	tb._debug('prepare, modified=%s, deps_processed=%s, deps_new=%s' %
-		(tb.modified, tb.deps_processed, deps_new))
+		(tb.modified, tb.deps_processed, deps_new), 1)
 	if 'revert' in tb.caps and (tb.modified or
 	    [d for d in tb.deps_processed if d not in deps_new]):
 		tb._debug('reset **')
@@ -724,7 +731,7 @@ class Testbed:
  def register_ephemeral(tb, af):
 	if not getattr(af,'spec_tbp',False): tb._ephemeral.append(af)
  def _install_deps(tb, deps_new):
-	tb._debug(' installing dependencies '+`deps_new`)
+	tb._debug(' installing dependencies '+`deps_new`, 1)
 	tb.deps_processed = deps_new
 	if not deps_new: return
 	dstr = ', '.join(deps_new)
@@ -736,13 +743,13 @@ class Testbed:
 		]])
 	cmdl = ['python','-c',script]
 	what = 'install-deps'
-	rc = testbed.execute(what, cmdl, script=script)
+	rc = testbed.execute(what+'-debinstall', cmdl, script=script)
 	if rc: badpkg('dependency install failed, exit code %d' % rc)
  def needs_reset(tb):
-	tb._debug('needs_reset, previously=%s' % tb.modified)
+	tb._debug('needs_reset, previously=%s' % tb.modified, 1)
 	tb.modified = True
  def blame(tb, m):
-	tb._debug('blame += %s' % m)
+	tb._debug('blame += %s' % m, 1)
 	tb.blamed.append(m)
  def bomb(tb, m):
 	tb._debug('bomb %s' % m)
@@ -757,7 +764,7 @@ class Testbed:
  def send(tb, string):
 	tb.sp.stdin
 	try:
-		debug('>> '+string)
+		debug('>> '+string, 2)
 		print >>tb.sp.stdin, string
 		tb.sp.stdin.flush()
 		tb.lastsend = string
@@ -770,7 +777,7 @@ class Testbed:
 	if not l: tb.bomb('unexpected eof from the testbed')
 	if not l.endswith('\n'): tb.bomb('unterminated line from the testbed')
 	l = l.rstrip('\n')
-	debug('<< '+l)
+	debug('<< '+l, 2)
 	ll = l.split()
 	if not ll: tb.bomb('unexpected whitespace-only line from the testbed')
 	if ll[0] != keyword:
@@ -820,7 +827,7 @@ class Testbed:
 		ep = Errplumb()
 		se_catch = TemporaryFile(what+'-xerr')
 		se_use = se_catch.write(True)
-		if opts.debug: xdump = 'debug=2-2'
+		if not opts.quiet: xdump = 'debug=2-2'
 		elif trace_stream is not None:
 			xdump = 'debug=2-%d' % trace_stream.fileno()
 	else:
@@ -875,7 +882,6 @@ class Restriction:
  def __init__(r,rname,base): pass
 
 class Restriction_rw_build_tree(Restriction): pass
-class Restriction_rw_tests_tree(Restriction): pass
 class Restriction_breaks_testbed(Restriction):
  def __init__(r, rname, base):
 	if 'revert' not in testbed.caps:
@@ -899,6 +905,7 @@ class Field_Restrictions(FieldBase):
 		f.base['restrictions'].append(r)
 
 class Field_Tests(FieldIgnore): pass
+class Field_Features(FieldIgnore): pass
 
 class Field_Depends(FieldBase):
  def parse(f):
@@ -958,12 +965,12 @@ class Test:
 	dn = []
 	for d in t.depends:
 		t._debug(' processing dependency '+d)
-		if not '_' in d:
+		if not '@' in d:
 			t._debug('  literal dependency '+d)
 			dn.append(d)
 		else:
 			for (pkg,bin) in t.act.binaries:
-				d = d.replace('_',pkg)
+				d = d.replace('@',pkg)
 				t._debug('  synthesised dependency '+d)
 				dn.append(d)
 	testbed.prepare(dn)
@@ -1079,7 +1086,7 @@ def read_control(act, tree, control_override):
 			base = {
 				'restrictions': [],
 				'testsdir': 'debian/tests',
-				'depends' : '_'
+				'depends' : '@'
 			}
 			for fname in stz.keys():
 				if fname.startswith(' '): continue

@@ -153,6 +153,12 @@ Specifies that the trace log should be written to \fIlogfile\fR
 instead of to \fBlog\fR in \fIoutput-dir\fR or \fItmpdir\fR.
 \fIlog-file\fR is not affected by \fB--paths-testbed\fR.
 .TP
+.BR --debug | -d
+Include additional debugging information in the trace log.  Each
+additional \fB-d\fR increases the debugging level; the current maximum
+is \fB-ddd\fR.  If you like to see what's going on, \fR-d\fB or
+\fR-dd\fB is recommended.
+.TP
 .BI --gnupg-home= dir
 Uses \fIdir\fR as the \fBGNUPGHOME\fR for local apt archive signing.
 The specified directory should not contain keyrings containing other
