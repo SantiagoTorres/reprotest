@@ -1428,7 +1428,7 @@ def build_source(act):
 	work = TemporaryDir(what+'-build')
 
 	script = [
-		'arg="$1"',
+		'spec="$1"',
 		'origpwd=`pwd`',
 		'cd '+work.write(True)
 	]
@@ -1451,10 +1451,9 @@ def build_source(act):
 
 	if opts.user: script += [
 			'chown '+opts.user+' .',
-			'spec="$arg" '+opts.user_wrap(create_command)
+			'spec="$spec" origpwd="$origpwd" '+opts.user_wrap(create_command)
 			]
 	else: script += [
-			'spec="$arg"',
 			create_command
 		]
 
