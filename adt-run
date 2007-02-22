@@ -1409,22 +1409,6 @@ def build_source(act):
 		print >>dsc_w, 'Binary: none-so-this-is-not-a-package-name'
 		dsc_w.close()
 
-	script = binaries.apt_pkg_gdebi_script(
-		dsc.read(True), [[
-		'from GDebi.DscSrcPackage import DscSrcPackage',
-		'd = DscSrcPackage(cache, arg)',
-		'res = d.checkDeb()',
-		 ],[
-		'from GDebi.DebPackage import DebPackage',
-		'd = DebPackage(cache)',
-		'res = d.satisfyDependsStr("build-essential")',
-		]])
-
-	cmdl = ['python','-c',script]
-	whatp = what+'-builddeps'
-	rc = testbed.execute(what, cmdl, script=script)
-	if rc: badpkg('build-depends install failed, exit code %d' % rc)
-
 	work = TemporaryDir(what+'-build')
 
 	script = [
@@ -1459,12 +1443,34 @@ def build_source(act):
 
 	script += [
 			'cd */.',
-			'dpkg-checkbuilddeps',
 			'pwd >&3',
+		]
+	result_pwd = source_rules_command(act,script,what,'extract',work,
+			cwd=initcwd, results_lines=1, xargs=['x',spec])
+
+	script = binaries.apt_pkg_gdebi_script(
+		dsc.read(True), [[
+		'from GDebi.DscSrcPackage import DscSrcPackage',
+		'd = DscSrcPackage(cache, arg)',
+		'res = d.checkDeb()',
+		 ],[
+		'from GDebi.DebPackage import DebPackage',
+		'd = DebPackage(cache)',
+		'res = d.satisfyDependsStr("build-essential")',
+		]])
+
+	cmdl = ['python','-c',script]
+	whatp = what+'-builddeps'
+	rc = testbed.execute(what, cmdl, script=script)
+	if rc: badpkg('build-depends install failed, exit code %d' % rc)
+
+	script = [
+			'cd "$1"',
+			'dpkg-checkbuilddeps',
 			opts.user_wrap('debian/rules build'),
 		]
-	result_pwd = source_rules_command(act,script,what,'build',work,
-			cwd=initcwd, results_lines=1, xargs=['x',spec])
+	source_rules_command(act,script,what,'build',work,
+			cwd=initcwd, xargs=['x',result_pwd])
 
 	if os.path.dirname(result_pwd)+'/' != work.read(True):
 		badpkg("results dir `%s' is not in expected parent dir `%s'"
