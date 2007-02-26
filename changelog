@@ -4,7 +4,7 @@ autopkgtest (0.7.1) feisty; urgency=low
   * Manpage for adt-virt-xenlvm.
   * New adt-virt-null.
 
- -- Ian Jackson <iwj@ubuntu.com>  Mon, 26 Feb 2007 16:31:42 +0000
+ -- Ian Jackson <iwj@ubuntu.com>  Mon, 26 Feb 2007 16:34:41 +0000
 
 autopkgtest (0.7.0) feisty; urgency=low
 
