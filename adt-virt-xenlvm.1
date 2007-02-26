@@ -1,0 +1,71 @@
+.TH adt\-virt-xenlvm 1 2007 autopkgtest "Linux Programmer's Manual"
+.SH NAME
+adt\-virt\-xenlvm \- autopkgtest virtualisation server using Xen and LVM
+.SH SYNOPSYS
+.B adt\-virt\-xenlvm
+.RI [ options ]
+.B \-\-
+.RI [ "adt-xenlvm options" ]
+.SH DESCRIPTION
+.B adt-virt-xenlvm
+provides an autopkgtest virtualisation server using a Xen virtual
+machine and LVM snapshots.  It adapts the raw functionality provided
+by the
+.BR adt-xenlvm- *
+tools for use by autopkgtest.
+
+Normally
+.B adt-virt-xenlvm
+will be invoked by
+.BR adt-run .
+
+.BR adt-virt-xenlvm
+uses
+.BR adt-xenlvm-with-testbed
+and 
+.BR adt-xenlvm-on-testbed .
+The testbed must have previously been set up with
+.BR adt-xenlvm-setup .
+
+Neither
+.BR adt-virt-xenlvm
+nor
+.BR adt-xenlvm-with-testbed
+do any locking; it is the the caller's responsibility not to attempt
+concurrent use of any particular testbed.
+.SH OPTIONS
+.TP
+.BR \-d " | " \-\-debug
+Enables debugging output.  Probably not hugely interesting.
+.TP
+.BI "-- --" adt-xenlvm-option = adt-xenlvm-value
+Following the first occurrence of
+.B --
+on the
+.B adt-virt-xenlvm
+commandline, any of the values in the adt-xenlvm configuration may be
+set in the usual way.  In particular,
+.BI --nominum= nominum
+can be used to specify the use of a different testbed.
+
+See \fB/usr/share/doc/autopkgtest-xenlvm/README.gz\fR for full details
+of adt-xenlvm.
+.SH INPUT, OUTPUT AND EXIT STATUS
+The behaviour of
+.B adt-virt-xenlvm
+is as described by the AutomatedTesting virtualisation regime
+specification.
+
+.SH SEE ALSO
+\fBadt-run\fR(1),
+\fBadt\-virt-null\fR(1),
+\fBadt\-virt-chroot\fR(1),
+\fB/usr/share/doc/autopkgtest/\fR,
+\fB/usr/share/doc/autopkgtest-xenlvm/README.gz\fR.
+
+.SH AUTHORS AND COPYRIGHT
+This manpage is part of autopkgtest, a tool for testing Debian binary
+packages.  autopkgtest is Copyright (C) 2006-2007 Canonical Ltd and others.
+
+See \fB/usr/share/doc/autopkgtest/CREDITS\fR for the list of
+contributors and full copying conditions.
