@@ -1,3 +1,9 @@
+autopkgtest (0.7.2) unstable; urgency=low
+
+  * WIP adt-testreport-onepackage
+
+ --
+
 autopkgtest (0.7.1) feisty; urgency=low
 
   * Actually ship README.* files.
