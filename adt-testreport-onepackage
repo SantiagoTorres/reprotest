@@ -13,6 +13,16 @@ maintainer_email_override="$administrator_email"
 salutation="Ian"
 from="$salutation Jackson <ian@davenant.greenend.org.uk>"
 rsync=rsync
+disable=true
+
+for config in "$@"; do
+	. "$config"
+done
+
+if $disable; then
+	echo >&2 'disabled because config inadequate (no disable=false)'
+	exit 1
+fi
 
 destdirtail=autopkgtest-output/$distro
 destrsynchead=ijackson@chiark:public-html/
@@ -21,7 +31,7 @@ desthttphead=http://www.chiark.greenend.org.uk/~ijackson/
 rm -rf "$tmp"
 mkdir "$tmp"
 
-exec >"$tmp"/log
+exec >"$tmp"/log 5>&1
 
 progress () {
 	echo "++++++ $1 ++++++"
@@ -35,29 +45,66 @@ gurl () {
 gurl "$mirror/dists/$distro/$suite/source/Sources.gz" "$tmp"/sources.gz
 zcat "$tmp"/sources.gz >"$tmp"/sources-in
 
-sed -n 's/^Package: \([-+.0-9a-z][-+.0-9a-z]*\)$/\1/p' \
- <"$tmp"/sources-in >"$tmp"/sources-packages
+now=`date +%s`
+>>"$var"/last-info
 
-if test -f "$var"/last; then
-	sed -e 's/$/ _/' "$var"/last >>"$tmp"/sources-packages
-else
-	echo ' _' >>"$tmp"/sources-packages
-fi
+progress selecting
 
-sort <"$tmp"/sources-packages >"$tmp"/all-sorted
-pkg="`
-	perl -ne '
-		if ($now) { print or die $!; $now++; exit; }
-		$now = m/ _$/;
-		END { die unless $now>1; }
-	' <"$tmp"/all-sorted
-`"
+pkg="`perl -e '
+	use IO::Handle;
 
-progress "selected $pkg"
+	$pre= "[-+.0-9a-z]+";
+	$vre= "[-+.0-9a-zA-Z:~]+";
+
+	sub f1() { $fn=shift @ARGV; open F, $fn or die "$fn $!"; }
+	sub f2() { F->error and die "$fn $!"; close F or die "$fn $!"; }
+
+	f1();
+	while (<F>) {
+		die unless m/^($pre) ($vre) (\d+)$/;
+		$lastver{$1}= $2;
+		$lasttime{$1}= $3;
+	}
+	f2();
+	f1();
+	$best_score= -1;
+	while (<F>) {
+		if (m/^Package: ($pre)$/) {
+			die if length $package or length $version;
+			$package= $1;
+		} elsif (m/^Version: ($vre)$/) {
+			die unless length $package;
+			die if length $version;
+			$version= $1;
+			$score= '$now' - $lasttime{$package};
+			$score= 1e8 if $score>1e8;
+			$score *= 5 if $lastver{$package} ne $version;
+			next if $score < $best_score
+			     or ($score==$best_score and \
+				 $package gt $best_package);
+			$best_score= $score;
+			$best_package= $package;
+		} elsif (m/^$/) {
+			die if length $package and !length $version;
+			$package= $version= "";
+		}
+	}
+	f2();
+	die unless length $best_package;
+	open L, ">&5" or die $!;
+	printf L "selected %s (age %s, score %d)\n",
+		$best_package,
+		exists($lastime{$best_package})
+		? '$now' - $lasttime{$best_package}
+		: "<never-yet>",
+		$best_score;
+	print "$best_package\n" or die $!;
+' "$var"/last-info "$tmp"/sources-in`"
 
 sed -n "/^Package: $pkg\$/,/^\$/p" \
  <"$tmp"/sources-in >"$tmp"/this-stanza
 
+echo
 cat "$tmp"/this-stanza
 
 getfield () {
@@ -68,6 +115,7 @@ getfield () {
 }
 
 getfield Directory
+getfield Version
 
 leafnames="`
 	sed -n '/^Files:/,/^([^ ].*)?$/{ /^ /{
@@ -195,7 +243,9 @@ fi
 
 printf >>"$var"/log "package=%s rc=%s emailed='%s'\n" \
 	"$pkg" $rc "$email_addr"
-echo $pkg >"$var"/last.new
-mv "$var"/last.new "$var"/last
+
+sed -e "/^$pkg /d" <"$var"/last-info >"$var"/last-info.new
+printf "%s %s %s\n" "$pkg" "$pVersion" "$now" >>"$var"/last-info.new
+mv "$var"/last-info.new "$var"/last-info
 
 progress "done."
