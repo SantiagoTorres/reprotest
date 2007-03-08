@@ -1,0 +1,113 @@
+.TH adt\-testreport\-onepackage 1 2007 autopkgtest "Linux Programmer's Manual"
+.SH NAME
+adt\-testreport\-onepackage \- choose one package and test it with adt-run
+.SH SYNOPSYS
+.B adt\-testreport\-onepackage
+.RI [ variable \fB=\fR value | settings\-file ]...
+.br
+.SH DESCRIPTION
+.B adt\-testreport\-onepackage
+is a rather ad-hoc script which chooses a package to test, calls
+adt-run, and reports the results.  a-t-o has the following
+functionality:
+
+a-t-o downloads the Sources file, chooses a package to test (see
+below), downloads its source, invokes adt-run, writes a report
+describing the outcome, and emails the report to some appropriate
+address.
+
+\fBWARNING\fR - it is essential to reconfigure this program before
+use, as the supplied examples will \fBsend emails\fR to people who
+will become \fBvery upset\fR with you!
+.SH CONFIGURATION
+Command-line arguments containing \fB=\fR are interpreted by a-t-o
+with \fBeval\fR; other arguments are sourced using \fB.\fR,
+in each case interpreted as bash script.  Configuration fragment
+authors should bear in mind that a-t-o uses \fBset -e\fR.
+
+Various variables can be set for useful effect.  A selection of the
+most usual ones, with default values, can be seen at the top of the
+a-t-o script itself.  Certain others are mentioned in this manpage.
+There is no exhaustive list and no documentation of the semantics.
+.SH PACKAGE SELECTION
+a-t-o maintains a record of when each package was last tested, what
+version was tested, and whether the package had any tests.
+
+This record is used to choose which package should be tested next:
+packages which have changed since the last test are preferred, as are
+packages which didn't lack tests last time they were examined.
+
+If the configuration sets \fBpkg\fR to a package name (for example by
+passing \fBpkg=\fR\fIpackage-name\fR), this overrides
+a-t-o's package selection algorithm.
+.SH REPORTING
+If \fBinteractive\fR is set to \fBtrue\fR (the default), a-t-o will
+not redirect the output from adt-run and will not email anyone,
+although the start of the email which would have been sent is sent to
+stdout.  If \fBinteractive\fR is \fBfalse\fR, a-t-o sends an email to
+its administrator (if a-t-o considers that the testing machinery is
+broken, or if \fBmaintainer_email_override\fR is set), or otherwise to
+the package maintainer.
+
+No email is sent if there were no tests, or all the tests skipped or
+passed.
+
+The emailed report contains a summary of the outcome of the tests, and
+the output from adt-run.  Additionally, if an email is sent, the build
+trees, test results, and so forth, will be uploaded to the location
+specified with the \fBdest\fR* options (see the
+\fBonepackage-config\fR example configuration file).
+
+Some vague progress information is printed to a-t-o's stdout.
+.SH FILES
+The \fBtmp=\fR\fItmp\fR and \fBvar=\fR\fIvar\fR configuration
+variables name two directories which must belong solely to this
+instance of a-t-o.
+
+\fItmp\fR will be erased by a-t-o at startup and then used for
+temporary files.  It is not cleaned up afterwards; it is assumed that
+the next run of a-t-o will do that.
+
+\fIvar\fR is used to record the state, including the information about
+each package used for package selection.  \fIvar\fR\fB/log\fR contains
+a one-line record of each test run and may need to be rotated.
+
+\fItmp\fR and \fIvar\fR default to \fBtmp\fR and \fBvar\fR in a-t-o's
+starting directory.
+.SH EXIT STATUS
+0	a package was apparently tested 
+.br
+20	adt-run reported an unexpected failure
+.br
+other	other unexpected failures including bad usage, disk full, etc.
+
+When a-t-o is run in a loop, the loop should stop pending
+administrator intervention if a-t-o exits nonzero.
+.SH SEE ALSO
+\fBadt-run\fR(1).
+.SH BUGS
+\fBIt is essential not to use the example configuration!\fR
+This configuration is likely to send inappropriate emails!
+
+There is no documentation for the variable settings, and no error
+handling for detecting attempts to set incorrectly named variables.
+
+The tuning parameters for the package selection algorithm cannot be
+adjusted.  This algorithm is not hugely sophisticated.  There should
+be a facility for explicitly requesting retests (other than setting
+\fBpkg\fR); there should be some kind of manual prioritisation queue.
+
+a-t-o cannot choose a distrorelease (eg, dapper, feisty, etch, sid) or
+suite (eg main, non-free, universe); the caller must do that.
+
+Configuration by the use of bash fragments is rather unsophisticated.
+
+The script lacks flexibility in many respects; many additional
+configuration settings and hooks are needed.
+.SH AUTHORS AND COPYRIGHT
+This manpage is part of autopkgtest, a tool for testing Debian binary
+packages.  autopkgtest is Copyright (C) 2006-2007 Canonical Ltd and
+others.
+
+See \fB/usr/share/doc/autopkgtest/CREDITS\fR for the list of
+contributors and full copying conditions.
