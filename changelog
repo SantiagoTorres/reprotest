@@ -1,11 +1,12 @@
-autopkgtest (0.7.2) unstable; urgency=low
+autopkgtest (0.7.2) feisty; urgency=low
 
-  * New adt-testreport-onepackage script, with some example config
-    files onepackage-config and ubuntu-config.
+  * adt-testreport-onepackage: new management script, with some
+    example config files onepackage-config and ubuntu-config.
   * Fixed quite a few bugs in adt-run.
   * Made adt_distro xenlvm config var settable.
+  * Fixed various packaging problems.
 
- --
+ -- Ian Jackson <iwj@ubuntu.com>  Thu,  8 Mar 2007 14:54:33 +0000
 
 autopkgtest (0.7.1) feisty; urgency=low
 
