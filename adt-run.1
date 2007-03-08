@@ -153,6 +153,12 @@ Specifies that the trace log should be written to \fIlogfile\fR
 instead of to \fBlog\fR in \fIoutput-dir\fR or \fItmpdir\fR.
 \fIlog-file\fR is not affected by \fB--paths-testbed\fR.
 .TP
+.BI --summary= summary
+Specifies that a summary of the outcome should be written to
+\fIsummary\fR.  The events in the summary are written to the log
+in any case.
+\fIsummary\fR is not affected by \fB--paths-testbed\fR.
+.TP
 .BR --debug | -d
 Include additional debugging information in the trace log.  Each
 additional \fB-d\fR increases the debugging level; the current maximum

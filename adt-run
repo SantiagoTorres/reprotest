@@ -46,6 +46,7 @@ tmpdir = None		# pathstring on host
 testbed = None		# Testbed
 errorcode = 0		# exit status that we are going to use
 binaries = None		# Binaries (.debs we have registered)
+build_essential = ["build-essential"]
 
 #---------- output handling
 #
@@ -73,7 +74,12 @@ binaries = None		# Binaries (.debs we have registered)
 # is done by forking off a copy of ourselves to do plumbing,
 # which copy we wait for at the appropriate point.
 
+class DummyOpts:
+ def __init__(do): do.debuglevel = 0
+
+opts = DummyOpts()
 trace_stream = None
+summary_stream = None
 
 def pstderr(m):
 	print >>sys.stderr, m
@@ -111,7 +117,7 @@ class Errplumb:
 		else: ep.stream = trace_stream
 		ep._sp = None
 	else:
-		ep._sp = subprocess.Popen(['tee','/dev/stderr'],
+		ep._sp = subprocess.Popen(['tee','-a','/dev/stderr'],
 			stdin=subprocess.PIPE, stdout=trace_stream,
 			close_fds=True)
 		ep.stream = ep._sp.stdin
@@ -134,9 +140,14 @@ def subprocess_cooked(cmdl, critical=False, dbg=None, **kwargs):
 	ep.wait()
 	return (rc, output)
 
+def psummary(m):
+	if summary_stream is not None: print >>summary_stream, m
+
 def preport(m):
 	print m
+	sys.stdout.flush()
 	if trace_stream is not None: print >>trace_stream, m
+	psummary(m)
 
 def report(tname, result):
 	preport('%-20s %s' % (tname, result))
@@ -220,7 +231,8 @@ class AutoFile:
 		else: return p.path[tbp]+p.dir+'!'
 	out = p.what
 	if p.spec is not None:
-		if p.spec_tbp: out += '#'
+		if not hasattr(p,'spec_tb'): out += '~'
+		elif p.spec_tbp: out += '#'
 		else: out += '='
 		out += p.spec
 	out += ':'
@@ -231,7 +243,8 @@ class AutoFile:
 
  def _wrong(p, how):
 	xtra = ''
-	if p.spec is not None: xtra = ' spec[%s]=%s' % (p.spec, p.spec_tb)
+	if p.spec is not None:
+		xtra = ' spec[%s]=%s' % (p.spec, getattr(p,'spec_tb',None))
 	raise ("internal error: %s (%s)" % (how, str(p)))
 
  def _ensure_path(p, tbp):
@@ -390,6 +403,7 @@ class Action:
 
 def parse_args():
 	global opts
+	global n_non_actions # argh, stupid python scoping rules
 	usage = "%prog <options> --- <virt-server>..."
 	parser = OptionParser(usage=usage)
 	pa = parser.add_option
@@ -410,6 +424,7 @@ def parse_args():
 	# actions (ie, test sets to run, sources to build, binaries to use):
 
 	def cb_action(op,optstr,value,parser, long,kindpath,is_act):
+		global n_non_actions
 		parser.largs.append((value,kindpath))
 		n_non_actions += not(is_act)
 
@@ -501,7 +516,7 @@ def parse_args():
 
 	def cb_path(op,optstr,value,parser, constructor,long,dir):
 		name = long.replace('-','_')
-		af = constructor(arghandling['tb'], value, long, dir)
+		af = constructor(long, value,arghandling['tb'])
 		setattr(parser.values, name, af)
 
 	def pa_path(long, constructor, help, dir=False):
@@ -519,6 +534,9 @@ def parse_args():
 	pa('','--log-file', 		type='string', dest='logfile',
 		help='write the log LOGFILE, emptying it beforehand,'
 		     ' instead of using OUTPUT-DIR/log or TMPDIR/log')
+	pa('','--summary-file', 	type='string', dest='summary',
+		help='write a summary report to SUMMARY,'
+		     ' emptying it beforehand')
 
 	pa('','--user',			type='string', dest='user',
 		help='run tests as USER (needs root on testbed)')
@@ -594,7 +612,7 @@ def parse_args():
 		opts.actions.append(Action(kind, af, arghandling, what))
 
 def setup_trace():
-	global trace_stream, tmpdir
+	global trace_stream, tmpdir, summary_stream
 
 	if opts.tmpdir is not None:
 		rmtree('tmpdir(specified)',opts.tmpdir)
@@ -611,11 +629,13 @@ def setup_trace():
 			opts.logfile = opts.tmpdir + '/log'
 	if opts.logfile is not None:
 		trace_stream = open(opts.logfile, 'w', 0)
+	if opts.summary is not None:
+		summary_stream = open(opts.summary, 'w', 0)
 
 	debug('options: '+`opts`, 1)
 
 def finalise_options():
-	global opts, tb
+	global opts, tb, build_essential
 
 	if opts.user is None and 'root-on-testbed' not in testbed.caps:
 		opts.user = ''
@@ -646,6 +666,7 @@ def finalise_options():
 		if (opts.user or
 		    'root-on-testbed' not in testbed.caps):
 			opts.gainroot = 'fakeroot'
+			build_essential += ['fakeroot']
 
 	if opts.gnupghome.startswith('~/'):
 		try: home = os.environ['HOME']
@@ -722,6 +743,7 @@ class Testbed:
 		(tb.modified, tb.deps_processed, deps_new), 1)
 	if 'revert' in tb.caps and (tb.modified or
 	    [d for d in tb.deps_processed if d not in deps_new]):
+		for af in tb._ephemeral: af.read(False)
 		tb._debug('reset **')
 		tb.command('revert')
 		tb.blamed = []
@@ -735,7 +757,7 @@ class Testbed:
 	tb.prepare1(deps_new)
 	tb.prepare2(deps_new)
  def register_ephemeral(tb, af):
-	if not getattr(af,'spec_tbp',False): tb._ephemeral.append(af)
+	tb._ephemeral.append(af)
  def _install_deps(tb, deps_new):
 	tb._debug(' installing dependencies '+`deps_new`, 1)
 	tb.deps_processed = deps_new
@@ -950,6 +972,7 @@ def run_tests(stanzas, tree):
 	global errorcode, testbed
 	if stanzas == ():
 		report('*', 'SKIP no tests in this package')
+		errorcode |= 8
 	for stanza in stanzas:
 		tests = stanza[' tests']
 		if not tests:
@@ -958,7 +981,7 @@ def run_tests(stanzas, tree):
 		for t in tests:
 			t.prepare()
 			t.run(tree)
-			if 'breaks-testbed' in t.restrictions:
+			if 'breaks-testbed' in t.restriction_names:
 				testbed.needs_reset()
 		testbed.needs_reset()
 
@@ -1000,7 +1023,7 @@ class Test:
 	t._debug('[----------------------------------------')
 	def stdouterr(oe):
 		idstr = t.what + '-' + oe
-		if opts.output_dir is not None and opts.output_dir.tb:
+		if opts.output_dir is not None and opts.output_dir.spec_tbp:
 			use_dir = opts.output_dir
 		else:
 			use_dir = testbed.scratch
@@ -1014,18 +1037,26 @@ class Test:
 
 	tf = af.read(True)
 	tmpdir = None
+	tree.read(True)
 
-	if 'needs-root' not in t.restrictions:
-		tf = opts.user_wrap(tf)
-		tmpdir = '%s/%s-tmpdir' % (testbed.scratch.read(True), t.what)
+	rc = testbed.execute('testchmod-'+t.what, ['chmod','+x','--',tf])
+	if rc: bomb('failed to chmod +x %s' % tf)
+
+	if 'needs-root' not in t.restriction_names and opts.user is not None:
+		tfl = ['su',opts.user,'-c',tf]
+		tmpdir = '%s%s-tmpdir' % (testbed.scratch.read(True), t.what)
 		script = 'rm -rf -- "$1"; mkdir -- "$1"'
 		if opts.user: script += '; chown %s "$1"' % opts.user
+		if 'rw-build-tree' in t.restriction_names:
+			script += '; chown -R %s "$2"' % opts.user
 		rc = testbed.execute('mktmpdir-'+t.what,
-			['sh','-xec',script,'x',tmpdir])
+			['sh','-xec',script,'x',tmpdir,tree.read(True)])
 		if rc: bomb("could not create test tmpdir `%s', exit code %d"
 				% (tmpdir, rc))
+	else:
+		tfl = [tf]
 
-	rc = testbed.execute('test-'+t.what, [tf],
+	rc = testbed.execute('test-'+t.what, tfl,
 		so=so.write(True), se=se.write(True), cwd=tree.read(True),
 		tmpdir=tmpdir)
 
@@ -1037,7 +1068,7 @@ class Test:
 	if stab.st_size != 0:
 		l = open(se_read).readline()
 		l = l.rstrip('\n \t\r')
-		if len(l) > 40: l = l[:40] + '...'
+		if len(l) > 35: l = l[:35] + '...'
 		t.reportfail('status: %d, stderr: %s' % (rc, l))
 		t._debug(' - - - - - - - - - - stderr - - - - - - - - - -')
 		debug_file(se_read)
@@ -1150,9 +1181,11 @@ def print_exception(ei, msgprefix=''):
 	(et, q, tb) = ei
 	if et is Quit:
 		pstderr('adt-run: ' + q.m)
+		psummary('quitting: '+q.m)
 		return q.ec
 	else:
 		pstderr("adt-run: unexpected, exceptional, error:")
+		psummary('quitting: unexpected error, consult transcript')
 		traceback.print_exc(None, sys.stderr)
 		if trace_stream is not None:
 			traceback.print_exc(None, trace_stream)
@@ -1268,7 +1301,9 @@ END
 		'print res',
 		'print d.missingDeps',
 		'print d.requiredChanges',
-		'assert(res)',
+		'if not res: raise "gdebi failed (%s, %s, %s): %s" % '+
+			' (`res`, `d.missingDeps`, `d.requiredChanges`, '+
+			  'd._failureString)',
 		'cache.commit()',
 		''
 		]
@@ -1398,7 +1433,7 @@ def source_rules_command(act,script,what,which,work,cwd,
 	results = open(so.read()).read().rstrip('\n')
 	if len(results): results = results.split("\n")
 	else: results = []
-	if rc: badpkg("%s failed with exit code %d" % (which,rc))
+	if rc: badpkg("rules %s failed with exit code %d" % (which,rc))
 	if results_lines is not None and len(results) != results_lines:
 		badpkg("got %d lines of results from %s where %d expected"
 			% (len(results), which, results_lines))
@@ -1460,7 +1495,7 @@ def build_source(act, control_override):
 		script = binaries.apt_pkg_gdebi_script('', [[
 				'from GDebi.DebPackage import DebPackage',
 				'd = DebPackage(cache)',
-				'res = d.satisfyDependsStr("dpkg-source")',
+				'res = d.satisfyDependsStr("dpkg-dev")',
 			]])
 		cmdl = ['python','-c',script]
 		whatp = what+'-dpkgsource'
@@ -1546,11 +1581,11 @@ def build_source(act, control_override):
 		for stanza in stanzas:
 			for t in stanza[' tests']:
 				if 'no-build-needed' not in t.feature_names:
-					build_needed('test %s' % t.name)
+					build_needed('test %s' % t.tname)
 				for d in t.depends:
 					if '@' in d:
 						build_needed('test %s '
-						  'dependency %s' % (t.name,d))
+						 'dependency %s' % (t.tname,d))
 
 		debug_b('build not needed')
 		built = False
@@ -1568,7 +1603,9 @@ def build_source(act, control_override):
 			 ],[
 			'from GDebi.DebPackage import DebPackage',
 			'd = DebPackage(cache)',
-			'res = d.satisfyDependsStr("build-essential")',
+			'res = d.satisfyDependsStr("'+
+					','.join(build_essential)+
+				'")',
 			]])
 
 		cmdl = ['python','-c',script]
@@ -1595,11 +1632,12 @@ def build_source(act, control_override):
 				work.read(True)+os.path.basename(result_pwd),
 				True)
 	if act.ah['dsc_tests']:
-		act.tests_tree.read()
 		testbed.register_ephemeral(act.work)
 		testbed.register_ephemeral(act.tests_tree)
 
-	if not built: return
+	if not built:
+		act.blamed = []
+		return
 
 	act.blamed = copy.copy(testbed.blamed)
 
@@ -1652,7 +1690,8 @@ def process_actions():
 	binaries = Binaries()
 
 	for act in opts.actions:
-		testbed.register_ephemeral(act.af)
+		if not act.af.spec_tbp:
+			testbed.register_ephemeral(act.af)
 
 	binaries.reset()
 	control_override = None
