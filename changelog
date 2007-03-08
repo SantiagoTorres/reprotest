@@ -1,6 +1,9 @@
 autopkgtest (0.7.2) unstable; urgency=low
 
-  * WIP adt-testreport-onepackage
+  * New adt-testreport-onepackage script, with some example config
+    files onepackage-config and ubuntu-config.
+  * Fixed quite a few bugs in adt-run.
+  * Made adt_distro xenlvm config var settable.
 
  --
 
