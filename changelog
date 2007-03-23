@@ -1,3 +1,14 @@
+autopkgtest (0.7.2~~iwj) unstable; urgency=low
+
+  * adt-run: new --instantiate option to allow package installation to be
+    forced for testing.  (This is not an ideal approach - it's not very
+    flexible - but works well enough for the current requirements.)
+  * adt-testreport-onepackage: new ability to test binary as well as
+    source packages, using new --instantiate option.
+  * new `timeout=' option on `execute' virt server command.
+
+ -- Ian Jackson <iwj@ubuntu.com>  Fri, 23 Mar 2007 16:58:42 +0000
+
 autopkgtest (0.7.2) feisty; urgency=low
 
   * adt-testreport-onepackage: new management script, with some
