@@ -35,9 +35,18 @@ debuglevel = None
 progname = "<VirtSubproc>"
 devnull_read = file('/dev/null','r')
 caller = __main__
+copy_timeout = 300
 
 class Quit:
 	def __init__(q,ec,m): q.ec = ec; q.m = m
+
+class Timeout: pass
+def alarm_handler(*a): raise Timeout()
+def timeout_start(to): signal.alarm(to)
+def timeout_stop(): signal.alarm(0)
+
+class FailedCmd:
+	def __init__(fc,e): fc.e = e
 
 def debug(m):
 	if not debuglevel: return
@@ -70,17 +79,19 @@ def cmd_close(c, ce):
 def preexecfn():
 	caller.hook_forked_inchild()
 
-def execute_raw(what, instr, *popenargs, **popenargsk):
+def execute_raw(what, instr, timeout, *popenargs, **popenargsk):
 	debug(" ++ %s" % string.join(popenargs[0]))
 	sp = subprocess.Popen(preexec_fn=preexecfn, *popenargs, **popenargsk)
 	if instr is None: popenargsk['stdin'] = devnull_read
+	timeout_start(timeout)
 	(out, err) = sp.communicate(instr)
+	timeout_stop()
 	if err: bomb("%s unexpectedly produced stderr output `%s'" %
 			(what, err))
 	status = sp.wait()
 	return (status, out)
 
-def execute(cmd_string, cmd_list=[], downp=False, outp=False):
+def execute(cmd_string, cmd_list=[], downp=False, outp=False, timeout=0):
 	cmdl = cmd_string.split()
 
 	if downp: perhaps_down = down
@@ -92,7 +103,8 @@ def execute(cmd_string, cmd_list=[], downp=False, outp=False):
 	cmd = cmdl + cmd_list
 	if len(perhaps_down): cmd = perhaps_down + [' '.join(cmd)]
 
-	(status, out) = execute_raw(cmdl[0], None, cmd, stdout=stdout)
+	(status, out) = execute_raw(cmdl[0], None, timeout,
+				cmd, stdout=stdout)
 
 	if status: bomb("%s%s failed (exit status %d)" %
 			((downp and "(down) " or ""), cmdl[0], status))
@@ -148,6 +160,7 @@ def cmd_execute(c, ce):
 	cmdnumargs(c, ce, 5, None)
 	debug_re = regexp.compile('debug=(\d+)\-(\d+)$')
 	debug_g = None
+	timeout = 0
 	envs = []
 	for kw in ce[6:]:
 		if kw.startswith('debug='):
@@ -155,6 +168,9 @@ def cmd_execute(c, ce):
 			m = debug_re.match(kw)
 			if not m: bomb("invalid execute debug arg `%s'" % kw)
 			debug_g = m.groups()
+		elif kw.startswith('timeout='):
+			try: timeout = int(kw[8:],0)
+			except ValueError: bomb("invalid timeout arg `%s'" %kw)
 		elif kw.startswith('env='):
 			es = kw[4:]; eq = es.find('=')
 			if eq <= 0: bomb("invalid env arg `%s'" % kw)
@@ -195,8 +211,13 @@ def cmd_execute(c, ce):
 		"		os._exit(127)\n")
 	cmdl = down_python_script(gobody)
 
-	(status, out) = execute_raw('sub-python', None, cmdl, stdout=stdout,
-				stdin=devnull_read, stderr=subprocess.PIPE)
+	try:
+		(status, out) = execute_raw('sub-python', None, timeout,
+				cmdl, stdout=stdout, stdin=devnull_read,
+				stderr=subprocess.PIPE)
+	except Timeout:
+		raise FailedCmd(['timeout'])
+
 	if out: bomb("sub-python unexpected produced stdout"
 			" visible to us `%s'" % out)
 	return [`status`]
@@ -268,11 +289,15 @@ def copyupdown(c, ce, upp):
 	debug(" +> %s" % string.join(cmdls[1]))
 	subprocs[1] = subprocess.Popen(cmdls[1], stdin=subprocs[0].stdout,
 			stdout=deststdout, preexec_fn=preexecfn)
+	timeout_start(copy_timeout)
 	for sdn in [1,0]:
 		debug(" +"+"<>"[sdn]+"?");
 		status = subprocs[sdn].wait()
-		if status: bomb("%s %s failed, status %d" %
-			(wh, ['source','destination'][sdn], status))
+		if status:
+			timeout_stop()
+			bomb("%s %s failed, status %d" %
+				(wh, ['source','destination'][sdn], status))
+	timeout_stop()
 
 def cmd_copydown(c, ce): copyupdown(c, ce, False)
 def cmd_copyup(c, ce): copyupdown(c, ce, True)
@@ -287,9 +312,12 @@ def command():
 	debug('executing '+string.join(ce))
 	try: f = globals()['cmd_'+c[0]]
 	except KeyError: bomb("unknown command `%s'" % ce[0])
-	r = f(c, ce)
-	if not r: r = []
-	r.insert(0, 'ok')
+	try:
+		r = f(c, ce)
+		if not r: r = []
+		r.insert(0, 'ok')
+	except FailedCmd, fc:
+		r = fc.e
 	print string.join(r)
 
 def cleanup():
@@ -345,6 +373,7 @@ def mainloop():
 		sys.exit(16)
 
 def main():
+	signal.signal(signal.SIGALRM, alarm_handler)
 	debug("down = %s" % string.join(down))
 	ok()
 	prepare()
