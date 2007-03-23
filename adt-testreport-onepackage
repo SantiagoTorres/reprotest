@@ -15,6 +15,8 @@ from="$salutation Jackson <ian@davenant.greenend.org.uk>"
 rsync=rsync
 disable=true
 interactive=true
+target=source
+arch=`dpkg --print-architecture`
 
 for config in "$@"; do
 	case "$config" in
@@ -27,6 +29,23 @@ if $disable; then
 	echo >&2 'disabled because config inadequate (no disable=false)'
 	exit 1
 fi
+
+: ${destdirtail:=$distro-$target}
+: ${destdirfin:="$destdircommon$destdirtail"}
+
+case $target in
+source)
+	sources=Sources
+	descx=''
+	;;
+binary-*)
+	sources=Packages
+	descx="${target#binary-}"
+	;;
+*)
+	echo >&2 'target must be source or binary-*'
+	exit 1
+esac
 
 exec 3>&1
 printf >&3 "starting "
@@ -52,11 +71,13 @@ gurl () {
 	curl -fsS "$1" >"$2"
 }
 
-gurl "$mirror/dists/$distro/$suite/source/Sources.gz" "$tmp"/_sources.gz
-zcat "$tmp"/_sources.gz >"$tmp"/_sources-in
+gurl "$mirror/dists/$distro/$suite/$target/$sources.gz" "$tmp"/_$sources.gz
+zcat "$tmp"/_$sources.gz >"$tmp"/_$sources-in
+
+lastinfo="$var"/lastinfo-$target
 
 now=`date +%s`
->>"$var"/last-info
+>>"$lastinfo"
 
 progress selecting
 
@@ -80,29 +101,45 @@ if [ "x$pkg" = x ]; then
 	f2();
 	f1();
 	$best_score= -1;
+	sub scorepackage () {
+		return if $skip;
+		return if $score < $best_score
+		     or ($score==$best_score and \
+			 $package gt $best_package);
+		$best_score= $score;
+		$best_package= $package;
+	}
+	sub endpackage () {
+		return unless (defined $package
+				or defined $version
+				or defined $skip);
+		die unless defined $package;
+		die unless defined $version;
+		scorepackage();
+		undef $package;
+		undef $version;
+		undef $skip;
+	}
 	while (<F>) {
 		if (m/^Package: ($pre)$/) {
-			die if length $package or length $version;
+			die if defined $package;
 			$package= $1;
 		} elsif (m/^Version: ($vre)$/) {
-			die unless length $package;
-			die if length $version;
+			die if defined $version;
 			$version= $1;
 			$score= '$now' - $lasttime{$package};
 			$score= 1e7 if $score>1e7;
 			$score *= 5 if $lastver{$package} ne $version;
 			$score *= 10 unless $extras{$package} =~ m/ nt /;
-			next if $score < $best_score
-			     or ($score==$best_score and \
-				 $package gt $best_package);
-			$best_score= $score;
-			$best_package= $package;
+		} elsif (m/^Architecture:.*/ &&
+			 !m/\s'$arch'\s/) {
+			$skip= 1;
 		} elsif (m/^$/) {
-			die if length $package and !length $version;
-			$package= $version= "";
+			endpackage();
 		}
 	}
 	f2();
+	endpackage();
 	die unless length $best_package;
 	open L, ">&4" or die $!;
 	printf L "selected %s (age %s, score %d)\n",
@@ -112,13 +149,13 @@ if [ "x$pkg" = x ]; then
 		: "<never-yet>",
 		$best_score;
 	print "$best_package\n" or die $!;
- ' "$var"/last-info "$tmp"/_sources-in`"
+ ' "$lastinfo" "$tmp"/_$sources-in`"
 else
 	printf >&4 "package forced: %s\n" "$pkg"
 fi
 
 sed -n "/^Package: $pkg\$/,/^\$/p" \
- <"$tmp"/_sources-in >"$tmp"/_this-stanza
+ <"$tmp"/_$sources-in >"$tmp"/_this-stanza
 
 echo
 cat "$tmp"/_this-stanza
@@ -130,29 +167,42 @@ getfield () {
 	`"'
 }
 
-getfield Directory
-getfield Version
-
-leafnames="`
-	sed -n '/^Files:/,/^([^ ].*)?$/{ /^ /{
-		s/^ [0-9a-z][0-9a-z]*  *[0-9][0-9]* //; p
-		}}' \
-	 <"$tmp"/_this-stanza
-`"
-
 printf >&3 "selected \"%s\" " $pkg
 
 tp="$tmp/$pkg"
 mkdir "$tp" "$tp/src" "$tp/tmp" "$tp/out"
 
-for leafname in $leafnames; do
-	df="$tp/src/$leafname"
-	case "$leafname" in
-	*/*|.*)	echo >&2 "bad leafname: $leafname"; exit 1;;
-	*.dsc) dsc="$df";;
-	esac
-	gurl "$mirror/$pDirectory/$leafname" "$df"
-done
+getfield Version
+
+if test $target = source; then
+	getfield Directory
+	leafnames="`
+		sed -n '/^Files:/,/^([^ ].*)?$/{ /^ /{
+			s/^ [0-9a-z][0-9a-z]*  *[0-9][0-9]* //; p
+			}}' \
+		 <"$tmp"/_this-stanza
+	`"
+	for leafname in $leafnames; do
+		df="$tp/src/$leafname"
+		case "$leafname" in
+		*/*|.*)	echo >&2 "bad leafname: $leafname"; exit 1;;
+		*.dsc) fot="$df";;
+		esac
+		gurl "$mirror/$pDirectory/$leafname" "$df"
+	done
+	testmode=--source
+	testmode2=''
+	desc="$pkg"
+	: ${upload_if_ok:=true}
+else
+	getfield Filename
+	fot="$tp/src/$pkg.deb"
+	gurl "$mirror/$pFilename" "$fot"
+	testmode='--binaries=install --binary'
+	testmode2=--instantiate
+	desc="$pkg $descx"
+	: ${upload_if_ok:=false}
+fi
 
 if [ "x$maintainer_email_override" = x ]; then
 	getfield Maintainer
@@ -180,7 +230,7 @@ xrc adt-run --tmp-dir "$tp"/tmp				\
 	--log-file "$tp"/log 				\
 	--summary "$tmp"/_summary 			\
 	$adtrun_extra_opts				\
-	--source "$dsc"					\
+	$testmode "$fot" $testmode2			\
  ---							\
  adt-virt-xenlvm					\
 	$adtvirt_extra_opts				\
@@ -195,8 +245,10 @@ upload=true
 extras=''
 
 case "$rc" in
-0)	summary='all OK';			email=''		;;
-2)	summary='OK (some skipped)';		email=''		;;
+0)	summary='all OK';			email=''
+					upload=$upload_if_ok		;;
+2)	summary='OK (some skipped)';		email=''
+					upload=$upload_if_ok		;;
 8)	summary='package declares no tests';	email=''
 					upload=false; extras='nt'	;;
 4|6)	summary='test(s) failed!';	email="$maintainer_email"	;;
@@ -220,7 +272,7 @@ if $upload; then
 
 	progress "uploading"
 	printf >&3 "uploading"
-	$rsync -rltH --safe-links --delete "$tp" "$destrsynchead/$destdirtail/"
+	$rsync -rltH --safe-links --delete "$tp" "$destrsynchead/$destdirfin/"
 	printf >&3 " "
 fi
 
@@ -231,9 +283,9 @@ if [ "x$email" != x ]; then
 	cat >"$tmp"/_email <<END
 From: $from
 To: $email_addr
-Subject: autopkgtest $distro $pkg: $summary
+Subject: autopkgtest $distro $desc: $summary
 
- Test executed for:  $distro  $pkg
+ Test executed for:  $distro  $target  $pkg
  Outcome: $summary
 END
 	sed -e 's/^/  /' "$tmp"/_summary >>"$tmp"/_email
@@ -272,7 +324,7 @@ The test log, which is intended to be sufficient to diagnose most
 failures, can be found below.  However, in case this is not
 sufficient, another copy can be found along with output files, saved
 temporary files, and so on, at:
- $desthttphead/$destdirtail/
+ $desthttphead/$destdirfin/
 
 If you have any questions about this service please contact me at:
  $from
@@ -284,14 +336,14 @@ $salutation
 END
 fi
 
-printf >>"$var"/log "package=%s rc=%s emailed='%s'\n" \
-	"$pkg" $rc "$email_addr"
+printf >>"$var"/log "%s=%s rc=%s emailed='%s'\n" \
+	"$target" "$pkg" $rc "$email_addr"
 
 if [ "x$ourx" = x0 ]; then
-	sed -e "/^$pkg /d" <"$var"/last-info >"$var"/last-info.new
+	sed -e "/^$pkg /d" <"$lastinfo" >"$lastinfo".new
 	printf "%s %s %s %s\n" "$pkg" "$pVersion" "$now" "$extras" \
-		>>"$var"/last-info.new
-	mv "$var"/last-info.new "$var"/last-info
+		>>"$lastinfo".new
+	mv "$lastinfo".new "$lastinfo"
 	progress "tested."
 else
 	progress "fault ($ourx)."

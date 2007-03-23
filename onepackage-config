@@ -2,4 +2,4 @@ cd /root/adt-play
 disable=false
 desthttphead=http://www.chiark.greenend.org.uk/~ijackson/
 destrsynchead=ijackson@login.chiark.greenend.org.uk:public-html/
-destdirtail=autopkgtest-output/$distro
+destdircommon=autopkgtest-output/

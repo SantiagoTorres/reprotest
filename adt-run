@@ -447,6 +447,15 @@ def parse_args():
 	       help='use binary package DEB according'
 		    ' to most recent --binaries-* settings')
 
+	def cb_actnoarg(op,optstr,value,parser, largsentry):
+		parser.largs.append(largsentry)
+	pa('','--instantiate', action='callback', callback=cb_actnoarg,
+		callback_args=((None, ('instantiate',)),),
+		help='instantiate testbed now (during testing phase)'
+		     ' and install packages'
+		     ' selected for automatic installation, even'
+		     ' if this might apparently not be required otherwise')
+
 	pa_action('override-control',	'CONTROL', ('control',), is_act=0,
 	       help='run tests from control file CONTROL instead,'
 		    ' (applies to next test suite only)')
@@ -608,7 +617,8 @@ def parse_args():
 		if kind == 'dsc': fwhatx = '/' + os.path.basename(pathstr)
 		else: fwhatx = '-'+kind
 
-		af = constructor(what+fwhatx, pathstr, arghandling['tb'])
+		if pathstr is None: af = None
+		else: af = constructor(what+fwhatx, pathstr, arghandling['tb'])
 		opts.actions.append(Action(kind, af, arghandling, what))
 
 def setup_trace():
@@ -1690,7 +1700,7 @@ def process_actions():
 	binaries = Binaries()
 
 	for act in opts.actions:
-		if not act.af.spec_tbp:
+		if act.af is not None and not act.af.spec_tbp:
 			testbed.register_ephemeral(act.af)
 
 	binaries.reset()
@@ -1715,6 +1725,8 @@ def process_actions():
 			act.binaries = []
 		if act.kind.endswith('tree') or act.kind == 'dsc':
 			control_override = None
+		if act.kind == 'instantiate':
+			pass
 
 	debug_a1('builds done.')
 
@@ -1750,6 +1762,8 @@ def process_actions():
 			debug_a3('run_tests ...')
 			run_tests(stanzas, act.af)
 			control_override = None
+		if act.kind == 'instantiate':
+			testbed.prepare([])
 	debug_a1('tests done.')
 
 def main():
