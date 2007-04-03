@@ -45,6 +45,7 @@ signal.signal(signal.SIGINT, signal.SIG_DFL) # undo stupid Python SIGINT thing
 tmpdir = None		# pathstring on host
 testbed = None		# Testbed
 errorcode = 0		# exit status that we are going to use
+timeouts = { 'short':10, 'install':300, 'test':300, 'build':3000 }
 binaries = None		# Binaries (.debs we have registered)
 build_essential = ["build-essential"]
 
@@ -737,7 +738,7 @@ class Testbed:
 	if not tb._need_reset_apt: return
 	what = 'aptget-update-reset'
 	cmdl = ['apt-get','-qy','update']
-	rc = tb.execute(what, cmdl)
+	rc = tb.execute(what, cmdl, timeout=timeouts['install'])
 	if rc:
 		pstderr("\n" "warning: failed to restore"
 			" testbed apt cache, exit code %d" % rc)
@@ -781,7 +782,8 @@ class Testbed:
 		]])
 	cmdl = ['python','-c',script]
 	what = 'install-deps'
-	rc = testbed.execute(what+'-debinstall', cmdl, script=script)
+	rc = testbed.execute(what+'-debinstall', cmdl, script=script,
+				timeout=timeouts['install'])
 	if rc: badpkg('dependency install failed, exit code %d' % rc)
  def needs_reset(tb):
 	tb._debug('needs_reset, previously=%s' % tb.modified, 1)
@@ -848,7 +850,7 @@ class Testbed:
 	return rl[0]
  def execute(tb, what, cmdl,
 		si='/dev/null', so='/dev/null', se=None, cwd=None,
-		script=False, tmpdir=None):
+		script=False, tmpdir=None, timeout=timeouts['short']):
 	# Options for script:
 	#   False - do not call debug_subprocess, no synch. reporting required
 	#   None or string - call debug_subprocess with that value,
@@ -876,6 +878,9 @@ class Testbed:
 	cmdl = [None,
 		','.join(map(urllib.quote, cmdl)),
 		si, so, se_use, cwd]
+
+	if timeout is not None and timeout > 0:
+		cmdl.append('timeout=%d' % timeout)
 
 	if xdump is not None and 'execute-debug' in tb.caps: cmdl += [xdump]
 	if tmpdir is not None: cmdl.append('env=TMPDIR=%s' % tmpdir)
@@ -1068,7 +1073,7 @@ class Test:
 
 	rc = testbed.execute('test-'+t.what, tfl,
 		so=so.write(True), se=se.write(True), cwd=tree.read(True),
-		tmpdir=tmpdir)
+		tmpdir=tmpdir, timeout=timeouts['test'])
 
 	so_read = so.read()
 	se_read = se.read()
@@ -1414,7 +1419,8 @@ END
 		what = 'apt-get-reinstall'
 		cmdl = (b.apt_get() + ['--reinstall','install'] +
 			[pkg for pkg in pkgs_reinstall])
-		rc = testbed.execute(what, cmdl, script=None)
+		rc = testbed.execute(what, cmdl, script=None,
+				timeout=timeouts['install'])
 		if rc: badpkg("installation of basic binarries failed,"
 				" exit code %d" % rc)
 
@@ -1423,7 +1429,8 @@ END
 		what = 'apt-get-install-%s' % pkg
 		testbed.blame(pkg)
 		cmdl = b.apt_get() + ['install',pkg]
-		rc = testbed.execute(what, cmdl, script=None)
+		rc = testbed.execute(what, cmdl, script=None,
+				timeout=timeouts['install'])
 		if rc: badpkg("installation of %s failed, exit code %d"
 				% (pkg, rc))
 
@@ -1439,7 +1446,8 @@ def source_rules_command(act,script,what,which,work,cwd,
 	so = TemporaryFile('%s-%s-results' % (what,which))
 	rc = testbed.execute('%s-%s' % (what,which),
 			['sh','-ec',script]+xargs, script=script,
-			so=so.write(True), cwd=cwd)
+			so=so.write(True), cwd=cwd,
+			timeout=timeouts['build'])
 	results = open(so.read()).read().rstrip('\n')
 	if len(results): results = results.split("\n")
 	else: results = []
@@ -1509,7 +1517,8 @@ def build_source(act, control_override):
 			]])
 		cmdl = ['python','-c',script]
 		whatp = what+'-dpkgsource'
-		rc = testbed.execute(what, cmdl, script=script)
+		rc = testbed.execute(what, cmdl, script=script,
+				timeout=timeouts['install'])
 		if rc: badpkg('dpkg-source install failed, exit code %d' % rc)
 
 	work = TemporaryDir(what+'-build')
@@ -1620,7 +1629,8 @@ def build_source(act, control_override):
 
 		cmdl = ['python','-c',script]
 		whatp = what+'-builddeps'
-		rc = testbed.execute(what, cmdl, script=script)
+		rc = testbed.execute(what, cmdl, script=script,
+				timeout=timeouts['install'])
 		if rc: badpkg('build-depends install failed,'
 			      ' exit code %d' % rc)
 
