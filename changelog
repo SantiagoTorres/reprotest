@@ -14,7 +14,9 @@ autopkgtest (0.7.2~~iwj) unstable; urgency=low
   * Default setting for adt_fw_allowglobalports is none.
   * Set DEBIAN_FRONTEND=noninteractive.
   * Run udevsettle after xm destroy but before dmsetup remove.
-
+  * Run sendmail -odi not -odq in adt-testreport-onepackage.
+  * Longer timeouts by default.
+  
  --
 
 autopkgtest (0.7.2) feisty; urgency=low
