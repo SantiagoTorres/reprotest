@@ -16,6 +16,7 @@ autopkgtest (0.7.2~~iwj) unstable; urgency=low
   * Run udevsettle after xm destroy but before dmsetup remove.
   * Run sendmail -odi not -odq in adt-testreport-onepackage.
   * Longer timeouts by default.
+  * Print `adt-run: trace' for trace output.
   
  --
 
