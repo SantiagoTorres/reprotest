@@ -8,8 +8,11 @@ autopkgtest (0.7.2~~iwj) unstable; urgency=low
   * new `timeout=' option on `execute' virt server command.
   * set some default timeouts (these should be settable with options,
     really).
+  * Default kernel image guesser is more sophisticated - now we look
+    for something that looks like a Xen kernel rather than guessing
+    from the filename since the filenames seem unstable.
 
-  -- Ian Jackson <iwj@ubuntu.com>  Fri, 23 Mar 2007 16:58:42 +0000
+ --
 
 autopkgtest (0.7.2) feisty; urgency=low
 
