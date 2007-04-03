@@ -6,8 +6,10 @@ autopkgtest (0.7.2~~iwj) unstable; urgency=low
   * adt-testreport-onepackage: new ability to test binary as well as
     source packages, using new --instantiate option.
   * new `timeout=' option on `execute' virt server command.
+  * set some default timeouts (these should be settable with options,
+    really).
 
- -- Ian Jackson <iwj@ubuntu.com>  Fri, 23 Mar 2007 16:58:42 +0000
+  -- Ian Jackson <iwj@ubuntu.com>  Fri, 23 Mar 2007 16:58:42 +0000
 
 autopkgtest (0.7.2) feisty; urgency=low
 
