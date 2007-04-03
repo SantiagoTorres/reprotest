@@ -737,7 +737,7 @@ class Testbed:
  def reset_apt(tb):
 	if not tb._need_reset_apt: return
 	what = 'aptget-update-reset'
-	cmdl = ['apt-get','-qy','update']
+	cmdl = ['sh','-c','apt-get -qy update 2>&1']
 	rc = tb.execute(what, cmdl, kind='install')
 	if rc:
 		pstderr("\n" "warning: failed to restore"
@@ -1330,7 +1330,7 @@ END
 	ag = ['apt-get','-qy']
 	for kv in b.apt_configs().iteritems():
 		ag += ['-o', '%s=%s' % kv]
-	return ag
+	return ' '.join(ag)
 
  def reset(b):
 	b._debug('reset')
@@ -1395,7 +1395,7 @@ END
   if [ "x`ls /var/lib/dpkg/updates`" != x ]; then
     echo >&2 "/var/lib/dpkg/updates contains some files, aargh"; exit 1
   fi
-  '''+ ' '.join(b.apt_get()) +''' update >&2
+  '''+ b.apt_get() +''' update >&2
   cat /var/lib/dpkg/status >&3
 		'''
 	testbed.mungeing_apt()
@@ -1420,8 +1420,9 @@ END
 	if pkgs_reinstall:
 		for pkg in pkgs_reinstall: testbed.blame(pkg)
 		what = 'apt-get-reinstall'
-		cmdl = (b.apt_get() + ['--reinstall','install'] +
-			[pkg for pkg in pkgs_reinstall])
+		cmdl = (b.apt_get() + ' --reinstall install '+
+			' '.join([pkg for pkg in pkgs_reinstall])+' >&2')
+		cmdl = ['sh','-c',cmdl]
 		rc = testbed.execute(what, cmdl, script=None, kind='install')
 		if rc: badpkg("installation of basic binarries failed,"
 				" exit code %d" % rc)
@@ -1430,7 +1431,8 @@ END
 	for pkg in b.install:
 		what = 'apt-get-install-%s' % pkg
 		testbed.blame(pkg)
-		cmdl = b.apt_get() + ['install',pkg]
+		cmdl = b.apt_get() + ' install ' + pkg + ' >&2'
+		cmdl = ['sh','-c',cmdl]
 		rc = testbed.execute(what, cmdl, script=None, kind='install')
 		if rc: badpkg("installation of %s failed, exit code %d"
 				% (pkg, rc))
