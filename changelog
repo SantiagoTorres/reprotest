@@ -1,4 +1,4 @@
-autopkgtest (0.7.2~~iwj) unstable; urgency=low
+autopkgtest (0.8.0) feisty; urgency=low
 
   * adt-run: new --instantiate option to allow package installation to be
     forced for testing.  (This is not an ideal approach - it's not very
@@ -19,7 +19,7 @@ autopkgtest (0.7.2~~iwj) unstable; urgency=low
   * Print `adt-run: trace' for trace output.
   * Show all apt stdout (including dpkg stdout) in contemporaneous trace.
   
- --
+ -- Ian Jackson <iwj@ubuntu.com>  Tue,  3 Apr 2007 20:08:13 +0100
 
 autopkgtest (0.7.2) feisty; urgency=low
 
