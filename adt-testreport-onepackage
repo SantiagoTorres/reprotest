@@ -358,7 +358,7 @@ else
 	if $interactive; then
 		cat "$tmp"/_email >&2
 	else
-		sendmail -odq -oem -t -oi <"$tmp"/_email
+		sendmail -odi -oem -t -oi <"$tmp"/_email
 	fi
 fi
 

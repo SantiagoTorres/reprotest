@@ -45,7 +45,7 @@ signal.signal(signal.SIGINT, signal.SIG_DFL) # undo stupid Python SIGINT thing
 tmpdir = None		# pathstring on host
 testbed = None		# Testbed
 errorcode = 0		# exit status that we are going to use
-timeouts = { 'short':10, 'install':300, 'test':300, 'build':3000 }
+timeouts = { 'short':10, 'install':900, 'test':600, 'build':3000 }
 binaries = None		# Binaries (.debs we have registered)
 build_essential = ["build-essential"]
 
@@ -1422,7 +1422,6 @@ END
 		what = 'apt-get-reinstall'
 		cmdl = (b.apt_get() + ['--reinstall','install'] +
 			[pkg for pkg in pkgs_reinstall])
-		cmdl.append('env=DEBIAN_FRONTEND=noninteractive')
 		rc = testbed.execute(what, cmdl, script=None, kind='install')
 		if rc: badpkg("installation of basic binarries failed,"
 				" exit code %d" % rc)
