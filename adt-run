@@ -89,7 +89,7 @@ def pstderr(m):
 def debug(m, minlevel=0):
 	if opts.debuglevel < minlevel: return
 	if opts.quiet and trace_stream is None: return
-	p = 'adt-run: debug'
+	p = 'adt-run: trace'
 	if minlevel: p += `minlevel`
 	p += ': '
 	for l in m.rstrip('\n').split('\n'):
