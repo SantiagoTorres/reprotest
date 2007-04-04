@@ -1,3 +1,10 @@
+autopkgtest (0.8.1) feisty; urgency=low
+
+  * Call dmsetup remove repeatedly instead of messing with udevsettle.
+    udevsettle doesn't always help with the dmsetup remove race.
+
+ -- Ian Jackson <iwj@ubuntu.com>  Wed,  4 Apr 2007 18:04:38 +0100
+
 autopkgtest (0.8.0) feisty; urgency=low
 
   * adt-run: new --instantiate option to allow package installation to be
