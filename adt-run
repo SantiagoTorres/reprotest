@@ -1050,7 +1050,8 @@ class Test:
 			use_dir = testbed.scratch
 		return RelativeOutputFile(idstr, use_dir, idstr)
 
-	t.act.work.write(True)
+	if hasattr(t.act,'work'): t.act.work.write(True)
+	tree.read(True)
 
 	af = RelativeInputFile(t.what, tree, t.path)
 	so = stdouterr('stdout')
@@ -1058,7 +1059,6 @@ class Test:
 
 	tf = af.read(True)
 	tmpdir = None
-	tree.read(True)
 
 	rc = testbed.execute('testchmod-'+t.what, ['chmod','+x','--',tf])
 	if rc: bomb('failed to chmod +x %s' % tf)
@@ -1215,13 +1215,11 @@ def print_exception(ei, msgprefix=''):
 def cleanup():
 	global trace_stream
 	try:
-		rm_ec = 0
-		if opts.tmpdir is None and tmpdir is not None:
-			rmtree('tmpdir', tmpdir)
 		if testbed is not None:
 			testbed.reset_apt()
 			testbed.stop()
-		if rm_ec: bomb('rm -rf -- %s failed, code %d' % (tmpdir, ec))
+		if opts.tmpdir is None and tmpdir is not None:
+			rmtree('tmpdir', tmpdir)
 		if trace_stream is not None:
 			trace_stream.close()
 			trace_stream = None
