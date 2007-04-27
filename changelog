@@ -1,3 +1,19 @@
+autopkgtest (0.8.1feisty1~iwj) feisty-updates; urgency=low
+
+  * Fix fd handling to work around Python's habit of closing files
+    you specify in subprocess.Popen.
+  * Error handling bugfixes: say except (IOError,OSError) everywhere
+    rather than just one of those two; correct harmless bug in gpg key
+    generation error handling.
+  * Make adt-virt-null work properly (VirtSubProc runs `down' with
+    a single argument, so down must be sh -c and not []).
+  * In VirtSubProc close spurious copy of plumbing pipe, which prevents
+    certain hangs during error situations.
+  * Xen cleanup script runs dmsetup info / dmsetup remove several times
+    with some sleeps because xm destroy is not properly instantaneous.
+  
+ -- Ian Jackson <ian@davenant.greenend.org.uk>  Fri, 27 Apr 2007 14:38:49 +0100
+
 autopkgtest (0.8.1) feisty; urgency=low
 
   * Call dmsetup remove repeatedly instead of messing with udevsettle.
