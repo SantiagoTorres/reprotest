@@ -114,7 +114,7 @@ class Errplumb:
 		ep.stream = open('/dev/null','w')
 		ep._sp = None
 	elif count == 1:
-		if to_stderr: ep.stream = sys.stderr
+		if to_stderr: ep.stream = os.dup(2)
 		else: ep.stream = trace_stream
 		ep._sp = None
 	else:
@@ -124,6 +124,9 @@ class Errplumb:
 		ep.stream = ep._sp.stdin
  def wait(ep):
 	if ep._sp is None: return
+	if type(ep.stream) == type(2):
+		os.close(ep.stream)
+		ep.stream = ()
 	ep._sp.stdin.close()
 	rc = ep._sp.wait()
 	if rc: bomb('stderr plumbing tee(1) failed, exit code %d' % rc)
@@ -180,7 +183,7 @@ class Unsupported:
 def mkdir_okexist(pathname, mode=02755):
 	try:
 		os.mkdir(pathname, mode)
-	except OSError, oe:
+	except (IOError,OSError), oe:
 		if oe.errno != errno.EEXIST: raise
 
 def rmtree(what, pathname):
@@ -1115,7 +1118,7 @@ def read_control(act, tree, control_override):
 			tree, 'debian/tests/control')
 	try:
 		control = open(control_af.read(), 'r')
-	except OSError, oe:
+	except (IOError,OSError), oe:
 		if oe[0] != errno.ENOENT: raise
 		return []
 
@@ -1256,7 +1259,7 @@ class Binaries:
 		for x in ['pubring','secring']:
 			os.stat(opts.gnupghome + '/' + x + '.gpg')
 		ok = True
-	except OSError, oe:
+	except (IOError,OSError), oe:
 		if oe.errno != errno.ENOENT: raise
 
 	if ok: b._debug('no key generation needed')
@@ -1286,14 +1289,8 @@ END
   gpg --homedir="$1" --batch --gen-key key-gen-params
 		'''
 	cmdl = ['sh','-ec',script,'x',opts.gnupghome]
-	rc = subprocess_cooked(cmdl, dbg=(genkey,script))[0]
-	if rc:
-		try:
-			f = open(opts.gnupghome+'/key-gen-log')
-			tp = file.read()
-		except OSError, e: tp = e
-		pstderr(tp)
-		bomb('key generation failed, code %d' % rc)
+	rc = subprocess_cooked(cmdl, dbg=('genkey',script))[0]
+	if rc: bomb('key generation failed, code %d' % rc)
 
  def apt_configs(b):
 	return {
@@ -1353,11 +1350,11 @@ END
 	dest = RelativeOutputFile('binaries--'+leafname, b.dir, leafname)
 
 	try: os.remove(dest.write())
-	except OSError, oe:
+	except (IOError,OSError), oe:
 		if oe.errno != errno.ENOENT: raise e
 
 	try: os.link(af.read(), dest.write())
-	except OSError, oe:
+	except (IOError,OSError), oe:
 		if oe.errno != errno.EXDEV: raise e
 		shutil.copy(af.read(), dest)
 
