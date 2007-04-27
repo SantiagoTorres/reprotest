@@ -1,4 +1,4 @@
-autopkgtest (0.8.1feisty1~iwj) feisty-updates; urgency=low
+autopkgtest (0.8.1feisty1~iwj2) feisty-updates; urgency=low
 
   * Fix fd handling to work around Python's habit of closing files
     you specify in subprocess.Popen.
@@ -11,8 +11,11 @@ autopkgtest (0.8.1feisty1~iwj) feisty-updates; urgency=low
     certain hangs during error situations.
   * Xen cleanup script runs dmsetup info / dmsetup remove several times
     with some sleeps because xm destroy is not properly instantaneous.
+  * Fix handling of pre-built source trees.
+  * Fix cleanup handling not to delete tmpdir before resetting testbed's
+    apt.
   
- -- Ian Jackson <ian@davenant.greenend.org.uk>  Fri, 27 Apr 2007 14:38:49 +0100
+ -- Ian Jackson <ian@davenant.greenend.org.uk>  Fri, 27 Apr 2007 16:06:15 +0100
 
 autopkgtest (0.8.1) feisty; urgency=low
 
