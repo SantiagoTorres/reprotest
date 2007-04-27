@@ -52,7 +52,7 @@ def parse_args():
 	if os.getuid()==0:
 		capabilities.append('root-on-testbed')
 
-	vsp.down = []
+	vsp.down = ['sh','-ec']
 
 def hook_open():
 	global downtmp

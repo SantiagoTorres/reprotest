@@ -151,9 +151,8 @@ def down_python_script(gobody, functions=''):
 	debug("+P ...\n"+script)
 
 	scripte = urllib.quote(script)
-	cmdl = down + ['python','-c',
-		"'import urllib; s = urllib.unquote(%s); exec s'" %
-			('"%s"' % scripte)]
+	cmdl = down + ["exec python -c 'import urllib; s = urllib.unquote(%s);"
+		       " exec s'" % ('"%s"' % scripte)]
 	return cmdl
 
 def cmd_execute(c, ce):
@@ -205,18 +204,23 @@ def cmd_execute(c, ce):
 		"			mode = status.st_mode | 0111\n"
 		"			os.chmod(c0, mode)\n"
 		"	try: os.execvp(c0, cmd)\n"
-		"	except OSError, e:\n"
+		"	except (IOError,OSError), e:\n"
 		"		print >>sys.stderr, \"%s: %s\" % (\n"
 		"			(c0, os.strerror(e.errno)))\n"
 		"		os._exit(127)\n")
 	cmdl = down_python_script(gobody)
 
+	stdout_copy = None
 	try:
-		(status, out) = execute_raw('sub-python', None, timeout,
-				cmdl, stdout=stdout, stdin=devnull_read,
-				stderr=subprocess.PIPE)
-	except Timeout:
-		raise FailedCmd(['timeout'])
+		if type(stdout) == type(2): stdout_copy = os.dup(stdout)
+		try:
+			(status, out) = execute_raw('sub-python', None,
+				timeout, cmdl, stdout=stdout_copy,
+				stdin=devnull_read, stderr=subprocess.PIPE)
+		except Timeout:
+			raise FailedCmd(['timeout'])
+	finally:
+		if stdout_copy is not None: os.close(stdout_copy)
 
 	if out: bomb("sub-python unexpected produced stdout"
 			" visible to us `%s'" % out)
@@ -257,11 +261,11 @@ def copyupdown(c, ce, upp):
 		gobody = "	dir = urllib.unquote('%s')\n" % sde[iremote]
 		if upp:
 			try: os.mkdir(sd[ilocal])
-			except OSError, oe:
+			except (IOError,OSError), oe:
 				if oe.errno != errno.EEXIST: raise
 		else:
 			gobody += ("	try: os.mkdir(dir)\n"
-				"	except OSError, oe:\n"
+				"	except (IOError,OSError), oe:\n"
 				"		if oe.errno != errno.EEXIST: raise\n")
 		gobody +=( "	os.chdir(dir)\n"
 			"	tarcmd = 'tar -f -'.split()\n")
@@ -289,11 +293,12 @@ def copyupdown(c, ce, upp):
 	debug(" +> %s" % string.join(cmdls[1]))
 	subprocs[1] = subprocess.Popen(cmdls[1], stdin=subprocs[0].stdout,
 			stdout=deststdout, preexec_fn=preexecfn)
+	subprocs[0].stdout.close()
 	timeout_start(copy_timeout)
 	for sdn in [1,0]:
 		debug(" +"+"<>"[sdn]+"?");
 		status = subprocs[sdn].wait()
-		if status:
+		if not (status==0 or (sdn==0 and status==-13)):
 			timeout_stop()
 			bomb("%s %s failed, status %d" %
 				(wh, ['source','destination'][sdn], status))
