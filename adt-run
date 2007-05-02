@@ -1286,7 +1286,7 @@ END
   gpg --homedir="$1" --batch --gen-key key-gen-params
 		'''
 	cmdl = ['sh','-ec',script,'x',opts.gnupghome]
-	rc = subprocess_cooked(cmdl, dbg=(genkey,script))[0]
+	rc = subprocess_cooked(cmdl, dbg=('genkey',script))[0]
 	if rc:
 		try:
 			f = open(opts.gnupghome+'/key-gen-log')
