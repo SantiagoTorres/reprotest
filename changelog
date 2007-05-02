@@ -1,4 +1,4 @@
-autopkgtest (0.8.2) gutsy; urgency=low
+autopkgtest (0.8.2) gutsy unstable; urgency=low
 
   * Fix fd handling to work around Python's habit of closing files
     you specify in subprocess.Popen.
