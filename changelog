@@ -1,6 +1,9 @@
 autopkgtest (0.8.2feisty1~iwj) feisty-updates; urgency=low
 
   * Fix readconfig.in to set adt_$var rather than just $var.
+  * Truncate files when writing them (copyup, copydown, etc) (!)
+  * Remove spurious \ from `do not know how to handle filename' message.
+  * Reset signal handlers in VirtSubproc cleanup.
 
  --
 
