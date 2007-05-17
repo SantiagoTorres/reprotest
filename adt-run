@@ -613,8 +613,9 @@ def parse_args():
 		elif kindpath.endswith('/'):
 			kind = 'tree'
 			constructor = InputDir
-		else: parser.error("do not know how to handle filename \`%s';"
-			" specify --source --binary or --build-tree")
+		else: parser.error("do not know how to handle filename `%s';"
+			" specify --source --binary or --build-tree" %
+			kindpath)
 
 		what = '%s%s' % (kind,ix); ix += 1
 
