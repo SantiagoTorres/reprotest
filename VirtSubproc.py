@@ -136,7 +136,7 @@ def down_python_script(gobody, functions=''):
 			"import os\n"
 			"def setfd(fd,fnamee,write,mode=0666):\n"
 			"	fname = urllib.unquote(fnamee)\n"
-			"	if write: rw = os.O_WRONLY|os.O_CREAT\n"
+			"	if write: rw = os.O_WRONLY|os.O_CREAT|os.O_TRUNC\n"
 			"	else: rw = os.O_RDONLY\n"
 			"	nfd = os.open(fname, rw, mode)\n"
 			"	if fd >= 0: os.dup2(nfd,fd)\n"
@@ -325,9 +325,16 @@ def command():
 		r = fc.e
 	print string.join(r)
 
+signal_list = [	signal.SIGHUP, signal.SIGTERM,
+		signal.SIGINT, signal.SIGPIPE ]
+
+def sethandlers(f):
+	for signum in signal_list: signal.signal(signum, f)
+
 def cleanup():
 	global downtmp, cleaning
 	debug("cleanup...");
+	sethandlers(signal.SIG_DFL)
 	cleaning = True
 	if downtmp: caller.hook_cleanup()
 	cleaning = False
@@ -354,12 +361,7 @@ def error_cleanup():
 def prepare():
 	global downtmp, cleaning
 	downtmp = None
-	signal_list = [	signal.SIGHUP, signal.SIGTERM,
-			signal.SIGINT, signal.SIGPIPE ]
-	def sethandlers(f):
-		for signum in signal_list: signal.signal(signum, f)
 	def handler(sig, *any):
-		sethandlers(signal.SIG_DFL)
 		cleanup()
 		os.kill(os.getpid(), sig)
 	sethandlers(handler)
