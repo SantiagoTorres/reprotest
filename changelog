@@ -1,8 +1,10 @@
 autopkgtest (0.8.2feisty1~iwj) feisty-updates; urgency=low
 
   * Fix readconfig.in to set adt_$var rather than just $var.
+  * Use fd 8 for readconfig stdout parking rather than fd 10, to avoid
+    Debian #423400 (bash bug).
 
- --
+ -- Ian Jackson <ian@davenant.greenend.org.uk>  Thu, 17 May 2007 15:11:31 +0100
 
 autopkgtest (0.8.2) gutsy unstable; urgency=low
 
