@@ -57,32 +57,60 @@ def check_pause(kind):
 	os.kill(0, signal.SIGSTOP)
 
 def parse_args():
-	global debuglevel, xlargs, gain_root, console, pauses
+	global debuglevel, with_testbed, console, pauses
 
 	usage = "%prog <options> [-- <adt-xenlvm options>]"
 	parser = OptionParser(usage=usage)
 	pa = parser.add_option
 	pe = parser.error
 
-	pa('-r', '--gain-root', type='string', dest='gain_root');
-	pa('-d', '--debug', action='store_true', dest='debug');
-	pa('','--pause', type='string', dest='pause', default='');
+	pa('-r', '--gain-root', type='string', dest='gain_root')
+	pa('-d', '--debug', action='store_true', dest='debug')
+	pa('', '--userv', action='store_true', dest='userv')
+	pa('', '--distro', type='string', dest='distro')
+	pa('', '--nominum', type='string', dest='nominum')
+	pa('','--pause', type='string', dest='pause', default='')
 
 	(opts,xlargs) = parser.parse_args()
 	vsp.debuglevel = opts.debug
+	xargs_userv = []
+	xargs_direct = []
 
-	if opts.gain_root is None: gain_root = []
-	else: gain_root = opts.gain_root.split()
-	vsp.down = gain_root + ['adt-xenlvm-on-testbed'] + xlargs + ['--']
+	for k in ['distro','nominum']:
+		v = getattr(opts,k)
+		if v is None: continue
+		xargs_direct.append('--%s=%s' % (k, v))
+		xargs_userv.append('-D%s=%s' % (k, v))
 
+	if not opts.userv:
+		if opts.gain_root is None: gain_root = []
+		else: gain_root = opts.gain_root.split()
+		with_testbed = gain_root + ['adt-xenlvm-with-testbed'] +
+			xargs_direct + xlargs +
+			['--','sh','-ec','echo y; exec cat']
+		vsp.down = gain_root + ['adt-xenlvm-on-testbed'] +
+			xargs_direct + xlargs + ['--']
+	else:
+		if opts.gain_root:
+			pe('--userv and --gain-root are not compatible')
+		basis = ['userv'] + xargs_userv + xlargs +
+			['root','adt-xenlvm-testbed']
+		get_down = subprocess.Popen(basis + ['pon0'],
+			stdin=file('/dev/null'), stdout=subprocess.PIPE,
+			stderr=None)
+		(pon0, _) = get_down.communicate()
+		if get_down.returncode:
+			vsp.bomb('failed to check userv service provision'
+				' and subcommand details (code=%d) %
+				get_down.returncode)
+		vsp.down = pon0.split('\0')
 	pauses = opts.pause.split(',')
 
 def do_open():
 	global withholder
 	assert(withholder is None)
 	withholder = subprocess.Popen(
-		gain_root + ['adt-xenlvm-with-testbed'] + xlargs +
-		 ['--','sh','-ec','echo y; exec cat'],
+		with_testbed,
 		stdin=subprocess.PIPE, stdout=subprocess.PIPE )
 	l = withholder.stdout.readline(2)
 	rc = withholder.poll()

@@ -35,8 +35,19 @@ do any locking; it is the the caller's responsibility not to attempt
 concurrent use of any particular testbed.
 .SH OPTIONS
 .TP
-.BR \-d " | " \-\-debug
-Enables debugging output.  Probably not hugely interesting.
+.BI --distro= distro
+Specifies a different distro (ie, the use of a different testbed).
+.TP
+.BI --nominum= nominum
+Specifies a different nominum (ie, the use of a different testbed).
+.TP
+.BR \-\-userv
+Specifies that the adt-xenlvm tools should not be run directly, but
+rather via userv.  The calling user must be permitted to use
+.BR "userv root adt-xenlvm-testbed" .
+In the default configuration, this means being a member of the
+.B AdtXenUs
+group.
 .TP
 .BI "-- --" adt-xenlvm-option = adt-xenlvm-value
 Following the first occurrence of
@@ -44,12 +55,25 @@ Following the first occurrence of
 on the
 .B adt-virt-xenlvm
 commandline, any of the values in the adt-xenlvm configuration may be
-set in the usual way.  In particular,
-.BI --nominum= nominum
-can be used to specify the use of a different testbed.
+set in the usual way.  The arguments are simply passed to
+\fBadt-virt-xenlvm\fR.
 
 See \fB/usr/share/doc/autopkgtest-xenlvm/README.gz\fR for full details
 of adt-xenlvm.
+.TP
+.BI "-- -D" varname = value
+If \fB\-\-userv\fR was specified, options following the first
+.B --
+on the
+.B adt-virt-xenlvm
+commandline are passed as option arguments to \fBuserv\fR.  These
+should normally be user-defined variable settings using \fB-D\fR which
+are expected by the \fBautopkgtest-xenlvm/userv-target\fR script.
+Currently only \fBdistro\fR and \fBnominum\fR are expected, and these
+can be set using \fBadt-virt-xenlvm\fR's own options.
+.TP
+.BR \-d " | " \-\-debug
+Enables debugging output.  Probably not hugely interesting.
 .SH INPUT, OUTPUT AND EXIT STATUS
 The behaviour of
 .B adt-virt-xenlvm

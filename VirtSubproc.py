@@ -65,7 +65,8 @@ def cmdnumargs(c, ce, nargs=0, noptargs=0):
 
 def cmd_capabilities(c, ce):
 	cmdnumargs(c, ce)
-	return caller.hook_capabilities() + ['execute-debug']
+	return caller.hook_capabilities() + ['execute-debug',
+		'print-execute-command']
 
 def cmd_quit(c, ce):
 	cmdnumargs(c, ce)
@@ -75,6 +76,16 @@ def cmd_close(c, ce):
 	cmdnumargs(c, ce)
 	if not downtmp: bomb("`close' when not open")
 	cleanup()
+
+def cmd_print_execute_command(c, ce):
+	cmdnumargs(c, ce)
+	if not downtmp: bomb("`print-execute-command' when not open")
+	if hasattr(caller,'hook_callerexeccmd'):
+		(cl,kvl) = caller.hook_callerexeccmd()
+	else
+		cl = down
+		kvl = ['auxverb']
+	return ','.join(map(urllib.quote, cl)) + kvl
 
 def preexecfn():
 	caller.hook_forked_inchild()
@@ -315,7 +326,8 @@ def command():
 	c = map(urllib.unquote, ce)
 	if not c: bomb('empty commands are not permitted')
 	debug('executing '+string.join(ce))
-	try: f = globals()['cmd_'+c[0]]
+	c_lookup = c[0].replace('-','_')
+	try: f = globals()['cmd_'+c_lookup]
 	except KeyError: bomb("unknown command `%s'" % ce[0])
 	try:
 		r = f(c, ce)
