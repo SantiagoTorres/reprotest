@@ -7,6 +7,9 @@ autopkgtest (0.9.0~iwj) unstable; urgency=low
   * pass count= to dd for erasure when lvm_erasebase=true.
   * ip forwarding warning clarified.
   * README documentation of default value for erasebase corrected.
+  * Check for udev persistent-net-generator and if enabled we
+    write a rune for eth0 for guest_macaddr into the RULES_FILE
+    specified in /lib/udev/write_net_rules.
 
  --
 
