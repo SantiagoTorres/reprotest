@@ -10,6 +10,16 @@ autopkgtest (0.9.0~iwj) unstable; urgency=low
   * Check for udev persistent-net-generator and if enabled we
     write a rune for eth0 for guest_macaddr into the RULES_FILE
     specified in /lib/udev/write_net_rules.
+  * export adt_* variable settings resulting from command-line
+    arguments so that subprocesses get them properly, and arrange
+    for the `defaults for simple settings' not to override environment
+    variables.
+  * suppress various variable settings' default computations (and
+    consequent failure if the default can't be established) when
+    processing config for the initscript.  The initscript does not
+    need per-testbed configuration options.
+  * close fd 8 when running vgdisplay (which avoids an annoying and
+    spurious warning from the lvm tools).
 
  --
 
