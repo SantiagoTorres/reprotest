@@ -2,8 +2,12 @@ autopkgtest (0.9.0~iwj) unstable; urgency=low
 
   * WIP userv service.
   * WIP print-execute-command command for virtualisation servers.
+  * Do not demand vg or distro information for initscript to work.
+  * autopkgtest-xenlvm now Recommends: lvm2.
+  * pass count= to dd for erasure when lvm_erasebase=true.
+  * ip forwarding warning clarified.
 
- -- Ian Jackson <ian@davenant.greenend.org.uk>  Fri, 18 May 2007 16:56:44 +0100
+ --
 
 autopkgtest (0.8.2feisty1~iwj) feisty-updates; urgency=low
 
