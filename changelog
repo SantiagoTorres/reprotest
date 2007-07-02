@@ -22,6 +22,9 @@ autopkgtest (0.9.0~iwj) unstable; urgency=low
   * close fd 8 when running vgdisplay (which avoids an annoying and
     spurious warning from the lvm tools).
   * autopkgtest Suggests curl (adt-testreport-onepackage needs it).
+  * Remove iwj-specific stuff from adt-testreport-onepackage and put
+    it into onepackage-config with scary warnings to tell people to
+    edit the file.
 
  --
 
