@@ -1,8 +1,7 @@
 autopkgtest (0.9.0~iwj) unstable; urgency=low
 
   * WIP userv service.
-  * WIP print-execute-command command for virtualisation servers.
-  * Fix syntax errors introduced by print-execute-command etc.
+  * New print-execute-command command for virtualisation servers.
   * Do not demand vg or distro information for initscript to work.
   * autopkgtest-xenlvm now Recommends: lvm2 and debootstrap.
   * pass count= to dd for erasure when lvm_erasebase=true.
