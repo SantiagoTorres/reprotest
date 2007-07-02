@@ -1,6 +1,8 @@
 autopkgtest (0.9.0~iwj) unstable; urgency=low
 
-  * WIP userv service.
+  * WIP userv service use by adt-virt-xenlvm.
+  * userv service for testbed invocation now provided and
+    at least somewhat tested.
   * New print-execute-command command for virtualisation servers.
   * Do not demand vg or distro information for initscript to work.
   * autopkgtest-xenlvm now Recommends: lvm2 and debootstrap.
