@@ -84,8 +84,8 @@ def cmd_print_execute_command(c, ce):
 		(cl,kvl) = caller.hook_callerexeccmd()
 	else:
 		cl = down
-		kvl = ['auxverb']
-	return ','.join(map(urllib.quote, cl)) + kvl
+		kvl = ['shstring']
+	return [','.join(map(urllib.quote, cl))] + kvl
 
 def preexecfn():
 	caller.hook_forked_inchild()
