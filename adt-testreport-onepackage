@@ -2,16 +2,9 @@
 
 set -e
 
-mirror=http://mirror.relativity.greenend.org.uk/mirror/ubuntu.good
-distro=feisty
-suite=main
 salt=''
 tmp=tmp
 var=var
-administrator_email=ian@davenant.greenend.org.uk
-maintainer_email_override="$administrator_email"
-salutation="Ian"
-from="$salutation Jackson <ian@davenant.greenend.org.uk>"
 rsync=rsync
 disable=true
 interactive=true
