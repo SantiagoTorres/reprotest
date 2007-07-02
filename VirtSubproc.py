@@ -82,7 +82,7 @@ def cmd_print_execute_command(c, ce):
 	if not downtmp: bomb("`print-execute-command' when not open")
 	if hasattr(caller,'hook_callerexeccmd'):
 		(cl,kvl) = caller.hook_callerexeccmd()
-	else
+	else:
 		cl = down
 		kvl = ['auxverb']
 	return ','.join(map(urllib.quote, cl)) + kvl

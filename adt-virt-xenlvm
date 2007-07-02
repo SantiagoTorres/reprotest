@@ -85,23 +85,23 @@ def parse_args():
 	if not opts.userv:
 		if opts.gain_root is None: gain_root = []
 		else: gain_root = opts.gain_root.split()
-		with_testbed = gain_root + ['adt-xenlvm-with-testbed'] +
+		with_testbed = (gain_root + ['adt-xenlvm-with-testbed'] +
 			xargs_direct + xlargs +
-			['--','sh','-ec','echo y; exec cat']
-		vsp.down = gain_root + ['adt-xenlvm-on-testbed'] +
-			xargs_direct + xlargs + ['--']
+			['--','sh','-ec','echo y; exec cat'])
+		vsp.down = (gain_root + ['adt-xenlvm-on-testbed'] +
+			xargs_direct + xlargs + ['--'])
 	else:
 		if opts.gain_root:
 			pe('--userv and --gain-root are not compatible')
-		basis = ['userv'] + xargs_userv + xlargs +
-			['root','adt-xenlvm-testbed']
+		basis = (['userv'] + xargs_userv + xlargs +
+			['root','adt-xenlvm-testbed'])
 		get_down = subprocess.Popen(basis + ['pon0'],
 			stdin=file('/dev/null'), stdout=subprocess.PIPE,
 			stderr=None)
 		(pon0, _) = get_down.communicate()
 		if get_down.returncode:
 			vsp.bomb('failed to check userv service provision'
-				' and subcommand details (code=%d) %
+				' and subcommand details (code=%d)' %
 				get_down.returncode)
 		vsp.down = pon0.split('\0')
 	pauses = opts.pause.split(',')
