@@ -10,7 +10,7 @@ Architecture: all
 Depends: python2.4
 Conflicts: autodebtest (<< 0.5.3)
 Replaces: autodebtest (<< 0.5.3)
-Suggests: autopkgtest-xenlvm
+Suggests: autopkgtest-xenlvm, curl
 Description: automatic as-installed testing for Debian packages
  autopkgtest runs tests on binary packages.  The tests are run on the
  package as installed on a testbed system (which may be found via a
@@ -18,7 +18,8 @@ Description: automatic as-installed testing for Debian packages
  supplied in the corresponding Debian source package.
  .
  See adt-run(1) and /usr/share/doc/autopkgtest.
- Use of adt-virt-xenlvm requires the autopkgtest-xenlvm package too.
+ Use of adt-virt-xenlvm requires the autopkgtest-xenlvm package too;
+ Use of the pre-cooked adt-testreport-onepackage script requires curl.
 
 Package: autopkgtest-xenlvm
 Architecture: all
