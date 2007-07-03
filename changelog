@@ -1,9 +1,11 @@
 autopkgtest (0.9.0~iwj) unstable; urgency=low
 
-  * WIP userv service use by adt-virt-xenlvm.
   * userv service for testbed invocation now provided and
-    at least somewhat tested.
+    at least somewhat tested, and useable by adt-virt-xenlvm.
   * New print-execute-command command for virtualisation servers.
+  * Fix filename pattern bug which can prevent automatic keypair
+    generation (false claim that privkey and pubkey do not match).
+  * New adt_sshauthkeys_hook config variable.
   * Do not demand vg or distro information for initscript to work.
   * autopkgtest-xenlvm now Recommends: lvm2 and debootstrap.
   * pass count= to dd for erasure when lvm_erasebase=true.
