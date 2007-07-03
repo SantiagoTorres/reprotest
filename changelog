@@ -1,19 +1,16 @@
-autopkgtest (0.9.0~iwj) unstable; urgency=low
+autopkgtest (0.9.0) gutsy; urgency=low
 
+  New features:
   * userv service for testbed invocation now provided and
     at least somewhat tested, and useable by adt-virt-xenlvm.
   * New print-execute-command command for virtualisation servers.
+  * New adt_sshauthkeys_hook config variable.
+  * pass count= to dd for erasure when lvm_erasebase=true.
+
+  Bugfixes:
   * Fix filename pattern bug which can prevent automatic keypair
     generation (false claim that privkey and pubkey do not match).
-  * New adt_sshauthkeys_hook config variable.
   * Do not demand vg or distro information for initscript to work.
-  * autopkgtest-xenlvm now Recommends: lvm2 and debootstrap.
-  * pass count= to dd for erasure when lvm_erasebase=true.
-  * ip forwarding warning clarified.
-  * README documentation of default value for erasebase corrected.
-  * Check for udev persistent-net-generator and if enabled we
-    write a rune for eth0 for guest_macaddr into the RULES_FILE
-    specified in /lib/udev/write_net_rules.
   * export adt_* variable settings resulting from command-line
     arguments so that subprocesses get them properly, and arrange
     for the `defaults for simple settings' not to override environment
@@ -24,12 +21,24 @@ autopkgtest (0.9.0~iwj) unstable; urgency=low
     need per-testbed configuration options.
   * close fd 8 when running vgdisplay (which avoids an annoying and
     spurious warning from the lvm tools).
+
+  Packaging:
+  * autopkgtest-xenlvm now Recommends: lvm2 and debootstrap.
   * autopkgtest Suggests curl (adt-testreport-onepackage needs it).
+
+  Portability:
+  * Check for udev persistent-net-generator and if enabled we
+    write a rune for eth0 for guest_macaddr into the RULES_FILE
+    specified in /lib/udev/write_net_rules.  (Needed for gutsy.)
   * Remove iwj-specific stuff from adt-testreport-onepackage and put
     it into onepackage-config with scary warnings to tell people to
     edit the file.
 
- --
+  Documentation:
+  * ip forwarding warning clarified.
+  * README documentation of default value for erasebase corrected.
+
+ -- Ian Jackson <iwj@ubuntu.com>  Tue,  3 Jul 2007 14:58:56 +0100
 
 autopkgtest (0.8.2feisty1~iwj) feisty-updates; urgency=low
 
