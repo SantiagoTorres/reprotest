@@ -95,6 +95,7 @@ def parse_args():
 			pe('--userv and --gain-root are not compatible')
 		basis = (['userv'] + xargs_userv + xlargs +
 			['root','adt-xenlvm-testbed'])
+		with_testbed = basis + ['with']
 		get_down = subprocess.Popen(basis + ['pon0'],
 			stdin=file('/dev/null'), stdout=subprocess.PIPE,
 			stderr=None)
