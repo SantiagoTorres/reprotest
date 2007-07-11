@@ -1,3 +1,9 @@
+autopkgtest (0.9.1) gutsy; urgency=low
+
+  * autopkgtest-xenlvm declares that it Depends on dmsetup.
+
+ --
+
 autopkgtest (0.9.0) gutsy; urgency=low
 
   New features:
