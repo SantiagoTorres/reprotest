@@ -5,6 +5,8 @@ autopkgtest (0.9.1) gutsy; urgency=low
   * New `console' mode for userv service.
   * Move README.userv to autopkgtest-xenlvm package (and hence to
     /usr/share/doc/autopkgtest-xenlvm).
+  * Do not mind if directory named by adt_modules doesn't exist - in
+    that case just don't copy any modules.
 
  --
 
