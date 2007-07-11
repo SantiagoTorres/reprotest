@@ -3,6 +3,8 @@ autopkgtest (0.9.1) gutsy; urgency=low
   * autopkgtest-xenlvm declares that it Depends on dmsetup.
   * Discard stderr from our ought-to-be-unnecessary modprobe dm-snapshot.
   * New `console' mode for userv service.
+  * Move README.userv to autopkgtest-xenlvm package (and hence to
+    /usr/share/doc/autopkgtest-xenlvm).
 
  --
 
