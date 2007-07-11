@@ -7,6 +7,8 @@ autopkgtest (0.9.1) gutsy; urgency=low
     /usr/share/doc/autopkgtest-xenlvm).
   * Do not mind if directory named by adt_modules doesn't exist - in
     that case just don't copy any modules.
+  * Attempt to install libc6-xen in fixups-inside, rather than instructing
+    debootstrap to install it.  This makes us not mind if it's missing.
 
  --
 
