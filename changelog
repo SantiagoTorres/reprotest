@@ -1,9 +1,19 @@
-autopkgtest (0.9.2) unstable; urgency=low
+autopkgtest (1.0.0~) unstable; urgency=low
+
+  * Locking: <play>.lock (unlinkable fcntl style) plus <play>/good
+    sentinel file.  This will avoid conflicts between simultaneous calls
+    to with-testbed and setup (and others).  The `with' mode of the userv
+    target is enhanced so that the caller can take out the lock and hold
+    it will starting and discarding the testbed more than once.
+
+ -- Ian Jackson <ian@davenant.greenend.org.uk>  Thu, 12 Jul 2007 15:01:35 +0100
+
+autopkgtest (0.9.2~) unstable; urgency=low
 
   * Really discard stderr from our ought-to-be-unnecessary
     modprobe dm-snapshot.
 
- --
+ -- Ian Jackson <ian@davenant.greenend.org.uk>  Thu, 12 Jul 2007 14:31:20 +0100
 
 autopkgtest (0.9.1) gutsy; urgency=low
 
