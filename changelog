@@ -1,3 +1,10 @@
+autopkgtest (0.9.2) unstable; urgency=low
+
+  * Really discard stderr from our ought-to-be-unnecessary
+    modprobe dm-snapshot.
+
+ --
+
 autopkgtest (0.9.1) gutsy; urgency=low
 
   * autopkgtest-xenlvm declares that it Depends on dmsetup.
