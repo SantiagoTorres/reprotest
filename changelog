@@ -10,7 +10,7 @@ autopkgtest (0.9.1) gutsy; urgency=low
   * Attempt to install libc6-xen in fixups-inside, rather than instructing
     debootstrap to install it.  This makes us not mind if it's missing.
 
- --
+ -- Ian Jackson <iwj@ubuntu.com>  Thu, 12 Jul 2007 09:50:13 +0100
 
 autopkgtest (0.9.0) gutsy; urgency=low
 
