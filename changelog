@@ -1,3 +1,11 @@
+autopkgtest (1.0.1) unstable; urgency=low
+
+  * adt_debootstrap_opts mentioned in README and passable on
+    command lines, instead of unused adt_pbuilder_args.
+  * Dependency on pbuilder fixed; we use debootstrap, not pbuilder.
+
+ -- Ian Jackson <iwj@ubuntu.com>  Thu, 12 Jul 2007 16:54:47 +0100
+
 autopkgtest (1.0.0) gutsy; urgency=low
 
   * Locking: <play>.lock (unlinkable fcntl style) plus <play>/good
