@@ -1,3 +1,14 @@
+autopkgtest (1.0.2~) unstable; urgency=low
+
+  * xenlvm command-line settings properly override config file
+    settings everywhere.
+  * Default value for adt_distro computed in time to be used for
+    default value for adt_play.
+  * Close fd 4 for lvm tools too (suppresses daft `File descriptor
+    left open' message).
+
+ -- Ian Jackson <ian@davenant.greenend.org.uk>  Fri, 13 Jul 2007 15:31:58 +0100
+
 autopkgtest (1.0.1) unstable; urgency=low
 
   * adt_debootstrap_opts mentioned in README and passable on
