@@ -1,4 +1,4 @@
-autopkgtest (1.0.2~) unstable; urgency=low
+autopkgtest (1.0.2) unstable; urgency=low
 
   * xenlvm command-line settings properly override config file
     settings everywhere.
