@@ -6,6 +6,8 @@ autopkgtest (1.0.2~) unstable; urgency=low
     default value for adt_play.
   * Close fd 4 for lvm tools too (suppresses daft `File descriptor
     left open' message).
+  * Change default lvm lv sizes and make documentation correspond
+    to reality.
 
  -- Ian Jackson <ian@davenant.greenend.org.uk>  Fri, 13 Jul 2007 15:31:58 +0100
 
