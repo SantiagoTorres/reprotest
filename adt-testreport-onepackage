@@ -235,6 +235,7 @@ printf >&3 "%s " $rc
 
 ourx=0
 upload=true
+: ${upload_if_notests:=false}
 extras=''
 
 case "$rc" in
@@ -243,7 +244,7 @@ case "$rc" in
 2)	summary='OK (some skipped)';		email=''
 					upload=$upload_if_ok		;;
 8)	summary='package declares no tests';	email=''
-					upload=false; extras='nt'	;;
+				upload=$upload_if_notests; extras='nt'	;;
 4|6)	summary='test(s) failed!';	email="$maintainer_email"	;;
 12)	summary='erroneous package!';	email="$maintainer_email"	;;
 16)	summary='testbed failed!';	email="administrator_email"	;;
@@ -254,6 +255,7 @@ progress "RESULTS $summary"
 
 if $upload; then
 	progress "bundling"
+	printf "\n%s\n" "$summary" >>"$tmp"/_summary
 	ln "$tmp"/_summary "$tp"/summary
 
 	for odir in tmp out; do

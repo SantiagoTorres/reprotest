@@ -188,7 +188,9 @@ def mkdir_okexist(pathname, mode=02755):
 
 def rmtree(what, pathname):
 	debug('/ %s rmtree %s' % (what, pathname), 2)
-	shutil.rmtree(pathname)
+	try: shutil.rmtree(pathname)
+	except (IOError,OSError), oe:
+		if oe.errno != errno.EEXIST: raise
 
 def debug_subprocess(what, cmdl=None, script=None):
 	o = '$ '+what+':'
@@ -891,6 +893,7 @@ class Testbed:
 	if xdump is not None and 'execute-debug' in tb.caps: cmdl += [xdump]
 	if tmpdir is not None: cmdl.append('env=TMPDIR=%s' % tmpdir)
 	if kind=='install': cmdl.append('env=DEBIAN_FRONTEND=noninteractive')
+#	cmdl.append('env=LANG=C')
 
 	rc = tb.commandr1('execute', cmdl)
 	try: rc = int(rc)
