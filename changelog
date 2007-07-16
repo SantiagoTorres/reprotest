@@ -6,7 +6,7 @@ autopkgtest (1.0.3) unstable; urgency=low
     inclusion of `tmpdir' in that directory).
   * adt-testreport-onepackage has better reporting for DC-running.
 
- --
+ -- Ian Jackson <iwj@ubuntu.com>  Mon, 16 Jul 2007 16:39:24 +0100
 
 autopkgtest (1.0.2) unstable; urgency=low
 
