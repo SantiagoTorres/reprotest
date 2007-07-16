@@ -5,6 +5,8 @@ autopkgtest (1.0.3) unstable; urgency=low
   * Make builds work again: Fix `cd *' in work.write (broken by
     inclusion of `tmpdir' in that directory).
   * adt-testreport-onepackage has better reporting for DC-running.
+  * Fix handling of non-.deb-producing source packages (eg, ones
+    which produce only .udebs).
 
  --
 
