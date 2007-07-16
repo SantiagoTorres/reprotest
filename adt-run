@@ -421,7 +421,8 @@ def parse_args():
 		'deb_forbuilds': 'auto',
 		'deb_fortests': 'auto',
 		'tb': False,
-		'override_control': None
+		'override_control': None,
+		'set_lang': 'C'
 	}
 	initial_arghandling = arghandling.copy()
 	n_non_actions = 0
@@ -509,7 +510,6 @@ def parse_args():
 		     ' according to most recent --binaries-* settings')
 	pa_setah('--no-built-binaries', ['dsc_filter'], '_',
 		help='from subsequent sources, do not use any binaries')
-
 	#---- binary package processing settings:
 
 	def pa_setahbins(long,toset,how):
@@ -542,6 +542,11 @@ def parse_args():
 
 	pa_path('output-dir', OutputDir, dir=True,
 		help='write stderr/out files in PATH')
+
+	pa('--leave-lang', dest='set_lang', action='store_false',
+		help="leave LANG on testbed set to testbed's default")
+	pa('--set-lang', dest='set_lang', action='store', metavar='LANGVAL',
+		help='set LANG on testbed to LANGVAL', default='C')
 
 	pa('','--tmp-dir', 		type='string', dest='tmpdir',
 		help='write temporary files to TMPDIR, emptying it'
@@ -893,7 +898,8 @@ class Testbed:
 	if xdump is not None and 'execute-debug' in tb.caps: cmdl += [xdump]
 	if tmpdir is not None: cmdl.append('env=TMPDIR=%s' % tmpdir)
 	if kind=='install': cmdl.append('env=DEBIAN_FRONTEND=noninteractive')
-#	cmdl.append('env=LANG=C')
+	if opts.set_lang is not False:
+		cmdl.append('env=LANG=%s' % opts.set_lang)
 
 	rc = tb.commandr1('execute', cmdl)
 	try: rc = int(rc)
@@ -1564,7 +1570,7 @@ def build_source(act, control_override):
 			[ create_command ])
 
 	script += [
-			'cd */.',
+			'cd [a-z0-9]*-*/.',
 			'pwd >&3',
 			'set +e; test -f debian/tests/control; echo $? >&3'
 		]
@@ -1663,7 +1669,7 @@ def build_source(act, control_override):
 	debug_b('filter=%s' % filter)
 	if filter != '_':
 		script = tmpdir_script + [
-			'cd '+work.write(True)+'/*/.',
+			'cd '+work.write(True)+'/[a-z0-9]*-*/.',
 			opts.user_wrap(opts.gainroot+' debian/rules binary'),
 			'cd ..',
 			'echo *.deb >&3',
