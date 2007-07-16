@@ -1677,7 +1677,7 @@ def build_source(act, control_override):
 		result_debs = source_rules_command(act,script,what,
 				'binary',work,work.write(True),
 				results_lines=1, xargs=['x',tmpdir])
-		if result_debs == '*': debs = []
+		if result_debs == '*.deb': debs = []
 		else: debs = result_debs.split(' ')
 		debug_b('debs='+`debs`)
 		re = regexp.compile('^([-+.0-9a-z]+)_[^_/]+(?:_[^_/]+)\.deb$')
