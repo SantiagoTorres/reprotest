@@ -99,6 +99,7 @@ if [ "x$pkg" = x ]; then
 		return if $score < $best_score
 		     or ($score==$best_score and \
 			 $package gt $best_package);
+#printf STDERR " <----- best score=%s best_score=%s\n", $score, $best_score;
 		$best_score= $score;
 		$best_package= $package;
 	}
@@ -124,8 +125,10 @@ if [ "x$pkg" = x ]; then
 			$score= 1e7 if $score>1e7;
 			$score *= 5 if $lastver{$package} ne $version;
 			$score *= 10 unless $extras{$package} =~ m/ nt /;
+#print STDERR "$package score $score\n";
 		} elsif (m/^Architecture:.*/ &&
-			 !m/\s'$arch'\s/) {
+			 !m/\s(?:'$arch'|all|any)\s/) {
+#printf STDERR " <----- skip %s %s\n", $&, "'$arch'";
 			$skip= 1;
 		} elsif (m/^$/) {
 			endpackage();
@@ -256,7 +259,7 @@ progress "RESULTS $summary"
 if $upload; then
 	progress "bundling"
 	printf "\n%s\n" "$summary" >>"$tmp"/_summary
-	ln "$tmp"/_summary "$tp"/summary
+	ln -f "$tmp"/_summary "$tp"/summary
 
 	for odir in tmp out; do
 		if test -d "$tp"/$odir; then
