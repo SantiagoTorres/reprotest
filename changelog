@@ -1,3 +1,11 @@
+autopkgtest (1.0.4) unstable; urgency=low
+
+  * adt-testreport-onepackage: Handling of source packages'
+    Architecture: field corrected so package selection works properly.
+  * adt-testreport-onepackage: use ln -f when installing summary.
+
+ --
+
 autopkgtest (1.0.3) unstable; urgency=low
 
   * Set LANG to C by default for commands (eg builds and tests) run on
