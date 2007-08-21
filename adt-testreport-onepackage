@@ -9,6 +9,7 @@ rsync=rsync
 disable=true
 interactive=true
 target=source
+suppressrepeatedemails=false
 arch=`dpkg --print-architecture`
 
 for config in "$@"; do
@@ -259,6 +260,23 @@ progress "RESULTS $summary"
 if $upload; then
 	progress "bundling"
 	printf "\n%s\n" "$summary" >>"$tmp"/_summary
+
+	edest=${email%_email}
+	esummary="$var"/emailed/last-$pkg,$edest
+	if [ "x$edest" = x ]; then
+		printf >&3 "email-none "
+		rm -f "$var"/emailed/last-$pkg,*
+		esummary=''
+	elif $suppressrepeatedemails \
+	  && [ -f "$esummary" ] \
+	  && diff -u "$esummary" "$tmp"/_summary >"$var"/emailed/diff-$pkg; then
+		printf >&3 "email-suppressed $email "
+		email=''
+		esummary=''
+	else
+		cp "$tmp"/_summary "$esummary".new
+	fi
+
 	ln -f "$tmp"/_summary "$tp"/summary
 
 	for odir in tmp out; do
@@ -357,6 +375,10 @@ else
 		cat "$tmp"/_email >&2
 	else
 		sendmail -odi -oem -t -oi <"$tmp"/_email
+		if [ "x$esummary" != x ]; then
+			printf >&3 "email-recorded "
+			mv "$esummary".new "esummary"
+		fi
 	fi
 fi
 

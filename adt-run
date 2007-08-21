@@ -45,7 +45,7 @@ signal.signal(signal.SIGINT, signal.SIG_DFL) # undo stupid Python SIGINT thing
 tmpdir = None		# pathstring on host
 testbed = None		# Testbed
 errorcode = 0		# exit status that we are going to use
-timeouts = { 'short':10, 'install':900, 'test':600, 'build':3000 }
+timeouts = { 'short':10, 'install':900, 'test':3000, 'build':10000 }
 binaries = None		# Binaries (.debs we have registered)
 build_essential = ["build-essential"]
 
