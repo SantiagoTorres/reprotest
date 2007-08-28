@@ -159,6 +159,27 @@ Specifies that a summary of the outcome should be written to
 in any case.
 \fIsummary\fR is not affected by \fB--paths-testbed\fR.
 .TP
+.BR --timeout- \fIwhich\fR = \fIseconds\fR
+Use a different timeout for operations on or with the testbed.  There
+are four timeouts affected by four values of \fIwhich\fR:
+.BR short :
+supposedly
+short operations like setting up the testbed's apt and checking the
+state (default: 100s);
+.BR install :
+installation of packages including dependencies
+(default: 3ks);
+.BR test :
+test runs (default: 10ks); and
+.BR build :
+builds (default:
+100ks).  The value must be specified as an integer number of seconds.
+.TP
+.BR --timeout-factor =\fIdouble\fR
+Multiply all of the default timeouts by the specified factor (see
+\fB--timeout-\fR\fIwhich\fR above).  Only the defaults are affected;
+explicit timeout settings are used exactly as specified.
+.TP
 .BR --debug | -d
 Include additional debugging information in the trace log.  Each
 additional \fB-d\fR increases the debugging level; the current maximum

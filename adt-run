@@ -45,7 +45,7 @@ signal.signal(signal.SIGINT, signal.SIG_DFL) # undo stupid Python SIGINT thing
 tmpdir = None		# pathstring on host
 testbed = None		# Testbed
 errorcode = 0		# exit status that we are going to use
-timeouts = { 'short':10, 'install':3000, 'test':10000, 'build':100000 }
+timeouts = { 'short':100, 'install':3000, 'test':10000, 'build':100000 }
 binaries = None		# Binaries (.debs we have registered)
 build_essential = ["build-essential"]
 
@@ -408,7 +408,7 @@ class Action:
 	return "<Action %s %s %s>" % (a.kind, a.what, `a.af`)
 
 def parse_args():
-	global opts
+	global opts, timeouts
 	global n_non_actions # argh, stupid python scoping rules
 	usage = "%prog <options> --- <virt-server>..."
 	parser = OptionParser(usage=usage)
@@ -558,6 +558,13 @@ def parse_args():
 		help='write a summary report to SUMMARY,'
 		     ' emptying it beforehand')
 
+	for k in timeouts.keys():
+		pa('','--timeout-'+k,	type='int', dest='timeout_'+k,
+			metavar='T', help='set %s timeout to T')
+	pa('','--timeout-factor',	type='float', dest='timeout_factor',
+			metavar='FACTOR', default=1.0,
+			help='multiply all default timeouts by FACTOR')
+
 	pa('','--user',			type='string', dest='user',
 		help='run tests as USER (needs root on testbed)')
 	pa('','--gain-root',		type='string', dest='gainroot',
@@ -593,6 +600,11 @@ def parse_args():
 		parser.error('you must specifiy --- <virt-server>...')
 	if n_non_actions >= len(parser.largs):
 		parser.error('nothing to do specified')
+
+	for k in timeouts.keys():
+		t = getattr(opts,'timeout_'+k)
+		if t is None: t = timeouts[k] * opts.timeout_factor
+		timeouts[k] = int(t)
 
 	arghandling = initial_arghandling
 	opts.actions = []
@@ -654,7 +666,7 @@ def setup_trace():
 	if opts.summary is not None:
 		summary_stream = open(opts.summary, 'w', 0)
 
-	debug('options: '+`opts`, 1)
+	debug('options: '+`opts`+'; timeouts: '+`timeouts`, 1)
 
 def finalise_options():
 	global opts, tb, build_essential
