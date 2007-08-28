@@ -1,3 +1,9 @@
+autopkgtest (1.0.7) unstable; urgency=low
+
+  * Build properly with debian/copyright.
+
+ -- Ian Jackson <iwj@ubuntu.com>  Tue, 28 Aug 2007 18:16:35 +0100
+
 autopkgtest (1.0.6) unstable; urgency=low
 
   * Better changelog for 1.0.4.

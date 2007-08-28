@@ -53,7 +53,7 @@ binary binary-indep: checkdir
 		mv -f adt-xenlvm-testbed:dist adt-xenlvm-testbed
 
 	set -e; for f in $p $p-$x; do \
-		cp debian/copyright >debian/$$f/usr/share/doc/$$f/copyright; \
+		cp debian/copyright debian/$$f/usr/share/doc/$$f/copyright; \
 		done
 	dh_installinit -p $p-$x --onlyscripts --name=adt$x -- defaults 19
 	dh_installchangelogs
