@@ -4,7 +4,7 @@ autopkgtest (1.0.4) unstable; urgency=low
     Architecture: field corrected so package selection works properly.
   * adt-testreport-onepackage: use ln -f when installing summary.
   * hosts/cadmium/*: new directory for stuff on Canonical buildd.
-  * adt-run: increase timeouts to 3ks for tests and 10ks for builds.
+  * adt-run: increase timeouts 10s, 3ks, 10ks, 100ks.
   * adt-testreport-onepackage: suppress repetitive emails.
   * hosts/cadmium/onepackage-config: change destination directory
 
