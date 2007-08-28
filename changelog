@@ -1,3 +1,9 @@
+autopkgtest (1.0.5) gutsy; urgency=low
+
+  * Generate debian/copyright file in source package.
+
+ -- Ian Jackson <iwj@ubuntu.com>  Tue, 28 Aug 2007 18:01:16 +0100
+
 autopkgtest (1.0.4) gutsy; urgency=low
 
   * adt-testreport-onepackage: Handling of source packages'
