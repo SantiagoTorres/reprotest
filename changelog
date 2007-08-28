@@ -1,7 +1,7 @@
 autopkgtest (1.0.6) unstable; urgency=low
 
   * Better changelog for 1.0.4.
-  * .bzrignore debian/changelog.
+  * .bzrignore debian/copyright.
 
  -- Ian Jackson <iwj@ubuntu.com>  Tue, 28 Aug 2007 18:08:46 +0100
 
