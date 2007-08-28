@@ -28,11 +28,14 @@ p=autopkgtest
 x=xenlvm
 topdir=`pwd`
 
-build build-indep:
+build build-indep: debian/copyright
 	$(MAKE)
 
 build-arch:
 binary-arch:
+
+debian/copyright: CREDITS debian/copyright.suffix
+	cat $^ >$@.new && mv -f $@.new $@
 
 binary binary-indep: checkdir
 	dh_testroot
@@ -50,8 +53,7 @@ binary binary-indep: checkdir
 		mv -f adt-xenlvm-testbed:dist adt-xenlvm-testbed
 
 	set -e; for f in $p $p-$x; do \
-		cat CREDITS debian/copyright.suffix \
-			>debian/$$f/usr/share/doc/$$f/copyright; \
+		cp debian/copyright >debian/$$f/usr/share/doc/$$f/copyright; \
 		done
 	dh_installinit -p $p-$x --onlyscripts --name=adt$x -- defaults 19
 	dh_installchangelogs
@@ -63,7 +65,7 @@ binary binary-indep: checkdir
 	dh_installdeb
 	dh_builddeb
 
-clean: checkdir
+clean: checkdir debian/copyright
 	dh_testroot
 	$(MAKE) clean
 	dh_clean

@@ -1,24 +1,92 @@
-autopkgtest (1.0.4) unstable; urgency=low
+autopkgtest (1.0.6) unstable; urgency=low
 
-  * adt-testreport-onepackage: Handling of source packages'
-    Architecture: field corrected so package selection works properly.
-  * adt-testreport-onepackage: use ln -f when installing summary.
-  * hosts/cadmium/*: new directory for stuff on Canonical buildd.
-  * adt-run: increase timeouts 100s, 3ks, 10ks, 100ks.
-  * adt-testreport-onepackage: suppress repetitive emails.
-  * hosts/cadmium/onepackage-config: change destination directory
-  * adt-testreport-onepackage: support for Launchpad bug filing
-    including signing emails, `affects' line, etc.
-  * hosts/chinstrap/*: screen-scrap Launchpad to get existing bugs.
-  * adt-testreport-onepackage: suppress email for packages listed
-    in existing bugs suppression file.
-  * hosts/cadmium/*: convenience scripts changed.
-  * better formatting and explanations in some emails.
-  * options for setting timeouts.
+  * Better changelog for 1.0.4.
+  * .bzrignore debian/copyright.
 
- -- Ian Jackson <iwj@ubuntu.com>  Tue, 28 Aug 2007 17:43:53 +0100
+ -- Ian Jackson <iwj@ubuntu.com>  Tue, 28 Aug 2007 18:08:46 +0100
 
-autopkgtest (0.9.1) unstable; urgency=low
+autopkgtest (1.0.5) gutsy; urgency=low
+
+  * Generate debian/copyright file in source package.
+
+ -- Ian Jackson <iwj@ubuntu.com>  Tue, 28 Aug 2007 18:01:16 +0100
+
+autopkgtest (1.0.4) gutsy; urgency=low
+
+  * adt-testreport-onepackage:
+    - Handling of source packages' Architecture: field corrected
+      so package selection works properly.
+    - Use ln -f when installing summary.
+    - Capability to suppress emails similar to ones already sent.
+    - Launchpad bug filing including PGP-signing, `affects' line, etc.
+    - Capability to suppress email for packages listed in a
+      suppression file.
+    - Better formatting and explanations in some emails.
+
+  * adt-run:
+    - Options for setting timeouts.
+    - Increase default timeouts 100s, 3ks, 10ks, 100ks.
+  
+  * hosts/chinstrap/*:
+     Screen-scrape Launchpad to get existing bugs and generate a suitable
+     suppression file so we file a bug iff there isn't one already. 
+  
+  * hosts/cadmium/*:
+     New directory for convenience scripts etc on Canonical buildd.
+
+ -- Ian Jackson <iwj@ubuntu.com>  Tue, 28 Aug 2007 17:42:13 +0100
+
+autopkgtest (1.0.3) unstable; urgency=low
+
+  * Set LANG to C by default for commands (eg builds and tests) run on
+    testbed, and make this configurable.
+  * Make builds work again: Fix `cd *' in work.write (broken by
+    inclusion of `tmpdir' in that directory).
+  * adt-testreport-onepackage has better reporting for DC-running.
+  * Fix handling of non-.deb-producing source packages (eg, ones
+    which produce only .udebs).
+
+ -- Ian Jackson <iwj@ubuntu.com>  Mon, 16 Jul 2007 17:18:03 +0100
+
+autopkgtest (1.0.2) unstable; urgency=low
+
+  * xenlvm command-line settings properly override config file
+    settings everywhere.
+  * Default value for adt_distro computed in time to be used for
+    default value for adt_play.
+  * Close fd 4 for lvm tools too (suppresses daft `File descriptor
+    left open' message).
+  * Change default lvm lv sizes and make documentation correspond
+    to reality.
+
+ -- Ian Jackson <ian@davenant.greenend.org.uk>  Fri, 13 Jul 2007 15:31:58 +0100
+
+autopkgtest (1.0.1) unstable; urgency=low
+
+  * adt_debootstrap_opts mentioned in README and passable on
+    command lines, instead of unused adt_pbuilder_args.
+  * Dependency on pbuilder fixed; we use debootstrap, not pbuilder.
+
+ -- Ian Jackson <iwj@ubuntu.com>  Thu, 12 Jul 2007 16:54:47 +0100
+
+autopkgtest (1.0.0) gutsy; urgency=low
+
+  * Locking: <play>.lock (unlinkable fcntl style) plus <play>/good
+    sentinel file.  This will avoid conflicts between simultaneous calls
+    to with-testbed and setup (and others).  The `with' mode of the userv
+    target is enhanced so that the caller can take out the lock and hold
+    it will starting and discarding the testbed more than once.
+
+ -- Ian Jackson <iwj@ubuntu.com>  Thu, 12 Jul 2007 15:01:35 +0100
+
+autopkgtest (0.9.2) unreleased; urgency=low
+
+  * Really discard stderr from our ought-to-be-unnecessary
+    modprobe dm-snapshot.
+
+ -- Ian Jackson <ian@davenant.greenend.org.uk>  Thu, 12 Jul 2007 14:31:20 +0100
+
+autopkgtest (0.9.1) gutsy; urgency=low
 
   * autopkgtest-xenlvm declares that it Depends on dmsetup.
   * Discard stderr from our ought-to-be-unnecessary modprobe dm-snapshot.
