@@ -7,6 +7,13 @@ autopkgtest (1.0.4) unstable; urgency=low
   * adt-run: increase timeouts 10s, 3ks, 10ks, 100ks.
   * adt-testreport-onepackage: suppress repetitive emails.
   * hosts/cadmium/onepackage-config: change destination directory
+  * adt-testreport-onepackage: support for Launchpad bug filing
+    including signing emails, `affects' line, etc.
+  * hosts/chinstrap/*: screen-scrap Launchpad to get existing bugs.
+  * adt-testreport-onepackage: suppress email for packages listed
+    in existing bugs suppression file.
+  * hosts/cadmium/*: convenience scripts changed.
+  * better formatting and explanations in some emails.
 
  --
 
