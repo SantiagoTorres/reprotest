@@ -36,8 +36,6 @@ autopkgtest (1.0.4) gutsy; urgency=low
 
  -- Ian Jackson <iwj@ubuntu.com>  Tue, 28 Aug 2007 17:42:13 +0100
 
-Tue, 28 Aug 2007 17:41:35 +0100
-
 autopkgtest (1.0.3) unstable; urgency=low
 
   * Set LANG to C by default for commands (eg builds and tests) run on
