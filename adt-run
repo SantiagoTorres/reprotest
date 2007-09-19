@@ -1315,6 +1315,7 @@ END
  def apt_configs(b):
 	return {
 		"Dir::Etc::sourcelist": b.dir.read(True)+'sources.list',
+		"Debug::pkgProblemResolver": "true",
 	}
 
  def apt_pkg_gdebi_script(b, arg, middle):
