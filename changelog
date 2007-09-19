@@ -8,7 +8,7 @@ autopkgtest (1.0.8) gutsy; urgency=low
   * hosts/chinstrap/update-suppressions: pass -S to curl.
   * hosts/{chinstrap,cadmium}/install-on-*: use --ubuntu branch.
 
- --
+ -- Ian Jackson <iwj@ubuntu.com>  Wed, 19 Sep 2007 15:44:33 +0100
 
 autopkgtest (1.0.7) gutsy; urgency=low
 
