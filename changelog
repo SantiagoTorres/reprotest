@@ -1,6 +1,10 @@
 autopkgtest (1.0.8) gutsy; urgency=low
 
+  * adt-run: pass -o Debug::pkgProblemResolver=true to apt & gdebi;
+    this improves dependency problem reporting.  (LP: #135581.)
   * adt-testreport-onepackage: seddery the log to remove ctrl chars.
+    In particular, this gets rid of ^M's from apt which get corrupted
+    by email transport and thus break the email signatures.
   * hosts/chinstrap/update-suppressions: pass -S to curl.
   * hosts/{chinstrap,cadmium}/install-on-*: use --ubuntu branch.
 
