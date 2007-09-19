@@ -47,12 +47,12 @@ printf >&3 "starting "
 rm -rf "$tmp"
 mkdir "$tmp"
 
->"$tmp"/_log
+>"$tmp"/_log_raw
 
 if $interactive; then
-	echo '(log diverted to stdout)' >>"$tmp"/_log
+	echo '(log diverted to stdout)' >>"$tmp"/_log_raw
 else
-	exec >>"$tmp"/_log
+	exec >>"$tmp"/_log_raw
 fi
 exec 4>&1
 
@@ -375,6 +375,15 @@ if [ "x$ourx" = x0 ]; then
 else
 	progress "fault ($ourx)."
 fi
+
+perl <"$tmp"/_log_raw >"$tmp"/_log -pe '
+	s/[^\012\040-\133\135-\176]/
+		$& eq "\t" ? "\\t" :
+		$& eq "\r" ? "\\r" :
+		$& eq "\b" ? "\\b" :
+		$& eq "\\" ? "\\\\" :
+		sprintf "\\x%02x", ord $&
+	/ge'
 
 if [ "x$email" = x ]; then
 	if $interactive; then
