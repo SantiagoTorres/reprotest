@@ -1,3 +1,16 @@
+autopkgtest (1.0.9) unstable; urgency=low
+
+  * Separate email_sourcepackage_header and email_binarypackage_header
+    to allow us to properly file bugs in LP against binary packages built
+    from differently-named sources.
+  * adt-testreport-onepackage: Dump a logfile giving the scores and facts
+    used for package selection.
+  * adt-testreport-onepackage: Do not prefer packages whose source package
+    is listed in the suppressions file.
+  * hosts/cadmium/manual-test-one-binary: new testing script.
+
+  --
+
 autopkgtest (1.0.8) gutsy; urgency=low
 
   * adt-run: pass -o Debug::pkgProblemResolver=true to apt & gdebi;
