@@ -69,6 +69,7 @@ gurl "$mirror/dists/$distro/$suite/$target/$sources.gz" "$tmp"/_$sources.gz
 zcat "$tmp"/_$sources.gz >"$tmp"/_$sources-in
 
 lastinfo="$var"/lastinfo-$target
+: "${scorelog:="$var"/scores-$target}"
 
 now=`date +%s`
 >>"$lastinfo"
@@ -85,6 +86,25 @@ if [ "x$pkg" = x ]; then
 	sub f1() { $fn=shift @ARGV; open F, $fn or die "$fn $!"; }
 	sub f2() { F->error and die "$fn $!"; close F or die "$fn $!"; }
 
+	$scorelog= "'"$scorelog"'";
+	if (length $scorelog) { open SCORE, "> $scorelog.new" or die $!; }
+	sub pscore ($;$) {
+		return unless length $scorelog;
+		printf SCORE "%$_[1]s", $_[0] or die $!;
+	}
+
+	$suppresspackages= "'"$suppresspackages"'";
+	if (length $suppresspackages) {
+		unshift @ARGV, $suppresspackages; f1();
+		while (<F>) {
+			next if m/^\#/ or !m/\S/;
+			die unless m/^($pre)\s*$/;
+#print STDERR "SUPPRESS GOT $1\n";
+			$suppress{$1}= 1;
+		}
+		f2();
+	}
+
 	f1();
 	while (<F>) {
 		die unless m/^($pre) ($vre) (\d+)( .*)?$/;
@@ -94,26 +114,61 @@ if [ "x$pkg" = x ]; then
 	}
 	f2();
 	f1();
-	$best_score= -1;
+	$best_score= -2e9;
 	sub scorepackage () {
 		return if $skip;
 		return if $score < $best_score
 		     or ($score==$best_score and \
 			 $package gt $best_package);
 #printf STDERR " <----- best score=%s best_score=%s\n", $score, $best_score;
+		pscore(" (best)");
 		$best_score= $score;
 		$best_package= $package;
 	}
 	sub endpackage () {
 		return unless (defined $package
 				or defined $version
-				or defined $skip);
+				or defined $skip
+				or defined $source);
 		die unless defined $package;
 		die unless defined $version;
+		$source= $package if !defined $source;
+
+		$score= '$now' - $lasttime{$package};
+		pscore("$package ",-30);
+		pscore("$source ",-25);
+		pscore("$score",10);
+
+		if ($score>1e7) {
+			$score= 1e7;
+			$scorechars.='c';
+		}
+		pscore(" $lastver{$package}",-25);
+		pscore(" $version ",-25);
+		$scorechars= "";
+		if ($lastver{$package} ne $version) {
+			$score *= 5;
+			$scorechars.="U";
+		}
+		if ($extras{$package} =~ m/ nt /) {
+			$scorechars.="n";
+		} else {
+			$score *= 10;
+		}
+		if ($suppress{$source}) {
+			$score -= 2e7;
+			$scorechars.="s";
+		}
+		pscore("-$scorechars",-5);
+		pscore("$score",10);
+
+#print STDERR "SCORE package=$package score $score source=$source\n";
 		scorepackage();
+		pscore("\n");
 		undef $package;
 		undef $version;
 		undef $skip;
+		undef $source;
 	}
 	while (<F>) {
 		if (m/^Package: ($pre)$/) {
@@ -122,11 +177,9 @@ if [ "x$pkg" = x ]; then
 		} elsif (m/^Version: ($vre)$/) {
 			die if defined $version;
 			$version= $1;
-			$score= '$now' - $lasttime{$package};
-			$score= 1e7 if $score>1e7;
-			$score *= 5 if $lastver{$package} ne $version;
-			$score *= 10 unless $extras{$package} =~ m/ nt /;
-#print STDERR "$package score $score\n";
+		} elsif (m/^Source: ($pre)$/) {
+			die if defined $source;
+			$source= $1;
 		} elsif (m/^Architecture:.*/ &&
 			 !m/\s(?:'$arch'|all|any)\s/) {
 #printf STDERR " <----- skip %s %s\n", $&, "'$arch'";
@@ -137,6 +190,10 @@ if [ "x$pkg" = x ]; then
 	}
 	f2();
 	endpackage();
+	if (length $scorelog) {
+		close SCORE or die $!;
+		rename "$scorelog.new","$scorelog" or die $!;
+	}
 	die unless length $best_package;
 	open L, ">&4" or die $!;
 	printf L "selected %s (age %s, score %d)\n",
@@ -171,6 +228,13 @@ mkdir "$tp" "$tp/src" "$tp/tmp" "$tp/out"
 
 getfield Version
 
+getfield Source
+if [ "x$pSource" != x ]; then
+	src="$pSource"
+else
+	src="$pkg"
+fi
+
 if test $target = source; then
 	getfield Directory
 	leafnames="`
@@ -191,6 +255,7 @@ if test $target = source; then
 	testmode2=''
 	desc="$pkg"
 	: ${upload_if_ok:=true}
+	email_package_header="$email_sourcepackage_header"
 else
 	getfield Filename
 	fot="$tp/src/$pkg.deb"
@@ -199,6 +264,7 @@ else
 	testmode2=--instantiate
 	desc="$pkg $descx"
 	: ${upload_if_ok:=false}
+	email_package_header="$email_binarypackage_header"
 fi
 
 if [ "x$maintainer_email_override" = x ]; then
@@ -309,7 +375,11 @@ Subject: autopkgtest $distro $desc: $summary
 
 END
 
-	printf >"$tmp"/_email "$email_package_header" "$pkg"
+	email_package_header="${email_package_header//@p/$pkg}"
+	email_package_header="${email_package_header//@s/$src}"
+	email_package_header="${email_package_header//@v/$pVersion}"
+	email_package_header="${email_package_header//@a/@}"
+	printf >"$tmp"/_email "%s" "$email_package_header"
 
 	cat >>"$tmp"/_email <<END
  Test executed for:  $distro  $target  $pkg
