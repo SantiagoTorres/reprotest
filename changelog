@@ -8,6 +8,11 @@ autopkgtest (1.0.9) unstable; urgency=low
   * adt-testreport-onepackage: Do not prefer packages whose source package
     is listed in the suppressions file.
   * hosts/cadmium/manual-test-one-binary: new testing script.
+  * hosts/cadmium/onepackage-config: explain about archive skew.
+  * adt-testreport-onepackage: nicer score logging re skip chars.
+  * adt-testreport-onepackage: skip emails if _source_ is suppresed.
+  * adt-testreport-onepackage etc.: new blacklist feature, and initially
+    blacklist ltsp-client{,-core}.
 
   --
 
