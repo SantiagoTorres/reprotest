@@ -76,6 +76,12 @@ now=`date +%s`
 
 progress selecting
 
+if test $target = source; then
+	blacklist="$blacklistsourcepackages"
+else
+	blacklist="$blacklistbinarypackages"
+fi
+
 if [ "x$pkg" = x ]; then
  pkg="`perl -e '
 	use IO::Handle;
@@ -93,17 +99,19 @@ if [ "x$pkg" = x ]; then
 		printf SCORE "%$_[1]s", $_[0] or die $!;
 	}
 
-	$suppresspackages= "'"$suppresspackages"'";
-	if (length $suppresspackages) {
-		unshift @ARGV, $suppresspackages; f1();
+	sub readpkglist ($$) {
+		my ($arrayref, $filename) = @_;
+		return unless length $filename;
+		unshift @ARGV, $filename; f1();
 		while (<F>) {
 			next if m/^\#/ or !m/\S/;
 			die unless m/^($pre)\s*$/;
-#print STDERR "SUPPRESS GOT $1\n";
-			$suppress{$1}= 1;
+			$arrayref->{$1}= 1;
 		}
 		f2();
 	}
+	readpkglist(\%suppress, "'"$suppresspackages"'");
+	readpkglist(\%blacklist, "'"$blacklist"'");
 
 	f1();
 	while (<F>) {
@@ -116,7 +124,8 @@ if [ "x$pkg" = x ]; then
 	f1();
 	$best_score= -2e9;
 	sub scorepackage () {
-		return if $skip;
+		return if length $skip;
+		return if $blacklist{$package};
 		return if $score < $best_score
 		     or ($score==$best_score and \
 			 $package gt $best_package);
@@ -159,7 +168,9 @@ if [ "x$pkg" = x ]; then
 			$score -= 2e7;
 			$scorechars.="s";
 		}
-		pscore("-$scorechars",-5);
+		$scorechars.="[$skip]" if length $skip;
+
+		pscore("-$scorechars",-7);
 		pscore("$score",10);
 
 #print STDERR "SCORE package=$package score $score source=$source\n";
@@ -183,7 +194,7 @@ if [ "x$pkg" = x ]; then
 		} elsif (m/^Architecture:.*/ &&
 			 !m/\s(?:'$arch'|all|any)\s/) {
 #printf STDERR " <----- skip %s %s\n", $&, "'$arch'";
-			$skip= 1;
+			$skip .= 'a';
 		} elsif (m/^$/) {
 			endpackage();
 		}
@@ -324,7 +335,7 @@ esac
 progress "RESULTS $summary"
 
 if  [ "x$suppresspackages" != x ] \
- && grep -x "$pkg" "$suppresspackages" >/dev/null; then
+ && grep -x "$src" "$suppresspackages" >/dev/null; then
 	printf >&3 "email-suppressed "
 	email=''
 fi
