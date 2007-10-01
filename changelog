@@ -13,8 +13,10 @@ autopkgtest (1.0.9) unstable; urgency=low
   * adt-testreport-onepackage: skip emails if _source_ is suppresed.
   * adt-testreport-onepackage etc.: new blacklist feature, and initially
     blacklist ltsp-client{,-core}.
+  * adt-testreport-onepackage: limit log to 64K (32K head, 32K tail)
+    to avoid humungous bug reports which LP silently discards.
 
-  --
+ --
 
 autopkgtest (1.0.8) gutsy; urgency=low
 
