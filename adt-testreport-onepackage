@@ -11,6 +11,8 @@ interactive=true
 target=source
 suppressrepeatedemails=false
 arch=`dpkg --print-architecture`
+logheadmaxbytes=32768
+logtailmaxbytes=32768
 
 for config in "$@"; do
 	case "$config" in
@@ -428,10 +430,10 @@ END
 	esac
 	cat >>"$tmp/_email" <<END
 
-The test log, which is intended to be sufficient to diagnose most
-failures, can be found below.  However, in case this is not
-sufficient, another copy can be found along with output files, saved
-temporary files, and so on, at:
+The top and tail of the test log, which is intended to be sufficient
+to diagnose most failures, can be found below.  However, in case this
+is not sufficient, a complete log can be found along with output
+files, saved temporary files, and so on, at:
  $desthttphead/$destdirfin/
 $email_extra_info
 If you have any questions about this service please contact me at:
@@ -457,14 +459,34 @@ else
 	progress "fault ($ourx)."
 fi
 
-perl <"$tmp"/_log_raw >"$tmp"/_log -pe '
+perl <"$tmp"/_log_raw >"$tmp"/_log -ne '
 	s/[^\012\040-\133\135-\176]/
 		$& eq "\t" ? "\\t" :
 		$& eq "\r" ? "\\r" :
 		$& eq "\b" ? "\\b" :
 		$& eq "\\" ? "\\\\" :
 		sprintf "\\x%02x", ord $&
-	/ge'
+	/ge;
+
+	if (!$middle) {
+		$headlen += length;
+		$middle=1 if $headlen > '"$logheadmaxbytes"';
+	}
+	if (!$middle) {
+		print or die $!;
+	} else {
+		$taillen += length;
+		push @tail, $_;
+		while ($taillen > '"$logtailmaxbytes"') {
+			$taillen -= length shift @tail;
+			$some_dropped= 1;
+		}
+	}
+	END {
+		print "...\n" or die $! if $some_dropped;
+		print @tail or die $!;
+	}
+'
 
 if [ "x$email" = x ]; then
 	if $interactive; then
