@@ -15,6 +15,8 @@ autopkgtest (1.0.9) unstable; urgency=low
     blacklist ltsp-client{,-core}.
   * adt-testreport-onepackage: limit log to 64K (32K head, 32K tail)
     to avoid humungous bug reports which LP silently discards.
+  * hosts/cadmium/lalonde-nightly: check for testbed sentinel file
+    and stop if not present.
 
  --
 
