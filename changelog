@@ -13,6 +13,7 @@ autopkgtest (1.1.0~) unstable; urgency=low
   * adt-testreport-cronjob: renamed from hosts/cadmium/cronjob
   * adt-testreport-runloop: copyright message.
   * cfg and adt-testreport-runloop: do not cd in config files.
+  * adt-testreport-runloop: fix handling of test_classes (was xoptslist)
   * hosts/cadmium/*, debian/rules: onepackage_config renamed to cfg.
 
  -- Ian Jackson <ian@davenant.greenend.org.uk>  Thu, 18 Oct 2007 17:17:31 +0100
