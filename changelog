@@ -1,3 +1,15 @@
+autopkgtest (1.1.0) unstable; urgency=low
+
+  * adt-testreport-runloop: manpage
+  * adt-testreport-runloop: better command line parsing
+  * adt-testreport-runloop: removed old lalonde junk
+  * adt-testreport-runloop: replaced `..._ok' vars with sentinel files
+  * hosts/chinstrap/update-suppressions: big comment
+  * hosts/cadmium/onepackage-config: set PATH (was in lalonde-nightly)
+  * adt-testreport-onepackage: many manpage improvements
+
+
+
 autopkgtest (1.0.9) unstable; urgency=low
 
   * Separate email_sourcepackage_header and email_binarypackage_header
