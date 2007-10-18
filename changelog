@@ -1,4 +1,4 @@
-autopkgtest (1.0.9) unstable; urgency=low
+autopkgtest (1.1.0) nowhere; urgency=low
 
   * Separate email_sourcepackage_header and email_binarypackage_header
     to allow us to properly file bugs in LP against binary packages built
@@ -18,7 +18,7 @@ autopkgtest (1.0.9) unstable; urgency=low
   * hosts/cadmium/lalonde-nightly: check for testbed sentinel file
     and stop if not present.
 
- --
+ -- Ian Jackson <iwj@ubuntu.com>  Thu, 18 Oct 2007 11:56:51 +0100
 
 autopkgtest (1.0.8) gutsy; urgency=low
 
