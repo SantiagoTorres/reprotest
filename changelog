@@ -5,6 +5,7 @@ autopkgtest (1.1.0) unstable; urgency=low
   * adt-testreport-runloop: removed old lalonde junk
   * adt-testreport-runloop: replaced `..._ok' vars with sentinel files
   * hosts/chinstrap/update-suppressions: big comment
+  * adt-testreport-runloop: renamed from hosts/cadmium/lalonde-nightly
   * hosts/cadmium/onepackage-config: set PATH (was in lalonde-nightly)
   * adt-testreport-onepackage: many manpage improvements
 
