@@ -45,7 +45,7 @@ else
 	: ${testbed_check_path:=/dev/null}
 fi
 
-if [ "x$test_classes" = x]; then
+if [ "x$test_classes" = x ]; then
 	: ${architecture:=`dpkg --print-architecture`}
 	test_classes="source $distro, target=source : binary $distro, target=binary-$architecture"
 fi
@@ -70,8 +70,11 @@ while ($go_anyway || test -f go) && test $test_count -lt $max_test_count; do
 
 	xopts="${test_classes%%:*}"
 	xopts_opts="${xopts#*,}"
-	test_classes="${test_classes#*:}:$xopts"
 	printf "considering (%s) " "$xopts_opts"
+
+	case "$test_classes" in
+	*:*)	test_classes="${test_classes#*:}:$xopts" ;;
+	esac
 
 	anybroken=false
 	for x in ${xopts%%,*}; do
