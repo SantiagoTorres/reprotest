@@ -52,6 +52,21 @@ binary binary-indep: checkdir
 	cd debian/$p-$x/etc/userv/services.d && \
 		mv -f adt-xenlvm-testbed:dist adt-xenlvm-testbed
 
+	set -e;								\
+	  d=debian/autopkgtest/usr/share/doc/autopkgtest/examples/;	\
+	  mkdir -p -m755 $$d;						\
+	  cp --preserve=timestamps -dR hosts $$d;			\
+	  find $$d -name '*~' -o -name '#*#' -exec rm -- '{}' ';';	\
+	  for f in $$d/hosts/*; do					\
+	    cp debian/host-example-WARNING $$f/WARNING;			\
+	    cf=$$f/onepackage-config;					\
+	    if test -f $$cf; then					\
+	      sed -e 's/^/# /' debian/host-example-WARNING >$$cf.new;	\
+	      echo >>$$cf.new;  cat $$cf >>$$cf.new;			\
+	      mv -f $$cf.new $$cf;					\
+	    fi;								\
+	  done
+
 	set -e; for f in $p $p-$x; do \
 		cp debian/copyright debian/$$f/usr/share/doc/$$f/copyright; \
 		done

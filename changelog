@@ -9,6 +9,7 @@ autopkgtest (1.1.0~) unstable; urgency=low
   * hosts/cadmium/onepackage-config: set PATH (was in lalonde-nightly)
   * adt-testreport-onepackage: many manpage improvements
   * adt-testreport-runloop: add to Makefile
+  * hosts/* installed as examples with a big fat warning.
 
  -- Ian Jackson <ian@davenant.greenend.org.uk>  Thu, 18 Oct 2007 17:17:31 +0100
 
