@@ -1,14 +1,15 @@
 #!/bin/bash
 #
-#  This script expects to be given one argument, the name
-#  of the config file which will set the PATH if necessary
-#  and cd to the appropriate playground.  This and all
-#  remaining arguments are passed to a-t-r.
+#  This script expects to be given at least two arguments:
+#     directory to cd to
+#     main config file for adt-testreport-runloop which sets PATH if need be
+#     remaining arguments are passed through to a-t-r unchanged
 
 set -e
+cd "$1"
+shift
 . "$1"
-
 exec >>var/overall.log 2>&1
 test -f go
 with-lock-ex -q cronjob-lock \
- adt-testreport-runloop "$@" max_test_count=100
+ adt-testreport-runloop max_test_count=100 "$@"
