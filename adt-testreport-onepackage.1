@@ -8,13 +8,16 @@ adt\-testreport\-onepackage \- choose one package and test it with adt-run
 .SH DESCRIPTION
 .B adt\-testreport\-onepackage
 is a rather ad-hoc script which chooses a package to test, calls
-adt-run, and reports the results.  a-t-o has the following
-functionality:
+adt-run, and reports the results.  In a service installation
+a-t-o is usually called from
+.BR adt\-testreport\-runloop .
 
-a-t-o downloads the Sources file, chooses a package to test (see
-below), downloads its source, invokes adt-run, writes a report
-describing the outcome, and emails the report to some appropriate
-address.
+a-t-o has the following functionality:
+
+a-t-o downloads the Sources or Packages file, chooses a package to
+test (see below), downloads its source, invokes \fBadt\-run\fR, writes a
+report describing the outcome, and emails the report to some
+appropriate address.
 
 \fBWARNING\fR - it is essential to reconfigure this program before
 use, as the supplied examples will \fBsend emails\fR to people who
@@ -29,7 +32,11 @@ Various variables can be set for useful effect.  A selection of the
 most usual ones, with default values, can be seen at the top of the
 a-t-o script itself.  Certain others are mentioned in this manpage.
 There is no exhaustive list and no documentation of the semantics.
-.SH PACKAGE SELECTION
+.SH PACKAGE AND TEST SELECTION
+The configuration variable \fBtarget\fR specifies whether a source
+package, or a binary package, is to be tested.  It should be set to
+\fBsource\fR or \fBbinary\-\fR\fIarch\fR.
+
 a-t-o maintains a record of when each package was last tested, what
 version was tested, and whether the package had any tests.
 
@@ -37,8 +44,8 @@ This record is used to choose which package should be tested next:
 packages which have changed since the last test are preferred, as are
 packages which didn't lack tests last time they were examined.
 
-If the configuration sets \fBpkg\fR to a package name (for example by
-passing \fBpkg=\fR\fIpackage-name\fR), this overrides
+If the configuration sets \fBpkg\fR to a package name (for example if
+\fBpkg=\fR\fIpackage\fR is passed as an argument), this overrides
 a-t-o's package selection algorithm.
 .SH REPORTING
 If \fBinteractive\fR is set to \fBtrue\fR (the default), a-t-o will
@@ -59,6 +66,43 @@ specified with the \fBdest\fR* options (see the
 \fBonepackage-config\fR example configuration file).
 
 Some vague progress information is printed to a-t-o's stdout.
+.SH AUTOMATIC BUG REPORTING
+With suitable configuration, a-t-o can be made to automatically file
+bugs when it detects a problem with a package.
+
+It is necessary to avoid the submission of multiple reports for the
+same problem.  This is done by fetching somehow a list of the open bug
+reports from the relevant bug system and extracting a list of the
+source package names.  These are to be listed in the file named by the
+.B suppresspackages
+configuration variable.  Testing frequency of these source packages is
+reduced, and when a problem is found the email is not sent.
+
+When the system does decide to send an email about a package it will
+normally email the maintainer as determined from the package's control
+file.  To submit bugs instead, set
+.B maintainer_email_override
+to the submission email address for the bug system.  You must also set
+.BR email_sourcepackage_header and email_binarypackage_header
+to appropriate templates.  These templates specify what information
+should be prepended at the top of the body (not the RFC822 header) of
+the mail to be sent.  In these templates
+.B @p
+stands for the package name being tested (the source package name for
+source packages or the binary package name for binary package tests),
+.B @v
+stands for the version being tested,
+.B @s
+stands for the source package name (even if a binary package generated
+by that source is being tested) and
+.B @a
+stands for a single at sign \fB@\fR.
+
+If you an appropriately useable GPG signing key is available, you may
+specify
+.B email_signing_key
+which is passed to gpg's \fB-u\fR option.  Otherwise the email is not
+signed.
 .SH FILES
 The \fBtmp=\fR\fItmp\fR and \fBvar=\fR\fIvar\fR configuration
 variables name two directories which must belong solely to this
@@ -66,7 +110,9 @@ instance of a-t-o.
 
 \fItmp\fR will be erased by a-t-o at startup and then used for
 temporary files.  It is not cleaned up afterwards; it is assumed that
-the next run of a-t-o will do that.
+the next run of a-t-o will do that.  \fItmp\fR should not be made to
+refer to a symlink or mountpoint as a-t-o would break the link or
+attempt to remove the mountpoint; specify a subdirectory instead.
 
 \fIvar\fR is used to record the state, including the information about
 each package used for package selection.  \fIvar\fR\fB/log\fR contains
@@ -83,6 +129,41 @@ other	other unexpected failures including bad usage, disk full, etc.
 
 When a-t-o is run in a loop, the loop should stop pending
 administrator intervention if a-t-o exits nonzero.
+.SH FILES
+.TP
+.IR tmp " (default: \fB./tmp\fR)"
+Temporary directory for working files.  Do not specify /tmp.
+.TP
+.IR var " (default: \fB./var\fR)"
+Storage directory for package testing history, score reports,
+logfiles, etc.
+.TP
+.IB var /lastinfo- target
+Information about the last test and outcome for each package.  This is
+used for package scoring and selection.
+.TP
+.IB var /scores- target
+Report giving the score for each package, and the factors which
+influenced that score.
+.TP
+.IB var /emailed/last- pkg , emailaddress
+The summary of the last message sent to emailaddress about pkg.
+If the configuration variable \fBsuppressrepeatedemails\fR is
+\fBtrue\fR then this is used to ensure that a maintainer (or the
+test installation operator) is only emailed when the situation for a
+particular package changes.
+.TP
+.IB var /emailed/diff- pkg
+Changes to the summary for the last email sent regarding pkg.
+This can be used to find out why an email was sent.
+.TP
+.IB var /log
+Logfile from a-t-o.  If a-t-runloop is being used its stdout output
+often makes a better logfile.
+.TP
+.IB destrsynchead / destdirfin / pkg
+Full logfile and other information is rsync'd here.  It is assumed
+that this area will be published via a webserver.
 .SH SEE ALSO
 \fBadt-run\fR(1).
 .SH BUGS
@@ -97,13 +178,31 @@ adjusted.  This algorithm is not hugely sophisticated.  There should
 be a facility for explicitly requesting retests (other than setting
 \fBpkg\fR); there should be some kind of manual prioritisation queue.
 
-a-t-o cannot choose a distrorelease (eg, dapper, feisty, etch, sid) or
-suite (eg main, non-free, universe); the caller must do that.
+Distributions whose management systems permit archive skew (that is,
+distributions whose contents sometimes contains unsatisfiable
+dependencies) cause pathological behaviour.  a-t-o will prefer to test
+the newly-changed packages and immediately detect and report the
+archive skew as test failures.  It would be better if it would detect
+this situation and not report a failure unless the problem persisted.
+And there ought to be an option to have it not try to test a package
+until its version has been stable for a nominated period.
 
-Configuration by the use of bash fragments is rather unsophisticated.
+If multiple distributions (multiple values of \fBdistro\fR) are used,
+a-t-o will conflate their last-tested versions.  It should use
+separate files.
+
+Cross-architecture testing (where host and target have differing
+Debian architectures) has not been tested and is likely to have
+bugs both in interfaces and implementation.
+
+a-t-o should be capable of automatically closing bug reports if it
+retests a package and finds that the bug is fixed.
 
 The script lacks flexibility in many respects; many additional
 configuration settings and hooks are needed.
+
+There is no facility for sharing test queues across multiple
+machines.  This means that it is difficult to share the testing load.
 .SH AUTHORS AND COPYRIGHT
 This manpage is part of autopkgtest, a tool for testing Debian binary
 packages.  autopkgtest is Copyright (C) 2006-2007 Canonical Ltd and
