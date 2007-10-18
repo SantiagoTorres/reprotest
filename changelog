@@ -12,6 +12,7 @@ autopkgtest (1.1.0~) unstable; urgency=low
   * hosts/* installed as examples with a big fat warning.
   * adt-testreport-cronjob: renamed from hosts/cadmium/cronjob
   * adt-testreport-runloop: copyright message.
+  * hosts/cadmium/*, debian/rules: onepackage_config renamed to cfg.
 
  -- Ian Jackson <ian@davenant.greenend.org.uk>  Thu, 18 Oct 2007 17:17:31 +0100
 

@@ -59,7 +59,7 @@ binary binary-indep: checkdir
 	  find $$d -name '*~' -o -name '#*#' -exec rm -- '{}' ';';	\
 	  for f in $$d/hosts/*; do					\
 	    cp debian/host-example-WARNING $$f/WARNING;			\
-	    cf=$$f/onepackage-config;					\
+	    cf=$$f/cfg;							\
 	    if test -f $$cf; then					\
 	      sed -e 's/^/# /' debian/host-example-WARNING >$$cf.new;	\
 	      echo >>$$cf.new;  cat $$cf >>$$cf.new;			\
