@@ -107,7 +107,7 @@ if [ "x$pkg" = x ]; then
 		unshift @ARGV, $filename; f1();
 		while (<F>) {
 			next if m/^\#/ or !m/\S/;
-			die unless m/^($pre)\s*$/;
+			die unless m/^($pre)(?:\S.*)?\s*$/;
 			$arrayref->{$1}= 1;
 		}
 		f2();
