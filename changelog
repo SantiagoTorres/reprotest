@@ -1,6 +1,8 @@
 autopkgtest (1.1.1~) unstable; urgency=low
 
   * hosts/cadmium/update-suppression: really do not install empty file.
+  * allow suppresspackages and blacklist lists to contain more
+    information after some whitespace
 
  --
 
