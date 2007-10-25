@@ -1,0 +1,54 @@
+#!/bin/bash
+#
+#  This script expects to be given at least two arguments:
+#     directory to cd to
+#     main config file for adt-testreport-runloop which sets PATH if need be
+#     remaining arguments are passed through to a-t-r unchanged
+
+set -e
+
+export openbugs_kind=debbugs
+export openbugs_debbugs_soap=Debbugs/SOAP
+export openbugs_debbugs_uri=http://bugs.debian.org/cgi-bin/soap.cgi
+export openbugs_usertag_owner=autopkgtest@packages.debian.org
+export openbugs_usertag_name=autopkgtest
+
+cd "$1"
+shift
+. "$1"
+
+: "${openbugs_file_to_fetch:=${suppresspackages:-openbugs}}"
+export openbugs_file_to_fetch
+
+: "${openbugs_file_to_lock:=$openbugs_file_to_fetch-lock}"
+
+echo 'locking'
+
+with-lock-ex -f "$openbugs_file_to_lock" bash -c '
+	. "$1"
+
+	f="$openbugs_file_to_fetch"
+
+	export distro
+
+	echo fetching
+	${openbugs_fetch:-adt-openbugs-fetch-$openbugs_kind} \
+		>"$f".new
+
+	echo results
+	nl -ba -- "$f".new
+
+	if ! test -s "$f".new;
+	then
+		echo >&2 "NO OPENBUGS - PROBABLY WENT WRONG"
+		exit 1
+	fi
+
+	mv -- "$f".new "$f"
+
+	if [ "x$openbugs_copy_destination" != x ]; then
+		echo "uploading"
+		RSYNC_RSH=ssh rsync "$f" "$openbugs_copy_destination"
+	fi
+	echo done.
+' x "$@"

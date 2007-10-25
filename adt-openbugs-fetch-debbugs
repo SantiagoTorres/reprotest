@@ -16,10 +16,10 @@ sub e ($) {
 }
 
 my $dist= e('distro');
-my $debbugs_soap= e('suppressions_debbugs_soap');
-my $debbugs_uri= e('suppressions_debbugs_uri');
-my $usertag_owner= e('suppressions_usertag_owner');
-my $usertag_name= e('suppressions_usertag_name');
+my $debbugs_soap= e('openbugs_debbugs_soap');
+my $debbugs_uri= e('openbugs_debbugs_uri');
+my $usertag_owner= e('openbugs_usertag_owner');
+my $usertag_name= e('openbugs_usertag_name');
 
 my $soap= SOAP::Lite->uri($debbugs_soap)->proxy($debbugs_uri);
 
