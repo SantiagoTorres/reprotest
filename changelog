@@ -1,3 +1,9 @@
+autopkgtest (1.1.1~) unstable; urgency=low
+
+  * hosts/cadmium/update-suppression: really do not install empty file.
+
+ --
+
 autopkgtest (1.1.0~) unstable; urgency=low
 
   * adt-testreport-runloop: manpage
