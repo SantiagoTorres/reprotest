@@ -4,8 +4,9 @@ autopkgtest (1.2.0~) unstable; urgency=low
     This will break existing setups with insufficient LVM space.
   * adt-xenlvm-*: allow specification of LVM PVs to use.
   * remove spurious mkdir of empty variable $snap.
+  * hosts/magrathea/*: working setup.
 
- --
+ -- Ian Jackson <ian@davenant.greenend.org.uk>  Fri, 26 Oct 2007 17:33:40 +0100
 
 autopkgtest (1.1.1~) unstable; urgency=low
 
