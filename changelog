@@ -4,7 +4,7 @@ autopkgtest (1.1.1~) unstable; urgency=low
   * hosts/cadmium/update-suppression: really do not install empty file.
   * allow suppresspackages and blacklist lists to contain more
     information after some whitespace
-  * adt-openbugs-*: new machinery works with debbugs
+  * adt-openbugs-*: new machinery for working with debbugs.
   * hosts/magrathea/*: work-in-progress configuration
 
  -- Ian Jackson <ian@davenant.greenend.org.uk>  Fri, 26 Oct 2007 14:57:49 +0100
