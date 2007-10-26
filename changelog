@@ -16,8 +16,12 @@ autopkgtest (1.1.1~) unstable; urgency=low
     information after some whitespace
   * adt-openbugs-*: new machinery for working with debbugs.
   * hosts/magrathea/*: work-in-progress configuration
+  * Add Recommends against apt-utils.
+  * hosts/cadmium/crontab: savelog -c7 not savelog -n7
+  * hosts/{cadmium,chinstrap}/crontab: set MAILTO
+  * adt-testreport-cronjob: make executable.
 
- -- Ian Jackson <ian@davenant.greenend.org.uk>  Fri, 26 Oct 2007 14:57:49 +0100
+ --
 
 autopkgtest (1.1.0) unreleased; urgency=low
 
