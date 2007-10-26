@@ -1,9 +1,9 @@
 autopkgtest (1.2.0~) unstable; urgency=low
 
-  * remove spurious mkdir of empty variable $snap.
   * adt-xenlvm-*: support for swap, defaulting to 5G.
     This will break existing setups with insufficient LVM space.
   * adt-xenlvm-*: allow specification of LVM PVs to use.
+  * remove spurious mkdir of empty variable $snap.
 
  --
 
