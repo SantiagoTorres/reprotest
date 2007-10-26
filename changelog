@@ -9,6 +9,7 @@ autopkgtest (1.1.1~) unstable; urgency=low
   * Add Recommends against apt-utils.
   * hosts/cadmium/crontab: savelog -c7 not savelog -n7
   * hosts/{cadmium,chinstrap}/crontab: set MAILTO
+  * adt-testreport-cronjob: make executable.
 
  --
 
