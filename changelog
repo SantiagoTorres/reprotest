@@ -1,12 +1,13 @@
 autopkgtest (1.1.1~) unstable; urgency=low
 
+  * adt-xenlvm-setup: new hooks for xmdomain config file.
   * hosts/cadmium/update-suppression: really do not install empty file.
   * allow suppresspackages and blacklist lists to contain more
     information after some whitespace
   * adt-openbugs-*: new machinery works with debbugs
   * hosts/magrathea/*: work-in-progress configuration
 
- --
+ -- Ian Jackson <ian@davenant.greenend.org.uk>  Fri, 26 Oct 2007 14:57:49 +0100
 
 autopkgtest (1.1.0) unreleased; urgency=low
 
