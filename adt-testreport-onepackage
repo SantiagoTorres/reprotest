@@ -13,6 +13,7 @@ suppressrepeatedemails=false
 arch=`dpkg --print-architecture`
 logheadmaxbytes=32768
 logtailmaxbytes=32768
+upload_src=false
 
 for config in "$@"; do
 	case "$config" in
@@ -370,6 +371,10 @@ if $upload; then
 			rm -r "$tp"/$odir
 		fi
 	done
+
+	if ! $upload_src; then
+		rm -r "$tp"/src
+	fi
 
 	progress "uploading"
 	printf >&3 "uploading"
