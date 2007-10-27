@@ -5,8 +5,9 @@ autopkgtest (1.2.0~) unstable; urgency=low
   * adt-xenlvm-*: allow specification of LVM PVs to use.
   * remove spurious mkdir of empty variable $snap.
   * hosts/magrathea/*: setup as working for initial tests.
+  * adt-xenlvm-with-testbed: sleep 1 after xm destroy, which is racy.
 
- -- Ian Jackson <ian@davenant.greenend.org.uk>  Fri, 26 Oct 2007 17:33:40 +0100
+ --
 
 autopkgtest (1.1.1~) unstable; urgency=low
 
