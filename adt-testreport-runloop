@@ -24,7 +24,7 @@
 set -e
 
 max_test_count=10
-${ADT_GO_ANYWAY:=false}
+: ${ADT_GO_ANYWAY:=false}
 
 for arg in "$@"; do
 	case "$arg" in
