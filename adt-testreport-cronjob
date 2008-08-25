@@ -10,6 +10,6 @@ cd "$1"
 shift
 . "$1"
 exec >>var/overall.log 2>&1
-test -f go
+${ADT_GO_ANYWAY:-false} || test -f go
 with-lock-ex -q cronjob-lock \
  adt-testreport-runloop max_test_count=100 "$@"

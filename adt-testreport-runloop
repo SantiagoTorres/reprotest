@@ -24,7 +24,7 @@
 set -e
 
 max_test_count=10
-go_anyway=false
+${ADT_GO_ANYWAY:=false}
 
 for arg in "$@"; do
 	case "$arg" in
@@ -59,7 +59,8 @@ progress testing
 
 test_count=0
 
-while ($go_anyway || test -f go) && test $test_count -lt $max_test_count; do
+while ($ADT_GO_ANYWAY || test -f go) && \
+      test $test_count -lt $max_test_count; do
 	now=`date`
 	printf "%s" "$now: "
 

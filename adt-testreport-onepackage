@@ -396,7 +396,7 @@ END
 	email_package_header="${email_package_header//@p/$pkg}"
 	email_package_header="${email_package_header//@s/$src}"
 	email_package_header="${email_package_header//@v/$pVersion}"
-	email_package_header="${email_package_header//@a/@}"
+	email_package_header="${email_package_header//@_/@}"
 	printf >"$tmp"/_email "%s" "$email_package_header"
 
 	cat >>"$tmp"/_email <<END
