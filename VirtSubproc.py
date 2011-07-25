@@ -128,6 +128,8 @@ def cmd_open(c, ce):
 	cmdnumargs(c, ce)
 	if downtmp: bomb("`open' when already open")
 	downtmp = caller.hook_open()
+	if downtmp is None:
+		downtmp = execute('mktemp -t -d', downp=True, outp=True)
 	debug("down = %s, downtmp = %s" % (string.join(down), downtmp))
 	return [downtmp]
 
@@ -349,7 +351,10 @@ def cleanup():
 	debug("cleanup...");
 	sethandlers(signal.SIG_DFL)
 	cleaning = True
-	if downtmp: caller.hook_cleanup()
+	if downtmp:
+		if not 'revert' in caller.hook_capabilities():
+			execute('rm -rf --', [downtmp], downp=True)
+		caller.hook_cleanup()
 	cleaning = False
 	downtmp = False
 
