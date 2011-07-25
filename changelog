@@ -6,8 +6,9 @@ autopkgtest (1.2.0~) unstable; urgency=low
   * remove spurious mkdir of empty variable $snap.
   * hosts/magrathea/*: setup as working for initial tests.
   * adt-xenlvm-with-testbed: sleep 1 after xm destroy, which is racy.
+  * Fix a few other bugs from deployment in 2008.
 
- --
+ -- Ian Jackson <ian@davenant.greenend.org.uk>  Wed, 27 Aug 2008 22:12:13 +0100
 
 autopkgtest (1.1.1~) unstable; urgency=low
 
