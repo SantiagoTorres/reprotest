@@ -1,0 +1,97 @@
+#!/usr/bin/python2.4
+#
+# adt-virt-schroot is part of autopkgtest
+# autopkgtest is a tool for testing Debian binary packages
+#
+# autopkgtest is Copyright (C) 2006-2007 Canonical Ltd.
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+#
+# See the file CREDITS for a full list of credits information (often
+# installed as /usr/share/doc/autopkgtest/CREDITS).
+
+import sys
+import os
+import string
+import re as regexp
+import grp
+import pwd
+from optparse import OptionParser
+
+try: our_base = os.environ['AUTOPKGTEST_BASE']
+except KeyError: our_base = '/usr/share/autopkgtest';
+sys.path.insert(1, our_base+'/python')
+
+import VirtSubproc as vsp
+capabilities = []
+
+def parse_args():
+	global schroot, debuglevel
+
+	usage = "%prog [<options>] <schroot>"
+	parser = OptionParser(usage=usage)
+	pa = parser.add_option
+	pe = parser.error
+
+	pa('-d', '--debug', action='store_true', dest='debug');
+
+	(opts,args) = parser.parse_args()
+	if len(args) != 1: pe("need exactly one arg, schroot name")
+
+	schroot = args[0]
+
+	info = vsp.execute('schroot --config -c', [schroot],
+		downp=False, outp=True)
+	cfg = { }
+	ignore_re = regexp.compile('\#|\[|\s*$')
+	for entry in info.split("\n"):
+		if ignore_re.match(entry): continue
+		(key,val) = entry.split("=",2)
+		cfg[key] = val
+
+	vsp.debuglevel = opts.debug
+
+	if regexp.search('snapshot',cfg['type']):
+		capabilities.append('revert')
+
+	if [True
+		for exp_name in cfg['root-users'].split()
+		for got_uid in [os.getuid()]
+		if got_uid == pwd.getpwnam(exp_name).pw_uid
+	] or [True
+		for exp_name in cfg['root-groups'].split()
+		for got_gid in [os.getgid()] + os.getgroups()
+		if got_gid == grp.getgrnam(exp_name).gr_gid
+	]:
+		capabilities.append('root-on-testbed')
+
+def hook_open():
+	global schroot, sessid, downtmp
+	sessid = vsp.execute('schroot -b -c',[schroot], downp=False, outp=True)
+	vsp.down = ['schroot','-r','-c',sessid,'--','sh','-c']
+	return None
+
+def hook_cleanup():
+	global schroot, sessid, downtmp
+	vsp.execute('schroot -e -c',[sessid], downp=False)
+
+def hook_forked_inchild():
+	pass
+
+def hook_capabilities():
+	return capabilities
+
+parse_args()
+vsp.main()
