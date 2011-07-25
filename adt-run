@@ -735,6 +735,8 @@ class Testbed:
 		stdin=p, stdout=p, stderr=tb._errplumb.stream)
 	tb.expect('ok')
 	tb.caps = tb.commandr('capabilities')
+	if not 'print-execute-command' in tb.caps:
+		tb.bomb('testbed does not support print-execute-command')
  def stop(tb):
 	tb._debug('stop')
 	tb.close()
@@ -754,6 +756,31 @@ class Testbed:
 	pl = tb.commandr('open')
 	tb.scratch = InputDir('tb-scratch', pl[0], True)
 	tb.deps_processed = []
+
+	pec = tb.commandr('print-execute-command')
+	if len(pec) < 2: tb.bomb('too few results from print-execute-command')
+	tb.ec_cmdl = map(urllib.unquote, pec[0].split(','))
+	tb.ec_mode = urllib.unquote(pec[1])
+	tb.ec_infos = map(urllib.unquote(pec[2:]))
+
+	shellquote_re = regexp.compile(r'([\\"$`])')
+	def shellquote_arg(s): '"' + shellquote_re.sub(r'\\\1', s) + '"
+	def shellquote_cmdl(l): ' '.join(map(shellquote,l))
+
+	if tb.ec_mode eq 'auxverb':
+		tec_cmdl = tb.ec_cmdl
+	elif tb.ec_mode eq 'shstring':
+		tec_cmdl = shellquote_cmdl(tb.ec_cmdl)
+	else:
+		tb.bomb('print-execute-command unsupported mode %s'
+				 % tb.ec_mode)
+
+	tb.ec_auxverbscript = TemporaryFile('auxverb')
+	print >>open(tb.ec_auxverbscript.write(),'w'), '\n'.join([
+		'#!/bin/sh',
+		'exec '.shellquote_cmdl(tec_cmdl).' "$@"'
+		]
+
  def mungeing_apt(tb):
 	if not 'revert' in tb.caps:
 		tb._need_reset_apt = True
@@ -796,18 +823,8 @@ class Testbed:
 	tb._debug(' installing dependencies '+`deps_new`, 1)
 	tb.deps_processed = deps_new
 	if not deps_new: return
-	dstr = ', '.join(deps_new)
-	script = binaries.apt_pkg_gdebi_script(
-		dstr, [[
-		'from GDebi.DebPackage import DebPackage',
-		'd = DebPackage(cache)',
-		'res = d.satisfyDependsStr(arg)',
-		]])
-	cmdl = ['python','-c',script]
-	what = 'install-deps'
-	rc = testbed.execute(what+'-debinstall', cmdl, script=script,
-				kind='install')
-	if rc: badpkg('dependency install failed, exit code %d' % rc)
+	binaries.satisfy_dependencies_string(tb, ', '.join(deps_new)
+					'install-deps')
  def needs_reset(tb):
 	tb._debug('needs_reset, previously=%s' % tb.modified, 1)
 	tb.modified = True
@@ -856,7 +873,7 @@ class Testbed:
 			" expected %d result parameters" %
 			(string, l, len(ll), nresults))
 	return ll
- def commandr(tb, cmd, args=(), nresults=None):
+ def commandr(tb, cmd, args=(), nresults=None, unquote=True):
 	# pass args=[None,...] or =(None,...) to avoid more url quoting
 	if type(cmd) is str: cmd = [cmd]
 	if len(args) and args[0] is None: args = args[1:]
@@ -864,8 +881,8 @@ class Testbed:
 	al = cmd + args
 	tb.send(string.join(al))
 	ll = tb.expect('ok', nresults)
-	rl = map(urllib.unquote, ll)
-	return rl
+	if unquote: ll = map(urllib.unquote, ll)
+	return ll
  def command(tb, cmd, args=()):
 	tb.commandr(cmd, args, 0)
  def commandr1(tb, cmd, args=()):
@@ -924,6 +941,20 @@ class Testbed:
 		ep.wait()
 
 	return rc
+
+ def satisfy_dependencies_string(tb, deps, what):
+	# Must have called Binaries.configure_apt
+	dsc = TemporaryFile('deps.dsc')
+	print >>open(dsc.write(),'w'), 'Build-Depends: ', deps
+	tb.satisfy_dependencies_dsc(tb, dsc)
+
+ def satisfy_dependencies_dsc(tb, dsc, what):
+	# Must have called Binaries.configure_apt
+	rc = tb.execute(what,
+		'pbuilder-satisfydepends --check-key --binary-all',
+		['--internal-chrootexec',tb.ec_auxverbscript.read(),
+		 '-c',dsc.read()]
+	if rc: badpkg('dependency install failed, exit code %d' % rc)
 
 #---------- representation of test control files: Field*, Test, etc.
 
@@ -1318,33 +1349,15 @@ END
 		"Debug::pkgProblemResolver": "true",
 	}
 
- def apt_pkg_gdebi_script(b, arg, middle):
-	script = [
-		'import apt_pkg',
-		'import urllib',
-		'arg = urllib.unquote("%s")' % urllib.quote(arg),
-		]
+ def _configure_apt(b, tb):
+	config = OutputFile('apt-config','/etc/apt/apt.conf.d/90autopkgtest',
+			True)
+	f = open(config.write(),'w')
 	for (k,v) in b.apt_configs().iteritems():
-		v = urllib.quote(v)
-		script.append('apt_pkg.Config.Set("%s",urllib.unquote("%s"))'
-				% (k, v))
-	script += [
-		'from GDebi.Cache import Cache',
-		'cache = Cache()',
-		]
-	for m in middle:
-		script += m + [
-		'print res',
-		'print d.missingDeps',
-		'print d.requiredChanges',
-		'if not res: raise "gdebi failed (%s, %s, %s): %s" % '+
-			' (`res`, `d.missingDeps`, `d.requiredChanges`, '+
-			  'd._failureString)',
-		'cache.commit()',
-		''
-		]
-	return '\n'.join(script)
- def apt_get(b):
+		print >>f, '%s { "%s"; };' % (k, v)
+	f.close()
+	
+ def _apt_get(b):
 	ag = ['apt-get','-qy']
 	for kv in b.apt_configs().iteritems():
 		ag += ['-o', '%s=%s' % kv]
@@ -1387,6 +1400,8 @@ END
  def publish(b):
 	b._debug('publish')
 
+	b._configure_apt(testbed)
+
 	script = '''
   exec >&2
   cd "$1"
@@ -1413,7 +1428,7 @@ END
   if [ "x`ls /var/lib/dpkg/updates`" != x ]; then
     echo >&2 "/var/lib/dpkg/updates contains some files, aargh"; exit 1
   fi
-  '''+ b.apt_get() +''' update >&2
+  '''+ b._apt_get() +''' update >&2
   cat /var/lib/dpkg/status >&3
 		'''
 	testbed.mungeing_apt()
@@ -1438,7 +1453,7 @@ END
 	if pkgs_reinstall:
 		for pkg in pkgs_reinstall: testbed.blame(pkg)
 		what = 'apt-get-reinstall'
-		cmdl = (b.apt_get() + ' --reinstall install '+
+		cmdl = (b._apt_get() + ' --reinstall install '+
 			' '.join([pkg for pkg in pkgs_reinstall])+' >&2')
 		cmdl = ['sh','-c',cmdl]
 		rc = testbed.execute(what, cmdl, script=None, kind='install')
@@ -1449,7 +1464,7 @@ END
 	for pkg in b.install:
 		what = 'apt-get-install-%s' % pkg
 		testbed.blame(pkg)
-		cmdl = b.apt_get() + ' install ' + pkg + ' >&2'
+		cmdl = b._apt_get() + ' install ' + pkg + ' >&2'
 		cmdl = ['sh','-c',cmdl]
 		rc = testbed.execute(what, cmdl, script=None, kind='install')
 		if rc: badpkg("installation of %s failed, exit code %d"
@@ -1530,15 +1545,7 @@ def build_source(act, control_override):
 
 	if act.kind == 'dsc':
 		testbed.prepare2([])
-		script = binaries.apt_pkg_gdebi_script('', [[
-				'from GDebi.DebPackage import DebPackage',
-				'd = DebPackage(cache)',
-				'res = d.satisfyDependsStr("dpkg-dev")',
-			]])
-		cmdl = ['python','-c',script]
-		whatp = what+'-dpkgsource'
-		rc = testbed.execute(what, cmdl, script=script, kind='install')
-		if rc: badpkg('dpkg-source install failed, exit code %d' % rc)
+		tb.satisfy_dependencies_string('dpkg-dev', 'install dpkg-dev')
 
 	work = TemporaryDir(what+'-build')
 	act.work = work
@@ -1633,24 +1640,9 @@ def build_source(act, control_override):
 		if act.kind != 'dsc':
 			testbed.prepare2([])
 
-		script = binaries.apt_pkg_gdebi_script(
-			dsc.read(True), [[
-			'from GDebi.DscSrcPackage import DscSrcPackage',
-			'd = DscSrcPackage(cache, arg)',
-			'res = d.checkDeb()',
-			 ],[
-			'from GDebi.DebPackage import DebPackage',
-			'd = DebPackage(cache)',
-			'res = d.satisfyDependsStr("'+
-					','.join(build_essential)+
-				'")',
-			]])
-
-		cmdl = ['python','-c',script]
-		whatp = what+'-builddeps'
-		rc = testbed.execute(what, cmdl, script=script, kind='install')
-		if rc: badpkg('build-depends install failed,'
-			      ' exit code %d' % rc)
+		tb.satisfy_dependencies_string('build-essential',
+				'install build-essential')
+		tb.satisfy_dependencies_dsc(dsc, 'build dependencies')
 
 		script = tmpdir_script + [
 			'cd "$2"',
