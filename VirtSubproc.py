@@ -128,6 +128,7 @@ def cmd_open(c, ce):
 	cmdnumargs(c, ce)
 	if downtmp: bomb("`open' when already open")
 	downtmp = caller.hook_open()
+	debug("down = %s, downtmp = %s" % (string.join(down), downtmp))
 	return [downtmp]
 
 def cmd_revert(c, ce):
@@ -393,7 +394,6 @@ def mainloop():
 
 def main():
 	signal.signal(signal.SIGALRM, alarm_handler)
-	debug("down = %s" % string.join(down))
 	ok()
 	prepare()
 	mainloop()
