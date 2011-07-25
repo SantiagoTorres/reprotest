@@ -106,7 +106,7 @@ def execute(cmd_string, cmd_list=[], downp=False, outp=False, timeout=0):
 	cmdl = cmd_string.split()
 
 	if downp: perhaps_down = down
-	else: downp = []
+	else: perhaps_down = []
 
 	if outp: stdout = subprocess.PIPE
 	else: stdout = None
