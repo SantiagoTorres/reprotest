@@ -85,6 +85,10 @@ def hook_open():
 	vsp.down += ['--','sh','-c']
 	return None
 
+def hook_revert():
+	hook_cleanup()
+	hook_open()
+
 def hook_cleanup():
 	global schroot, sessid, downtmp
 	vsp.execute('schroot -e -c',[sessid], downp=False)
