@@ -80,7 +80,9 @@ def parse_args():
 def hook_open():
 	global schroot, sessid, downtmp
 	sessid = vsp.execute('schroot -b -c',[schroot], downp=False, outp=True)
-	vsp.down = ['schroot','-r','-c',sessid,'--','sh','-c']
+	vsp.down = ['schroot','-r','-c',sessid]
+	if 'root-on-testbed' in capabilities: vsp.down += ['-u','root']
+	vsp.down += ['--','sh','-c']
 	return None
 
 def hook_cleanup():
