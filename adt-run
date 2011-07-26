@@ -756,30 +756,36 @@ class Testbed:
 	pl = tb.commandr('open')
 	tb.scratch = InputDir('tb-scratch', pl[0], True)
 	tb.deps_processed = []
+	tb._auxverbscript_make()
 
+ def _auxverbscript_make(tb):
 	pec = tb.commandr('print-execute-command')
 	if len(pec) < 2: tb.bomb('too few results from print-execute-command')
 	tb.ec_cmdl = map(urllib.unquote, pec[0].split(','))
 	tb.ec_mode = urllib.unquote(pec[1])
-	tb.ec_infos = map(urllib.unquote(pec[2:]))
+	tb.ec_infos = map(urllib.unquote,pec[2:])
 
 	shellquote_re = regexp.compile(r'([\\"$`])')
-	def shellquote_arg(s): '"' + shellquote_re.sub(r'\\\1', s) + '"
-	def shellquote_cmdl(l): ' '.join(map(shellquote,l))
+	def shellquote_arg(s): return '"' + shellquote_re.sub(r'\\\1', s) + '"'
+	def shellquote_cmdl(l): return ' '.join(map(shellquote_arg,l))
 
-	if tb.ec_mode eq 'auxverb':
-		tec_cmdl = tb.ec_cmdl
-	elif tb.ec_mode eq 'shstring':
-		tec_cmdl = shellquote_cmdl(tb.ec_cmdl)
-	else:
-		tb.bomb('print-execute-command unsupported mode %s'
-				 % tb.ec_mode)
+	tb._debug('tb.ec_cmdl = %s' % (`tb.ec_cmdl`))
 
-	tb.ec_auxverbscript = TemporaryFile('auxverb')
-	print >>open(tb.ec_auxverbscript.write(),'w'), '\n'.join([
-		'#!/bin/sh',
-		'exec '.shellquote_cmdl(tec_cmdl).' "$@"'
-		]
+	tb.ec_auxverbscript = TemporaryFile('satdep-auxverb')
+	print >>open(tb.ec_auxverbscript.write(),'w'), (
+'''#!/bin/sh
+set -ex
+echo >&2 ": $*"
+if [ $# = 2 ] && [ "x$1" = xdpkg-architecture ] && [ "x$2" = x-qDEB_HOST_ARCH ]; then
+	set -- dpkg --print-architecture
+fi
+if [ "x$1" = xsh ] && [ "x$2" = x-c ]; then
+	shift; shift
+	# what a horrible hack!
+fi
+exec '''+shellquote_cmdl(tb.ec_cmdl)+' "$*"'+"\n"
+		)
+	os.chmod(tb.ec_auxverbscript.write(), 0755)
 
  def mungeing_apt(tb):
 	if not 'revert' in tb.caps:
@@ -809,6 +815,7 @@ class Testbed:
 		tb.command('revert')
 		tb.blamed = []
 		for af in tb._ephemeral: af.invalidate(True)
+		tb._auxverbscript_make()
 	tb.modified = False
  def prepare2(tb, deps_new):
 	tb._debug('prepare2, deps_new=%s' % deps_new, 1)
@@ -823,8 +830,7 @@ class Testbed:
 	tb._debug(' installing dependencies '+`deps_new`, 1)
 	tb.deps_processed = deps_new
 	if not deps_new: return
-	binaries.satisfy_dependencies_string(tb, ', '.join(deps_new)
-					'install-deps')
+	tb.satisfy_dependencies_string(', '.join(deps_new), 'install-deps')
  def needs_reset(tb):
 	tb._debug('needs_reset, previously=%s' % tb.modified, 1)
 	tb.modified = True
@@ -944,16 +950,22 @@ class Testbed:
 
  def satisfy_dependencies_string(tb, deps, what):
 	# Must have called Binaries.configure_apt
+	debug('dependencies: %s: satisfying %s' % (what,deps))
 	dsc = TemporaryFile('deps.dsc')
-	print >>open(dsc.write(),'w'), 'Build-Depends: ', deps
-	tb.satisfy_dependencies_dsc(tb, dsc)
+	print >>open(dsc.write(),'w'), 'Build-Depends: ', deps, '\n\n'
+	# pbuilder-satisfydepends has a bug where it ignores the
+	#  Build-Depends if it's the last line in the dsc
+	tb.satisfy_dependencies_dsc(dsc, what)
 
  def satisfy_dependencies_dsc(tb, dsc, what):
 	# Must have called Binaries.configure_apt
-	rc = tb.execute(what,
-		'pbuilder-satisfydepends --check-key --binary-all',
-		['--internal-chrootexec',tb.ec_auxverbscript.read(),
-		 '-c',dsc.read()]
+	cmdl = [ '/usr/lib/pbuilder/pbuilder-satisfydepends-classic',
+		'--binary-all', # --check-key
+		'--internal-chrootexec',tb.ec_auxverbscript.read(),
+		'-c',dsc.read()
+	]
+	debug('dependencies: %s: running %s' % (what,`cmdl`))
+	rc = subprocess.call(cmdl, stdout=None, stderr=None)
 	if rc: badpkg('dependency install failed, exit code %d' % rc)
 
 #---------- representation of test control files: Field*, Test, etc.
@@ -1545,7 +1557,8 @@ def build_source(act, control_override):
 
 	if act.kind == 'dsc':
 		testbed.prepare2([])
-		tb.satisfy_dependencies_string('dpkg-dev', 'install dpkg-dev')
+		testbed.satisfy_dependencies_string('dpkg-dev',
+						'install dpkg-dev')
 
 	work = TemporaryDir(what+'-build')
 	act.work = work
@@ -1640,9 +1653,9 @@ def build_source(act, control_override):
 		if act.kind != 'dsc':
 			testbed.prepare2([])
 
-		tb.satisfy_dependencies_string('build-essential',
+		testbed.satisfy_dependencies_string('build-essential',
 				'install build-essential')
-		tb.satisfy_dependencies_dsc(dsc, 'build dependencies')
+		testbed.satisfy_dependencies_dsc(dsc, 'build dependencies')
 
 		script = tmpdir_script + [
 			'cd "$2"',
