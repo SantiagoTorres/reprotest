@@ -1358,8 +1358,10 @@ END
 
  def apt_configs(b):
 	return {
-		"Dir::Etc::sourcelist": b.dir.read(True)+'sources.list',
 		"Debug::pkgProblemResolver": "true",
+		"APT::Get::force-yes" : "true",
+		"APT::Get::Assume-Yes" : "true",
+		"quiet" : "true",
 	}
 
  def _configure_apt(b, tb):
@@ -1369,9 +1371,19 @@ END
 	for (k,v) in b.apt_configs().iteritems():
 		print >>f, '%s { "%s"; };' % (k, v)
 	f.close()
+	config.read(True)
+
+	prefs = OutputFile('apt-prefs','/etc/apt/preferences.d/90autopkgtest',
+			True)
+	print >>open(prefs.write(),'w'), '''
+Package: *
+Pin: origin ""
+Pin-Priority: 1002
+'''
+	prefs.read(True)
 	
  def _apt_get(b):
-	ag = ['apt-get','-qy']
+	ag = ['apt-get','-q']
 	for kv in b.apt_configs().iteritems():
 		ag += ['-o', '%s=%s' % kv]
 	return ' '.join(ag)
@@ -1436,8 +1448,7 @@ END
 	script = '''
   exec 3>&1 >&2
   apt-key add archive-key.pgp
-  echo "deb file://'''+apt_source+''' /" >sources.list
-  cat /etc/apt/sources.list >>sources.list
+  echo "deb file://'''+apt_source+''' /" >/etc/apt/sources.list.d/autopkgtest.list
   if [ "x`ls /var/lib/dpkg/updates`" != x ]; then
     echo >&2 "/var/lib/dpkg/updates contains some files, aargh"; exit 1
   fi
