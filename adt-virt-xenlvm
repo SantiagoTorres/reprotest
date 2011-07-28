@@ -90,6 +90,7 @@ def parse_args():
 			['--','sh','-ec','echo y; exec cat'])
 		vsp.down = (gain_root + ['adt-xenlvm-on-testbed'] +
 			xargs_direct + xlargs + ['--'])
+		vsp.downkind = 'shstring'
 	else:
 		if opts.gain_root:
 			pe('--userv and --gain-root are not compatible')
@@ -105,6 +106,7 @@ def parse_args():
 				' and subcommand details (code=%d)' %
 				get_down.returncode)
 		vsp.down = pon0.split('\0')
+		vsp.downkind = 'auxverb'
 	pauses = opts.pause.split(',')
 
 def do_open():
@@ -123,7 +125,6 @@ def do_open():
 	if l != "y\n":
 		vsp.bomb("with-testbed sh gave wrong output `%s', not `l'"
 			% l.rstrip("\n"))
-	vsp.execute('mkdir %s' % downtmp, downp=True)	
 
 def do_close():
 	global withholder
@@ -142,13 +143,16 @@ def hook_forked_inchild():
 
 def hook_open():
 	hook_cleanup()
-	do_open()
+	return do_open()
+
+def hook_downtmp():
+	vsp.execute('mkdir %s' % downtmp, downp=True)
 	return downtmp
 
 def hook_revert():
 	check_pause('revert')
 	do_close()
-	do_open()
+	return do_open()
 
 def hook_cleanup():
 	check_pause('cleanup')

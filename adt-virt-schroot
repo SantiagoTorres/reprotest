@@ -67,11 +67,11 @@ def parse_args():
 		capabilities.append('revert')
 
 	if [True
-		for exp_name in cfg['root-users'].split()
+		for exp_name in cfg['root-users'].split(',')
 		for got_uid in [os.getuid()]
 		if got_uid == pwd.getpwnam(exp_name).pw_uid
 	] or [True
-		for exp_name in cfg['root-groups'].split()
+		for exp_name in cfg['root-groups'].split(',')
 		for got_gid in [os.getgid()] + os.getgroups()
 		if got_gid == grp.getgrnam(exp_name).gr_gid
 	]:
@@ -82,15 +82,20 @@ def hook_open():
 	sessid = vsp.execute('schroot -b -c',[schroot], downp=False, outp=True)
 	vsp.down = ['schroot','-r','-c',sessid]
 	if 'root-on-testbed' in capabilities: vsp.down += ['-u','root']
-	vsp.down += ['--','sh','-c']
-	return None
+	vsp.down += ['--']
+	vsp.downkind = 'auxverb'
+
+def hook_downtmp():
+	return vsp.downtmp_mktemp()
 
 def hook_revert():
+	vsp.downtmp_remove()
 	hook_cleanup()
 	hook_open()
 
 def hook_cleanup():
 	global schroot, sessid, downtmp
+	vsp.downtmp_remove()
 	vsp.execute('schroot -e -c',[sessid], downp=False)
 
 def hook_forked_inchild():

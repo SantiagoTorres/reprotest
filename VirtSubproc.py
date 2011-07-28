@@ -29,6 +29,7 @@ import urllib
 import signal
 import subprocess
 import traceback
+import errno
 import re as regexp
 
 debuglevel = None
@@ -65,8 +66,7 @@ def cmdnumargs(c, ce, nargs=0, noptargs=0):
 
 def cmd_capabilities(c, ce):
 	cmdnumargs(c, ce)
-	return caller.hook_capabilities() + ['execute-debug',
-		'print-execute-command']
+	return caller.hook_capabilities() + ['execute-debug']
 
 def cmd_quit(c, ce):
 	cmdnumargs(c, ce)
@@ -77,15 +77,17 @@ def cmd_close(c, ce):
 	if not downtmp: bomb("`close' when not open")
 	cleanup()
 
-def cmd_print_execute_command(c, ce):
+def cmd_print_auxverb_command(c, ce): return print_command('auxverb', c, ce)
+def cmd_print_shstring_command(c, ce): return print_command('shstring', c, ce)
+
+def print_command(which, c, ce):
+	global downs
 	cmdnumargs(c, ce)
-	if not downtmp: bomb("`print-execute-command' when not open")
-	if hasattr(caller,'hook_callerexeccmd'):
-		(cl,kvl) = caller.hook_callerexeccmd()
-	else:
-		cl = down
-		kvl = ['shstring']
-	return [','.join(map(urllib.quote, cl))] + kvl
+	if not downtmp: bomb("`print-%s-command' when not open" % which)
+	cl = downs[which]
+	if not len(cl):
+		cl = ['sh','-c','exec "$@"','x'] + cl
+	return [','.join(map(urllib.quote, cl))]
 
 def preexecfn():
 	caller.hook_forked_inchild()
@@ -105,14 +107,14 @@ def execute_raw(what, instr, timeout, *popenargs, **popenargsk):
 def execute(cmd_string, cmd_list=[], downp=False, outp=False, timeout=0):
 	cmdl = cmd_string.split()
 
-	if downp: perhaps_down = down
+	if downp: perhaps_down = downs['auxverb']
 	else: perhaps_down = []
 
 	if outp: stdout = subprocess.PIPE
 	else: stdout = None
 
 	cmd = cmdl + cmd_list
-	if len(perhaps_down): cmd = perhaps_down + [' '.join(cmd)]
+	if len(perhaps_down): cmd = perhaps_down + cmd
 
 	(status, out) = execute_raw(cmdl[0], None, timeout,
 				cmd, stdout=stdout)
@@ -127,18 +129,57 @@ def cmd_open(c, ce):
 	global downtmp
 	cmdnumargs(c, ce)
 	if downtmp: bomb("`open' when already open")
-	downtmp = caller.hook_open()
-	if downtmp is None:
-		downtmp = execute('mktemp -t -d', downp=True, outp=True)
-	debug("down = %s, downtmp = %s" % (string.join(down), downtmp))
+	caller.hook_open()
+	opened1()
+	downtmp = caller.hook_downtmp()
+	return opened2()
+
+def downtmp_mktemp():
+	global downtmp
+	return execute('mktemp -t -d', downp=True, outp=True)
+
+def downtmp_remove():
+	global downtmp
+	execute('rm -rf --', [downtmp], downp=True)
+
+perl_quote_re = regexp.compile('[^-+=_.,;:() 0-9a-zA-Z]')
+def perl_quote_1chargroup(m): return '\\x%02x' % ord(m.group(0))
+def perl_quote(s): return '"'+perl_quote_re.sub(perl_quote_1chargroup, s)+'"'
+
+def opened1():
+	global down, downkind, downs
+	debug("downkind = %s, down = %s" % (downkind, `down`))
+	if downkind == 'auxverb':
+		downs = { 'auxverb': down,
+			  'shstring': down + ['sh','-c'] }
+	elif downkind == 'shstring':
+		downs = { 'shstring': down,
+			  'auxverb': ['perl','-e','''
+			@cmd=('''+(','.join(map(perl_quote,down)))+''');
+			my $shstring = pop @ARGV;
+			s/'/'\\\\''/g foreach @ARGV;
+			push @cmd, "'$_'" foreach @ARGV;
+			my $argv0=$cmd[0];
+			exec $argv0 @cmd;
+			die "$argv0: $!";
+		'''] }
+	debug("downs = %s" % `downs`)
+
+def opened2():
+	global downtmp, downs
+	debug("downtmp = %s" % (downtmp))
 	return [downtmp]
 
 def cmd_revert(c, ce):
+	global downtmp
 	cmdnumargs(c, ce)
 	if not downtmp: bomb("`revert' when not open")
 	if not 'revert' in caller.hook_capabilities():
 		bomb("`revert' when `revert' not advertised")
 	caller.hook_revert()
+	opened1()
+	downtmp = caller.hook_downtmp()
+	return opened2()
 
 def down_python_script(gobody, functions=''):
 	# Many things are made much harder by the inability of
@@ -148,6 +189,7 @@ def down_python_script(gobody, functions=''):
 
 	script = (	"import urllib\n"
 			"import os\n"
+			"import errno\n"
 			"def setfd(fd,fnamee,write,mode=0666):\n"
 			"	fname = urllib.unquote(fnamee)\n"
 			"	if write: rw = os.O_WRONLY|os.O_CREAT|os.O_TRUNC\n"
@@ -165,8 +207,9 @@ def down_python_script(gobody, functions=''):
 	debug("+P ...\n"+script)
 
 	scripte = urllib.quote(script)
-	cmdl = down + ["exec python -c 'import urllib; s = urllib.unquote(%s);"
-		       " exec s'" % ('"%s"' % scripte)]
+	cmdl = (downs['shstring'] +
+		["exec python -c 'import urllib; s = urllib.unquote(%s);"
+		 " exec s'" % ('"%s"' % scripte)])
 	return cmdl
 
 def cmd_execute(c, ce):
@@ -352,8 +395,6 @@ def cleanup():
 	sethandlers(signal.SIG_DFL)
 	cleaning = True
 	if downtmp:
-		if not 'revert' in caller.hook_capabilities():
-			execute('rm -rf --', [downtmp], downp=True)
 		caller.hook_cleanup()
 	cleaning = False
 	downtmp = False

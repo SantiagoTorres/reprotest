@@ -52,16 +52,17 @@ def parse_args():
 	if os.getuid()==0:
 		capabilities.append('root-on-testbed')
 
-	vsp.down = ['sh','-ec']
+	vsp.down = []
+	vsp.downkind = 'auxverb'
 
 def hook_open():
-	global downtmp
-	vsp.execute('true', downp=True)
-	downtmp = vsp.execute('mktemp -t -d', downp=True, outp=True)
-	return downtmp
+	pass
+
+def hook_downtmp():
+	return vsp.downtmp_mktemp()
 
 def hook_cleanup():
-	vsp.execute('rm -rf --', [downtmp], downp=True)
+	vsp.downtmp_remove()
 
 def hook_forked_inchild():
 	pass

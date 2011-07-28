@@ -52,11 +52,24 @@ def parse_args():
 
 	chroot_arg = args[0]
 	if not chroot_arg: pe("chroot specification may not be empty")
-	if chroot_arg == '=': down = ['dchroot','-q']
-	elif chroot_arg == '=': down = ['dchroot','-q']
-	elif chroot_arg[0] == '=': down = ['dchroot','-q','-c',chroot_arg[1:]]
-	elif chroot_arg[0] == '/': down = ['chroot',chroot_arg,'--']
-	else: pe("chroot spec must be =[DCHROOT] or /PATH/TO/CHROOT")
+	if chroot_arg == '=':
+		down = ['dchroot','-q','--']
+	elif chroot_arg == '=':
+		down = ['dchroot','-q','--']
+	elif chroot_arg[0] == '=':
+		down = ['dchroot','-q','-c',chroot_arg[1:],'--']
+	elif chroot_arg[0] == '/':
+		down = ['chroot',chroot_arg]
+	else:
+		pe("chroot spec must be =[DCHROOT] or /PATH/TO/CHROOT")
+
+	if down[0] == 'chroot':
+		vsp.downkind = 'auxverb'
+	elif down[0] == 'dchroot':
+		vsp.downkind = 'shstring'
+	else:
+		print >>sys.stderr, 'down[0]=%s' % `down[0]`
+		assert(False)
 
 	if opts.gain_root != None:
 		down = opts.gain_root.split() + down
@@ -67,12 +80,13 @@ def parse_args():
 	vsp.down = down
 
 def hook_open():
-	global downtmp
-	vsp.execute('true', downp=True)
-	return None
+	pass
+
+def hook_downtmp():
+	return vsp.downtmp_mktemp()
 
 def hook_cleanup():
-	pass
+	vsp.downtmp_remove()
 
 def hook_forked_inchild():
 	pass
