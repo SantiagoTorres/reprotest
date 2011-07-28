@@ -954,7 +954,7 @@ exec '''+shellquote_cmdl(tb.ec_cmdl)+' "$*"'+"\n"
 	dsc = TemporaryFile('deps.dsc')
 	print >>open(dsc.write(),'w'), 'Build-Depends: ', deps, '\n\n'
 	# pbuilder-satisfydepends has a bug where it ignores the
-	#  Build-Depends if it's the last line in the dsc
+	#  Build-Depends if it's the last line in the dsc (#635696)
 	tb.satisfy_dependencies_dsc(dsc, what)
 
  def satisfy_dependencies_dsc(tb, dsc, what):
@@ -964,6 +964,8 @@ exec '''+shellquote_cmdl(tb.ec_cmdl)+' "$*"'+"\n"
 		'--internal-chrootexec',tb.ec_auxverbscript.read(),
 		'-c',dsc.read()
 	]
+	# The --internal-chrootexec option is really handy but
+	#  perhaps we are not supposed to use it ?  See also #635697.
 	debug('dependencies: %s: running %s' % (what,`cmdl`))
 	rc = subprocess.call(cmdl, stdout=None, stderr=None)
 	if rc: badpkg('dependency install failed, exit code %d' % rc)
