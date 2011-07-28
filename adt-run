@@ -48,6 +48,7 @@ errorcode = 0		# exit status that we are going to use
 timeouts = { 'short':100, 'install':3000, 'test':10000, 'build':100000 }
 binaries = None		# Binaries (.debs we have registered)
 build_essential = ["build-essential"]
+paths = []
 
 #---------- output handling
 #
@@ -217,6 +218,7 @@ class AutoFile:
 	# p.what
 	# p.path[tb]	None or path	not None => path known
 	# p.file[tb]	None or path	not None => file exists
+	# p.ephem[tb]   boolean         True => destroyed by tb reset
 	# p.spec	string or None
 	# p.spec_tbp	True or False, or not set if spec is None
 	# p.dir		'' or '/'
@@ -225,7 +227,9 @@ class AutoFile:
 	p.what = what
 	p.path = [None,None]
 	p.file = [None,None]
+	p.ephem = [False,False]
 	p.spec = None
+	p.spec_tbp = None
 	p.dir = ''
 
  def __repr__(p):
@@ -261,6 +265,7 @@ class AutoFile:
 		if not tbp:
 			p.path[tbp] = tmpdir+'/'+p.what
 		else:
+			p.ephem[tbp] = True
 			p.path[tbp] = testbed.scratch.path[True]+'/'+p.what
 
  def write(p, tbp=False):
@@ -299,8 +304,15 @@ class AutoFile:
 	return p.file[tbp] + p.dir
 
  def invalidate(p, tbp=False):
+	if p.path[tbp] is not None:
+		p._debug('invalidating %s' % 'HT'[tbp])
 	p.file[tbp] = None
-	p._debug('invalidated %s' % 'HT'[tbp])
+	if p.spec_tbp != tbp or p.spec is None:
+		p.path[tbp] = None
+
+ def invalidate_ephem(p, tbp=False):
+	if p.ephem[tbp]:
+		p.invalidate(tbp)
 
  def _debug(p, m):
 	debug('/ %s#%x: %s' % (p.what, id(p), m), 3)
@@ -308,6 +320,7 @@ class AutoFile:
  def _constructed(p):
 	p._debug('constructed: '+str(p))
 	p._check()
+	paths.append(p)
 
  def _check(p):
 	for tbp in [False,True]:
@@ -333,6 +346,7 @@ class AutoFile:
 	if sibling: trim = os.path.dirname
 	else: trim = lambda x: x
 	for tbp in [False,True]:
+		p.ephem[tbp] = parent.ephem[tbp]
 		if parent.path[tbp] is None: continue
 		trimmed = trim(parent.path[tbp])
 		if trimmed: trimmed += '/'
@@ -371,6 +385,12 @@ class OutputDir(OutputFile):
  def __init__(p, what, spec, spec_tbp=False):
 	OutputFile._init(p,what,spec,spec_tbp)
  	p.dir = '/'
+	p._constructed()
+
+class RelativeInputDir(AutoFile):
+ def __init__(p, what, parent, leaf, onlyon_tbp=None, sibling=False):
+	p._relative_init(what, parent, leaf, onlyon_tbp, True, sibling)
+	p.dir = '/'
 	p._constructed()
 
 class RelativeInputFile(AutoFile):
@@ -721,7 +741,6 @@ class Testbed:
 	tb.scratch = None
 	tb.modified = False
 	tb.blamed = []
-	tb._ephemeral = []
 	tb._debug('init')
 	tb._need_reset_apt = False
  def _debug(tb, m, minlevel=0):
@@ -735,8 +754,6 @@ class Testbed:
 		stdin=p, stdout=p, stderr=tb._errplumb.stream)
 	tb.expect('ok')
 	tb.caps = tb.commandr('capabilities')
-	if not 'print-execute-command' in tb.caps:
-		tb.bomb('testbed does not support print-execute-command')
  def stop(tb):
 	tb._debug('stop')
 	tb.close()
@@ -754,22 +771,22 @@ class Testbed:
 	tb._debug('open, scratch=%s' % tb.scratch)
 	if tb.scratch is not None: return
 	pl = tb.commandr('open')
+	tb._opened(pl)
+ def _opened(tb, pl):
 	tb.scratch = InputDir('tb-scratch', pl[0], True)
 	tb.deps_processed = []
+	for af in paths: af.invalidate_ephem(True)
 	tb._auxverbscript_make()
-
  def _auxverbscript_make(tb):
-	pec = tb.commandr('print-execute-command')
-	if len(pec) < 2: tb.bomb('too few results from print-execute-command')
-	tb.ec_cmdl = map(urllib.unquote, pec[0].split(','))
-	tb.ec_mode = urllib.unquote(pec[1])
-	tb.ec_infos = map(urllib.unquote,pec[2:])
+	pec = tb.commandr('print-auxverb-command')
+	if len(pec) < 1: tb.bomb('too few results from print-execute-command')
+	cmdl = map(urllib.unquote, pec[0].split(','))
 
-	shellquote_re = regexp.compile(r'([\\"$`])')
-	def shellquote_arg(s): return '"' + shellquote_re.sub(r'\\\1', s) + '"'
+	shellquote_re = regexp.compile('"')
+	def shellquote_arg(s): return "'" + shellquote_re.sub(r"'\''", s) + "'"
 	def shellquote_cmdl(l): return ' '.join(map(shellquote_arg,l))
 
-	tb._debug('tb.ec_cmdl = %s' % (`tb.ec_cmdl`))
+	tb._debug('cmdl = %s' % (`cmdl`))
 
 	tb.ec_auxverbscript = TemporaryFile('satdep-auxverb')
 	print >>open(tb.ec_auxverbscript.write(),'w'), (
@@ -777,13 +794,11 @@ class Testbed:
 set -ex
 echo >&2 ": $*"
 if [ $# = 2 ] && [ "x$1" = xdpkg-architecture ] && [ "x$2" = x-qDEB_HOST_ARCH ]; then
+	# This is a pretty nasty hack.  Hopefully it can go away
+	#  eventually.  See #635763.
 	set -- dpkg --print-architecture
 fi
-if [ "x$1" = xsh ] && [ "x$2" = x-c ]; then
-	shift; shift
-	# what a horrible hack!
-fi
-exec '''+shellquote_cmdl(tb.ec_cmdl)+' "$*"'+"\n"
+exec '''+shellquote_cmdl(cmdl)+' "$@"'+"\n"
 		)
 	os.chmod(tb.ec_auxverbscript.write(), 0755)
 
@@ -810,12 +825,10 @@ exec '''+shellquote_cmdl(tb.ec_cmdl)+' "$*"'+"\n"
 		(tb.modified, tb.deps_processed, deps_new), 1)
 	if 'revert' in tb.caps and (tb.modified or
 	    [d for d in tb.deps_processed if d not in deps_new]):
-		for af in tb._ephemeral: af.read(False)
+		for af in paths: af.read(False)
 		tb._debug('reset **')
-		tb.command('revert')
-		tb.blamed = []
-		for af in tb._ephemeral: af.invalidate(True)
-		tb._auxverbscript_make()
+		pl = tb.commandr('revert')
+		tb._opened(pl)
 	tb.modified = False
  def prepare2(tb, deps_new):
 	tb._debug('prepare2, deps_new=%s' % deps_new, 1)
@@ -824,8 +837,6 @@ exec '''+shellquote_cmdl(tb.ec_cmdl)+' "$*"'+"\n"
  def prepare(tb, deps_new):
 	tb.prepare1(deps_new)
 	tb.prepare2(deps_new)
- def register_ephemeral(tb, af):
-	tb._ephemeral.append(af)
  def _install_deps(tb, deps_new):
 	tb._debug(' installing dependencies '+`deps_new`, 1)
 	tb.deps_processed = deps_new
@@ -877,7 +888,7 @@ exec '''+shellquote_cmdl(tb.ec_cmdl)+' "$*"'+"\n"
 	if nresults is not None and len(ll) != nresults:
 		tb.bomb("sent `%s', got `%s' (%d result parameters),"
 			" expected %d result parameters" %
-			(string, l, len(ll), nresults))
+			(tb.lastsend, l, len(ll), nresults))
 	return ll
  def commandr(tb, cmd, args=(), nresults=None, unquote=True):
 	# pass args=[None,...] or =(None,...) to avoid more url quoting
@@ -1312,7 +1323,7 @@ def determine_package(act):
 	if not act.pkg: badpkg('no good Package: line in control file')
 
 class Binaries:
- def __init__(b):
+ def __init__(b, tb):
 	b.dir = TemporaryDir('binaries')
 	b.dir.write()
 	ok = False
@@ -1685,12 +1696,9 @@ def build_source(act, control_override):
 
 		built = True
 
-	act.tests_tree = InputDir(what+'-tests-tree',
-				work.read(True)+os.path.basename(result_pwd),
+	act.tests_tree = RelativeInputDir(what+'-tests-tree',
+				work, os.path.basename(result_pwd),
 				True)
-	if act.ah['dsc_tests']:
-		testbed.register_ephemeral(act.work)
-		testbed.register_ephemeral(act.tests_tree)
 
 	if not built:
 		act.blamed = []
@@ -1744,11 +1752,7 @@ def process_actions():
 
 	debug_a1('starting')
 	testbed.open()
-	binaries = Binaries()
-
-	for act in opts.actions:
-		if act.af is not None and not act.af.spec_tbp:
-			testbed.register_ephemeral(act.af)
+	binaries = Binaries(testbed)
 
 	binaries.reset()
 	control_override = None
