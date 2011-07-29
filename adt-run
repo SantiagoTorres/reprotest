@@ -791,8 +791,7 @@ class Testbed:
 	tb.ec_auxverbscript = TemporaryFile('satdep-auxverb')
 	print >>open(tb.ec_auxverbscript.write(),'w'), (
 '''#!/bin/sh
-set -ex
-echo >&2 ": $*"
+set -e
 if [ $# = 2 ] && [ "x$1" = xdpkg-architecture ] && [ "x$2" = x-qDEB_HOST_ARCH ]; then
 	# This is a pretty nasty hack.  Hopefully it can go away
 	#  eventually.  See #635763.
