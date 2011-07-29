@@ -1664,7 +1664,7 @@ def build_source(act, control_override):
 		stanzas = read_control(act, result_pwd_af, control_override)
 		for stanza in stanzas:
 			for t in stanza[' tests']:
-				if 'no-build-needed' not in t.feature_names:
+				if 'build-needed' not in t.restriction_names:
 					build_needed('test %s' % t.tname)
 				for d in t.depends:
 					if '@' in d:
