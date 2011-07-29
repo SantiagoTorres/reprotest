@@ -40,6 +40,12 @@ import copy
 from optparse import OptionParser
 signal.signal(signal.SIGINT, signal.SIG_DFL) # undo stupid Python SIGINT thing
 
+try: our_base = os.environ['AUTOPKGTEST_BASE']+'/lib'
+except KeyError: our_base = '/usr/share/autopkgtest/python';
+sys.path.insert(1, our_base)
+
+from Autopkgtest import *
+
 #---------- global variables
 
 tmpdir = None		# pathstring on host
@@ -781,10 +787,6 @@ class Testbed:
 	pec = tb.commandr('print-auxverb-command')
 	if len(pec) < 1: tb.bomb('too few results from print-execute-command')
 	cmdl = map(urllib.unquote, pec[0].split(','))
-
-	shellquote_re = regexp.compile('"')
-	def shellquote_arg(s): return "'" + shellquote_re.sub(r"'\''", s) + "'"
-	def shellquote_cmdl(l): return ' '.join(map(shellquote_arg,l))
 
 	tb._debug('cmdl = %s' % (`cmdl`))
 
