@@ -1666,10 +1666,6 @@ def build_source(act, control_override):
 			for t in stanza[' tests']:
 				if 'build-needed' in t.restriction_names:
 					build_needed('test %s' % t.tname)
-				for d in t.depends:
-					if '@' in d:
-						build_needed('test %s '
-						 'dependency %s' % (t.tname,d))
 
 		debug_b('build not needed')
 		built = False
