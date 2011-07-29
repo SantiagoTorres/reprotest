@@ -4,7 +4,7 @@ autopkgtest (1.3.0) unstable; urgency=low
   * Remove dependency on python in testbed.
   * Incompatible virtualisation server spec changes: print-execute-command
     replaced by print-auxverb-command and print-shscript-command.
-  * Spec improvements.
+  * Spec wording improvements, clarifications, editorial changes, etc.
   * Many bugfixes.
 
  --
