@@ -183,37 +183,6 @@ def cmd_revert(c, ce):
 	downtmp = caller.hook_downtmp()
 	return opened2()
 
-def down_python_script(gobody, functions=''):
-	# Many things are made much harder by the inability of
-	# dchroot, ssh, et al, to cope without mangling the arguments.
-	# So we run a sub-python on the testbed and feed it a script
-	# on stdin.  The sub-python decodes the arguments.
-
-	script = (	"import urllib\n"
-			"import os\n"
-			"import errno\n"
-			"def setfd(fd,fnamee,write,mode=0666):\n"
-			"	fname = urllib.unquote(fnamee)\n"
-			"	if write: rw = os.O_WRONLY|os.O_CREAT|os.O_TRUNC\n"
-			"	else: rw = os.O_RDONLY\n"
-			"	nfd = os.open(fname, rw, mode)\n"
-			"	if fd >= 0: os.dup2(nfd,fd)\n"
-			+ functions +
-			"def go():\n" )
-	script += (	"	os.environ['TMPDIR']= urllib.unquote('%s')\n" %
-				urllib.quote(downtmp)	)
-	script += (	"	os.chdir(os.environ['TMPDIR'])\n" )
-	script += (	gobody +
-			"go()\n" )
-
-	debug("+P ...\n"+script)
-
-	scripte = urllib.quote(script)
-	cmdl = (downs['shstring'] +
-		["exec python -c 'import urllib; s = urllib.unquote(%s);"
-		 " exec s'" % ('"%s"' % scripte)])
-	return cmdl
-
 def cmd_execute(c, ce):
 	cmdnumargs(c, ce, 5, None)
 	debug_re = regexp.compile('debug=(\d+)\-(\d+)$')
@@ -234,46 +203,41 @@ def cmd_execute(c, ce):
 			if eq <= 0: bomb("invalid env arg `%s'" % kw)
 			envs.append((es[:eq], es[eq+1:]))
 		else: bomb("invalid execute kw arg `%s'" % kw)
-		
-	gobody = "	import sys\n"
+
+	rune = 'set -e; exec '
+
 	stdout = None
 	tfd = None
 	if debug_g:
+		rune += " 3>&1"
+
+	for ioe in range(3):
+		rune += " %d%s%s" % (ioe, '<>'[ioe>0], 
+					shellquote_arg(ce[ioe+2]))
+	if debug_g:
 		(tfd,hfd) = m.groups()
 		tfd = int(tfd)
-		gobody += "	os.dup2(1,%d)\n" % tfd
+		rune += " %d>&3 3>&-" % tfd
 		stdout = int(hfd)
-	for ioe in range(3):
-		ioe_tfd = ioe
-		if ioe == tfd: ioe_tfd = -1
-		gobody += "	setfd(%d,'%s',%d)\n" % (
-			ioe_tfd, ce[ioe+2], ioe>0 )
+
+	rune += '; '
+
+	rune += 'cd %s; ' % shellquote_arg(ce[5])
+
 	for e in envs:
-		gobody += ("	os.environ[urllib.unquote('%s')]"
-			   " = urllib.unquote('%s')\n"
-				% tuple(map(urllib.quote, e)))
-	gobody += "	os.chdir(urllib.unquote('" + ce[5] +"'))\n"
-	gobody += "	cmd = '%s'\n" % ce[1]
-	gobody += ("	cmd = cmd.split(',')\n"
-		"	cmd = map(urllib.unquote, cmd)\n"
-		"	c0 = cmd[0]\n"
-		"	if '/' in c0:\n"
-		"		if not os.access(c0, os.X_OK):\n"
-		"			status = os.stat(c0)\n"
-		"			mode = status.st_mode | 0111\n"
-		"			os.chmod(c0, mode)\n"
-		"	try: os.execvp(c0, cmd)\n"
-		"	except (IOError,OSError), e:\n"
-		"		print >>sys.stderr, \"%s: %s\" % (\n"
-		"			(c0, os.strerror(e.errno)))\n"
-		"		os._exit(127)\n")
-	cmdl = down_python_script(gobody)
+		(en, ev) = map(urllib.unquote,e)
+		rune += "%s=%s " % (en, shellquote_arg(ev))
+
+	rune += 'exec ' + shellquote_cmdl(map(urllib.unquote, ce[1].split(',')))
+
+	cmdl = downs['shstring'] + [rune]
 
 	stdout_copy = None
 	try:
-		if type(stdout) == type(2): stdout_copy = os.dup(stdout)
+		if type(stdout) == type(2):
+			stdout_copy = os.dup(stdout)
 		try:
-			(status, out) = execute_raw('sub-python', None,
+			(status, out) = execute_raw('target-cmd', None,
 				timeout, cmdl, stdout=stdout_copy,
 				stdin=devnull_read, stderr=subprocess.PIPE)
 		except Timeout:
@@ -281,7 +245,7 @@ def cmd_execute(c, ce):
 	finally:
 		if stdout_copy is not None: os.close(stdout_copy)
 
-	if out: bomb("sub-python unexpected produced stdout"
+	if out: bomb("target command unexpected produced stdout"
 			" visible to us `%s'" % out)
 	return [`status`]
 
@@ -304,40 +268,38 @@ def copyupdown(c, ce, upp):
 	localfd = None
 	deststdout = devnull_read
 	srcstdin = devnull_read
+	remfileq = shellquote_arg(sde[iremote])
 	if not dirsp:
 		modestr = ''
+		rune = 'cat %s%s' % ('><'[upp], remfileq)
 		if upp:
 			deststdout = file(sd[idst], 'w')
 		else:
 			srcstdin = file(sd[isrc], 'r')
 			status = os.fstat(srcstdin.fileno())
-			if status.st_mode & 0111: modestr = ',0777'
-		gobody = "	setfd(%s,'%s',%s%s)\n" % (
-					1-upp, sde[iremote], not upp, modestr)
-		gobody += "	os.execvp('cat', ['cat'])\n"
+			if status.st_mode & 0111:
+				rune += '; chmod +x -- %s' % (remfileq)
 		localcmdl = ['cat']
 	else:
-		gobody = "	dir = urllib.unquote('%s')\n" % sde[iremote]
+		taropts = [None, None]
+		taropts[isrc] = '-c .'
+		taropts[idst] = '-p -x --no-same-owner'
+
+		rune = 'cd %s; tar %s -f -' % (remfileq, taropts[iremote])
 		if upp:
 			try: os.mkdir(sd[ilocal])
 			except (IOError,OSError), oe:
 				if oe.errno != errno.EEXIST: raise
 		else:
-			gobody += ("	try: os.mkdir(dir)\n"
-				"	except (IOError,OSError), oe:\n"
-				"		if oe.errno != errno.EEXIST: raise\n")
-		gobody +=( "	os.chdir(dir)\n"
-			"	tarcmd = 'tar -f -'.split()\n")
-		localcmdl = 'tar -f -'.split()
-		taropts = [None, None]
-		taropts[isrc] = '-c .'
-		taropts[idst] = '-p -x --no-same-owner'
-		gobody += "	tarcmd += '%s'.split()\n" % taropts[iremote]
-		localcmdl += ['-C',sd[ilocal]]
-		localcmdl += taropts[ilocal].split()
-		gobody += "	os.execvp('tar', tarcmd)\n";
+			rune = ('if ! test -d %s; then mkdir -- %s; fi; ' % (
+							remfileq,remfileq)
+				) + rune
 
-	downcmdl = down_python_script(gobody, functions)
+		localcmdl = ['tar','-C',sd[ilocal]] + (
+			('%s -f -' % taropts[ilocal]).split()
+		)
+	rune = 'set -e; ' + rune
+	downcmdl = downs['shstring'] + [rune]
 
 	if upp: cmdls = (downcmdl, localcmdl)
 	else: cmdls = (localcmdl, downcmdl)
