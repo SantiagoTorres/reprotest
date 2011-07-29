@@ -185,6 +185,7 @@ def cmd_revert(c, ce):
 
 def cmd_execute(c, ce):
 	cmdnumargs(c, ce, 5, None)
+	if not downtmp: bomb("`execute' when not open" % which)
 	debug_re = regexp.compile('debug=(\d+)\-(\d+)$')
 	debug_g = None
 	timeout = 0
@@ -251,6 +252,7 @@ def cmd_execute(c, ce):
 
 def copyupdown(c, ce, upp):
 	cmdnumargs(c, ce, 2)
+	if not downtmp: bomb("`copyup'/`copydown' when not open" % which)
 	isrc = 0
 	idst = 1
 	ilocal = 0 + upp
