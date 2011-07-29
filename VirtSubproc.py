@@ -32,6 +32,8 @@ import traceback
 import errno
 import re as regexp
 
+from Autopkgtest import *
+
 debuglevel = None
 progname = "<VirtSubproc>"
 devnull_read = file('/dev/null','r')
