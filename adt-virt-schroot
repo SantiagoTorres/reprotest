@@ -30,9 +30,9 @@ import grp
 import pwd
 from optparse import OptionParser
 
-try: our_base = os.environ['AUTOPKGTEST_BASE']
-except KeyError: our_base = '/usr/share/autopkgtest';
-sys.path.insert(1, our_base+'/python')
+try: our_base = os.environ['AUTOPKGTEST_BASE']+'/lib'
+except KeyError: our_base = '/usr/share/autopkgtest/python';
+sys.path.insert(1, our_base)
 
 import VirtSubproc as vsp
 capabilities = []
