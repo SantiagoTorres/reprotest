@@ -1,5 +1,5 @@
 Source: autopkgtest
-Maintainer: Ian Jackson <iwj@ubuntu.com>
+Maintainer: Ian Jackson <ijackson@chiark.greenend.org.uk>
 Section: devel
 Priority: optional
 Standards-Version: 3.6.2
@@ -25,7 +25,7 @@ Description: automatic as-installed testing for Debian packages
 
 Package: autopkgtest-xenlvm
 Architecture: all
-Depends: debootstrap, libadns1-bin, chiark-utils-bin, iproute, dmsetup
+Depends: libadns1-bin, chiark-utils-bin, iproute, dmsetup
 Recommends: lvm2, debootstrap
 Suggests: autopkgtest
 Description: Xen/LVM2 based testbed snapshot system
