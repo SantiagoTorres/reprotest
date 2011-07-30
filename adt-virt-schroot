@@ -1,4 +1,4 @@
-#!/usr/bin/python2.4
+#!/usr/bin/python2.6
 #
 # adt-virt-schroot is part of autopkgtest
 # autopkgtest is a tool for testing Debian binary packages
