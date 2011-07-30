@@ -13,6 +13,8 @@ autopkgtest (2.0.0~~0) unstable; urgency=low
   * Spec wording improvements, clarifications, editorial changes, etc.
   * Many bugfixes, including:
     - replace Python string exceptions (closes:#585226).
+    - fix some broken formatting in adt-run manpage (closes:#636034).
+    - fix adt-virt-chroot for simple chroots (closes:#520066).
 
  -- Ian Jackson <ijackson@chiark.greenend.org.uk>  Sat, 30 Jul 2011 15:44:15 +0100
 
