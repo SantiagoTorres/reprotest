@@ -40,7 +40,7 @@ autopkgtest (1.1.1~) unstable; urgency=low
   * hosts/{cadmium,chinstrap}/crontab: set MAILTO
   * adt-testreport-cronjob: make executable.
 
- --
+ -- Ian Jackson <ian@davenant.greenend.org.uk>  Fri, 26 Oct 2007 18:12:32 +0100
 
 autopkgtest (1.1.0) unreleased; urgency=low
 
