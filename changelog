@@ -9,6 +9,7 @@ autopkgtest (2.0.0~~0) unstable; urgency=low
   * New adt-virt-schroot for driving schroot.  Sorry, no manpage yet.
   * New README.schroot-setup.
   * Remove dependency on python in testbed.
+  * Update python version to 2.6.
   * Spec wording improvements, clarifications, editorial changes, etc.
   * Many bugfixes.
 

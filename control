@@ -7,7 +7,7 @@ Build-Depends: debhelper (>= 4.0.2)
 
 Package: autopkgtest
 Architecture: all
-Depends: python2.4
+Depends: python2.6
 Conflicts: autodebtest (<< 0.5.3)
 Replaces: autodebtest (<< 0.5.3)
 Recommends: apt-utils
