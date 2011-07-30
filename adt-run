@@ -261,7 +261,7 @@ class AutoFile:
 	xtra = ''
 	if p.spec is not None:
 		xtra = ' spec[%s]=%s' % (p.spec, getattr(p,'spec_tb',None))
-	raise ("internal error: %s (%s)" % (how, str(p)))
+	raise Exception("internal error: %s (%s)" % (how, str(p)))
 
  def _ensure_path(p, tbp):
 	if p.path[tbp] is None:
@@ -644,7 +644,7 @@ def parse_args():
 		elif type(act) == str:
 			act = (act,act)
 		else:
-			raise ("unknown action in list `%s' having"
+			raise Exception("unknown action in list `%s' having"
 			      " type `%s'" % (act, type(act)))
 		(pathstr, kindpath) = act
 
