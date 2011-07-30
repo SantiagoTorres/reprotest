@@ -80,9 +80,10 @@ binary binary-indep: checkdir
 	dh_installdeb
 	dh_builddeb
 
-clean: checkdir debian/copyright
+clean: checkdir
 	dh_testroot
 	$(MAKE) clean
+	rm -f debian/copyright
 	dh_clean
 
 checkdir:
