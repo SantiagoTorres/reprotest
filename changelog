@@ -11,7 +11,8 @@ autopkgtest (2.0.0~~0) unstable; urgency=low
   * Remove dependency on python in testbed.
   * Update python version to 2.6.
   * Spec wording improvements, clarifications, editorial changes, etc.
-  * Many bugfixes.
+  * Many bugfixes, including:
+    - replace Python string exceptions (closes:#585226).
 
  -- Ian Jackson <ijackson@chiark.greenend.org.uk>  Sat, 30 Jul 2011 15:44:15 +0100
 
