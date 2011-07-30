@@ -1016,9 +1016,9 @@ class Restriction_rw_build_tree(Restriction): pass
 class Restriction_build_neeeded(Restriction): pass
 class Restriction_breaks_testbed(Restriction):
  def __init__(r, rname, base):
-	if 'revert' not in testbed.caps:
+	if 'revert-full-system' not in testbed.caps:
 		raise Unsupported(f.lno,
-			'Test breaks testbed but testbed cannot revert')
+	'Test breaks testbed but testbed does not advertise revert-full-system')
 class Restriction_needs_root(Restriction):
  def __init__(r, rname, base):
 	if 'root-on-testbed' not in testbed.caps:
