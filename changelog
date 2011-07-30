@@ -1,4 +1,4 @@
-autopkgtest (2.0.0~~0) unstable; urgency=low
+autopkgtest (2.0.0) unstable; urgency=medium
 
   * Incompatible test declaration spec changes:
      - no-build-needed is now the default; build-needed is a Restriction
@@ -16,7 +16,7 @@ autopkgtest (2.0.0~~0) unstable; urgency=low
     - fix some broken formatting in adt-run manpage (closes:#636034).
     - fix adt-virt-chroot for simple chroots (closes:#520066).
 
- -- Ian Jackson <ijackson@chiark.greenend.org.uk>  Sat, 30 Jul 2011 15:44:15 +0100
+ -- Ian Jackson <ijackson@chiark.greenend.org.uk>  Sat, 30 Jul 2011 17:57:27 +0100
 
 autopkgtest (1.2.0~) unstable; urgency=low
 
