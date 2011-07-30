@@ -1,4 +1,4 @@
-autopkgtest (2.0.0) unstable; urgency=low
+autopkgtest (2.0.0~~0) unstable; urgency=low
 
   * Incompatible test declaration spec changes:
      - no-build-needed is now the default; build-needed is a Restriction
@@ -6,12 +6,13 @@ autopkgtest (2.0.0) unstable; urgency=low
   * Incompatible virtualisation server spec changes:
      - print-execute-command replaced by print-{auxverb,shscript}-command.
      - "revert" capability split into "revert" and "revert-full-system"
-  * New adt-virt-schroot for driving schroot.
+  * New adt-virt-schroot for driving schroot.  Sorry, no manpage yet.
+  * New README.schroot-setup.
   * Remove dependency on python in testbed.
   * Spec wording improvements, clarifications, editorial changes, etc.
   * Many bugfixes.
 
- --
+ -- Ian Jackson <ijackson@chiark.greenend.org.uk>  Sat, 30 Jul 2011 15:44:15 +0100
 
 autopkgtest (1.2.0~) unstable; urgency=low
 
