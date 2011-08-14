@@ -1013,7 +1013,7 @@ class Restriction:
  def __init__(r,rname,base): pass
 
 class Restriction_rw_build_tree(Restriction): pass
-class Restriction_build_neeeded(Restriction): pass
+class Restriction_build_needed(Restriction): pass
 class Restriction_breaks_testbed(Restriction):
  def __init__(r, rname, base):
 	if 'revert-full-system' not in testbed.caps:
