@@ -595,7 +595,7 @@ def parse_args():
 		help='run tests as USER (needs root on testbed)')
 	pa('','--gain-root',		type='string', dest='gainroot',
 		help='prefix debian/rules binary with GAINROOT')
-	pa('-q', '--quiet', action='store_false', dest='quiet', default=False);
+	pa('-q', '--quiet', action='store_true', dest='quiet', default=False);
 	pa('-d', '--debug', action='count', dest='debuglevel', default=0);
 	pa('','--gnupg-home',		type='string', dest='gnupghome',
 		default='~/.autopkgtest/gpg',
