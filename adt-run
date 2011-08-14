@@ -1216,7 +1216,7 @@ def read_control(act, tree, control_override):
 		stz = None
 		hcurrent = None
 
-	initre = regexp.compile('([A-Z][-0-9a-z]*)\s*\:\s*(.*)$')
+	initre = regexp.compile('([A-Z][-0-9a-zA-Z]*)\s*\:\s*(.*)$')
 	while 1:
 		l = control.readline()
 		if not l: break
