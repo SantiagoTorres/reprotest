@@ -2,6 +2,7 @@ autopkgtest (2.0.1) unstable; urgency=medium
 
   * Bugfixes:
     - Python backtrace (no method "bomb") on bad tests/control syntax.
+    - Permit tests/control fields with medial capital letters.
 
  --
 
