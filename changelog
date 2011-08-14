@@ -1,3 +1,10 @@
+autopkgtest (2.0.1) unstable; urgency=medium
+
+  * Bugfixes:
+    - Python backtrace (no method "bomb") on bad tests/control syntax.
+
+ --
+
 autopkgtest (2.0.0) unstable; urgency=medium
 
   * Incompatible test declaration spec changes:
