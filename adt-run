@@ -1204,7 +1204,7 @@ def read_control(act, tree, control_override):
 		return []
 
 	lno = 0
-	def badctrl(m): act.bomb('tests/control line %d: %s' % (lno, m))
+	def badctrl(m): testbed.bomb('tests/control line %d: %s' % (lno, m))
 	stz = None	# stz[field_name][index] = (lno, value)
 			# special field names:
 			# stz[' lno'] = number
