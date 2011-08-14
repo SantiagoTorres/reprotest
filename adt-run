@@ -1052,7 +1052,7 @@ class Field_Tests(FieldIgnore): pass
 
 class Field_Depends(FieldBase):
  def parse(f):
-	print >>sys.stderr, "Field_Depends:", `f.stz`, `f.base`, `f.tnames`, `f.vl`
+	debug("Field_DependS: %s %s %s %s" % (f.stz, f.base, f.tnames, f.vl), 2)
 	dl = map(lambda x: x.strip(),
 		flatten(map(lambda (lno, v): v.split(','), f.vl)))
 	re = regexp.compile('[^-.+:~0-9a-z()<>=*@]')
