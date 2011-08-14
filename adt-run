@@ -1205,15 +1205,18 @@ def read_control(act, tree, control_override):
 
 	lno = 0
 	def badctrl(m): testbed.bomb('tests/control line %d: %s' % (lno, m))
-	stz = None	# stz[field_name][index] = (lno, value)
+	stz = { }	# stz[field_name][index] = (lno, value)
 			# special field names:
 			# stz[' lno'] = number
 			# stz[' tests'] = list of Test objects
+			# empty dictionary means we're between stanzas
+	def in_stanza(stz):
+		return stz.has_key(' lno')
 	def end_stanza(stz):
-		if stz is None: return
+		if not in_stanza(stz): return
 		stz[' errs'] = 0
-		stanzas.append(stz)
-		stz = None
+		stanzas.append(stz.copy())
+		stz.clear()
 		hcurrent = None
 
 	initre = regexp.compile('([A-Z][-0-9a-zA-Z]*)\s*\:\s*(.*)$')
@@ -1228,7 +1231,7 @@ def read_control(act, tree, control_override):
 		if initmat:
 			(fname, l) = initmat.groups()
 			fname = string.capwords(fname)
-			if stz is None:
+			if not in_stanza(stz):
 				stz = { ' lno': lno, ' tests': [] }
 			if not stz.has_key(fname): stz[fname] = [ ]
 			hcurrent = stz[fname]
