@@ -7,6 +7,7 @@ autopkgtest (2.0.1) unstable; urgency=medium
     - Make adt-run --quiet work (closes: #637350).
     - Make "build-needed" restriction work (closes: #637353).
     - Fix a debugging message which was spuriously sent to stderr.
+  * Change Maintainer to the new list and move me to Uploaders.
 
  -- Ian Jackson <ijackson@chiark.greenend.org.uk>  Sat, 27 Aug 2011 11:21:29 +0100
 
