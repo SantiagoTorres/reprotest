@@ -8,7 +8,7 @@ autopkgtest (2.0.1) unstable; urgency=medium
     - Make "build-needed" restriction work (closes: #637353).
     - Fix a debugging message which was spuriously sent to stderr.
 
- --
+ -- Ian Jackson <ijackson@chiark.greenend.org.uk>  Sat, 27 Aug 2011 11:21:29 +0100
 
 autopkgtest (2.0.0) unstable; urgency=medium
 
