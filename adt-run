@@ -816,6 +816,14 @@ exec '''+shellquote_cmdl(cmdl)+' "$@"'+"\n"
 	if rc:
 		pstderr("\n" "warning: failed to restore"
 			" testbed apt cache, exit code %d" % rc)
+	what = 'aptconf-reset'
+	cmdl = ['rm','-f','/etc/apt/apt.conf.d/90autopkgtest',
+		'/etc/apt/sources.list.d/autopkgtest.list',
+		'/etc/apt/preferences.d/90autopkgtest']
+	rc = tb.execute(what, cmdl, kind='install')
+	if rc:
+		pstderr("\n" "warning: failed to reset changes"
+			" made to testbed apt configuration, exit code %d" % rc)
 	tb._need_reset_apt = False
  def close(tb):
 	tb._debug('close, scratch=%s' % tb.scratch)
