@@ -55,6 +55,8 @@ timeouts = { 'short':100, 'install':3000, 'test':10000, 'build':100000 }
 binaries = None		# Binaries (.debs we have registered)
 build_essential = ["build-essential"]
 paths = []
+os.putenv("APT_LISTBUGS_FRONTEND", "none")    # do not consider using apt-listbugs
+os.putenv("APT_LISTCHANGES_FRONTEND", "none") # do not consider using apt-listchanges
 
 #---------- output handling
 #
