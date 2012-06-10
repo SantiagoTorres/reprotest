@@ -7,6 +7,8 @@ autopkgtest (2.0.2) unstable; urgency=low
   * Fix parsing of "@" dependencies.  Colin Watson.  Closes: #667022.
   * Fix NameError re "f" in restriction parsing.
     Martin Pitt.  Closes: #647882.
+  * Improve handling of schroot root-users and root-groups.
+    Colin Watson.  Closes: #667001.
 
   Packaging fixes:
   * Add Recommends against pbuilder, whose dependency resolver adt-run
