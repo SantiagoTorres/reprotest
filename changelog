@@ -5,6 +5,8 @@ autopkgtest (2.0.2) unstable; urgency=low
     Partial fix to #648142, from Timo Lindfors.
   * Suppress apt-listbugs and apt-listchanges.  Michael Prokop.
   * Fix parsing of "@" dependencies.  Colin Watson.  Closes: #667022.
+  * Fix NameError re "f" in restriction parsing.
+    Martin Pitt.  Closes: #647882.
 
   Packaging fixes:
   * Add Recommends against pbuilder, whose dependency resolver adt-run
