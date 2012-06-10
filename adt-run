@@ -1126,9 +1126,9 @@ class Test:
 			dn.append(d)
 		else:
 			for (pkg,bin) in t.act.binaries:
-				d = d.replace('@',pkg)
-				t._debug('  synthesised dependency '+d)
-				dn.append(d)
+				dp = d.replace('@',pkg)
+				t._debug('  synthesised dependency '+dp)
+				dn.append(dp)
 	testbed.prepare(dn)
  def run(t, tree):
 	t._debug('[----------------------------------------')
