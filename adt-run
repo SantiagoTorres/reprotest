@@ -1027,12 +1027,12 @@ class Restriction_build_needed(Restriction): pass
 class Restriction_breaks_testbed(Restriction):
  def __init__(r, rname, base):
 	if 'revert-full-system' not in testbed.caps:
-		raise Unsupported(f.lno,
+		raise Unsupported(-1,
 	'Test breaks testbed but testbed does not advertise revert-full-system')
 class Restriction_needs_root(Restriction):
  def __init__(r, rname, base):
 	if 'root-on-testbed' not in testbed.caps:
-		raise Unsupported(f.lno,
+		raise Unsupported(-1,
 			'Test needs root on testbed which is not available')
 
 class Field_Restrictions(FieldBase):
