@@ -11,6 +11,7 @@ autopkgtest (2.0.2) unstable; urgency=low
   Packaging fixes:
   * Add Recommends against pbuilder, whose dependency resolver adt-run
     uses.
+  * Add runner/tmp to .gitignore, for convenience.
 
  --
 
