@@ -37,6 +37,24 @@ sys.path.insert(1, our_base)
 import VirtSubproc as vsp
 capabilities = []
 
+def pw_uid(exp_name):
+	try:
+		return pwd.getpwnam(exp_name).pw_uid
+	except KeyError:
+		return None
+
+def gr_gid(exp_name):
+	try:
+		return grp.getgrnam(exp_name).gr_gid
+	except KeyError:
+		return None
+
+def match(exp_names, ids, extract_id):
+	for exp_name in [n for n in exp_names.split(',') if n]:
+		if extract_id(exp_name) in ids:
+			return True
+	return False
+
 def parse_args():
 	global schroot, debuglevel
 
@@ -66,15 +84,8 @@ def parse_args():
 	if regexp.search('snapshot',cfg['type']):
 		capabilities.append('revert')
 
-	if [True
-		for exp_name in cfg['root-users'].split(',')
-		for got_uid in [os.getuid()]
-		if got_uid == pwd.getpwnam(exp_name).pw_uid
-	] or [True
-		for exp_name in cfg['root-groups'].split(',')
-		for got_gid in [os.getgid()] + os.getgroups()
-		if got_gid == grp.getgrnam(exp_name).gr_gid
-	]:
+	if (match(cfg['root-users'], [os.getuid()], pw_uid) or
+	    match(cfg['root-groups'], [os.getgid()] + os.getgroups(), gr_gid)):
 		capabilities.append('root-on-testbed')
 
 def hook_open():
