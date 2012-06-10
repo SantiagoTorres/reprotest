@@ -4,6 +4,10 @@ autopkgtest (2.0.2) unstable; urgency=low
     - Remove our strange apt config on exit (partial fix to this bug)
     - Suppress apt-listbugs and apt-listchanges
 
+  Packaging fixes:
+  * Add Recommends against pbuilder, whose dependency resolver adt-run
+    uses.
+
  --
 
 autopkgtest (2.0.1) unstable; urgency=medium

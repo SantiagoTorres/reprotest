@@ -11,7 +11,7 @@ Architecture: all
 Depends: python2.6
 Conflicts: autodebtest (<< 0.5.3)
 Replaces: autodebtest (<< 0.5.3)
-Recommends: apt-utils
+Recommends: apt-utils, pbuilder
 Suggests: autopkgtest-xenlvm, curl
 Description: automatic as-installed testing for Debian packages
  autopkgtest runs tests on binary packages.  The tests are run on the
