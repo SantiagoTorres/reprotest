@@ -17,6 +17,8 @@ autopkgtest (2.0.2) unstable; urgency=low
   * Clarify the spec to say that copyup/down takes encoded filenames.
   * Fix the spec to refer to `breaks-testbed' rather than `breaks-computer'.
     Report from Jakub Wilk.  Closes: #669721.
+  * Manpage should refer to `*' in tests file's Depends field, not `@'.
+    Report from Jakub Wilk.  Closes: #670648.
 
   Packaging fixes:
   * Add Recommends against pbuilder, whose dependency resolver adt-run
