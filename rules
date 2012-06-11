@@ -83,6 +83,7 @@ binary binary-indep: checkdir
 clean: checkdir
 	dh_testroot
 	$(MAKE) clean
+	rm -rf runner/tmp
 	rm -f debian/copyright
 	dh_clean
 
