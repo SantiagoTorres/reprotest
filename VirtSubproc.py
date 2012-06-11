@@ -259,7 +259,6 @@ def copyupdown(c, ce, upp):
 	iremote = 1 - upp
 	wh = ce[0]
 	sd = c[1:]
-	sde = ce[1:]
 	if not sd[0] or not sd[1]:
 		bomb("%s paths must be nonempty" % wh)
 	dirsp = sd[0][-1]=='/'
@@ -270,7 +269,7 @@ def copyupdown(c, ce, upp):
 	localfd = None
 	deststdout = devnull_read
 	srcstdin = devnull_read
-	remfileq = shellquote_arg(sde[iremote])
+	remfileq = shellquote_arg(sd[iremote])
 	if not dirsp:
 		modestr = ''
 		rune = 'cat %s%s' % ('><'[upp], remfileq)
