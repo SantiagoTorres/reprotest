@@ -9,6 +9,10 @@ autopkgtest (2.0.2) unstable; urgency=low
     Martin Pitt.  Closes: #647882.
   * Improve handling of schroot root-users and root-groups.
     Colin Watson.  Closes: #667001.
+  * Correctly handle quoting of copyup/copydown filenames.  Fixes
+    but where we couldn't cope with packages' filenames containing
+    + and ~.  Report from Martin Pitt.  Closes: #648161.
+  * Clarify the spec to say that copyup/down takes encoded filenames.
 
   Packaging fixes:
   * Add Recommends against pbuilder, whose dependency resolver adt-run
