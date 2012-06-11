@@ -12,7 +12,11 @@ autopkgtest (2.0.2) unstable; urgency=low
   * Correctly handle quoting of copyup/copydown filenames.  Fixes
     but where we couldn't cope with packages' filenames containing
     + and ~.  Report from Martin Pitt.  Closes: #648161.
+
+  Documentation fixes:
   * Clarify the spec to say that copyup/down takes encoded filenames.
+  * Fix the spec to refer to `breaks-testbed' rather than `breaks-computer'.
+    Report from Jakub Wilk.  Closes: #669721.
 
   Packaging fixes:
   * Add Recommends against pbuilder, whose dependency resolver adt-run
