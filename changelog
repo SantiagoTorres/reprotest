@@ -1,4 +1,4 @@
-autopkgtest (2.0.2) unstable; urgency=low
+autopkgtest (2.1.0) unstable; urgency=low
 
   Bugfixes:
   * Remove our strange apt config on exit.
@@ -26,7 +26,7 @@ autopkgtest (2.0.2) unstable; urgency=low
   * Remove runner/tmp on debian/rules clean, and add it to .gitignore,
     for convenience.
 
- --
+ -- Ian Jackson <ijackson@chiark.greenend.org.uk>  Mon, 11 Jun 2012 02:05:49 +0100
 
 autopkgtest (2.0.1) unstable; urgency=medium
 
