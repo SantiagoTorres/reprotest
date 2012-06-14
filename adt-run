@@ -48,7 +48,7 @@ from Autopkgtest import *
 
 #---------- global variables
 
-tmpdir = None		# pathstring on host
+tmp = None		# pathstring on host
 testbed = None		# Testbed
 errorcode = 0		# exit status that we are going to use
 timeouts = { 'short':100, 'install':3000, 'test':10000, 'build':100000 }
@@ -271,7 +271,7 @@ class AutoFile:
 			p._debug('tmp-parent %s...' % 'HT'[tbp])
 			TemporaryDir(os.path.dirname(p.what)).write(tbp)
 		if not tbp:
-			p.path[tbp] = tmpdir+'/'+p.what
+			p.path[tbp] = tmp+'/'+p.what
 		else:
 			p.ephem[tbp] = True
 			p.path[tbp] = testbed.scratch.path[True]+'/'+p.what
@@ -576,7 +576,7 @@ def parse_args():
 	pa('--set-lang', dest='set_lang', action='store', metavar='LANGVAL',
 		help='set LANG on testbed to LANGVAL', default='C')
 
-	pa('','--tmp-dir', 		type='string', dest='tmpdir',
+	pa('','--tmp-dir', 		type='string', dest='tmp',
 		help='write temporary files to TMPDIR, emptying it'
 		     ' beforehand and leaving it behind at the end')
 	pa('','--log-file', 		type='string', dest='logfile',
@@ -674,21 +674,21 @@ def parse_args():
 		opts.actions.append(Action(kind, af, arghandling, what))
 
 def setup_trace():
-	global trace_stream, tmpdir, summary_stream
+	global trace_stream, tmp, summary_stream
 
-	if opts.tmpdir is not None:
-		rmtree('tmpdir(specified)',opts.tmpdir)
-		mkdir_okexist(opts.tmpdir, 0700)
-		tmpdir = opts.tmpdir
+	if opts.tmp is not None:
+		rmtree('tmp(specified)',opts.tmp)
+		mkdir_okexist(opts.tmp, 0700)
+		tmp = opts.tmp
 	else:
-		assert(tmpdir is None)
-		tmpdir = tempfile.mkdtemp()
+		assert(tmp is None)
+		tmp = tempfile.mkdtemp()
 
 	if opts.logfile is None:
 		if opts.output_dir is not None and opts.output_dir.spec_tbp:
 			opts.logfile = opts.output_dir.spec + '/log'
-		elif opts.tmpdir is not None:
-			opts.logfile = opts.tmpdir + '/log'
+		elif opts.tmp is not None:
+			opts.logfile = opts.tmp + '/log'
 	if opts.logfile is not None:
 		trace_stream = open(opts.logfile, 'w', 0)
 	if opts.summary is not None:
@@ -918,7 +918,7 @@ exec '''+shellquote_cmdl(cmdl)+' "$@"'+"\n"
 	return rl[0]
  def execute(tb, what, cmdl,
 		si='/dev/null', so='/dev/null', se=None, cwd=None,
-		script=False, tmpdir=None, kind='short'):
+		script=False, tmp=None, kind='short'):
 	# Options for script:
 	#   False - do not call debug_subprocess, no synch. reporting required
 	#   None or string - call debug_subprocess with that value,
@@ -953,7 +953,7 @@ exec '''+shellquote_cmdl(cmdl)+' "$@"'+"\n"
 		cmdl.append('timeout=%d' % timeout)
 
 	if xdump is not None and 'execute-debug' in tb.caps: cmdl += [xdump]
-	if tmpdir is not None: cmdl.append('env=TMPDIR=%s' % tmpdir)
+	if tmp is not None: cmdl.append('env=TMPDIR=%s' % tmp)
 	if kind=='install': cmdl.append('env=DEBIAN_FRONTEND=noninteractive')
 	if opts.set_lang is not False:
 		cmdl.append('env=LANG=%s' % opts.set_lang)
@@ -1148,29 +1148,29 @@ class Test:
 	se = stdouterr('stderr')
 
 	tf = af.read(True)
-	tmpdir = None
+	tmp = None
 
 	rc = testbed.execute('testchmod-'+t.what, ['chmod','+x','--',tf])
 	if rc: bomb('failed to chmod +x %s' % tf)
 
 	if 'needs-root' not in t.restriction_names and opts.user is not None:
 		tfl = ['su',opts.user,'-c',tf]
-		tmpdir = '%s%s-tmpdir' % (testbed.scratch.read(True), t.what)
+		tmp = '%s%s-tmp' % (testbed.scratch.read(True), t.what)
 		script = 'rm -rf -- "$1"; mkdir -- "$1"'
 		if opts.user:
 			script += '; chown %s "$1"' % opts.user
 			if 'rw-build-tree' in t.restriction_names:
 				script += '; chown -R %s "$2"' % opts.user
 		rc = testbed.execute('mktmpdir-'+t.what,
-			['sh','-xec',script,'x',tmpdir,tree.read(True)])
-		if rc: bomb("could not create test tmpdir `%s', exit code %d"
-				% (tmpdir, rc))
+			['sh','-xec',script,'x',tmp,tree.read(True)])
+		if rc: bomb("could not create test tmp `%s', exit code %d"
+				% (tmp, rc))
 	else:
 		tfl = [tf]
 
 	rc = testbed.execute('test-'+t.what, tfl,
 		so=so.write(True), se=se.write(True), cwd=tree.read(True),
-		tmpdir=tmpdir, kind='test')
+		tmp=tmp, kind='test')
 
 	so_read = so.read()
 	se_read = se.read()
@@ -1312,8 +1312,8 @@ def cleanup():
 		if testbed is not None:
 			testbed.reset_apt()
 			testbed.stop()
-		if opts.tmpdir is None and tmpdir is not None:
-			rmtree('tmpdir', tmpdir)
+		if opts.tmp is None and tmp is not None:
+			rmtree('tmp', tmp)
 		if trace_stream is not None:
 			trace_stream.close()
 			trace_stream = None
@@ -1344,7 +1344,7 @@ class Binaries:
 	ok = False
 
 	if opts.gnupghome is None:
-		opts.gnupghome = tmpdir+'/gnupg'
+		opts.gnupghome = tmp+'/gnupg'
 
 	b._debug('initialising')
 	try:
@@ -1603,8 +1603,8 @@ def build_source(act, control_override):
 	work = TemporaryDir(what+'-build')
 	act.work = work
 
-	tmpdir = work.write(True)+'/tmpdir'
-	tmpdir_script = [
+	tmp = work.write(True)+'/tmp'
+	tmp_script = [
 			'TMPDIR="$1"',
 			'rm -rf -- "$TMPDIR"',
 			'export TMPDIR',
@@ -1635,11 +1635,11 @@ def build_source(act, control_override):
 
 	if opts.user:
 		script += ([ 'chown '+opts.user+' .' ] +
-			tmpdir_script +
+			tmp_script +
 			[ 'spec="$spec" origpwd="$origpwd" '
 				+opts.user_wrap(create_command) ])
 	else:
-		script += (tmpdir_script +
+		script += (tmp_script +
 			[ create_command ])
 
 	script += [
@@ -1649,7 +1649,7 @@ def build_source(act, control_override):
 		]
 	(result_pwd, control_test_rc) = source_rules_command(
 			act,script,what,'extract',work,
-			cwd=initcwd, results_lines=2, xargs=['x',tmpdir,spec])
+			cwd=initcwd, results_lines=2, xargs=['x',tmp,spec])
 
 	filter = act.ah['dsc_filter']
 
@@ -1693,13 +1693,13 @@ def build_source(act, control_override):
 				'install build-essential')
 		testbed.satisfy_dependencies_dsc(dsc, 'build dependencies')
 
-		script = tmpdir_script + [
+		script = tmp_script + [
 			'cd "$2"',
 			'dpkg-checkbuilddeps',
 			opts.user_wrap('debian/rules build'),
 			]
 		source_rules_command(act,script,what,'build',work,
-				cwd=initcwd, xargs=['x',tmpdir,result_pwd])
+				cwd=initcwd, xargs=['x',tmp,result_pwd])
 
 		if os.path.dirname(result_pwd)+'/' != work.read(True):
 			badpkg("results dir `%s' is not in expected parent"
@@ -1719,7 +1719,7 @@ def build_source(act, control_override):
 
 	debug_b('filter=%s' % filter)
 	if filter != '_':
-		script = tmpdir_script + [
+		script = tmp_script + [
 			'cd '+work.write(True)+'/[a-z0-9]*-*/.',
 			opts.user_wrap(opts.gainroot+' debian/rules binary'),
 			'cd ..',
@@ -1727,7 +1727,7 @@ def build_source(act, control_override):
 			]
 		result_debs = source_rules_command(act,script,what,
 				'binary',work,work.write(True),
-				results_lines=1, xargs=['x',tmpdir])
+				results_lines=1, xargs=['x',tmp])
 		if result_debs == '*.deb': debs = []
 		else: debs = result_debs.split(' ')
 		debug_b('debs='+`debs`)
@@ -1830,7 +1830,7 @@ def process_actions():
 
 def main():
 	global testbed
-	global tmpdir
+	global tmp
 	try:
 		parse_args()
 	except SystemExit, se:
