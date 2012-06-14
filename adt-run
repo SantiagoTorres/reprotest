@@ -1604,8 +1604,8 @@ def build_source(act, control_override):
 	work = TemporaryDir(what+'-build')
 	act.work = work
 
-	tmp = work.write(True)+'/tmp'
-	tmp_script = [
+	tmpdir = work.write(True)+'/tmpdir'
+	tmpdir_script = [
 			'TMPDIR="$1"',
 			'rm -rf -- "$TMPDIR"',
 			'export TMPDIR',
@@ -1636,11 +1636,11 @@ def build_source(act, control_override):
 
 	if opts.user:
 		script += ([ 'chown '+opts.user+' .' ] +
-			tmp_script +
+			tmpdir_script +
 			[ 'spec="$spec" origpwd="$origpwd" '
 				+opts.user_wrap(create_command) ])
 	else:
-		script += (tmp_script +
+		script += (tmpdir_script +
 			[ create_command ])
 
 	script += [
@@ -1650,7 +1650,7 @@ def build_source(act, control_override):
 		]
 	(result_pwd, control_test_rc) = source_rules_command(
 			act,script,what,'extract',work,
-			cwd=initcwd, results_lines=2, xargs=['x',tmp,spec])
+			cwd=initcwd, results_lines=2, xargs=['x',tmpdir,spec])
 
 	filter = act.ah['dsc_filter']
 
@@ -1694,13 +1694,13 @@ def build_source(act, control_override):
 				'install build-essential')
 		testbed.satisfy_dependencies_dsc(dsc, 'build dependencies')
 
-		script = tmp_script + [
+		script = tmpdir_script + [
 			'cd "$2"',
 			'dpkg-checkbuilddeps',
 			opts.user_wrap('debian/rules build'),
 			]
 		source_rules_command(act,script,what,'build',work,
-				cwd=initcwd, xargs=['x',tmp,result_pwd])
+				cwd=initcwd, xargs=['x',tmpdir,result_pwd])
 
 		if os.path.dirname(result_pwd)+'/' != work.read(True):
 			badpkg("results dir `%s' is not in expected parent"
@@ -1720,7 +1720,7 @@ def build_source(act, control_override):
 
 	debug_b('filter=%s' % filter)
 	if filter != '_':
-		script = tmp_script + [
+		script = tmpdir_script + [
 			'cd '+work.write(True)+'/[a-z0-9]*-*/.',
 			opts.user_wrap(opts.gainroot+' debian/rules binary'),
 			'cd ..',
@@ -1728,7 +1728,7 @@ def build_source(act, control_override):
 			]
 		result_debs = source_rules_command(act,script,what,
 				'binary',work,work.write(True),
-				results_lines=1, xargs=['x',tmp])
+				results_lines=1, xargs=['x',tmpdir])
 		if result_debs == '*.deb': debs = []
 		else: debs = result_debs.split(' ')
 		debug_b('debs='+`debs`)
