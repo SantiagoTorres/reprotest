@@ -1161,7 +1161,7 @@ class Test:
 			script += '; chown %s "$1"' % opts.user
 			if 'rw-build-tree' in t.restriction_names:
 				script += '; chown -R %s "$2"' % opts.user
-		xenv = ['TMPDIR=%s' % testtmp]
+		xenv.append('TMPDIR=%s' % testtmp)
 		rc = testbed.execute('mktmpdir-'+t.what,
 			['sh','-xec',script,'x',xenv=xenv,tree.read(True)])
 		if rc: bomb("could not create test tmp `%s', exit code %d"
