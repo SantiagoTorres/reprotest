@@ -1,6 +1,11 @@
 autopkgtest (2.1.1~~iwj) unstable; urgency=low
 
-  * 
+  * Provide tests with ADTTMP rather than TMPDIR.
+
+    Well, actually, that's just according to the spec.  In reality, for
+    backward compatibity, we provide each test script with both (pointing
+    to different directories so that tests don't need to worry about
+    possible filename clashes between ADTTMP and TMPDIR).
 
  --
 
