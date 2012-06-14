@@ -1155,17 +1155,17 @@ class Test:
 
 	if 'needs-root' not in t.restriction_names and opts.user is not None:
 		tfl = ['su',opts.user,'-c',tf]
-		tmp = '%s%s-tmp' % (testbed.scratch.read(True), t.what)
+		testtmp = '%s%s-testtmp' % (testbed.scratch.read(True), t.what)
 		script = 'rm -rf -- "$1"; mkdir -- "$1"'
 		if opts.user:
 			script += '; chown %s "$1"' % opts.user
 			if 'rw-build-tree' in t.restriction_names:
 				script += '; chown -R %s "$2"' % opts.user
-		xenv = ['TMPDIR=%s' % tmp]
+		xenv = ['TMPDIR=%s' % testtmp]
 		rc = testbed.execute('mktmpdir-'+t.what,
 			['sh','-xec',script,'x',xenv=xenv,tree.read(True)])
 		if rc: bomb("could not create test tmp `%s', exit code %d"
-				% (tmp, rc))
+				% (testtmp, rc))
 	else:
 		tfl = [tf]
 
