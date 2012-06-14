@@ -577,7 +577,7 @@ def parse_args():
 		help='set LANG on testbed to LANGVAL', default='C')
 
 	pa('','--tmp-dir', 		type='string', dest='tmp',
-		help='write temporary files to TMPDIR, emptying it'
+		help='write temporary files to TMP, emptying it'
 		     ' beforehand and leaving it behind at the end')
 	pa('','--log-file', 		type='string', dest='logfile',
 		help='write the log LOGFILE, emptying it beforehand,'
