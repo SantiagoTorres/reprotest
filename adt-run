@@ -1153,21 +1153,26 @@ class Test:
 	rc = testbed.execute('testchmod-'+t.what, ['chmod','+x','--',tf])
 	if rc: bomb('failed to chmod +x %s' % tf)
 
+	testtmp = '%s%s-testtmp' % (testbed.scratch.read(True), t.what)
+	script = 'rm -rf -- "$@"; mkdir -- "$@"'
+
 	if 'needs-root' not in t.restriction_names and opts.user is not None:
 		tfl = ['su',opts.user,'-c',tf]
-		testtmp = '%s%s-testtmp' % (testbed.scratch.read(True), t.what)
-		script = 'rm -rf -- "$1"; mkdir -- "$1"'
 		if opts.user:
-			script += '; chown %s "$1"' % opts.user
+			script += '; chown %s "$@"' % opts.user
 			if 'rw-build-tree' in t.restriction_names:
 				script += '; chown -R %s "$2"' % opts.user
-		xenv.append('TMPDIR=%s' % testtmp)
-		rc = testbed.execute('mktmpdir-'+t.what,
-			['sh','-xec',script,'x',xenv=xenv,tree.read(True)])
-		if rc: bomb("could not create test tmp `%s', exit code %d"
-				% (testtmp, rc))
 	else:
 		tfl = [tf]
+
+	test_tmpdir = testtmp+'/tmpdir'; xenv.append('TMPDIR=%s' % test_tmpdir)
+	test_addtmp = testtmp+'/addtmp'; xenv.append('ADTTMP=%s' % test_adttmp)
+	rc = testbed.execute('mktmpdir-'+t.what,
+		['sh','-xec',script,'x',
+			test_tmpdir, test_adttmp, 
+			tree.read(True)])
+	if rc: bomb("could not create test tmp dirs in `%s', exit code %d"
+			% (testtmp, rc))
 
 	rc = testbed.execute('test-'+t.what, tfl,
 		so=so.write(True), se=se.write(True), cwd=tree.read(True),
