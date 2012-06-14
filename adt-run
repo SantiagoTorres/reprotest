@@ -918,7 +918,7 @@ exec '''+shellquote_cmdl(cmdl)+' "$@"'+"\n"
 	return rl[0]
  def execute(tb, what, cmdl,
 		si='/dev/null', so='/dev/null', se=None, cwd=None,
-		script=False, tmp=None, kind='short'):
+		script=False, xenv=[], kind='short'):
 	# Options for script:
 	#   False - do not call debug_subprocess, no synch. reporting required
 	#   None or string - call debug_subprocess with that value,
@@ -953,7 +953,7 @@ exec '''+shellquote_cmdl(cmdl)+' "$@"'+"\n"
 		cmdl.append('timeout=%d' % timeout)
 
 	if xdump is not None and 'execute-debug' in tb.caps: cmdl += [xdump]
-	if tmp is not None: cmdl.append('env=TMPDIR=%s' % tmp)
+	for e in xenv: cmdl.append('env=%s' % e)
 	if kind=='install': cmdl.append('env=DEBIAN_FRONTEND=noninteractive')
 	if opts.set_lang is not False:
 		cmdl.append('env=LANG=%s' % opts.set_lang)
@@ -1148,7 +1148,7 @@ class Test:
 	se = stdouterr('stderr')
 
 	tf = af.read(True)
-	tmp = None
+	xenv = []
 
 	rc = testbed.execute('testchmod-'+t.what, ['chmod','+x','--',tf])
 	if rc: bomb('failed to chmod +x %s' % tf)
@@ -1161,8 +1161,9 @@ class Test:
 			script += '; chown %s "$1"' % opts.user
 			if 'rw-build-tree' in t.restriction_names:
 				script += '; chown -R %s "$2"' % opts.user
+		xenv = ['TMPDIR=%s' % tmp]
 		rc = testbed.execute('mktmpdir-'+t.what,
-			['sh','-xec',script,'x',tmp,tree.read(True)])
+			['sh','-xec',script,'x',xenv=xenv,tree.read(True)])
 		if rc: bomb("could not create test tmp `%s', exit code %d"
 				% (tmp, rc))
 	else:
@@ -1170,7 +1171,7 @@ class Test:
 
 	rc = testbed.execute('test-'+t.what, tfl,
 		so=so.write(True), se=se.write(True), cwd=tree.read(True),
-		tmp=tmp, kind='test')
+		xenv=xenv, kind='test')
 
 	so_read = so.read()
 	se_read = se.read()
