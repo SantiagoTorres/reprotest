@@ -1,4 +1,4 @@
-autopkgtest (2.1.1~~iwj) unstable; urgency=low
+autopkgtest (2.2.0) unstable; urgency=low
 
   * Provide tests with ADTTMP rather than TMPDIR.
 
@@ -7,7 +7,7 @@ autopkgtest (2.1.1~~iwj) unstable; urgency=low
     to different directories so that tests don't need to worry about
     possible filename clashes between ADTTMP and TMPDIR).
 
- --
+ -- Ian Jackson <ijackson@chiark.greenend.org.uk>  Fri, 15 Jun 2012 02:05:54 +0100
 
 autopkgtest (2.1.0) unstable; urgency=low
 
