@@ -1154,23 +1154,26 @@ class Test:
 	if rc: bomb('failed to chmod +x %s' % tf)
 
 	testtmp = '%s%s-testtmp' % (testbed.scratch.read(True), t.what)
-	script = 'rm -rf -- "$@"; mkdir -- "$@"'
+
+	script = 'buildtree="$1"; shift\n'
+	script += 'rm -rf -- "$@"; mkdir -- "$@"\n'
 
 	if 'needs-root' not in t.restriction_names and opts.user is not None:
 		tfl = ['su',opts.user,'-c',tf]
 		if opts.user:
-			script += '; chown %s "$@"' % opts.user
+			script += 'chown %s "$@"\n' % opts.user
 			if 'rw-build-tree' in t.restriction_names:
-				script += '; chown -R %s "$2"' % opts.user
+				script += ('chown -R %s "$buildtree"\n'
+						 % opts.user)
 	else:
 		tfl = [tf]
 
 	test_tmpdir = testtmp+'/tmpdir'; xenv.append('TMPDIR=%s' % test_tmpdir)
-	test_addtmp = testtmp+'/addtmp'; xenv.append('ADTTMP=%s' % test_adttmp)
+	test_adttmp = testtmp+'/adttmp'; xenv.append('ADTTMP=%s' % test_adttmp)
 	rc = testbed.execute('mktmpdir-'+t.what,
-		['sh','-xec',script,'x',
-			test_tmpdir, test_adttmp, 
-			tree.read(True)])
+		['sh','-xec',script,'x', tree.read(True),
+			testtmp, test_tmpdir, test_adttmp, 
+			])
 	if rc: bomb("could not create test tmp dirs in `%s', exit code %d"
 			% (testtmp, rc))
 
