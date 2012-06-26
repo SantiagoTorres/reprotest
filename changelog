@@ -3,6 +3,7 @@ autopkgtest (2.2.1) UNRELEASED; urgency=low
   [ Stefano Zacchiroli ]
   * specification: document (XS-)Testsuite source header
     Closes: #679097
+  * debian/control: add Vcs-* headers pointing to Alioth Git repository
 
  -- Stefano Zacchiroli <zack@debian.org>  Tue, 26 Jun 2012 13:55:31 +0200
 
