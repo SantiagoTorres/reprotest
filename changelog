@@ -8,6 +8,9 @@ autopkgtest (2.2.4) UNRELEASED; urgency=low
   * Support versioned dependencies in debian/tests/control.
     Closes: #693540, LP: #1164362
 
+  [ Martin Pitt ]
+  * Add myself as a co-maintainer, as per mailing list discussion.
+
  -- Martin Pitt <mpitt@debian.org>  Thu, 27 Jun 2013 13:02:19 +0200
 
 autopkgtest (2.2.3+nmu1) unstable; urgency=medium
