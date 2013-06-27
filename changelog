@@ -16,6 +16,7 @@ autopkgtest (2.2.4) UNRELEASED; urgency=low
   * debian/rules: Use dh_installdocs to install copyright file instead of
     custom shell code.
   * debian/control: Add missing ${misc:Depends}.
+  * Bump Standards-Version to 3.9.4.
 
  -- Martin Pitt <mpitt@debian.org>  Thu, 27 Jun 2013 13:02:19 +0200
 
