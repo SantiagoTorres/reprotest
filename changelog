@@ -5,6 +5,8 @@ autopkgtest (2.2.4) UNRELEASED; urgency=low
     LP: #1084116
   * Use debian.deb822 Python module to parse control files. This fixes parsing
     of folded dependencies. Closes: #695797, LP: #1073856
+  * Support versioned dependencies in debian/tests/control.
+    Closes: #693540, LP: #1164362
 
  -- Martin Pitt <mpitt@debian.org>  Thu, 27 Jun 2013 13:02:19 +0200
 
