@@ -28,14 +28,11 @@ p=autopkgtest
 x=xenlvm
 topdir=`pwd`
 
-build build-indep: debian/copyright
+build build-indep:
 	$(MAKE)
 
 build-arch:
 binary-arch:
-
-debian/copyright: CREDITS debian/copyright.suffix
-	cat $^ >$@.new && mv -f $@.new $@
 
 binary binary-indep: checkdir
 	dh_testroot
@@ -84,7 +81,6 @@ clean: checkdir
 	dh_testroot
 	$(MAKE) clean
 	rm -rf runner/tmp
-	rm -f debian/copyright
 	dh_clean
 
 checkdir:

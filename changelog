@@ -10,6 +10,8 @@ autopkgtest (2.2.4) UNRELEASED; urgency=low
 
   [ Martin Pitt ]
   * Add myself as a co-maintainer, as per mailing list discussion.
+  * Add machine-readable debian/copyright as per current 1.0 standard. Remove
+    dynamic creation of debian/copyright from debian/rules.
 
  -- Martin Pitt <mpitt@debian.org>  Thu, 27 Jun 2013 13:02:19 +0200
 
