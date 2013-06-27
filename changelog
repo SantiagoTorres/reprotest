@@ -1,3 +1,11 @@
+autopkgtest (2.2.3) UNRELEASED; urgency=medium
+
+  [ Martin Pitt ]
+  * Make `@' in tests' Depends work even if we're not building the
+    source tree.  Closes: #678359.  This is an important bugfix.
+
+ -- Ian Jackson <ijackson@chiark.greenend.org.uk>  Sun, 08 Jul 2012 23:15:42 +0100
+
 autopkgtest (2.2.2) unstable; urgency=low
 
   [ Martin Pitt ]
