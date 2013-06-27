@@ -12,6 +12,7 @@ autopkgtest (2.2.4) UNRELEASED; urgency=low
   * Add myself as a co-maintainer, as per mailing list discussion.
   * Add machine-readable debian/copyright as per current 1.0 standard. Remove
     dynamic creation of debian/copyright from debian/rules.
+  * Move from deprecated dh compat level 4 to 8 (supported in squeeze).
 
  -- Martin Pitt <mpitt@debian.org>  Thu, 27 Jun 2013 13:02:19 +0200
 
