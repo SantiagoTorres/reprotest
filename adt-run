@@ -1482,7 +1482,7 @@ Pin-Priority: 1002
 	try: os.link(af.read(), dest.write())
 	except (IOError,OSError), oe:
 		if oe.errno != errno.EXDEV: raise e
-		shutil.copy(af.read(), dest)
+		shutil.copy(af.read(), dest.write())
 
 	if act.ah['deb_'+forwhat] == 'install':
 		b.install.append(pkg)
