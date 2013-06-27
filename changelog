@@ -15,6 +15,7 @@ autopkgtest (2.2.4) UNRELEASED; urgency=low
   * Move from deprecated dh compat level 4 to 8 (supported in squeeze).
   * debian/rules: Use dh_installdocs to install copyright file instead of
     custom shell code.
+  * debian/control: Add missing ${misc:Depends}.
 
  -- Martin Pitt <mpitt@debian.org>  Thu, 27 Jun 2013 13:02:19 +0200
 

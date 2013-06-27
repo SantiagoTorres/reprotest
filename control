@@ -10,7 +10,7 @@ Vcs-Browser: http://anonscm.debian.org/gitweb/?p=autopkgtest/autopkgtest.git
 
 Package: autopkgtest
 Architecture: all
-Depends: python (>= 2.6), debhelper, python-debian
+Depends: python (>= 2.6), debhelper, python-debian, ${misc:Depends}
 Conflicts: autodebtest (<< 0.5.3)
 Replaces: autodebtest (<< 0.5.3)
 Recommends: apt-utils, pbuilder
@@ -28,7 +28,7 @@ Description: automatic as-installed testing for Debian packages
 
 Package: autopkgtest-xenlvm
 Architecture: all
-Depends: libadns1-bin, chiark-utils-bin, iproute, dmsetup
+Depends: libadns1-bin, chiark-utils-bin, iproute, dmsetup, ${misc:Depends}
 Recommends: lvm2, debootstrap
 Suggests: autopkgtest
 Description: Xen/LVM2 based testbed snapshot system
