@@ -1,3 +1,11 @@
+autopkgtest (2.2.4) UNRELEASED; urgency=low
+
+  [Jean-Baptiste Lallement]
+  * Fix failure with "permission denied" with option --user. Closes: #686292,
+    LP: #1084116
+
+ -- Martin Pitt <mpitt@debian.org>  Thu, 27 Jun 2013 13:02:19 +0200
+
 autopkgtest (2.2.3+nmu1) unstable; urgency=medium
 
   * Non-maintainer upload.
