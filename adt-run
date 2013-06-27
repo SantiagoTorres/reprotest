@@ -36,7 +36,7 @@ import errno
 import fnmatch
 import shutil
 import copy
-from debian import deb822
+from debian import deb822, debian_support
 
 from optparse import OptionParser
 signal.signal(signal.SIGINT, signal.SIG_DFL) # undo stupid Python SIGINT thing
@@ -1066,11 +1066,21 @@ class Field_Depends(FieldBase):
 	debug("Field_DependS: %s %s %s %s" % (f.stz, f.base, f.tnames, f.vl), 2)
 	dl = map(lambda x: x.strip(),
 		flatten(map(lambda (lno, v): v.split(','), f.vl)))
-	re = regexp.compile('[^-.+:~0-9a-z()<>=*@]')
-	for d in dl:
-		if re.search(d):
-			badpkg("Test Depends field contains dependency"
-			       " `%s' with invalid characters" % d)
+	re = regexp.compile(r"(?P<package>[a-z0-9+-.]+)\s*(\((?P<relation><<|<=|>=|=|>>)\s*(?P<version>[^\)]*)\))?$")
+	for di in dl:
+		for d in di.split('|'):
+			d = d.strip()
+			if d == '@': continue  # Expanded to binary packages
+			m = re.match(d)
+			if not m:
+				badpkg("Test Depends field contains an invalid "
+				       "dependency `%s'" % d)
+			if m.group("version"):
+				try:
+					dsv = debian_support.NativeVersion(m.group("version"))
+				except ValueError:
+					badpkg("Test Depends field contains dependency"
+					       " `%s' with an invalid version" % d)
 	f.base['depends'] = dl
 
 class Field_Tests_directory(FieldBase):
