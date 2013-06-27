@@ -1,3 +1,10 @@
+autopkgtest (2.2.3+nmu1) UNRELEASED; urgency=medium
+
+  * Non-maintainer upload.
+  * adt-run: Catch EXDEV.  Closes: #696625.
+
+ -- Christoph Berg <myon@debian.org>  Thu, 31 Jan 2013 10:31:56 +0100
+
 autopkgtest (2.2.3) unstable; urgency=medium
 
   [ Martin Pitt ]
