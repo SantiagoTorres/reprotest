@@ -1,4 +1,4 @@
-autopkgtest (2.2.2) UNRELEASED; urgency=low
+autopkgtest (2.2.2) unstable; urgency=low
 
   [ Martin Pitt ]
   * Fix hashbang lines to use python instead of python2.6, and update
