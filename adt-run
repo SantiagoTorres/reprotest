@@ -1673,7 +1673,7 @@ def build_source(act, control_override):
 	]
 
 	if opts.user:
-		script += ([ 'chown '+opts.user+' .' ] +
+		script += ([ 'chown '+opts.user+' . ..' ] +
 			tmpdir_script +
 			[ 'spec="$spec" origpwd="$origpwd" '
 				+opts.user_wrap(create_command) ])
