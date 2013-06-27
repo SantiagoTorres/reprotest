@@ -36,6 +36,7 @@ import errno
 import fnmatch
 import shutil
 import copy
+from debian import deb822
 
 from optparse import OptionParser
 signal.signal(signal.SIGINT, signal.SIG_DFL) # undo stupid Python SIGINT thing
@@ -1215,45 +1216,22 @@ def read_stanzas(af):
 		return []
 
 	lno = 0
-	def badctrl(m): testbed.bomb('tests/control line %d: %s' % (lno, m))
 	stz = { }	# stz[field_name][index] = (lno, value)
 			# special field names:
 			# stz[' lno'] = number
 			# stz[' tests'] = list of Test objects
 			# empty dictionary means we're between stanzas
-	def in_stanza(stz):
-		return stz.has_key(' lno')
-	def end_stanza(stz):
-		if not in_stanza(stz): return
-		stz[' errs'] = 0
-		stanzas.append(stz.copy())
-		stz.clear()
-		hcurrent = None
-
-	initre = regexp.compile('([A-Z][-0-9a-zA-Z]*)\s*\:\s*(.*)$')
-	while 1:
-		l = control.readline()
-		if not l: break
+	for paragraph in deb822.Deb822.iter_paragraphs(control):
 		lno += 1
-		if not l.endswith('\n'): badctrl('unterminated line')
-		if regexp.compile('\s*\#').match(l): continue
-		if not regexp.compile('\S').match(l): end_stanza(stz); continue
-		initmat = initre.match(l)
-		if initmat:
-			(fname, l) = initmat.groups()
-			fname = string.capwords(fname)
-			if not in_stanza(stz):
-				stz = { ' lno': lno, ' tests': [] }
-			if not stz.has_key(fname): stz[fname] = [ ]
-			hcurrent = stz[fname]
-		elif regexp.compile('\s').match(l):
-			if not hcurrent: badctrl('unexpected continuation')
-		else:
-			badctrl('syntax error')
-		hcurrent.append((lno, l))
-	end_stanza(stz)
+		stz = { ' lno': lno, ' tests': [] }
+		for field, value in paragraph.iteritems():
+			v = "".join(value.split('\n')).replace('  ',' ')
+			field = string.capwords(field)
+			stz[field] = [(lno, v)]
+			lno += 1 + value.count('\n')  # Count multilines fields
+		stanzas.append(stz.copy())
 
-        return stanzas
+	return stanzas
 
 def read_control(act, tree, control_override):
 
