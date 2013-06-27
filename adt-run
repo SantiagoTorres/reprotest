@@ -1090,7 +1090,7 @@ def run_tests(stanzas, tree):
 			report('*', 'SKIP package has metadata but no tests')
 			errorcode |= 8
 		for t in tests:
-			t.prepare()
+			t.prepare(tree)
 			t.run(tree)
 			if 'breaks-testbed' in t.restriction_names:
 				testbed.needs_reset()
@@ -1116,7 +1116,7 @@ class Test:
 	global errorcode
 	errorcode |= 4
 	report(t.what, 'FAIL ' + m)
- def prepare(t):
+ def prepare(t, tree):
 	t._debug('preparing')
 	dn = []
 	for d in t.depends:
@@ -1125,7 +1125,7 @@ class Test:
 			t._debug('  literal dependency '+d)
 			dn.append(d)
 		else:
-			for (pkg,bin) in t.act.binaries:
+			for pkg in packages_from_source(t.act, tree):
 				dp = d.replace('@',pkg)
 				t._debug('  synthesised dependency '+dp)
 				dn.append(dp)
@@ -1205,19 +1205,11 @@ class Test:
 
 	t._debug('----------------------------------------]')
 
-def read_control(act, tree, control_override):
+def read_stanzas(af):
 	stanzas = [ ]
 
-	if control_override is not None:
-		control_af = control_override
-		testbed.blame('arg:'+control_override.spec)
-	else:
-		if act.missing_tests_control:
-			return ()
-		control_af = RelativeInputFile(act.what+'-testcontrol',
-			tree, 'debian/tests/control')
 	try:
-		control = open(control_af.read(), 'r')
+		control = open(af.read(), 'r')
 	except (IOError,OSError), oe:
 		if oe[0] != errno.ENOENT: raise
 		return []
@@ -1260,6 +1252,21 @@ def read_control(act, tree, control_override):
 			badctrl('syntax error')
 		hcurrent.append((lno, l))
 	end_stanza(stz)
+
+        return stanzas
+
+def read_control(act, tree, control_override):
+
+	if control_override is not None:
+		control_af = control_override
+		testbed.blame('arg:'+control_override.spec)
+	else:
+		if act.missing_tests_control:
+			return ()
+		control_af = RelativeInputFile(act.what+'-testcontrol',
+			tree, 'debian/tests/control')
+
+        stanzas = read_stanzas(control_af)
 
 	def testbadctrl(stz, lno, m):
 		report_badctrl(lno, m)
@@ -1345,6 +1352,29 @@ def determine_package(act):
 		if act.pkg: badpkg('two Package: lines in control file')
 		act.pkg = m.groups()[0]
 	if not act.pkg: badpkg('no good Package: line in control file')
+
+def packages_from_source(act, tree):
+    (rc, output) = subprocess_cooked(['dh_listpackages'],
+            stdout=subprocess.PIPE, cwd=tree.read())
+    if rc: badpkg('failed to parse packages built from source, code %d' % rc)
+
+    # filter out empty lines
+    packages = [p for p in output.split() if p] 
+
+    # filter out udebs
+    control_af = RelativeInputFile(act.what+'-control',
+            tree, 'debian/control')
+    for st in read_stanzas(control_af):
+            if 'Package' not in st:
+                    # source stanza
+                    continue
+            if 'Xc-package-type' in st:
+                    try:
+                            packages.remove(st['Package'][0][1])
+                    except ValueError:
+                            pass
+
+    return packages
 
 class Binaries:
  def __init__(b, tb):
