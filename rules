@@ -64,11 +64,9 @@ binary binary-indep: checkdir
 	    fi;								\
 	  done
 
-	set -e; for f in $p $p-$x; do \
-		cp debian/copyright debian/$$f/usr/share/doc/$$f/copyright; \
-		done
 	dh_installinit -p $p-$x --onlyscripts --name=adt$x -- defaults 19
 	dh_installchangelogs
+	dh_installdocs
 	dh_compress
 	dh_link
 	dh_md5sums
