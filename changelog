@@ -1,4 +1,4 @@
-autopkgtest (2.2.4) UNRELEASED; urgency=low
+autopkgtest (2.2.4) unstable; urgency=low
 
   [Jean-Baptiste Lallement]
   * Fix failure with "permission denied" with option --user. Closes: #686292,
@@ -18,7 +18,7 @@ autopkgtest (2.2.4) UNRELEASED; urgency=low
   * debian/control: Add missing ${misc:Depends}.
   * Bump Standards-Version to 3.9.4.
 
- -- Martin Pitt <mpitt@debian.org>  Thu, 27 Jun 2013 13:02:19 +0200
+ -- Martin Pitt <mpitt@debian.org>  Thu, 27 Jun 2013 13:49:25 +0200
 
 autopkgtest (2.2.3+nmu1) unstable; urgency=medium
 
