@@ -1,3 +1,12 @@
+autopkgtest (2.2.2) UNRELEASED; urgency=low
+
+  [ Martin Pitt ]
+  * Fix hashbang lines to use python instead of python2.6, and update
+    debian/control to only depend on python (>= 2.6) instead of python2.6.
+    Closes: #644332.
+
+ -- Ian Jackson <ijackson@chiark.greenend.org.uk>  Thu, 28 Jun 2012 01:03:02 +0100
+
 autopkgtest (2.2.1) unstable; urgency=low
 
   [ Stefano Zacchiroli ]
