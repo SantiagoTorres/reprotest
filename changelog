@@ -1,4 +1,4 @@
-autopkgtest (2.2.3) UNRELEASED; urgency=medium
+autopkgtest (2.2.3) unstable; urgency=medium
 
   [ Martin Pitt ]
   * Make `@' in tests' Depends work even if we're not building the
