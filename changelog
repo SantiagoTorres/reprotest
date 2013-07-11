@@ -1,3 +1,9 @@
+autopkgtest (2.2.5) UNRELEASED; urgency=low
+
+  * Fix call to atmostone(), so that Tests-Directory: actually works.
+
+ -- Jean-Baptiste Lallement <jean-baptiste.lallement@canonical.com>  Wed, 10 Jul 2013 17:00:55 +0200
+
 autopkgtest (2.2.4) unstable; urgency=low
 
   [Jean-Baptiste Lallement]
