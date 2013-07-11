@@ -1010,8 +1010,8 @@ class FieldBase:
 		return r
 	return flatten(map(distribute, f.vl))
  def atmostone(f):
-	if len(vl) == 1:
-		(f.lno, f.v) = vl[0]
+	if len(f.vl) == 1:
+		(f.lno, f.v) = f.vl[0]
 	else:
 		raise Unsupported(f.vl[1][0],
 			'only one %s field allowed' % fn)
@@ -1085,7 +1085,7 @@ class Field_Depends(FieldBase):
 
 class Field_Tests_directory(FieldBase):
  def parse(f):
-	td = atmostone(f)
+	td = f.atmostone()
 	if td.startswith('/'): raise Unspported(f.lno,
 		'Tests-Directory may not be absolute')
 	f.base['testsdir'] = td
