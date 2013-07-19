@@ -4,6 +4,8 @@ autopkgtest (2.2.6) UNRELEASED; urgency=low
   * Drop hosts/chinstrap. We haven't actually used this in many years, it has
     been replaced with https://launchpad.net/auto-package-testing, Jenkins,
     and blocking migration to release until tests pass. (LP: #381210)
+  * Promote apt-utils from Recommends to Depends:, to avoid test failures due
+    to not finding apt-ftparchive. (LP: #1065874)
 
  -- Martin Pitt <mpitt@debian.org>  Fri, 19 Jul 2013 09:30:55 +0200
 

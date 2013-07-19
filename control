@@ -10,10 +10,14 @@ Vcs-Browser: http://anonscm.debian.org/gitweb/?p=autopkgtest/autopkgtest.git
 
 Package: autopkgtest
 Architecture: all
-Depends: python (>= 2.6), debhelper, python-debian, ${misc:Depends}
+Depends: python (>= 2.6),
+ debhelper,
+ python-debian,
+ apt-utils,
+ ${misc:Depends}
 Conflicts: autodebtest (<< 0.5.3)
 Replaces: autodebtest (<< 0.5.3)
-Recommends: apt-utils, pbuilder
+Recommends: pbuilder
 Suggests: autopkgtest-xenlvm, curl
 Description: automatic as-installed testing for Debian packages
  autopkgtest runs tests on binary packages.  The tests are run on the
