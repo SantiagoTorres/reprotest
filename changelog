@@ -11,6 +11,7 @@ autopkgtest (2.2.6) UNRELEASED; urgency=low
   * runner/adt-run: Stop explicitly checking for $HOME (with broken error
     message) when giving --gnupg-home, use os.path.expanduser() instead.
     (LP: #1065873)
+  * runner/adt-run: Fix timeout --help output.
 
  -- Martin Pitt <mpitt@debian.org>  Fri, 19 Jul 2013 09:30:55 +0200
 
