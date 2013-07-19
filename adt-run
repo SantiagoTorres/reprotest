@@ -36,7 +36,10 @@ import errno
 import fnmatch
 import shutil
 import copy
-from debian import deb822, debian_support
+try:
+    from debian import deb822, debian_support
+except ImportError:
+    from debian_bundle import deb822, debian_support
 
 from optparse import OptionParser
 signal.signal(signal.SIGINT, signal.SIG_DFL) # undo stupid Python SIGINT thing
