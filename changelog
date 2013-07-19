@@ -1,3 +1,9 @@
+autopkgtest (2.2.6) UNRELEASED; urgency=low
+
+  * runner/adt-run.1: Fix bad "affect modify" wording. (LP: #1199500)
+
+ -- Martin Pitt <mpitt@debian.org>  Fri, 19 Jul 2013 09:30:55 +0200
+
 autopkgtest (2.2.5) unstable; urgency=low
 
   [ Jean-Baptiste Lallement ]
