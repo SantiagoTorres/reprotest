@@ -1,3 +1,10 @@
+autopkgtest (2.3.1) UNRELEASED; urgency=low
+
+  * adt-run: Support older python-debian versions whose module was still
+    called "debian_bundle". (Closes: #717191)
+
+ -- Martin Pitt <mpitt@debian.org>  Fri, 19 Jul 2013 12:32:15 +0200
+
 autopkgtest (2.3) unstable; urgency=low
 
   * runner/adt-run.1: Fix bad "affect modify" wording. (LP: #1199500)
