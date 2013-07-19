@@ -1,4 +1,4 @@
-autopkgtest (2.2.6) UNRELEASED; urgency=low
+autopkgtest (2.3) UNRELEASED; urgency=low
 
   * runner/adt-run.1: Fix bad "affect modify" wording. (LP: #1199500)
   * Drop hosts/chinstrap. We haven't actually used this in many years, it has
@@ -17,6 +17,8 @@ autopkgtest (2.2.6) UNRELEASED; urgency=low
     commands in. (LP: #1157292)
   * runner/adt-run: Fix UnicodeDecodeError crash if stderr contains non-ASCII
     characters. (LP: #1100283)
+  * Add "allow-stderr" restriction for tests where re-routing or disabling
+    stderr is impractical. (LP: #1197005)
 
  -- Martin Pitt <mpitt@debian.org>  Fri, 19 Jul 2013 09:30:55 +0200
 
