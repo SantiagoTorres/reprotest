@@ -1,4 +1,4 @@
-autopkgtest (2.3) UNRELEASED; urgency=low
+autopkgtest (2.3) unstable; urgency=low
 
   * runner/adt-run.1: Fix bad "affect modify" wording. (LP: #1199500)
   * Drop hosts/chinstrap. We haven't actually used this in many years, it has
@@ -23,7 +23,7 @@ autopkgtest (2.3) UNRELEASED; urgency=low
     (LP: #1165128)
   * runner/adt-run: Remove/fix some unused variables, spotted by pyflakes.
 
- -- Martin Pitt <mpitt@debian.org>  Fri, 19 Jul 2013 09:30:55 +0200
+ -- Martin Pitt <mpitt@debian.org>  Fri, 19 Jul 2013 11:58:15 +0200
 
 autopkgtest (2.2.5) unstable; urgency=low
 
