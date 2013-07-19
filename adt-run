@@ -264,7 +264,7 @@ class AutoFile:
 	xtra = ''
 	if p.spec is not None:
 		xtra = ' spec[%s]=%s' % (p.spec, getattr(p,'spec_tb',None))
-	raise Exception("internal error: %s (%s)" % (how, str(p)))
+	raise Exception("internal error: %s (%s)%s" % (how, str(p), xtra))
 
  def _ensure_path(p, tbp):
 	if p.path[tbp] is None:
@@ -442,7 +442,6 @@ def parse_args():
 	usage = "%prog <options> --- <virt-server>..."
 	parser = OptionParser(usage=usage)
 	pa = parser.add_option
-	pe = parser.add_option
 
 	arghandling = {
 		'dsc_tests': True,
@@ -1069,7 +1068,7 @@ class Field_Depends(FieldBase):
 				       "dependency `%s'" % d)
 			if m.group("version"):
 				try:
-					dsv = debian_support.NativeVersion(m.group("version"))
+					debian_support.NativeVersion(m.group("version"))
 				except ValueError:
 					badpkg("Test Depends field contains dependency"
 					       " `%s' with an invalid version" % d)
@@ -1572,7 +1571,6 @@ def build_source(act, control_override):
 	testbed.needs_reset()
 
 	what = act.what
-	basename = act.af.spec
 	debiancontrol = None
 	act.binaries = []
 
@@ -1853,7 +1851,7 @@ def main():
 	global tmp
 	try:
 		parse_args()
-	except SystemExit, se:
+	except SystemExit:
 		os._exit(20)
 	try:
 		setup_trace()
