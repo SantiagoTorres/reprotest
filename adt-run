@@ -1058,7 +1058,7 @@ class Field_Depends(FieldBase):
 	debug("Field_DependS: %s %s %s %s" % (f.stz, f.base, f.tnames, f.vl), 2)
 	dl = map(lambda x: x.strip(),
 		flatten(map(lambda (lno, v): v.split(','), f.vl)))
-	re = regexp.compile(r"(?P<package>[a-z0-9+-.]+)\s*(\((?P<relation><<|<=|>=|=|>>)\s*(?P<version>[^\)]*)\))?$")
+	re = regexp.compile(r"(?P<package>[a-z0-9+-.]+)\s*(\((?P<relation><<|<=|>=|=|>>)\s*(?P<version>[^\)]*)\))?(\s*\[[[a-z0-9+-. ]+\])?$")
 	for di in dl:
 		for d in di.split('|'):
 			d = d.strip()
