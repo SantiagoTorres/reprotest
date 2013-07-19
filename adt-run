@@ -589,7 +589,7 @@ def parse_args():
 
 	for k in timeouts.keys():
 		pa('','--timeout-'+k,	type='int', dest='timeout_'+k,
-			metavar='T', help='set %s timeout to T')
+			metavar='T', help='set %s timeout to T' % k)
 	pa('','--timeout-factor',	type='float', dest='timeout_factor',
 			metavar='FACTOR', default=1.0,
 			help='multiply all default timeouts by FACTOR')
