@@ -19,6 +19,8 @@ autopkgtest (2.3) UNRELEASED; urgency=low
     characters. (LP: #1100283)
   * Add "allow-stderr" restriction for tests where re-routing or disabling
     stderr is impractical. (LP: #1197005)
+  * runner-adt-run: Support architecture specifiers in Depends: field.
+    (LP: #1165128)
 
  -- Martin Pitt <mpitt@debian.org>  Fri, 19 Jul 2013 09:30:55 +0200
 
