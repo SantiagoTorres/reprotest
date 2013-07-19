@@ -6,6 +6,8 @@ autopkgtest (2.2.6) UNRELEASED; urgency=low
     and blocking migration to release until tests pass. (LP: #381210)
   * Promote apt-utils from Recommends to Depends:, to avoid test failures due
     to not finding apt-ftparchive. (LP: #1065874)
+  * Promote pbuilder from Recommends: to Depends:, as we always call
+    pbuilder-satisfydepends-classic. (LP: #1065874)
 
  -- Martin Pitt <mpitt@debian.org>  Fri, 19 Jul 2013 09:30:55 +0200
 
