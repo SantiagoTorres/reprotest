@@ -771,6 +771,7 @@ class Testbed:
 	if ec:
 		tb.bomb('testbed gave exit status %d after quit' % ec)
 	tb._errplumb.wait()
+	tb.sp = None
  def open(tb):
 	tb._debug('open, scratch=%s' % tb.scratch)
 	if tb.scratch is not None: return
@@ -857,13 +858,8 @@ exec '''+shellquote_cmdl(cmdl)+' "$@"'+"\n"
 	tb.blamed.append(m)
  def bomb(tb, m):
 	tb._debug('bomb %s' % m)
-	if tb.sp is not None:
-		tb.sp.stdout.close()
-		tb.sp.stdin.close()
-		ec = tb.sp.wait()
-		if ec: pstderr('adt-run: testbed failing,'
-				' exit status %d' % ec)
-	tb.sp = None
+	tb.reset_apt()
+	tb.stop()
 	raise Quit(16, 'testbed failed: %s' % m)
  def send(tb, string):
 	tb.sp.stdin
