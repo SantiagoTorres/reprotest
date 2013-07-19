@@ -8,6 +8,9 @@ autopkgtest (2.2.6) UNRELEASED; urgency=low
     to not finding apt-ftparchive. (LP: #1065874)
   * Promote pbuilder from Recommends: to Depends:, as we always call
     pbuilder-satisfydepends-classic. (LP: #1065874)
+  * runner/adt-run: Stop explicitly checking for $HOME (with broken error
+    message) when giving --gnupg-home, use os.path.expanduser() instead.
+    (LP: #1065873)
 
  -- Martin Pitt <mpitt@debian.org>  Fri, 19 Jul 2013 09:30:55 +0200
 
