@@ -732,12 +732,7 @@ def finalise_options():
 			build_essential += ['fakeroot']
 
 	if opts.gnupghome.startswith('~/'):
-		try: home = os.environ['HOME']
-		except KeyError:
-			parser.error("HOME environment variable"
-				" not set, needed for --gnupghome=`%s"
-				% opts.gnupghome)
-		opts.gnupghome = home + opts.gnupghome[1:]
+		opts.gnupghome = os.path.expanduser(opts.gnupghome)
 	elif opts.gnupghome == 'fresh':
 		opts.gnupghome = None
 
