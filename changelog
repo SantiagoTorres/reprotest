@@ -21,6 +21,7 @@ autopkgtest (2.3) UNRELEASED; urgency=low
     stderr is impractical. (LP: #1197005)
   * runner-adt-run: Support architecture specifiers in Depends: field.
     (LP: #1165128)
+  * runner/adt-run: Remove/fix some unused variables, spotted by pyflakes.
 
  -- Martin Pitt <mpitt@debian.org>  Fri, 19 Jul 2013 09:30:55 +0200
 
