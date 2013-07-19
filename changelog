@@ -12,6 +12,9 @@ autopkgtest (2.2.6) UNRELEASED; urgency=low
     message) when giving --gnupg-home, use os.path.expanduser() instead.
     (LP: #1065873)
   * runner/adt-run: Fix timeout --help output.
+  * runner/adt-run: Fix bomb() to clean up the testbed before removing it.
+    Afterwards (in cleanup()) we don't have a testbed object any more to run
+    commands in. (LP: #1157292)
 
  -- Martin Pitt <mpitt@debian.org>  Fri, 19 Jul 2013 09:30:55 +0200
 
