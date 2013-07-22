@@ -1460,11 +1460,11 @@ Pin-Priority: 1002
 
 	try: os.remove(dest.write())
 	except (IOError,OSError), oe:
-		if oe.errno != errno.ENOENT: raise e
+		if oe.errno != errno.ENOENT: raise oe
 
 	try: os.link(af.read(), dest.write())
 	except (IOError,OSError), oe:
-		if oe.errno != errno.EXDEV: raise e
+		if oe.errno != errno.EXDEV: raise oe
 		shutil.copy(af.read(), dest.write())
 
 	if act.ah['deb_'+forwhat] == 'install':
