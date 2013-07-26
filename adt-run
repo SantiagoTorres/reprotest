@@ -1474,6 +1474,9 @@ Pin-Priority: 1002
 
  def publish(b):
 	b._debug('publish')
+        if not b.registered:
+            b._debug('no registered binaries, not publishing anything')
+            return
 
 	b._configure_apt(testbed)
 
