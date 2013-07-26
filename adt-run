@@ -800,6 +800,7 @@ if [ $# = 2 ] && [ "x$1" = xdpkg-architecture ] && [ "x$2" = x-qDEB_HOST_ARCH ];
 	#  eventually.  See #635763.
 	set -- dpkg --print-architecture
 fi
+export DEBIAN_FRONTEND=noninteractive
 exec '''+shellquote_cmdl(cmdl)+' "$@"'+"\n"
 		)
 	os.chmod(tb.ec_auxverbscript.write(), 0755)
