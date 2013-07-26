@@ -1198,6 +1198,8 @@ class Test:
 		if 'allow-stderr' not in t.restriction_names:
 		    if len(l) > 35: l = l[:35] + '...'
 		    t.reportfail('status: %d, stderr: %s' % (rc, l))
+                else:
+                    t.report('PASS')
 		t._debug(' - - - - - - - - - - stderr - - - - - - - - - -')
 		debug_file(se_read)
 	elif rc != 0:
