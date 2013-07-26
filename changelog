@@ -7,6 +7,8 @@ autopkgtest (2.3.1) UNRELEASED; urgency=low
   * runner/adt-run: Short-circuit publishing if there are no registered built
     binaries. This is the step that takes by far the longest time for short
     tests, and thus speeds up test running significantly.
+  * runner/adt-run: Set DEBIAN_FRONTEND=noninteractive for installing build or
+    test dependencies, too. Thanks Robie Basak! (LP: #1204989)
 
  -- Martin Pitt <mpitt@debian.org>  Fri, 19 Jul 2013 12:32:15 +0200
 
