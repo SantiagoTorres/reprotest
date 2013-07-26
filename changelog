@@ -1,9 +1,9 @@
-autopkgtest (2.3.2) UNRELEASED; urgency=low
+autopkgtest (2.3.2) unstable; urgency=low
 
   * runner/adt-run: Fix "allow-stderr" restrictions to still report success,
     so that this gets into the summary.log.
 
- -- Martin Pitt <mpitt@debian.org>  Fri, 26 Jul 2013 12:40:20 +0200
+ -- Martin Pitt <mpitt@debian.org>  Fri, 26 Jul 2013 12:41:07 +0200
 
 autopkgtest (2.3.1) unstable; urgency=low
 
