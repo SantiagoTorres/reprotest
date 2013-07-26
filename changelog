@@ -4,6 +4,9 @@ autopkgtest (2.3.1) UNRELEASED; urgency=low
     called "debian_bundle". (Closes: #717191)
   * runner/adt-run: Correctly re-raise exception on some register failure
     errors. Thanks Robie Basak!
+  * runner/adt-run: Short-circuit publishing if there are no registered built
+    binaries. This is the step that takes by far the longest time for short
+    tests, and thus speeds up test running significantly.
 
  -- Martin Pitt <mpitt@debian.org>  Fri, 19 Jul 2013 12:32:15 +0200
 
