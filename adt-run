@@ -167,7 +167,7 @@ def preport(m):
 	psummary(m)
 
 def report(tname, result):
-	preport('%-20s %s' % (tname, result.decode('UTF-8', errors='replace')))
+	preport('%-20s %s' % (tname, result.decode('UTF-8', 'replace')))
 
 #---------- errors we define
 
