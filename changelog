@@ -1,11 +1,11 @@
-autopkgtest (2.3.3) UNRELEASED; urgency=low
+autopkgtest (2.3.3) unstable; urgency=low
 
   * runner/adt-run: Drop "errors" keyword from decode() call to fix
     compatibility with earlier Python versions. Thanks Christoph Berg.
   * adt-run: Fail tests if they exit with nonzero if "allow-stderr"
     restriction is set. Thanks Robie Basak! (LP: #1210503)
 
- -- Martin Pitt <mpitt@debian.org>  Fri, 02 Aug 2013 11:17:05 +0200
+ -- Martin Pitt <mpitt@debian.org>  Mon, 09 Sep 2013 15:49:52 -0400
 
 autopkgtest (2.3.2) unstable; urgency=low
 
