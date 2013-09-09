@@ -1191,26 +1191,30 @@ class Test:
 	se_read = se.read()
 
 	t._debug(' - - - - - - - - - - results - - - - - - - - - -')
-	stab = os.stat(se_read)
-	if stab.st_size != 0:
-		l = open(se_read).readline()
-		l = l.rstrip('\n \t\r')
-		if 'allow-stderr' not in t.restriction_names:
-		    if len(l) > 35: l = l[:35] + '...'
-		    t.reportfail('status: %d, stderr: %s' % (rc, l))
-                else:
-                    t.report('PASS')
-		t._debug(' - - - - - - - - - - stderr - - - - - - - - - -')
-		debug_file(se_read)
-	elif rc != 0:
+
+	stdout_stat = os.stat(so_read)
+	stderr_stat = os.stat(se_read)
+
+	if rc != 0:
 		t.reportfail('non-zero exit status %d' % rc)
+	elif (stderr_stat.st_size != 0 and
+			'allow-stderr' not in t.restriction_names):
+		se_read_fobj = open(se_read)
+		stderr_top = se_read_fobj.readline().rstrip('\n \t\r')
+		se_read_fobj.close()
+		if len(stderr_top) > 35:
+			stderr_top = stderr_top[:35] + '...'
+		t.reportfail('status: %d, stderr: %s' % (rc, stderr_top))
 	else:
 		t.report('PASS')
 
-	stab = os.stat(so_read)
-	if stab.st_size != 0:
+	if stdout_stat.st_size != 0:
 		t._debug(' - - - - - - - - - - stdout - - - - - - - - - -')
 		debug_file(so_read)
+
+	if stderr_stat.st_size != 0:
+		t._debug(' - - - - - - - - - - stderr - - - - - - - - - -')
+		debug_file(se_read)
 
 	t._debug('----------------------------------------]')
 
