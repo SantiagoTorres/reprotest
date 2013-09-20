@@ -1,3 +1,9 @@
+autopkgtest (2.3.4) UNRELEASED; urgency=low
+
+  * Add tests/testpkg/: Simple source package for testing autopkgtest.
+
+ -- Martin Pitt <mpitt@debian.org>  Fri, 20 Sep 2013 18:07:13 -0500
+
 autopkgtest (2.3.3) unstable; urgency=low
 
   * runner/adt-run: Drop "errors" keyword from decode() call to fix
