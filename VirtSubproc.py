@@ -30,6 +30,7 @@ import signal
 import subprocess
 import traceback
 import errno
+import tempfile
 import re as regexp
 
 from Autopkgtest import *
@@ -137,8 +138,9 @@ def cmd_open(c, ce):
 	return opened2()
 
 def downtmp_mktemp():
-	global downtmp
-	return execute('mktemp -t -d', downp=True, outp=True)
+	d = tempfile.mkdtemp()
+	os.chmod(d, 0755)
+	return d
 
 def downtmp_remove():
 	global downtmp
