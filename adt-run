@@ -1204,8 +1204,6 @@ class Test:
 		se_read_fobj = open(se_read)
 		stderr_top = se_read_fobj.readline().rstrip('\n \t\r')
 		se_read_fobj.close()
-		if len(stderr_top) > 35:
-			stderr_top = stderr_top[:35] + '...'
 		t.reportfail('status: %d, stderr: %s' % (rc, stderr_top))
 	else:
 		t.report('PASS')
