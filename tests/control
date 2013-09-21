@@ -1,0 +1,4 @@
+Tests: adt-run
+Depends: autopkgtest
+Restrictions: needs-root
+Tests-Directory: tests
