@@ -1,4 +1,4 @@
 Tests: adt-run
-Depends: autopkgtest
+Depends: autopkgtest, python3
 Restrictions: needs-root
 Tests-Directory: tests
