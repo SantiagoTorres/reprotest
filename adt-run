@@ -681,11 +681,12 @@ def setup_trace():
 
 	if opts.tmp is not None:
 		rmtree('tmp(specified)',opts.tmp)
-		mkdir_okexist(opts.tmp, 0700)
+		mkdir_okexist(opts.tmp, 0755)
 		tmp = opts.tmp
 	else:
 		assert(tmp is None)
 		tmp = tempfile.mkdtemp()
+		os.chmod(tmp, 0755)
 
 	if opts.logfile is None:
 		if opts.output_dir is not None and opts.output_dir.spec_tbp:
@@ -1176,6 +1177,7 @@ class Test:
 
 	test_tmpdir = testtmp+'/tmpdir'; xenv.append('TMPDIR=%s' % test_tmpdir)
 	test_adttmp = testtmp+'/adttmp'; xenv.append('ADTTMP=%s' % test_adttmp)
+	script += 'chmod 1777 "%s"\n' % test_tmpdir
 	rc = testbed.execute('mktmpdir-'+t.what,
 		['sh','-xec',script,'x', tree.read(True),
 			testtmp, test_tmpdir, test_adttmp, 
@@ -1639,7 +1641,7 @@ def build_source(act, control_override):
 			'TMPDIR="$1"',
 			'rm -rf -- "$TMPDIR"',
 			'export TMPDIR',
-			opts.user_wrap('mkdir -- "$TMPDIR"'),
+			opts.user_wrap('mkdir -m 1777 -- "$TMPDIR"'),
 		]
 
 	if act.kind == 'ubtree':
