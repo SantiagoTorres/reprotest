@@ -1,7 +1,8 @@
 autopkgtest (2.3.4) UNRELEASED; urgency=low
 
   * Add tests/testpkg/: Simple source package for testing autopkgtest.
-  * Add tests/adt-run: First set of automatic tests for adt-run.
+  * Add tests/adt-run: Automatic regression tests for adt-run, covering/using
+    the null runner.
 
  -- Martin Pitt <mpitt@debian.org>  Fri, 20 Sep 2013 18:07:13 -0500
 
