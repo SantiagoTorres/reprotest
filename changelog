@@ -7,6 +7,8 @@ autopkgtest (2.3.4) UNRELEASED; urgency=low
   * Make topmost temporary directory group/world-readable and make $ADTTMP
     have appropriate 1777 permissions so that users other than root can
     actually use it. (Closes: #722458)
+  * Don't clip first stderr line to 35 characters in summary. (Side issue in
+    #722457)
 
  -- Martin Pitt <mpitt@debian.org>  Fri, 20 Sep 2013 18:07:13 -0500
 
