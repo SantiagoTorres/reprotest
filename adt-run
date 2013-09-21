@@ -1179,7 +1179,7 @@ class Test:
 	test_adttmp = testtmp+'/adttmp'; xenv.append('ADTTMP=%s' % test_adttmp)
 	script += 'chmod 1777 "%s"\n' % test_tmpdir
 	rc = testbed.execute('mktmpdir-'+t.what,
-		['sh','-xec',script,'x', tree.read(True),
+		['sh','-ec',script,'x', tree.read(True),
 			testtmp, test_tmpdir, test_adttmp, 
 			])
 	if rc: bomb("could not create test tmp dirs in `%s', exit code %d"
