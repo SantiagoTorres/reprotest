@@ -748,12 +748,12 @@ class Testbed:
 	tb.scratch = None
 	tb.modified = False
 	tb.blamed = []
-	tb._debug('init')
+	tb._debug('init', 1)
 	tb._need_reset_apt = False
  def _debug(tb, m, minlevel=0):
 	debug('** '+m, minlevel)
  def start(tb):
-	tb._debug('start')
+	tb._debug('start', 1)
 	p = subprocess.PIPE
 	debug_subprocess('vserver', opts.vserver)
 	tb._errplumb = Errplumb(True)
@@ -762,7 +762,7 @@ class Testbed:
 	tb.expect('ok')
 	tb.caps = tb.commandr('capabilities')
  def stop(tb):
-	tb._debug('stop')
+	tb._debug('stop', 1)
 	tb.close()
 	if tb.sp is None: return
 	ec = tb.sp.returncode
@@ -776,7 +776,7 @@ class Testbed:
 	tb._errplumb.wait()
 	tb.sp = None
  def open(tb):
-	tb._debug('open, scratch=%s' % tb.scratch)
+	tb._debug('open, scratch=%s' % tb.scratch, 1)
 	if tb.scratch is not None: return
 	pl = tb.commandr('open')
 	tb._opened(pl)
@@ -790,7 +790,7 @@ class Testbed:
 	if len(pec) < 1: tb.bomb('too few results from print-execute-command')
 	cmdl = map(urllib.unquote, pec[0].split(','))
 
-	tb._debug('cmdl = %s' % (`cmdl`))
+	tb._debug('cmdl = %s' % (`cmdl`), 1)
 
 	tb.ec_auxverbscript = TemporaryFile('satdep-auxverb')
 	print >>open(tb.ec_auxverbscript.write(),'w'), (
@@ -827,7 +827,7 @@ exec '''+shellquote_cmdl(cmdl)+' "$@"'+"\n"
 			" made to testbed apt configuration, exit code %d" % rc)
 	tb._need_reset_apt = False
  def close(tb):
-	tb._debug('close, scratch=%s' % tb.scratch)
+	tb._debug('close, scratch=%s' % tb.scratch, 1)
 	if tb.scratch is None: return
 	tb.scratch = None
 	if tb.sp is None: return
@@ -838,7 +838,7 @@ exec '''+shellquote_cmdl(cmdl)+' "$@"'+"\n"
 	if 'revert' in tb.caps and (tb.modified or
 	    [d for d in tb.deps_processed if d not in deps_new]):
 		for af in paths: af.read(False)
-		tb._debug('reset **')
+		tb._debug('reset **', 1)
 		pl = tb.commandr('revert')
 		tb._opened(pl)
 	tb.modified = False
@@ -861,7 +861,7 @@ exec '''+shellquote_cmdl(cmdl)+' "$@"'+"\n"
 	tb._debug('blame += %s' % m, 1)
 	tb.blamed.append(m)
  def bomb(tb, m):
-	tb._debug('bomb %s' % m)
+	tb._debug('bomb %s' % m, 1)
 	tb.reset_apt()
 	tb.stop()
 	raise Quit(16, 'testbed failed: %s' % m)
@@ -968,7 +968,7 @@ exec '''+shellquote_cmdl(cmdl)+' "$@"'+"\n"
 
  def satisfy_dependencies_string(tb, deps, what):
 	# Must have called Binaries.configure_apt
-	debug('dependencies: %s: satisfying %s' % (what,deps))
+	debug('dependencies: %s: satisfying %s' % (what,deps), 1)
 	dsc = TemporaryFile('deps.dsc')
 	print >>open(dsc.write(),'w'), 'Build-Depends: ', deps, '\n\n'
 	# pbuilder-satisfydepends has a bug where it ignores the
@@ -1113,8 +1113,8 @@ class Test:
 	t.what = act.what+'t-'+tname
 	if len(base['testsdir']): t.path = base['testsdir'] + '/' + tname
 	else: t.path = tname
-	t._debug('constructed; path=%s' % t.path)
-	t._debug(' .depends=%s' % t.depends)
+	debug('constructed; path=%s' % t.path, 1)
+	debug(' .depends=%s' % t.depends, 1)
  def _debug(t, m):
 	debug('& %s: %s' % (t.what, m))
  def report(t, m):
@@ -1387,7 +1387,7 @@ class Binaries:
 	else: b.genkey()
 
  def _debug(b, s):
-	debug('* '+s)
+	debug('* '+s, 1)
 
  def genkey(b):
 	b._debug('preparing for key generation')
@@ -1792,7 +1792,6 @@ def process_actions():
 	def debug_a2(m): debug('@@@@@@@@@@@@@@@@@@@@ '+m)
 	def debug_a3(m): debug('@@@@@@@@@@ '+m)
 
-	debug_a1('starting')
 	testbed.open()
 	binaries = Binaries(testbed)
 
