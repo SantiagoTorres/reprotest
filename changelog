@@ -12,6 +12,7 @@ autopkgtest (2.3.4) UNRELEASED; urgency=low
   * Don't show shell tracing of script that creates the temporary directories.
   * Move unimportant messages to debug level 1, to not clutter up default
     output so much.
+  * Drop unnecessary "trace: " from adt-run debug/progress lines.
 
  -- Martin Pitt <mpitt@debian.org>  Fri, 20 Sep 2013 18:07:13 -0500
 
