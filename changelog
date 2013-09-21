@@ -4,6 +4,9 @@ autopkgtest (2.3.4) UNRELEASED; urgency=low
   * Add tests/adt-run: Automatic regression tests for adt-run, covering/using
     the null runner.
   * Add debian/tests: autopkgtest for autopkgtest, using tests/adt-run.
+  * Make topmost temporary directory group/world-readable and make $ADTTMP
+    have appropriate 1777 permissions so that users other than root can
+    actually use it. (Closes: #722458)
 
  -- Martin Pitt <mpitt@debian.org>  Fri, 20 Sep 2013 18:07:13 -0500
 
