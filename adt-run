@@ -1185,9 +1185,51 @@ class Test:
 	if rc: bomb("could not create test tmp dirs in `%s', exit code %d"
 			% (testtmp, rc))
 
+	# show stdout and stderr in realtime by teeing them (we can't use the
+	# coreutils tee with pipes though, as it aborts on the first read
+	# error)
+	so_write = so.write(True)
+	se_write = se.write(True)
+	fifo_out = os.path.join(testtmp, 'test_stdout')
+	fifo_err = os.path.join(testtmp, 'test_stderr')
+	os.mkfifo(fifo_out)
+	os.mkfifo(fifo_err)
+	debug('teeing to stdout: %s, stderr: %s' % (fifo_out, fifo_err), 1)
+	tee_out = os.fork()
+	if tee_out == 0:
+	    fd_in = os.open(fifo_out, os.O_RDONLY)
+	    fd_out = os.open(so_write, os.O_CREAT|os.O_WRONLY)
+
+	    while True:
+		block = os.read(fd_in, 1024)
+		if not block:
+		    break
+		os.write(fd_out, block)
+		os.write(1, block)
+	    os._exit(0)
+
+	tee_err = os.fork()
+	if tee_err == 0:
+	    fd_in = os.open(fifo_err, os.O_RDONLY)
+	    fd_out = os.open(se_write, os.O_CREAT|os.O_WRONLY)
+
+	    while True:
+		block = os.read(fd_in, 1024)
+		if not block:
+		    break
+		os.write(fd_out, block)
+		os.write(2, block)
+	    os._exit(0)
+
 	rc = testbed.execute('test-'+t.what, tfl,
-		so=so.write(True), se=se.write(True), cwd=tree.read(True),
+		so=fifo_out, se=fifo_err, cwd=tree.read(True),
 		xenv=xenv, kind='test')
+
+	os.waitpid(tee_out, 0)
+	os.waitpid(tee_err, 0)
+	os.unlink(fifo_out)
+	os.unlink(fifo_err)
+	t._debug('----------------------------------------]')
 
 	so_read = so.read()
 	se_read = se.read()
@@ -1205,18 +1247,10 @@ class Test:
 		stderr_top = se_read_fobj.readline().rstrip('\n \t\r')
 		se_read_fobj.close()
 		t.reportfail('status: %d, stderr: %s' % (rc, stderr_top))
-	else:
-		t.report('PASS')
-
-	if stdout_stat.st_size != 0:
-		t._debug(' - - - - - - - - - - stdout - - - - - - - - - -')
-		debug_file(so_read)
-
-	if stderr_stat.st_size != 0:
 		t._debug(' - - - - - - - - - - stderr - - - - - - - - - -')
 		debug_file(se_read)
-
-	t._debug('----------------------------------------]')
+	else:
+		t.report('PASS')
 
 def read_stanzas(af):
 	stanzas = [ ]
