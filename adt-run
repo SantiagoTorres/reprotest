@@ -1886,7 +1886,10 @@ def process_actions():
 			testbed.blame('arg:'+act.af.spec)
 			stanzas = read_control(act, act.af, control_override)
 			debug_a3('run_tests ...')
-			run_tests(stanzas, act.af)
+			if act.kind == 'ubtree':
+			    run_tests(stanzas, act.tests_tree)
+			else:
+			    run_tests(stanzas, act.af)
 			control_override = None
 		if act.kind == 'instantiate':
 			testbed.prepare([])
