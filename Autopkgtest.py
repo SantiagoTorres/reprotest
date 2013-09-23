@@ -20,9 +20,9 @@
 # See the file CREDITS for a full list of credits information (often
 # installed as /usr/share/doc/autopkgtest/CREDITS).
 
-import re as regexp
+import re
 
-_shellquote_re = regexp.compile("'")
+_shellquote_re = re.compile("'")
 def shellquote_arg(s): return "'" + _shellquote_re.sub(r"'\''", s) + "'"
 def shellquote_cmdl(l): return ' '.join(map(shellquote_arg,l))
 

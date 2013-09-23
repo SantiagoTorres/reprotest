@@ -31,7 +31,7 @@ import subprocess
 import traceback
 import errno
 import tempfile
-import re as regexp
+import re
 
 from Autopkgtest import shellquote_arg, shellquote_cmdl
 
@@ -151,7 +151,7 @@ def downtmp_remove():
 	global downtmp
 	execute('rm -rf --', [downtmp], downp=True)
 
-perl_quote_re = regexp.compile('[^-+=_.,;:() 0-9a-zA-Z]')
+perl_quote_re = re.compile('[^-+=_.,;:() 0-9a-zA-Z]')
 def perl_quote_1chargroup(m): return '\\x%02x' % ord(m.group(0))
 def perl_quote(s): return '"'+perl_quote_re.sub(perl_quote_1chargroup, s)+'"'
 
@@ -193,7 +193,7 @@ def cmd_revert(c, ce):
 def cmd_execute(c, ce):
 	cmdnumargs(c, ce, 5, None)
 	if not downtmp: bomb("`execute' when not open")
-	debug_re = regexp.compile('debug=(\d+)\-(\d+)$')
+	debug_re = re.compile('debug=(\d+)\-(\d+)$')
 	debug_g = None
 	timeout = 0
 	envs = []
