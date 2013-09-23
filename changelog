@@ -21,6 +21,7 @@ autopkgtest (2.3.4) UNRELEASED; urgency=low
     directory, not in the original unbuilt tree. (Closes: #711209)
   * Fix various unknown and unused symbols throughout the source, spotted by
     pyflakes.
+  * Add tests/pyflakes: Run pyflakes over source and test code.
 
  -- Martin Pitt <mpitt@debian.org>  Fri, 20 Sep 2013 18:07:13 -0500
 

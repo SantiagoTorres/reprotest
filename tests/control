@@ -2,3 +2,7 @@ Tests: adt-run
 Depends: autopkgtest, python3
 Restrictions: needs-root
 Tests-Directory: tests
+
+Tests: pyflakes
+Depends: pyflakes
+Tests-Directory: tests
