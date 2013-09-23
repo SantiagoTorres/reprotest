@@ -97,8 +97,8 @@ os.putenv("APT_LISTCHANGES_FRONTEND", "none")
 
 class DummyOpts:
 
-    def __init__(do):
-        do.debuglevel = 0
+    def __init__(self):
+        self.debuglevel = 0
 
 opts = DummyOpts()
 trace_stream = None
@@ -145,36 +145,36 @@ def debug_file(hp, minlevel=0):
 
 class Errplumb:
 
-    def __init__(ep, critical=False):
+    def __init__(self, critical=False):
         to_stderr = critical or not opts.quiet
         count = to_stderr + (trace_stream is not None)
         if count == 0:
-            ep.stream = open('/dev/null', 'w')
-            ep._sp = None
+            self.stream = open('/dev/null', 'w')
+            self._sp = None
         elif count == 1:
             if to_stderr:
-                ep.stream = os.dup(2)
+                self.stream = os.dup(2)
             else:
-                ep.stream = trace_stream
-            ep._sp = None
+                self.stream = trace_stream
+            self._sp = None
         else:
-            ep._sp = subprocess.Popen(['tee', '-a', '/dev/stderr'],
-                                      stdin=subprocess.PIPE,
-                                      stdout=trace_stream,
-                                      close_fds=True)
-            ep.stream = ep._sp.stdin
+            self._sp = subprocess.Popen(['tee', '-a', '/dev/stderr'],
+                                        stdin=subprocess.PIPE,
+                                        stdout=trace_stream,
+                                        close_fds=True)
+            self.stream = self._sp.stdin
 
-    def wait(ep):
-        if ep._sp is None:
+    def wait(self):
+        if self._sp is None:
             return
-        if isinstance(ep.stream, int):
-            os.close(ep.stream)
-            ep.stream = ()
-        ep._sp.stdin.close()
-        rc = ep._sp.wait()
+        if isinstance(self.stream, int):
+            os.close(self.stream)
+            self.stream = ()
+        self._sp.stdin.close()
+        rc = self._sp.wait()
         if rc:
             bomb('stderr plumbing tee(1) failed, exit code %d' % rc)
-        ep._sp = None
+        self._sp = None
 
 
 def subprocess_cooked(cmdl, critical=False, dbg=None, **kwargs):
@@ -213,9 +213,9 @@ def report(tname, result):
 
 class Quit:
 
-    def __init__(q, ec, m):
-        q.ec = ec
-        q.m = m
+    def __init__(self, ec, m):
+        self.ec = ec
+        self.m = m
 
 
 def bomb(m):
@@ -230,16 +230,16 @@ def badpkg(m):
 
 class Unsupported(Exception):
 
-    def __init__(u, lno, m):
+    def __init__(self, lno, m):
         if lno >= 0:
-            u.m = '%s (control line %d)' % (m, lno)
+            self.m = '%s (control line %d)' % (m, lno)
         else:
-            u.m = m
+            self.m = m
 
-    def report(u, tname):
+    def report(self, tname):
         global errorcode
         errorcode != 2
-        report(tname, 'SKIP %s' % u.m)
+        report(tname, 'SKIP %s' % self.m)
 
 #---------- convenience function
 
@@ -293,130 +293,130 @@ class AutoFile:
     # p.spec_tbp	True or False, or not set if spec is None
     # p.dir		'' or '/'
 
-    def __init__(p, what):
-        p.what = what
-        p.path = [None, None]
-        p.file = [None, None]
-        p.ephem = [False, False]
-        p.spec = None
-        p.spec_tbp = None
-        p.dir = ''
+    def __init__(self, what):
+        self.what = what
+        self.path = [None, None]
+        self.file = [None, None]
+        self.ephem = [False, False]
+        self.spec = None
+        self.spec_tbp = None
+        self.dir = ''
 
-    def __repr__(p):
-        return "<AF@%s>" % p.__str__()
+    def __repr__(self):
+        return "<AF@%s>" % self.__str__()
 
-    def __str__(p):
+    def __str__(self):
         def ptbp(tbp):
-            if p.path[tbp] is None:
-                return '-' + p.dir
-            elif p.file[tbp] is None:
-                return p.path[tbp] + p.dir + '?'
+            if self.path[tbp] is None:
+                return '-' + self.dir
+            elif self.file[tbp] is None:
+                return self.path[tbp] + self.dir + '?'
             else:
-                return p.path[tbp] + p.dir + '!'
-        out = p.what
-        if p.spec is not None:
-            if not hasattr(p, 'spec_tb'):
+                return self.path[tbp] + self.dir + '!'
+        out = self.what
+        if self.spec is not None:
+            if not hasattr(self, 'spec_tb'):
                 out += '~'
-            elif p.spec_tbp:
+            elif self.spec_tbp:
                 out += '#'
             else:
                 out += '='
-            out += p.spec
+            out += self.spec
         out += ':'
         out += ptbp(False)
         out += '|'
         out += ptbp(True)
         return out
 
-    def _wrong(p, how):
+    def _wrong(self, how):
         xtra = ''
-        if p.spec is not None:
-            xtra = ' spec[%s]=%s' % (p.spec, getattr(p, 'spec_tb', None))
-        raise Exception("internal error: %s (%s)%s" % (how, str(p), xtra))
+        if self.spec is not None:
+            xtra = ' spec[%s]=%s' % (self.spec, getattr(self, 'spec_tb', None))
+        raise Exception("internal error: %s (%s)%s" % (how, str(self), xtra))
 
-    def _ensure_path(p, tbp):
-        if p.path[tbp] is None:
-            if '/' in p.what:
-                p._debug('tmp-parent %s...' % 'HT'[tbp])
-                TemporaryDir(os.path.dirname(p.what)).write(tbp)
+    def _ensure_path(self, tbp):
+        if self.path[tbp] is None:
+            if '/' in self.what:
+                self._debug('tmp-parent %s...' % 'HT'[tbp])
+                TemporaryDir(os.path.dirname(self.what)).write(tbp)
             if not tbp:
-                p.path[tbp] = tmp + '/' + p.what
+                self.path[tbp] = tmp + '/' + self.what
             else:
-                p.ephem[tbp] = True
-                p.path[tbp] = testbed.scratch.path[True] + '/' + p.what
+                self.ephem[tbp] = True
+                self.path[tbp] = testbed.scratch.path[True] + '/' + self.what
 
-    def write(p, tbp=False):
-        p._debug('write %s...' % 'HT'[tbp])
-        p._ensure_path(tbp)
+    def write(self, tbp=False):
+        self._debug('write %s...' % 'HT'[tbp])
+        self._ensure_path(tbp)
 
-        if p.dir and not p.file[tbp]:
+        if self.dir and not self.file[tbp]:
             if not tbp:
-                p._debug('mkdir H')
-                mkdir_okexist(p.path[tbp])
+                self._debug('mkdir H')
+                mkdir_okexist(self.path[tbp])
             else:
                 cmdl = ['sh', '-ec',
                         'test -d "$1" || mkdir -p "$1"',
-                        'x', p.path[tbp]]
-                tf_what = urllib.quote(p.what).replace('/', '%2F')
+                        'x', self.path[tbp]]
+                tf_what = urllib.quote(self.what).replace('/', '%2F')
                 rc = testbed.execute('mkdir-' + tf_what, cmdl)
                 if rc:
                     bomb('failed to create directory %s' %
-                         p.path[tbp])
+                         self.path[tbp])
 
-        p.file[tbp] = p.path[tbp]
-        return p.path[tbp]
+        self.file[tbp] = self.path[tbp]
+        return self.path[tbp]
 
-    def read(p, tbp=False):
-        p._debug('read %s...' % 'HT'[tbp])
-        p._ensure_path(tbp)
+    def read(self, tbp=False):
+        self._debug('read %s...' % 'HT'[tbp])
+        self._ensure_path(tbp)
 
-        if p.file[tbp] is None:
-            if p.file[not tbp] is None:
-                p._wrong("requesting read but nonexistent")
+        if self.file[tbp] is None:
+            if self.file[not tbp] is None:
+                self._wrong("requesting read but nonexistent")
             cud = ['copyup', 'copydown'][tbp]
-            src = p.file[not tbp] + p.dir
-            dst = p.path[tbp] + p.dir
+            src = self.file[not tbp] + self.dir
+            dst = self.path[tbp] + self.dir
             testbed.command(cud, (src, dst))
-            p.file[tbp] = p.path[tbp]
+            self.file[tbp] = self.path[tbp]
 
-        return p.file[tbp] + p.dir
+        return self.file[tbp] + self.dir
 
-    def invalidate(p, tbp=False):
-        if p.path[tbp] is not None:
-            p._debug('invalidating %s' % 'HT'[tbp])
-        p.file[tbp] = None
-        if p.spec_tbp != tbp or p.spec is None:
-            p.path[tbp] = None
+    def invalidate(self, tbp=False):
+        if self.path[tbp] is not None:
+            self._debug('invalidating %s' % 'HT'[tbp])
+        self.file[tbp] = None
+        if self.spec_tbp != tbp or self.spec is None:
+            self.path[tbp] = None
 
-    def invalidate_ephem(p, tbp=False):
-        if p.ephem[tbp]:
-            p.invalidate(tbp)
+    def invalidate_ephem(self, tbp=False):
+        if self.ephem[tbp]:
+            self.invalidate(tbp)
 
-    def _debug(p, m):
-        debug('/ %s#%x: %s' % (p.what, id(p), m), 3)
+    def _debug(self, m):
+        debug('/ %s#%x: %s' % (self.what, id(self), m), 3)
 
-    def _constructed(p):
-        p._debug('constructed: ' + str(p))
-        p._check()
-        paths.append(p)
+    def _constructed(self):
+        self._debug('constructed: ' + str(self))
+        self._check()
+        paths.append(self)
 
-    def _check(p):
+    def _check(self):
         for tbp in [False, True]:
-            for pf in [p.path, p.file]:
+            for pf in [self.path, self.file]:
                 if pf[tbp] is None:
                     continue
                 if not pf[tbp]:
-                    bomb('empty path specified for %s' % p.what)
-                if p.dir and pf[tbp].endswith('/'):
+                    bomb('empty path specified for %s' % self.what)
+                if self.dir and pf[tbp].endswith('/'):
                     pf[tbp] = pf[tbp].rstrip('/')
                     if not pf[tbp]:
                         pf[tbp] = '/'
-                if not p.dir and pf[tbp].endswith('/'):
+                if not self.dir and pf[tbp].endswith('/'):
                     bomb("directory `%s' specified for "
-                         "non-directory %s" % (pf[tbp], p.what))
+                         "non-directory %s" % (pf[tbp], self.what))
 
-    def _relative_init(p, what, parent, leaf, onlyon_tbp, setfiles, sibling):
-        AutoFile.__init__(p, what)
+    def _relative_init(self, what, parent, leaf, onlyon_tbp, setfiles, sibling):
+        AutoFile.__init__(self, what)
         sh_on = ''
         sh_sibl = ''
         if onlyon_tbp is not None:
@@ -432,111 +432,111 @@ class AutoFile:
         else:
             trim = lambda x: x
         for tbp in [False, True]:
-            p.ephem[tbp] = parent.ephem[tbp]
+            self.ephem[tbp] = parent.ephem[tbp]
             if parent.path[tbp] is None:
                 continue
             trimmed = trim(parent.path[tbp])
             if trimmed:
                 trimmed += '/'
-            p.path[tbp] = trimmed + leaf
+            self.path[tbp] = trimmed + leaf
             if setfiles and (onlyon_tbp is None or onlyon_tbp == tbp):
-                p.file[tbp] = p.path[tbp]
+                self.file[tbp] = self.path[tbp]
 
 
 class InputFile(AutoFile):
 
-    def _init(p, what, spec, spec_tbp=False):
-        AutoFile.__init__(p, what)
-        p.spec = spec
-        p.spec_tbp = spec_tbp
-        p.path[spec_tbp] = spec
-        p.file[p.spec_tbp] = p.path[p.spec_tbp]
+    def _init(self, what, spec, spec_tbp=False):
+        AutoFile.__init__(self, what)
+        self.spec = spec
+        self.spec_tbp = spec_tbp
+        self.path[spec_tbp] = spec
+        self.file[self.spec_tbp] = self.path[self.spec_tbp]
 
-    def __init__(p, what, spec, spec_tbp=False):
-        p._init(what, spec, spec_tbp)
-        p._constructed()
+    def __init__(self, what, spec, spec_tbp=False):
+        self._init(what, spec, spec_tbp)
+        self._constructed()
 
 
 class InputDir(InputFile):
 
-    def __init__(p, what, spec, spec_tbp=False):
-        InputFile._init(p, what, spec, spec_tbp)
-        p.dir = '/'
-        p._constructed()
+    def __init__(self, what, spec, spec_tbp=False):
+        InputFile._init(self, what, spec, spec_tbp)
+        self.dir = '/'
+        self._constructed()
 
 
 class OutputFile(AutoFile):
 
-    def _init(p, what, spec, spec_tbp=False):
-        AutoFile.__init__(p, what)
-        p.spec = spec
-        p.spec_tbp = spec_tbp
-        p.path[spec_tbp] = spec
+    def _init(self, what, spec, spec_tbp=False):
+        AutoFile.__init__(self, what)
+        self.spec = spec
+        self.spec_tbp = spec_tbp
+        self.path[spec_tbp] = spec
 
-    def __init__(p, what, spec, spec_tbp=False):
-        p._init(what, spec, spec_tbp)
-        p._constructed()
+    def __init__(self, what, spec, spec_tbp=False):
+        self._init(what, spec, spec_tbp)
+        self._constructed()
 
 
 class OutputDir(OutputFile):
 
-    def __init__(p, what, spec, spec_tbp=False):
-        OutputFile._init(p, what, spec, spec_tbp)
-        p.dir = '/'
-        p._constructed()
+    def __init__(self, what, spec, spec_tbp=False):
+        OutputFile._init(self, what, spec, spec_tbp)
+        self.dir = '/'
+        self._constructed()
 
 
 class RelativeInputDir(AutoFile):
 
-    def __init__(p, what, parent, leaf, onlyon_tbp=None, sibling=False):
-        p._relative_init(what, parent, leaf, onlyon_tbp, True, sibling)
-        p.dir = '/'
-        p._constructed()
+    def __init__(self, what, parent, leaf, onlyon_tbp=None, sibling=False):
+        self._relative_init(what, parent, leaf, onlyon_tbp, True, sibling)
+        self.dir = '/'
+        self._constructed()
 
 
 class RelativeInputFile(AutoFile):
 
-    def __init__(p, what, parent, leaf, onlyon_tbp=None, sibling=False):
-        p._relative_init(what, parent, leaf, onlyon_tbp, True, sibling)
-        p._constructed()
+    def __init__(self, what, parent, leaf, onlyon_tbp=None, sibling=False):
+        self._relative_init(what, parent, leaf, onlyon_tbp, True, sibling)
+        self._constructed()
 
 
 class RelativeOutputFile(AutoFile):
 
-    def __init__(p, what, parent, leaf, sibling=False):
-        p._relative_init(what, parent, leaf, None, False, sibling)
-        p._constructed()
+    def __init__(self, what, parent, leaf, sibling=False):
+        self._relative_init(what, parent, leaf, None, False, sibling)
+        self._constructed()
 
 
 class TemporaryFile(AutoFile):
 
-    def __init__(p, what):
-        AutoFile.__init__(p, what)
-        p._constructed()
+    def __init__(self, what):
+        AutoFile.__init__(self, what)
+        self._constructed()
 
 
 class TemporaryDir(AutoFile):
 
-    def __init__(p, what):
-        AutoFile.__init__(p, what)
-        p.dir = '/'
-        p._constructed()
+    def __init__(self, what):
+        AutoFile.__init__(self, what)
+        self.dir = '/'
+        self._constructed()
 
 #---------- parsing and representation of the arguments
 
 
 class Action:
 
-    def __init__(a, kind, af, arghandling, what):
+    def __init__(self, kind, af, arghandling, what):
         # extra attributes get added during processing
-        a.kind = kind
-        a.af = af
-        a.ah = arghandling
-        a.what = what
-        a.missing_tests_control = False
+        self.kind = kind
+        self.af = af
+        self.ah = arghandling
+        self.what = what
+        self.missing_tests_control = False
 
-    def __repr__(a):
-        return "<Action %s %s %s>" % (a.kind, a.what, repr(a.af))
+    def __repr__(self):
+        return "<Action %s %s %s>" % (self.kind, self.what, repr(self.af))
 
 
 def parse_args():
@@ -858,68 +858,69 @@ def finalise_options():
 
 class Testbed:
 
-    def __init__(tb):
-        tb.sp = None
-        tb.lastsend = None
-        tb.scratch = None
-        tb.modified = False
-        tb.blamed = []
-        tb._debug('init', 1)
-        tb._need_reset_apt = False
+    def __init__(self):
+        self.sp = None
+        self.lastsend = None
+        self.scratch = None
+        self.modified = False
+        self.blamed = []
+        self._debug('init', 1)
+        self._need_reset_apt = False
 
-    def _debug(tb, m, minlevel=0):
+    def _debug(self, m, minlevel=0):
         debug('** ' + m, minlevel)
 
-    def start(tb):
-        tb._debug('start', 1)
-        p = subprocess.PIPE
+    def start(self):
+        self._debug('start', 1)
         debug_subprocess('vserver', opts.vserver)
-        tb._errplumb = Errplumb(True)
-        tb.sp = subprocess.Popen(opts.vserver,
-                                 stdin=p, stdout=p, stderr=tb._errplumb.stream)
-        tb.expect('ok')
-        tb.caps = tb.commandr('capabilities')
+        self._errplumb = Errplumb(True)
+        self.sp = subprocess.Popen(opts.vserver,
+                                   stdin=subprocess.PIPE,
+                                   stdout=subprocess.PIPE,
+                                   stderr=self._errplumb.stream)
+        self.expect('ok')
+        self.caps = self.commandr('capabilities')
 
-    def stop(tb):
-        tb._debug('stop', 1)
-        tb.close()
-        if tb.sp is None:
+    def stop(self):
+        self._debug('stop', 1)
+        self.close()
+        if self.sp is None:
             return
-        ec = tb.sp.returncode
+        ec = self.sp.returncode
         if ec is None:
-            tb.sp.stdout.close()
-            tb.send('quit')
-            tb.sp.stdin.close()
-            ec = tb.sp.wait()
+            self.sp.stdout.close()
+            self.send('quit')
+            self.sp.stdin.close()
+            ec = self.sp.wait()
         if ec:
-            tb.bomb('testbed gave exit status %d after quit' % ec)
-        tb._errplumb.wait()
-        tb.sp = None
+            self.bomb('testbed gave exit status %d after quit' % ec)
+        self._errplumb.wait()
+        self.sp = None
 
-    def open(tb):
-        tb._debug('open, scratch=%s' % tb.scratch, 1)
-        if tb.scratch is not None:
+    def open(self):
+        self._debug('open, scratch=%s' % self.scratch, 1)
+        if self.scratch is not None:
             return
-        pl = tb.commandr('open')
-        tb._opened(pl)
+        pl = self.commandr('open')
+        self._opened(pl)
 
-    def _opened(tb, pl):
-        tb.scratch = InputDir('tb-scratch', pl[0], True)
-        tb.deps_processed = []
+    def _opened(self, pl):
+        self.scratch = InputDir('tb-scratch', pl[0], True)
+        self.deps_processed = []
         for af in paths:
             af.invalidate_ephem(True)
-        tb._auxverbscript_make()
+        self._auxverbscript_make()
 
-    def _auxverbscript_make(tb):
-        pec = tb.commandr('print-auxverb-command')
+    def _auxverbscript_make(self):
+        pec = self.commandr('print-auxverb-command')
         if len(pec) < 1:
-            tb.bomb('too few results from print-execute-command')
+            self.bomb('too few results from print-execute-command')
         cmdl = map(urllib.unquote, pec[0].split(','))
 
-        tb._debug('cmdl = %s' % str(cmdl), 1)
+        self._debug('cmdl = %s' % str(cmdl), 1)
 
-        tb.ec_auxverbscript = TemporaryFile('satdep-auxverb')
-        print >>open(tb.ec_auxverbscript.write(), 'w'), (
+        self.ec_auxverbscript = TemporaryFile('satdep-auxverb')
+        print >>open(self.ec_auxverbscript.write(), 'w'), (
             '''#!/bin/sh
 set -e
 if [ $# = 2 ] && [ "x$1" = xdpkg-architecture ] && [ "x$2" = x-qDEB_HOST_ARCH ]; then
@@ -930,18 +931,18 @@ fi
 export DEBIAN_FRONTEND=noninteractive
 exec ''' + shellquote_cmdl(cmdl) + ' "$@"' + "\n"
         )
-        os.chmod(tb.ec_auxverbscript.write(), 0755)
+        os.chmod(self.ec_auxverbscript.write(), 0755)
 
-    def mungeing_apt(tb):
-        if not 'revert' in tb.caps:
-            tb._need_reset_apt = True
+    def mungeing_apt(self):
+        if not 'revert' in self.caps:
+            self._need_reset_apt = True
 
-    def reset_apt(tb):
-        if not tb._need_reset_apt:
+    def reset_apt(self):
+        if not self._need_reset_apt:
             return
         what = 'aptget-update-reset'
         cmdl = ['sh', '-c', 'apt-get -qy update 2>&1']
-        rc = tb.execute(what, cmdl, kind='install')
+        rc = self.execute(what, cmdl, kind='install')
         if rc:
             pstderr("\n" "warning: failed to restore"
                     " testbed apt cache, exit code %d" % rc)
@@ -949,101 +950,101 @@ exec ''' + shellquote_cmdl(cmdl) + ' "$@"' + "\n"
         cmdl = ['rm', '-f', '/etc/apt/apt.conf.d/90autopkgtest',
                 '/etc/apt/sources.list.d/autopkgtest.list',
                 '/etc/apt/preferences.d/90autopkgtest']
-        rc = tb.execute(what, cmdl, kind='install')
+        rc = self.execute(what, cmdl, kind='install')
         if rc:
             pstderr("\n" "warning: failed to reset changes"
                     " made to testbed apt configuration, exit code %d" % rc)
-        tb._need_reset_apt = False
+        self._need_reset_apt = False
 
-    def close(tb):
-        tb._debug('close, scratch=%s' % tb.scratch, 1)
-        if tb.scratch is None:
+    def close(self):
+        self._debug('close, scratch=%s' % self.scratch, 1)
+        if self.scratch is None:
             return
-        tb.scratch = None
-        if tb.sp is None:
+        self.scratch = None
+        if self.sp is None:
             return
-        tb.command('close')
+        self.command('close')
 
-    def prepare1(tb, deps_new):
-        tb._debug('prepare1, modified=%s, deps_processed=%s, deps_new=%s' %
-                 (tb.modified, tb.deps_processed, deps_new), 1)
-        if 'revert' in tb.caps and (
-                tb.modified or [d for d in tb.deps_processed if d not in deps_new]):
+    def prepare1(self, deps_new):
+        self._debug('prepare1, modified=%s, deps_processed=%s, deps_new=%s' %
+                    (self.modified, self.deps_processed, deps_new), 1)
+        if 'revert' in self.caps and (
+                self.modified or [d for d in self.deps_processed if d not in deps_new]):
             for af in paths:
                 af.read(False)
-            tb._debug('reset **', 1)
-            pl = tb.commandr('revert')
-            tb._opened(pl)
-        tb.modified = False
+            self._debug('reset **', 1)
+            pl = self.commandr('revert')
+            self._opened(pl)
+        self.modified = False
 
-    def prepare2(tb, deps_new):
-        tb._debug('prepare2, deps_new=%s' % deps_new, 1)
+    def prepare2(self, deps_new):
+        self._debug('prepare2, deps_new=%s' % deps_new, 1)
         binaries.publish()
-        tb._install_deps(deps_new)
+        self._install_deps(deps_new)
 
-    def prepare(tb, deps_new):
-        tb.prepare1(deps_new)
-        tb.prepare2(deps_new)
+    def prepare(self, deps_new):
+        self.prepare1(deps_new)
+        self.prepare2(deps_new)
 
-    def _install_deps(tb, deps_new):
-        tb._debug(' installing dependencies ' + str(deps_new), 1)
-        tb.deps_processed = deps_new
+    def _install_deps(self, deps_new):
+        self._debug(' installing dependencies ' + str(deps_new), 1)
+        self.deps_processed = deps_new
         if not deps_new:
             return
-        tb.satisfy_dependencies_string(', '.join(deps_new), 'install-deps')
+        self.satisfy_dependencies_string(', '.join(deps_new), 'install-deps')
 
-    def needs_reset(tb):
-        tb._debug('needs_reset, previously=%s' % tb.modified, 1)
-        tb.modified = True
+    def needs_reset(self):
+        self._debug('needs_reset, previously=%s' % self.modified, 1)
+        self.modified = True
 
-    def blame(tb, m):
-        tb._debug('blame += %s' % m, 1)
-        tb.blamed.append(m)
+    def blame(self, m):
+        self._debug('blame += %s' % m, 1)
+        self.blamed.append(m)
 
-    def bomb(tb, m):
-        tb._debug('bomb %s' % m, 1)
-        tb.reset_apt()
-        tb.stop()
+    def bomb(self, m):
+        self._debug('bomb %s' % m, 1)
+        self.reset_apt()
+        self.stop()
         raise Quit(16, 'testbed failed: %s' % m)
 
-    def send(tb, string):
-        tb.sp.stdin
+    def send(self, string):
+        self.sp.stdin
         try:
             debug('>> ' + string, 2)
-            print >>tb.sp.stdin, string
-            tb.sp.stdin.flush()
-            tb.lastsend = string
+            print >>self.sp.stdin, string
+            self.sp.stdin.flush()
+            self.lastsend = string
         except:
             (type, value, dummy) = sys.exc_info()
-            tb.bomb('cannot send to testbed: %s' % traceback.
-                    format_exception_only(type, value))
+            self.bomb('cannot send to testbed: %s' % traceback.
+                      format_exception_only(type, value))
 
-    def expect(tb, keyword, nresults=None):
-        l = tb.sp.stdout.readline()
+    def expect(self, keyword, nresults=None):
+        l = self.sp.stdout.readline()
         if not l:
-            tb.bomb('unexpected eof from the testbed')
+            self.bomb('unexpected eof from the testbed')
         if not l.endswith('\n'):
-            tb.bomb('unterminated line from the testbed')
+            self.bomb('unterminated line from the testbed')
         l = l.rstrip('\n')
         debug('<< ' + l, 2)
         ll = l.split()
         if not ll:
-            tb.bomb('unexpected whitespace-only line from the testbed')
+            self.bomb('unexpected whitespace-only line from the testbed')
         if ll[0] != keyword:
-            if tb.lastsend is None:
-                tb.bomb("got banner `%s', expected `%s...'" %
-                        (l, keyword))
+            if self.lastsend is None:
+                self.bomb("got banner `%s', expected `%s...'" %
+                          (l, keyword))
             else:
-                tb.bomb("sent `%s', got `%s', expected `%s...'" %
-                        (tb.lastsend, l, keyword))
+                self.bomb("sent `%s', got `%s', expected `%s...'" %
+                          (self.lastsend, l, keyword))
         ll = ll[1:]
         if nresults is not None and len(ll) != nresults:
-            tb.bomb("sent `%s', got `%s' (%d result parameters),"
-                    " expected %d result parameters" %
-                    (tb.lastsend, l, len(ll), nresults))
+            self.bomb("sent `%s', got `%s' (%d result parameters),"
+                      " expected %d result parameters" %
+                      (self.lastsend, l, len(ll), nresults))
         return ll
 
-    def commandr(tb, cmd, args=(), nresults=None, unquote=True):
+    def commandr(self, cmd, args=(), nresults=None, unquote=True):
         # pass args=[None,...] or =(None,...) to avoid more url quoting
         if type(cmd) is str:
             cmd = [cmd]
@@ -1052,20 +1053,20 @@ exec ''' + shellquote_cmdl(cmdl) + ' "$@"' + "\n"
         else:
             args = map(urllib.quote, args)
         al = cmd + args
-        tb.send(string.join(al))
-        ll = tb.expect('ok', nresults)
+        self.send(string.join(al))
+        ll = self.expect('ok', nresults)
         if unquote:
             ll = map(urllib.unquote, ll)
         return ll
 
-    def command(tb, cmd, args=()):
-        tb.commandr(cmd, args, 0)
+    def command(self, cmd, args=()):
+        self.commandr(cmd, args, 0)
 
-    def commandr1(tb, cmd, args=()):
-        rl = tb.commandr(cmd, args, 1)
+    def commandr1(self, cmd, args=()):
+        rl = self.commandr(cmd, args, 1)
         return rl[0]
 
-    def execute(tb, what, cmdl,
+    def execute(self, what, cmdl,
                 si='/dev/null', so='/dev/null', se=None, cwd=None,
                 script=False, xenv=[], kind='short'):
         # Options for script:
@@ -1081,7 +1082,7 @@ exec ''' + shellquote_cmdl(cmdl) + ' "$@"' + "\n"
         if script is not False:
             debug_subprocess(what, cmdl, script=script)
         if cwd is None:
-            cwd = tb.scratch.write(True)
+            cwd = self.scratch.write(True)
 
         xdump = None
         if se is None:
@@ -1104,7 +1105,7 @@ exec ''' + shellquote_cmdl(cmdl) + ' "$@"' + "\n"
         if timeout is not None and timeout > 0:
             cmdl.append('timeout=%d' % timeout)
 
-        if xdump is not None and 'execute-debug' in tb.caps:
+        if xdump is not None and 'execute-debug' in self.caps:
             cmdl += [xdump]
         for e in xenv:
             cmdl.append('env=%s' % e)
@@ -1113,7 +1114,7 @@ exec ''' + shellquote_cmdl(cmdl) + ' "$@"' + "\n"
         if opts.set_lang is not False:
             cmdl.append('env=LANG=%s' % opts.set_lang)
 
-        rc = tb.commandr1('execute', cmdl)
+        rc = self.commandr1('execute', cmdl)
         try:
             rc = int(rc)
         except ValueError:
@@ -1127,20 +1128,20 @@ exec ''' + shellquote_cmdl(cmdl) + ' "$@"' + "\n"
 
         return rc
 
-    def satisfy_dependencies_string(tb, deps, what):
+    def satisfy_dependencies_string(self, deps, what):
         # Must have called Binaries.configure_apt
         debug('dependencies: %s: satisfying %s' % (what, deps), 1)
         dsc = TemporaryFile('deps.dsc')
         print >>open(dsc.write(), 'w'), 'Build-Depends: ', deps, '\n\n'
         # pbuilder-satisfydepends has a bug where it ignores the
         # Build-Depends if it's the last line in the dsc (#635696)
-        tb.satisfy_dependencies_dsc(dsc, what)
+        self.satisfy_dependencies_dsc(dsc, what)
 
-    def satisfy_dependencies_dsc(tb, dsc, what):
+    def satisfy_dependencies_dsc(self, dsc, what):
         # Must have called Binaries.configure_apt
         cmdl = ['/usr/lib/pbuilder/pbuilder-satisfydepends-classic',
                 '--binary-all',  # --check-key
-                '--internal-chrootexec', tb.ec_auxverbscript.read(),
+                '--internal-chrootexec', self.ec_auxverbscript.read(),
                 '-c', dsc.read()
                 ]
         # The --internal-chrootexec option is really handy but
@@ -1155,40 +1156,40 @@ exec ''' + shellquote_cmdl(cmdl) + ' "$@"' + "\n"
 
 class FieldBase:
 
-    def __init__(f, fname, stz, base, tnames, vl):
+    def __init__(self, fname, stz, base, tnames, vl):
         assert(vl)
-        f.stz = stz
-        f.fname = fname
-        f.base = base
-        f.tnames = tnames
-        f.vl = vl
+        self.stz = stz
+        self.fname = fname
+        self.base = base
+        self.tnames = tnames
+        self.vl = vl
 
-    def words(f):
+    def words(self):
         def distribute(vle):
             (lno, v) = vle
             r = v.split()
             r = map((lambda w: (lno, w)), r)
             return r
-        return flatten(map(distribute, f.vl))
+        return flatten(map(distribute, self.vl))
 
-    def atmostone(f):
-        if len(f.vl) == 1:
-            (f.lno, f.v) = f.vl[0]
+    def atmostone(self):
+        if len(self.vl) == 1:
+            (self.lno, self.v) = self.vl[0]
         else:
-            raise Unsupported(f.vl[1][0],
-                              'only one %s field allowed' % f.fname)
-        return f.v
+            raise Unsupported(self.vl[1][0],
+                              'only one %s field allowed' % self.fname)
+        return self.v
 
 
 class FieldIgnore(FieldBase):
 
-    def parse(f):
+    def parse(self):
         pass
 
 
 class Restriction:
 
-    def __init__(r, rname, base):
+    def __init__(self, rname, base):
         pass
 
 
@@ -1206,7 +1207,7 @@ class Restriction_allow_stderr(Restriction):
 
 class Restriction_breaks_testbed(Restriction):
 
-    def __init__(r, rname, base):
+    def __init__(self, rname, base):
         if 'revert-full-system' not in testbed.caps:
             raise Unsupported(-1, 'Test breaks testbed but testbed does not '
                               'advertise revert-full-system')
@@ -1214,7 +1215,7 @@ class Restriction_breaks_testbed(Restriction):
 
 class Restriction_needs_root(Restriction):
 
-    def __init__(r, rname, base):
+    def __init__(self, rname, base):
         if 'root-on-testbed' not in testbed.caps:
             raise Unsupported(-1,
                               'Test needs root on testbed which is not available')
@@ -1222,8 +1223,8 @@ class Restriction_needs_root(Restriction):
 
 class Field_Restrictions(FieldBase):
 
-    def parse(f):
-        for wle in f.words():
+    def parse(self):
+        for wle in self.words():
             (lno, rname) = wle
             nrname = rname.replace('-', '_')
             try:
@@ -1231,24 +1232,24 @@ class Field_Restrictions(FieldBase):
             except KeyError:
                 raise Unsupported(lno,
                                   'unknown restriction %s' % rname)
-            r = rclass(nrname, f.base)
-            f.base['restriction_names'].append(rname)
-            f.base['restrictions'].append(r)
+            r = rclass(nrname, self.base)
+            self.base['restriction_names'].append(rname)
+            self.base['restrictions'].append(r)
 
 
 class Field_Features(FieldIgnore):
 
-    def parse(f):
-        for wle in f.words():
+    def parse(self):
+        for wle in self.words():
             (lno, fname) = wle
-            f.base['feature_names'].append(fname)
+            self.base['feature_names'].append(fname)
             nfname = fname.replace('-', '_')
             try:
                 fclass = globals()['Feature_' + nfname]
             except KeyError:
                 continue
-            ft = fclass(nfname, f.base)
-            f.base['features'].append(ft)
+            ft = fclass(nfname, self.base)
+            self.base['features'].append(ft)
 
 
 class Field_Tests(FieldIgnore):
@@ -1257,14 +1258,14 @@ class Field_Tests(FieldIgnore):
 
 class Field_Depends(FieldBase):
 
-    def parse(f):
+    def parse(self):
         debug("Field_Depends: %s %s %s %s" %
-              (f.stz, f.base, f.tnames, f.vl), 2)
+              (self.stz, self.base, self.tnames, self.vl), 2)
         dl = map(lambda x: x.strip(),
-                 flatten(map(lambda (lno, v): v.split(','), f.vl)))
+                 flatten(map(lambda (lno, v): v.split(','), self.vl)))
         # allow empty Depends: field
         if dl == ['']:
-            f.base['depends'] = []
+            self.base['depends'] = []
             return
 
         dep_re = re.compile(
@@ -1284,17 +1285,17 @@ class Field_Depends(FieldBase):
                     except ValueError:
                         badpkg("Test Depends field contains dependency"
                                " `%s' with an invalid version" % d)
-        f.base['depends'] = dl
+        self.base['depends'] = dl
 
 
 class Field_Tests_directory(FieldBase):
 
-    def parse(f):
-        td = f.atmostone()
+    def parse(self):
+        td = self.atmostone()
         if td.startswith('/'):
-            raise Unsupported(f.lno,
+            raise Unsupported(self.lno,
                               'Tests-Directory may not be absolute')
-        f.base['testsdir'] = td
+        self.base['testsdir'] = td
 
 
 def run_tests(stanzas, tree):
@@ -1317,84 +1318,84 @@ def run_tests(stanzas, tree):
 
 class Test:
 
-    def __init__(t, tname, base, act):
+    def __init__(self, tname, base, act):
         if '/' in tname:
             raise Unsupported(base[' lno'],
                               'test name may not contain / character')
         for k in base:
-            setattr(t, k, base[k])
-        t.tname = tname
-        t.act = act
-        t.what = act.what + 't-' + tname
+            setattr(self, k, base[k])
+        self.tname = tname
+        self.act = act
+        self.what = act.what + 't-' + tname
         if len(base['testsdir']):
-            t.path = base['testsdir'] + '/' + tname
+            self.path = base['testsdir'] + '/' + tname
         else:
-            t.path = tname
-        debug('constructed; path=%s' % t.path, 1)
-        debug(' .depends=%s' % t.depends, 1)
+            self.path = tname
+        debug('constructed; path=%s' % self.path, 1)
+        debug(' .depends=%s' % self.depends, 1)
 
-    def _debug(t, m):
-        debug('& %s: %s' % (t.what, m))
+    def _debug(self, m):
+        debug('& %s: %s' % (self.what, m))
 
-    def report(t, m):
-        report(t.what, m)
+    def report(self, m):
+        report(self.what, m)
 
-    def reportfail(t, m):
+    def reportfail(self, m):
         global errorcode
         errorcode |= 4
-        report(t.what, 'FAIL ' + m)
+        report(self.what, 'FAIL ' + m)
 
-    def prepare(t, tree):
-        t._debug('preparing')
+    def prepare(self, tree):
+        self._debug('preparing')
         dn = []
-        for d in t.depends:
-            t._debug(' processing dependency ' + d)
+        for d in self.depends:
+            self._debug(' processing dependency ' + d)
             if not '@' in d:
-                t._debug('  literal dependency ' + d)
+                self._debug('  literal dependency ' + d)
                 dn.append(d)
             else:
-                for pkg in packages_from_source(t.act, tree):
+                for pkg in packages_from_source(self.act, tree):
                     dp = d.replace('@', pkg)
-                    t._debug('  synthesised dependency ' + dp)
+                    self._debug('  synthesised dependency ' + dp)
                     dn.append(dp)
         testbed.prepare(dn)
 
-    def run(t, tree):
-        t._debug('[----------------------------------------')
+    def run(self, tree):
+        self._debug('[----------------------------------------')
 
         def stdouterr(oe):
-            idstr = t.what + '-' + oe
+            idstr = self.what + '-' + oe
             if opts.output_dir is not None and opts.output_dir.spec_tbp:
                 use_dir = opts.output_dir
             else:
                 use_dir = testbed.scratch
             return RelativeOutputFile(idstr, use_dir, idstr)
 
-        if hasattr(t.act, 'work'):
-            t.act.work.write(True)
+        if hasattr(self.act, 'work'):
+            self.act.work.write(True)
         tree.read(True)
 
-        af = RelativeInputFile(t.what, tree, t.path)
+        af = RelativeInputFile(self.what, tree, self.path)
         so = stdouterr('stdout')
         se = stdouterr('stderr')
 
         tf = af.read(True)
         xenv = []
 
-        rc = testbed.execute('testchmod-' + t.what, ['chmod', '+x', '--', tf])
+        rc = testbed.execute('testchmod-' + self.what, ['chmod', '+x', '--', tf])
         if rc:
             bomb('failed to chmod +x %s' % tf)
 
-        testtmp = '%s%s-testtmp' % (testbed.scratch.read(True), t.what)
+        testtmp = '%s%s-testtmp' % (testbed.scratch.read(True), self.what)
 
         script = 'buildtree="$1"; shift\n'
         script += 'rm -rf -- "$@"; mkdir -- "$@"\n'
 
-        if 'needs-root' not in t.restriction_names and opts.user is not None:
+        if 'needs-root' not in self.restriction_names and opts.user is not None:
             tfl = ['su', opts.user, '-c', tf]
             if opts.user:
                 script += 'chown %s "$@"\n' % opts.user
-                if 'rw-build-tree' in t.restriction_names:
+                if 'rw-build-tree' in self.restriction_names:
                     script += ('chown -R %s "$buildtree"\n'
                                % opts.user)
         else:
@@ -1407,7 +1408,7 @@ class Test:
             '/adttmp'
         xenv.append('ADTTMP=%s' % test_adttmp)
         script += 'chmod 1777 "%s"\n' % test_tmpdir
-        rc = testbed.execute('mktmpdir-' + t.what,
+        rc = testbed.execute('mktmpdir-' + self.what,
                              ['sh', '-ec', script, 'x', tree.read(True),
                               testtmp, test_tmpdir, test_adttmp,
                               ])
@@ -1451,7 +1452,7 @@ class Test:
                 os.write(2, block)
             os._exit(0)
 
-        rc = testbed.execute('test-' + t.what, tfl,
+        rc = testbed.execute('test-' + self.what, tfl,
                              so=fifo_out, se=fifo_err, cwd=tree.read(True),
                              xenv=xenv, kind='test')
 
@@ -1459,27 +1460,27 @@ class Test:
         os.waitpid(tee_err, 0)
         os.unlink(fifo_out)
         os.unlink(fifo_err)
-        t._debug('----------------------------------------]')
+        self._debug('----------------------------------------]')
 
         so.read()
         se_read = se.read()
 
-        t._debug(' - - - - - - - - - - results - - - - - - - - - -')
+        self._debug(' - - - - - - - - - - results - - - - - - - - - -')
 
         stderr_stat = os.stat(se_read)
 
         if rc != 0:
-            t.reportfail('non-zero exit status %d' % rc)
+            self.reportfail('non-zero exit status %d' % rc)
         elif (stderr_stat.st_size != 0 and
-              'allow-stderr' not in t.restriction_names):
+              'allow-stderr' not in self.restriction_names):
             se_read_fobj = open(se_read)
             stderr_top = se_read_fobj.readline().rstrip('\n \t\r')
             se_read_fobj.close()
-            t.reportfail('status: %d, stderr: %s' % (rc, stderr_top))
-            t._debug(' - - - - - - - - - - stderr - - - - - - - - - -')
+            self.reportfail('status: %d, stderr: %s' % (rc, stderr_top))
+            self._debug(' - - - - - - - - - - stderr - - - - - - - - - -')
             debug_file(se_read)
         else:
-            t.report('PASS')
+            self.report('PASS')
 
 
 def read_stanzas(af):
@@ -1646,15 +1647,15 @@ def packages_from_source(act, tree):
 
 class Binaries:
 
-    def __init__(b, tb):
-        b.dir = TemporaryDir('binaries')
-        b.dir.write()
+    def __init__(self, tb):
+        self.dir = TemporaryDir('binaries')
+        self.dir.write()
         ok = False
 
         if opts.gnupghome is None:
             opts.gnupghome = tmp + '/gnupg'
 
-        b._debug('initialising')
+        self._debug('initialising')
         try:
             for x in ['pubring', 'secring']:
                 os.stat(opts.gnupghome + '/' + x + '.gpg')
@@ -1664,15 +1665,15 @@ class Binaries:
                 raise
 
         if ok:
-            b._debug('no key generation needed')
+            self._debug('no key generation needed')
         else:
-            b.genkey()
+            self.genkey()
 
-    def _debug(b, s):
+    def _debug(self, s):
         debug('* ' + s, 1)
 
-    def genkey(b):
-        b._debug('preparing for key generation')
+    def genkey(self):
+        self._debug('preparing for key generation')
 
         mkdir_okexist(os.path.dirname(opts.gnupghome), 02755)
         mkdir_okexist(opts.gnupghome, 0700)
@@ -1696,7 +1697,7 @@ END
         if rc:
             bomb('key generation failed, code %d' % rc)
 
-    def apt_configs(b):
+    def apt_configs(self):
         return {
             "Debug::pkgProblemResolver": "true",
             "APT::Get::force-yes": "true",
@@ -1704,11 +1705,11 @@ END
             "quiet": "true",
         }
 
-    def _configure_apt(b, tb):
+    def _configure_apt(self, tb):
         config = OutputFile('apt-config', '/etc/apt/apt.conf.d/90autopkgtest',
                             True)
         f = open(config.write(), 'w')
-        for (k, v) in b.apt_configs().iteritems():
+        for (k, v) in self.apt_configs().iteritems():
             print >>f, '%s { "%s"; };' % (k, v)
         f.close()
         config.read(True)
@@ -1722,32 +1723,32 @@ Pin-Priority: 1002
 '''
         prefs.read(True)
 
-    def _apt_get(b):
+    def _apt_get(self):
         ag = ['apt-get', '-q']
-        for kv in b.apt_configs().iteritems():
+        for kv in self.apt_configs().iteritems():
             ag += ['-o', '%s=%s' % kv]
         return ' '.join(ag)
 
-    def reset(b):
-        b._debug('reset')
-        rmtree('binaries', b.dir.read())
-        b.dir.invalidate()
-        b.dir.write()
-        b.install = []
-        b.blamed = []
-        b.registered = set()
+    def reset(self):
+        self._debug('reset')
+        rmtree('binaries', self.dir.read())
+        self.dir.invalidate()
+        self.dir.write()
+        self.install = []
+        self.blamed = []
+        self.registered = set()
 
-    def register(b, act, pkg, af, forwhat, blamed):
-        b._debug('register what=%s deb_%s=%s pkg=%s af=%s'
-                 % (act.what, forwhat, act.ah['deb_' + forwhat], pkg, str(af)))
+    def register(self, act, pkg, af, forwhat, blamed):
+        self._debug('register what=%s deb_%s=%s pkg=%s af=%s' %
+                    (act.what, forwhat, act.ah['deb_' + forwhat], pkg, str(af)))
 
         if act.ah['deb_' + forwhat] == 'ignore':
             return
 
-        b.blamed += testbed.blamed
+        self.blamed += testbed.blamed
 
         leafname = pkg + '.deb'
-        dest = RelativeOutputFile('binaries--' + leafname, b.dir, leafname)
+        dest = RelativeOutputFile('binaries--' + leafname, self.dir, leafname)
 
         try:
             os.remove(dest.write())
@@ -1763,17 +1764,17 @@ Pin-Priority: 1002
             shutil.copy(af.read(), dest.write())
 
         if act.ah['deb_' + forwhat] == 'install':
-            b.install.append(pkg)
+            self.install.append(pkg)
 
-        b.registered.add(pkg)
+        self.registered.add(pkg)
 
-    def publish(b):
-        b._debug('publish')
-        if not b.registered:
-            b._debug('no registered binaries, not publishing anything')
+    def publish(self):
+        self._debug('publish')
+        if not self.registered:
+            self._debug('no registered binaries, not publishing anything')
             return
 
-        b._configure_apt(testbed)
+        self._configure_apt(testbed)
 
         script = '''
   exec >&2
@@ -1785,13 +1786,13 @@ Pin-Priority: 1002
   gpg --homedir="$2" --batch --detach-sign --armour -o Release.gpg Release
   gpg --homedir="$2" --batch --export >archive-key.pgp
 '''
-        cmdl = ['sh', '-ec', script, 'x', b.dir.write(), opts.gnupghome]
+        cmdl = ['sh', '-ec', script, 'x', self.dir.write(), opts.gnupghome]
         rc = subprocess_cooked(cmdl, dbg=('ftparchive', script))[0]
         if rc:
             bomb('apt-ftparchive or signature failed, code %d' % rc)
 
-        b.dir.invalidate(True)
-        apt_source = b.dir.read(True)
+        self.dir.invalidate(True)
+        apt_source = self.dir.read(True)
 
         so = TemporaryFile('vlds')
         script = '''
@@ -1801,34 +1802,34 @@ Pin-Priority: 1002
   if [ "x`ls /var/lib/dpkg/updates`" != x ]; then
     echo >&2 "/var/lib/dpkg/updates contains some files, aargh"; exit 1
   fi
-''' + b._apt_get() + ''' update >&2
+''' + self._apt_get() + ''' update >&2
   cat /var/lib/dpkg/status >&3
 '''
         testbed.mungeing_apt()
         rc = testbed.execute('apt-key', ['sh', '-ec', script],
-                             so=so.write(True), cwd=b.dir.write(True),
+                             so=so.write(True), cwd=self.dir.write(True),
                              script=script, kind='install')
         if rc:
             bomb('apt setup failed with exit code %d' % rc)
 
-        testbed.blamed += b.blamed
+        testbed.blamed += self.blamed
 
-        b._debug('publish reinstall checking...')
+        self._debug('publish reinstall checking...')
         pkgs_reinstall = set()
         pkg = None
         for l in open(so.read()):
             if l.startswith('Package: '):
                 pkg = l[9:].rstrip()
             elif l.startswith('Status: install '):
-                if pkg in b.registered:
+                if pkg in self.registered:
                     pkgs_reinstall.add(pkg)
-                    b._debug(' publish reinstall needs ' + pkg)
+                    self._debug(' publish reinstall needs ' + pkg)
 
         if pkgs_reinstall:
             for pkg in pkgs_reinstall:
                 testbed.blame(pkg)
             what = 'apt-get-reinstall'
-            cmdl = (b._apt_get() + ' --reinstall install ' +
+            cmdl = (self._apt_get() + ' --reinstall install ' +
                     ' '.join([pkg for pkg in pkgs_reinstall]) + ' >&2')
             cmdl = ['sh', '-c', cmdl]
             rc = testbed.execute(what, cmdl, script=None, kind='install')
@@ -1836,18 +1837,18 @@ Pin-Priority: 1002
                 badpkg("installation of basic binarries failed,"
                        " exit code %d" % rc)
 
-        b._debug('publish install...')
-        for pkg in b.install:
+        self._debug('publish install...')
+        for pkg in self.install:
             what = 'apt-get-install-%s' % pkg
             testbed.blame(pkg)
-            cmdl = b._apt_get() + ' install ' + pkg + ' >&2'
+            cmdl = self._apt_get() + ' install ' + pkg + ' >&2'
             cmdl = ['sh', '-c', cmdl]
             rc = testbed.execute(what, cmdl, script=None, kind='install')
             if rc:
                 badpkg("installation of %s failed, exit code %d"
                        % (pkg, rc))
 
-        b._debug('publish done')
+        self._debug('publish done')
 
 #---------- processing of sources (building)
 
