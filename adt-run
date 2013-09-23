@@ -44,10 +44,12 @@ except ImportError:
 
 from optparse import OptionParser
 
-signal.signal(signal.SIGINT, signal.SIG_DFL) # undo stupid Python SIGINT thing
+signal.signal(signal.SIGINT, signal.SIG_DFL)  # undo stupid Python SIGINT thing
 
-try: our_base = os.environ['AUTOPKGTEST_BASE']+'/lib'
-except KeyError: our_base = '/usr/share/autopkgtest/python';
+try:
+    our_base = os.environ['AUTOPKGTEST_BASE'] + '/lib'
+except KeyError:
+    our_base = '/usr/share/autopkgtest/python'
 sys.path.insert(1, our_base)
 
 from Autopkgtest import shellquote_cmdl
@@ -57,12 +59,14 @@ from Autopkgtest import shellquote_cmdl
 tmp = None		# pathstring on host
 testbed = None		# Testbed
 errorcode = 0		# exit status that we are going to use
-timeouts = { 'short':100, 'install':3000, 'test':10000, 'build':100000 }
+timeouts = {'short': 100, 'install': 3000, 'test': 10000, 'build': 100000}
 binaries = None		# Binaries (.debs we have registered)
 build_essential = ["build-essential"]
 paths = []
-os.putenv("APT_LISTBUGS_FRONTEND", "none")    # do not consider using apt-listbugs
-os.putenv("APT_LISTCHANGES_FRONTEND", "none") # do not consider using apt-listchanges
+os.putenv("APT_LISTBUGS_FRONTEND", "none")
+          # do not consider using apt-listbugs
+os.putenv("APT_LISTCHANGES_FRONTEND", "none")
+          # do not consider using apt-listchanges
 
 #---------- output handling
 #
@@ -90,1349 +94,1590 @@ os.putenv("APT_LISTCHANGES_FRONTEND", "none") # do not consider using apt-listch
 # is done by forking off a copy of ourselves to do plumbing,
 # which copy we wait for at the appropriate point.
 
+
 class DummyOpts:
- def __init__(do): do.debuglevel = 0
+
+    def __init__(do):
+        do.debuglevel = 0
 
 opts = DummyOpts()
 trace_stream = None
 summary_stream = None
 
+
 def pstderr(m):
-	print >>sys.stderr, m
-	if trace_stream is not None: print >>trace_stream, m
+    print >>sys.stderr, m
+    if trace_stream is not None:
+        print >>trace_stream, m
+
 
 def debug(m, minlevel=0):
-	if opts.debuglevel < minlevel: return
-	if opts.quiet and trace_stream is None: return
-	p = 'adt-run'
-	if minlevel: p += `minlevel`
-	p += ': '
-	for l in m.rstrip('\n').split('\n'):
-		s = p + l
-		if not opts.quiet: print >>sys.stderr, s
-		if trace_stream is not None: print >>trace_stream, s
+    if opts.debuglevel < minlevel:
+        return
+    if opts.quiet and trace_stream is None:
+        return
+    p = 'adt-run'
+    if minlevel:
+        p += str(minlevel)
+    p += ': '
+    for l in m.rstrip('\n').split('\n'):
+        s = p + l
+        if not opts.quiet:
+            print >>sys.stderr, s
+        if trace_stream is not None:
+            print >>trace_stream, s
+
 
 def debug_file(hp, minlevel=0):
-	if opts.debuglevel < minlevel: return
-	def do_copy(stream, what):
-		rc = subprocess.call(['cat',hp], stdout=stream)
-		if rc: bomb('cat failed copying data from %s'
-			    ' to %s, exit code %d' % (hp, what, rc))
-	if not opts.quiet: do_copy(sys.stderr, 'stderr')
-	if trace_stream is not None: do_copy(trace_stream, 'trace log')
+    if opts.debuglevel < minlevel:
+        return
+
+    def do_copy(stream, what):
+        rc = subprocess.call(['cat', hp], stdout=stream)
+        if rc:
+            bomb('cat failed copying data from %s'
+                 ' to %s, exit code %d' % (hp, what, rc))
+    if not opts.quiet:
+        do_copy(sys.stderr, 'stderr')
+    if trace_stream is not None:
+        do_copy(trace_stream, 'trace log')
+
 
 class Errplumb:
- def __init__(ep, critical=False):
-	to_stderr = critical or not opts.quiet
-	count = to_stderr + (trace_stream is not None)
-	if count == 0:
-		ep.stream = open('/dev/null','w')
-		ep._sp = None
-	elif count == 1:
-		if to_stderr: ep.stream = os.dup(2)
-		else: ep.stream = trace_stream
-		ep._sp = None
-	else:
-		ep._sp = subprocess.Popen(['tee','-a','/dev/stderr'],
-			stdin=subprocess.PIPE, stdout=trace_stream,
-			close_fds=True)
-		ep.stream = ep._sp.stdin
- def wait(ep):
-	if ep._sp is None: return
-	if type(ep.stream) == type(2):
-		os.close(ep.stream)
-		ep.stream = ()
-	ep._sp.stdin.close()
-	rc = ep._sp.wait()
-	if rc: bomb('stderr plumbing tee(1) failed, exit code %d' % rc)
-	ep._sp = None
+
+    def __init__(ep, critical=False):
+        to_stderr = critical or not opts.quiet
+        count = to_stderr + (trace_stream is not None)
+        if count == 0:
+            ep.stream = open('/dev/null', 'w')
+            ep._sp = None
+        elif count == 1:
+            if to_stderr:
+                ep.stream = os.dup(2)
+            else:
+                ep.stream = trace_stream
+            ep._sp = None
+        else:
+            ep._sp = subprocess.Popen(['tee', '-a', '/dev/stderr'],
+                                      stdin=subprocess.PIPE,
+                                      stdout=trace_stream,
+                                      close_fds=True)
+            ep.stream = ep._sp.stdin
+
+    def wait(ep):
+        if ep._sp is None:
+            return
+        if isinstance(ep.stream, int):
+            os.close(ep.stream)
+            ep.stream = ()
+        ep._sp.stdin.close()
+        rc = ep._sp.wait()
+        if rc:
+            bomb('stderr plumbing tee(1) failed, exit code %d' % rc)
+        ep._sp = None
+
 
 def subprocess_cooked(cmdl, critical=False, dbg=None, **kwargs):
-	if dbg is not None:
-		if isinstance(dbg,tuple): (what,script) = dbg
-		else: (what,script) = (dbg,None)
-		debug_subprocess(what, cmdl, script=script)
-	ep = Errplumb(critical)
-	running = subprocess.Popen(cmdl, stderr=ep.stream, **kwargs)
-	output = running.communicate()[0]
-	rc = running.wait()
-	ep.wait()
-	return (rc, output)
+    if dbg is not None:
+        if isinstance(dbg, tuple):
+            (what, script) = dbg
+        else:
+            (what, script) = (dbg, None)
+        debug_subprocess(what, cmdl, script=script)
+    ep = Errplumb(critical)
+    running = subprocess.Popen(cmdl, stderr=ep.stream, **kwargs)
+    output = running.communicate()[0]
+    rc = running.wait()
+    ep.wait()
+    return (rc, output)
+
 
 def psummary(m):
-	if summary_stream is not None: print >>summary_stream, m
+    if summary_stream is not None:
+        print >>summary_stream, m
+
 
 def preport(m):
-	print m
-	sys.stdout.flush()
-	if trace_stream is not None: print >>trace_stream, m
-	psummary(m)
+    print m
+    sys.stdout.flush()
+    if trace_stream is not None:
+        print >>trace_stream, m
+    psummary(m)
+
 
 def report(tname, result):
-	preport('%-20s %s' % (tname, result.decode('UTF-8', 'replace')))
+    preport('%-20s %s' % (tname, result.decode('UTF-8', 'replace')))
 
 #---------- errors we define
 
+
 class Quit:
-	def __init__(q,ec,m): q.ec = ec; q.m = m
+
+    def __init__(q, ec, m):
+        q.ec = ec
+        q.m = m
+
 
 def bomb(m):
-	raise Quit(20, "unexpected error: %s" % m)
+    raise Quit(20, "unexpected error: %s" % m)
+
 
 def badpkg(m):
-	preport('blame: ' + ' '.join(testbed.blamed))
-	preport('badpkg: ' + m)
-	raise Quit(12, "erroneous package: %s" % m)
+    preport('blame: ' + ' '.join(testbed.blamed))
+    preport('badpkg: ' + m)
+    raise Quit(12, "erroneous package: %s" % m)
+
 
 class Unsupported(Exception):
- def __init__(u, lno, m):
-	if lno >= 0: u.m = '%s (control line %d)' % (m, lno)
-	else: u.m = m
- def report(u, tname):
-	global errorcode
-	errorcode != 2
-	report(tname, 'SKIP %s' % u.m)
+
+    def __init__(u, lno, m):
+        if lno >= 0:
+            u.m = '%s (control line %d)' % (m, lno)
+        else:
+            u.m = m
+
+    def report(u, tname):
+        global errorcode
+        errorcode != 2
+        report(tname, 'SKIP %s' % u.m)
 
 #---------- convenience function
 
+
 def mkdir_okexist(pathname, mode=02755):
-	try:
-		os.mkdir(pathname, mode)
-	except (IOError,OSError), oe:
-		if oe.errno != errno.EEXIST: raise
+    try:
+        os.mkdir(pathname, mode)
+    except (IOError, OSError), oe:
+        if oe.errno != errno.EEXIST:
+            raise
+
 
 def rmtree(what, pathname):
-	debug('/ %s rmtree %s' % (what, pathname), 2)
-	try: shutil.rmtree(pathname)
-	except (IOError,OSError), oe:
-		if oe.errno != errno.EEXIST: raise
+    debug('/ %s rmtree %s' % (what, pathname), 2)
+    try:
+        shutil.rmtree(pathname)
+    except (IOError, OSError), oe:
+        if oe.errno != errno.EEXIST:
+            raise
+
 
 def debug_subprocess(what, cmdl=None, script=None):
-	o = '$ '+what+':'
-	if cmdl is not None:
-		ol = []
-		for x in cmdl:
-			if x is script: x = '<SCRIPT>'
-			ol.append(x.	replace('\\','\\\\').
-					replace(' ','\\ ')	)
-		o += ' '+ ' '.join(ol)
-	debug(o)
-	if script is not None and opts.debuglevel >= 1:
-		o = ''
-		for l in script.rstrip('\n').split('\n'):
-			o += '$     '+l+'\n'
-		debug(o,1)
+    o = '$ ' + what + ':'
+    if cmdl is not None:
+        ol = []
+        for x in cmdl:
+            if x is script:
+                x = '<SCRIPT>'
+            ol.append(x.replace('\\', '\\\\').replace(' ', '\\ '))
+        o += ' ' + ' '.join(ol)
+    debug(o)
+    if script is not None and opts.debuglevel >= 1:
+        o = ''
+        for l in script.rstrip('\n').split('\n'):
+            o += '$     ' + l + '\n'
+        debug(o, 1)
+
 
 def flatten(l):
-	return reduce((lambda a,b: a + b), l, []) 
+    return reduce((lambda a, b: a + b), l, [])
 
 #---------- fancy automatic file-copying class
 
+
 class AutoFile:
-	# p.what
-	# p.path[tb]	None or path	not None => path known
-	# p.file[tb]	None or path	not None => file exists
-	# p.ephem[tb]   boolean         True => destroyed by tb reset
-	# p.spec	string or None
-	# p.spec_tbp	True or False, or not set if spec is None
-	# p.dir		'' or '/'
+    # p.what
+    # p.path[tb]	None or path	not None => path known
+    # p.file[tb]	None or path	not None => file exists
+    # p.ephem[tb]       boolean         True => destroyed by tb reset
+    # p.spec	        string or None
+    # p.spec_tbp	True or False, or not set if spec is None
+    # p.dir		'' or '/'
 
- def __init__(p, what):
-	p.what = what
-	p.path = [None,None]
-	p.file = [None,None]
-	p.ephem = [False,False]
-	p.spec = None
-	p.spec_tbp = None
-	p.dir = ''
+    def __init__(p, what):
+        p.what = what
+        p.path = [None, None]
+        p.file = [None, None]
+        p.ephem = [False, False]
+        p.spec = None
+        p.spec_tbp = None
+        p.dir = ''
 
- def __repr__(p):
-	return "<AF@%s>" % p.__str__()
- def __str__(p):
-	def ptbp(tbp):
-		if p.path[tbp] is None: return '-'+p.dir
-		elif p.file[tbp] is None: return p.path[tbp]+p.dir+'?'
-		else: return p.path[tbp]+p.dir+'!'
-	out = p.what
-	if p.spec is not None:
-		if not hasattr(p,'spec_tb'): out += '~'
-		elif p.spec_tbp: out += '#'
-		else: out += '='
-		out += p.spec
-	out += ':'
-	out += ptbp(False)
-	out += '|'
-	out += ptbp(True)
-	return out
+    def __repr__(p):
+        return "<AF@%s>" % p.__str__()
 
- def _wrong(p, how):
-	xtra = ''
-	if p.spec is not None:
-		xtra = ' spec[%s]=%s' % (p.spec, getattr(p,'spec_tb',None))
-	raise Exception("internal error: %s (%s)%s" % (how, str(p), xtra))
+    def __str__(p):
+        def ptbp(tbp):
+            if p.path[tbp] is None:
+                return '-' + p.dir
+            elif p.file[tbp] is None:
+                return p.path[tbp] + p.dir + '?'
+            else:
+                return p.path[tbp] + p.dir + '!'
+        out = p.what
+        if p.spec is not None:
+            if not hasattr(p, 'spec_tb'):
+                out += '~'
+            elif p.spec_tbp:
+                out += '#'
+            else:
+                out += '='
+            out += p.spec
+        out += ':'
+        out += ptbp(False)
+        out += '|'
+        out += ptbp(True)
+        return out
 
- def _ensure_path(p, tbp):
-	if p.path[tbp] is None:
-		if '/' in p.what:
-			p._debug('tmp-parent %s...' % 'HT'[tbp])
-			TemporaryDir(os.path.dirname(p.what)).write(tbp)
-		if not tbp:
-			p.path[tbp] = tmp+'/'+p.what
-		else:
-			p.ephem[tbp] = True
-			p.path[tbp] = testbed.scratch.path[True]+'/'+p.what
+    def _wrong(p, how):
+        xtra = ''
+        if p.spec is not None:
+            xtra = ' spec[%s]=%s' % (p.spec, getattr(p, 'spec_tb', None))
+        raise Exception("internal error: %s (%s)%s" % (how, str(p), xtra))
 
- def write(p, tbp=False):
-	p._debug('write %s...' % 'HT'[tbp])
-	p._ensure_path(tbp)
+    def _ensure_path(p, tbp):
+        if p.path[tbp] is None:
+            if '/' in p.what:
+                p._debug('tmp-parent %s...' % 'HT'[tbp])
+                TemporaryDir(os.path.dirname(p.what)).write(tbp)
+            if not tbp:
+                p.path[tbp] = tmp + '/' + p.what
+            else:
+                p.ephem[tbp] = True
+                p.path[tbp] = testbed.scratch.path[True] + '/' + p.what
 
-	if p.dir and not p.file[tbp]:
-		if not tbp:
-			p._debug('mkdir H')
-			mkdir_okexist(p.path[tbp])
-		else:
-			cmdl = ['sh','-ec',
-				'test -d "$1" || mkdir -p "$1"',
-				'x', p.path[tbp]]
-			tf_what = urllib.quote(p.what).replace('/','%2F')
-			rc = testbed.execute('mkdir-'+tf_what, cmdl)
-			if rc: bomb('failed to create directory %s' %
-				p.path[tbp])
+    def write(p, tbp=False):
+        p._debug('write %s...' % 'HT'[tbp])
+        p._ensure_path(tbp)
 
-	p.file[tbp] = p.path[tbp]
-	return p.path[tbp]
+        if p.dir and not p.file[tbp]:
+            if not tbp:
+                p._debug('mkdir H')
+                mkdir_okexist(p.path[tbp])
+            else:
+                cmdl = ['sh', '-ec',
+                        'test -d "$1" || mkdir -p "$1"',
+                        'x', p.path[tbp]]
+                tf_what = urllib.quote(p.what).replace('/', '%2F')
+                rc = testbed.execute('mkdir-' + tf_what, cmdl)
+                if rc:
+                    bomb('failed to create directory %s' %
+                         p.path[tbp])
 
- def read(p, tbp=False):
-	p._debug('read %s...' % 'HT'[tbp])
-	p._ensure_path(tbp)
+        p.file[tbp] = p.path[tbp]
+        return p.path[tbp]
 
-	if p.file[tbp] is None:
-		if p.file[not tbp] is None:
-			p._wrong("requesting read but nonexistent")
-		cud = ['copyup','copydown'][tbp]
-		src = p.file[not tbp] + p.dir
-		dst = p.path[tbp] + p.dir
-		testbed.command(cud, (src, dst))
-		p.file[tbp] = p.path[tbp]
+    def read(p, tbp=False):
+        p._debug('read %s...' % 'HT'[tbp])
+        p._ensure_path(tbp)
 
-	return p.file[tbp] + p.dir
+        if p.file[tbp] is None:
+            if p.file[not tbp] is None:
+                p._wrong("requesting read but nonexistent")
+            cud = ['copyup', 'copydown'][tbp]
+            src = p.file[not tbp] + p.dir
+            dst = p.path[tbp] + p.dir
+            testbed.command(cud, (src, dst))
+            p.file[tbp] = p.path[tbp]
 
- def invalidate(p, tbp=False):
-	if p.path[tbp] is not None:
-		p._debug('invalidating %s' % 'HT'[tbp])
-	p.file[tbp] = None
-	if p.spec_tbp != tbp or p.spec is None:
-		p.path[tbp] = None
+        return p.file[tbp] + p.dir
 
- def invalidate_ephem(p, tbp=False):
-	if p.ephem[tbp]:
-		p.invalidate(tbp)
+    def invalidate(p, tbp=False):
+        if p.path[tbp] is not None:
+            p._debug('invalidating %s' % 'HT'[tbp])
+        p.file[tbp] = None
+        if p.spec_tbp != tbp or p.spec is None:
+            p.path[tbp] = None
 
- def _debug(p, m):
-	debug('/ %s#%x: %s' % (p.what, id(p), m), 3)
+    def invalidate_ephem(p, tbp=False):
+        if p.ephem[tbp]:
+            p.invalidate(tbp)
 
- def _constructed(p):
-	p._debug('constructed: '+str(p))
-	p._check()
-	paths.append(p)
+    def _debug(p, m):
+        debug('/ %s#%x: %s' % (p.what, id(p), m), 3)
 
- def _check(p):
-	for tbp in [False,True]:
-	 for pf in [p.path, p.file]:
-		if pf[tbp] is None: continue
-		if not pf[tbp]: bomb('empty path specified for %s' % p.what)
-		if p.dir and pf[tbp].endswith('/'):
-			pf[tbp] = pf[tbp].rstrip('/')
-			if not pf[tbp]: pf[tbp] = '/'
-		if not p.dir and pf[tbp].endswith('/'):
-			bomb("directory `%s' specified for "
-			     "non-directory %s" % (pf[tbp], p.what))
+    def _constructed(p):
+        p._debug('constructed: ' + str(p))
+        p._check()
+        paths.append(p)
 
- def _relative_init(p, what, parent, leaf, onlyon_tbp, setfiles, sibling):
-	AutoFile.__init__(p,what)
-	sh_on = ''; sh_sibl = ''
-	if onlyon_tbp is not None: sh_on = ' (on %s)' % ('HT'[onlyon_tbp])
-	if sibling: sh_sibl=' (sibling)'
-	parent._debug('using as base: %s: %s%s%s' %
-			(str(parent), leaf, sh_on, sh_sibl))
-	if not sibling and not parent.dir:
-		parent._wrong('asked for non-sibling relative path of non-dir')
-	if sibling: trim = os.path.dirname
-	else: trim = lambda x: x
-	for tbp in [False,True]:
-		p.ephem[tbp] = parent.ephem[tbp]
-		if parent.path[tbp] is None: continue
-		trimmed = trim(parent.path[tbp])
-		if trimmed: trimmed += '/'
-		p.path[tbp] = trimmed + leaf
-		if setfiles and (onlyon_tbp is None or onlyon_tbp == tbp):
-			p.file[tbp] = p.path[tbp]
+    def _check(p):
+        for tbp in [False, True]:
+            for pf in [p.path, p.file]:
+                if pf[tbp] is None:
+                    continue
+                if not pf[tbp]:
+                    bomb('empty path specified for %s' % p.what)
+                if p.dir and pf[tbp].endswith('/'):
+                    pf[tbp] = pf[tbp].rstrip('/')
+                    if not pf[tbp]:
+                        pf[tbp] = '/'
+                if not p.dir and pf[tbp].endswith('/'):
+                    bomb("directory `%s' specified for "
+                         "non-directory %s" % (pf[tbp], p.what))
+
+    def _relative_init(p, what, parent, leaf, onlyon_tbp, setfiles, sibling):
+        AutoFile.__init__(p, what)
+        sh_on = ''
+        sh_sibl = ''
+        if onlyon_tbp is not None:
+            sh_on = ' (on %s)' % ('HT'[onlyon_tbp])
+        if sibling:
+            sh_sibl = ' (sibling)'
+        parent._debug('using as base: %s: %s%s%s' %
+                     (str(parent), leaf, sh_on, sh_sibl))
+        if not sibling and not parent.dir:
+            parent._wrong('asked for non-sibling relative path of non-dir')
+        if sibling:
+            trim = os.path.dirname
+        else:
+            trim = lambda x: x
+        for tbp in [False, True]:
+            p.ephem[tbp] = parent.ephem[tbp]
+            if parent.path[tbp] is None:
+                continue
+            trimmed = trim(parent.path[tbp])
+            if trimmed:
+                trimmed += '/'
+            p.path[tbp] = trimmed + leaf
+            if setfiles and (onlyon_tbp is None or onlyon_tbp == tbp):
+                p.file[tbp] = p.path[tbp]
+
 
 class InputFile(AutoFile):
- def _init(p, what, spec, spec_tbp=False):
-	AutoFile.__init__(p, what)
-	p.spec = spec
-	p.spec_tbp = spec_tbp
-	p.path[spec_tbp] = spec
-	p.file[p.spec_tbp] = p.path[p.spec_tbp]
- def __init__(p, what, spec, spec_tbp=False):
-	p._init(what,spec,spec_tbp)
-	p._constructed()
+
+    def _init(p, what, spec, spec_tbp=False):
+        AutoFile.__init__(p, what)
+        p.spec = spec
+        p.spec_tbp = spec_tbp
+        p.path[spec_tbp] = spec
+        p.file[p.spec_tbp] = p.path[p.spec_tbp]
+
+    def __init__(p, what, spec, spec_tbp=False):
+        p._init(what, spec, spec_tbp)
+        p._constructed()
+
 
 class InputDir(InputFile):
- def __init__(p, what, spec, spec_tbp=False):
-	InputFile._init(p,what,spec,spec_tbp)
-	p.dir = '/'
-	p._constructed()
+
+    def __init__(p, what, spec, spec_tbp=False):
+        InputFile._init(p, what, spec, spec_tbp)
+        p.dir = '/'
+        p._constructed()
+
 
 class OutputFile(AutoFile):
- def _init(p, what, spec, spec_tbp=False):
-	AutoFile.__init__(p, what)
-	p.spec = spec
-	p.spec_tbp = spec_tbp
-	p.path[spec_tbp] = spec
- def __init__(p, what, spec, spec_tbp=False):
-	p._init(what,spec,spec_tbp)
-	p._constructed()
+
+    def _init(p, what, spec, spec_tbp=False):
+        AutoFile.__init__(p, what)
+        p.spec = spec
+        p.spec_tbp = spec_tbp
+        p.path[spec_tbp] = spec
+
+    def __init__(p, what, spec, spec_tbp=False):
+        p._init(what, spec, spec_tbp)
+        p._constructed()
+
 
 class OutputDir(OutputFile):
- def __init__(p, what, spec, spec_tbp=False):
-	OutputFile._init(p,what,spec,spec_tbp)
- 	p.dir = '/'
-	p._constructed()
+
+    def __init__(p, what, spec, spec_tbp=False):
+        OutputFile._init(p, what, spec, spec_tbp)
+        p.dir = '/'
+        p._constructed()
+
 
 class RelativeInputDir(AutoFile):
- def __init__(p, what, parent, leaf, onlyon_tbp=None, sibling=False):
-	p._relative_init(what, parent, leaf, onlyon_tbp, True, sibling)
-	p.dir = '/'
-	p._constructed()
+
+    def __init__(p, what, parent, leaf, onlyon_tbp=None, sibling=False):
+        p._relative_init(what, parent, leaf, onlyon_tbp, True, sibling)
+        p.dir = '/'
+        p._constructed()
+
 
 class RelativeInputFile(AutoFile):
- def __init__(p, what, parent, leaf, onlyon_tbp=None, sibling=False):
-	p._relative_init(what, parent, leaf, onlyon_tbp, True, sibling)
-	p._constructed()
+
+    def __init__(p, what, parent, leaf, onlyon_tbp=None, sibling=False):
+        p._relative_init(what, parent, leaf, onlyon_tbp, True, sibling)
+        p._constructed()
+
 
 class RelativeOutputFile(AutoFile):
- def __init__(p, what, parent, leaf, sibling=False):
-	p._relative_init(what, parent, leaf, None, False, sibling)
-	p._constructed()
+
+    def __init__(p, what, parent, leaf, sibling=False):
+        p._relative_init(what, parent, leaf, None, False, sibling)
+        p._constructed()
+
 
 class TemporaryFile(AutoFile):
- def __init__(p, what):
-	AutoFile.__init__(p, what)
-	p._constructed()
+
+    def __init__(p, what):
+        AutoFile.__init__(p, what)
+        p._constructed()
+
 
 class TemporaryDir(AutoFile):
- def __init__(p, what):
-	AutoFile.__init__(p, what)
-	p.dir = '/'
-	p._constructed()
+
+    def __init__(p, what):
+        AutoFile.__init__(p, what)
+        p.dir = '/'
+        p._constructed()
 
 #---------- parsing and representation of the arguments
 
+
 class Action:
- def __init__(a, kind, af, arghandling, what):
-	# extra attributes get added during processing
-	a.kind = kind
-	a.af = af
-	a.ah = arghandling
-	a.what = what
-	a.missing_tests_control = False
- def __repr__(a):
-	return "<Action %s %s %s>" % (a.kind, a.what, `a.af`)
+
+    def __init__(a, kind, af, arghandling, what):
+        # extra attributes get added during processing
+        a.kind = kind
+        a.af = af
+        a.ah = arghandling
+        a.what = what
+        a.missing_tests_control = False
+
+    def __repr__(a):
+        return "<Action %s %s %s>" % (a.kind, a.what, repr(a.af))
+
 
 def parse_args():
-	global opts, timeouts
-	global n_non_actions # argh, stupid python scoping rules
-	usage = "%prog <options> --- <virt-server>..."
-	parser = OptionParser(usage=usage)
-	pa = parser.add_option
+    global opts, timeouts
+    global n_non_actions  # argh, stupid python scoping rules
+    usage = "%prog <options> --- <virt-server>..."
+    parser = OptionParser(usage=usage)
+    pa = parser.add_option
 
-	arghandling = {
-		'dsc_tests': True,
-		'dsc_filter': '*',
-		'deb_forbuilds': 'auto',
-		'deb_fortests': 'auto',
-		'tb': False,
-		'override_control': None,
-		'set_lang': 'C'
-	}
-	initial_arghandling = arghandling.copy()
-	n_non_actions = 0
+    arghandling = {
+        'dsc_tests': True,
+        'dsc_filter': '*',
+        'deb_forbuilds': 'auto',
+        'deb_fortests': 'auto',
+        'tb': False,
+        'override_control': None,
+        'set_lang': 'C'
+    }
+    initial_arghandling = arghandling.copy()
+    n_non_actions = 0
 
-	#----------
-	# actions (ie, test sets to run, sources to build, binaries to use):
+    #----------
+    # actions (ie, test sets to run, sources to build, binaries to use):
 
-	def cb_action(op,optstr,value,parser, long,kindpath,is_act):
-		global n_non_actions
-		parser.largs.append((value,kindpath))
-		n_non_actions += not(is_act)
+    def cb_action(op, optstr, value, parser, long, kindpath, is_act):
+        global n_non_actions
+        parser.largs.append((value, kindpath))
+        n_non_actions += not(is_act)
 
-	def pa_action(long, metavar, kindpath, help, is_act=True):
-		pa('','--'+long, action='callback', callback=cb_action,
-			nargs=1, type='string',
-			callback_args=(long,kindpath,is_act), help=help)
+    def pa_action(long, metavar, kindpath, help, is_act=True):
+        pa('', '--' + long, action='callback', callback=cb_action,
+           nargs=1, type='string',
+           callback_args=(long, kindpath, is_act), help=help)
 
-	pa_action('built-tree',		'TREE', '@/',
-		help='run tests from build tree TREE')
+    pa_action('built-tree', 'TREE', '@/',
+              help='run tests from build tree TREE')
 
-	pa_action('unbuilt-tree',	'TREE', '@//',
-		help='run tests from build tree TREE')
+    pa_action('unbuilt-tree', 'TREE', '@//',
+              help='run tests from build tree TREE')
 
-	pa_action('source',		'DSC', '@.dsc',
-		help='build DSC and use its tests and/or'
-		    ' generated binary packages')
+    pa_action('source', 'DSC', '@.dsc',
+              help='build DSC and use its tests and/or'
+              ' generated binary packages')
 
-	pa_action('binary',		'DEB', '@.deb',
-	       help='use binary package DEB according'
-		    ' to most recent --binaries-* settings')
+    pa_action('binary', 'DEB', '@.deb',
+              help='use binary package DEB according'
+              ' to most recent --binaries-* settings')
 
-	def cb_actnoarg(op,optstr,value,parser, largsentry):
-		parser.largs.append(largsentry)
-	pa('','--instantiate', action='callback', callback=cb_actnoarg,
-		callback_args=((None, ('instantiate',)),),
-		help='instantiate testbed now (during testing phase)'
-		     ' and install packages'
-		     ' selected for automatic installation, even'
-		     ' if this might apparently not be required otherwise')
+    def cb_actnoarg(op, optstr, value, parser, largsentry):
+        parser.largs.append(largsentry)
+    pa('', '--instantiate', action='callback', callback=cb_actnoarg,
+       callback_args=((None, ('instantiate',)),),
+       help='instantiate testbed now (during testing phase)'
+       ' and install packages'
+       ' selected for automatic installation, even'
+       ' if this might apparently not be required otherwise')
 
-	pa_action('override-control',	'CONTROL', ('control',), is_act=0,
-	       help='run tests from control file CONTROL instead,'
-		    ' (applies to next test suite only)')
+    pa_action('override-control', 'CONTROL', ('control',), is_act=0,
+              help='run tests from control file CONTROL instead,'
+              ' (applies to next test suite only)')
 
-	#----------
-	# argument handling settings (what ways to use action
-	#  arguments, and pathname processing):
+    #----------
+    # argument handling settings (what ways to use action
+    #  arguments, and pathname processing):
 
-	def cb_setah(option, opt_str, value, parser, toset,setval):
-		if type(setval) == list:
-			if not value in setval:
-				parser.error('value for %s option (%s) is not '
-				 'one of the permitted values (%s)' %
-				 (value, opt_str, setval.join(' ')))
-		elif setval is not None:
-			value = setval
-		for v in toset:
-			arghandling[v] = value
-		parser.largs.append(arghandling.copy())
+    def cb_setah(option, opt_str, value, parser, toset, setval):
+        if type(setval) == list:
+            if not value in setval:
+                parser.error('value for %s option (%s) is not '
+                             'one of the permitted values (%s)' %
+                            (value, opt_str, setval.join(' ')))
+        elif setval is not None:
+            value = setval
+        for v in toset:
+            arghandling[v] = value
+        parser.largs.append(arghandling.copy())
 
-	def pa_setah(long, affected,effect, metavar=None, **kwargs):
-		type = metavar
-		if type is not None: type = 'string'
-		pa('',long, action='callback', callback=cb_setah,
-		   callback_args=(affected,effect), **kwargs)
+    def pa_setah(long, affected, effect, metavar=None, **kwargs):
+        type = metavar
+        if type is not None:
+            type = 'string'
+        pa('', long, action='callback', callback=cb_setah,
+           callback_args=(affected, effect), **kwargs)
 
-	#---- paths: host or testbed:
-	#
-	pa_setah('--paths-testbed', ['tb'],True,
-		help='subsequent path specifications refer to the testbed')
-	pa_setah('--paths-host', ['tb'],False,
-		help='subsequent path specifications refer to the host')
+    #---- paths: host or testbed:
+    #
+    pa_setah('--paths-testbed', ['tb'], True,
+             help='subsequent path specifications refer to the testbed')
+    pa_setah('--paths-host', ['tb'], False,
+             help='subsequent path specifications refer to the host')
 
-	#---- source processing settings:
+    #---- source processing settings:
 
-	pa_setah('--sources-tests', ['dsc_tests'],True,
-		help='run tests from builds of subsequent sources')
-	pa_setah('--sources-no-tests', ['dsc_tests'],False,
-		help='do not run tests from builds of subsequent sources')
+    pa_setah('--sources-tests', ['dsc_tests'], True,
+             help='run tests from builds of subsequent sources')
+    pa_setah('--sources-no-tests', ['dsc_tests'], False,
+             help='do not run tests from builds of subsequent sources')
 
-	pa_setah('--built-binaries-filter', ['dsc_filter'],None,
-		type='string', metavar='PATTERN-LIST',
-		help='from subsequent sources, use binaries matching'
-		     ' PATTERN-LIST (comma-separated glob patterns)'
-		     ' according to most recent --binaries-* settings')
-	pa_setah('--no-built-binaries', ['dsc_filter'], '_',
-		help='from subsequent sources, do not use any binaries')
-	#---- binary package processing settings:
+    pa_setah('--built-binaries-filter', ['dsc_filter'], None,
+             type='string', metavar='PATTERN-LIST',
+             help='from subsequent sources, use binaries matching'
+             ' PATTERN-LIST (comma-separated glob patterns)'
+             ' according to most recent --binaries-* settings')
+    pa_setah('--no-built-binaries', ['dsc_filter'], '_',
+             help='from subsequent sources, do not use any binaries')
+    #---- binary package processing settings:
 
-	def pa_setahbins(long,toset,how):
-	 pa_setah(long, toset,['ignore','auto','install'],
-		type='string', metavar='IGNORE|AUTO|INSTALL', default='auto',
-		help=how+' ignore binaries, install them as needed'
-			' for dependencies, or unconditionally install'
-			' them, respectively')
-	pa_setahbins('--binaries', ['deb_forbuilds','deb_fortests'], '')
-	pa_setahbins('--binaries-forbuilds', ['deb_forbuilds'], 'for builds, ')
-	pa_setahbins('--binaries-fortests', ['deb_fortests'], 'for tests, ')
+    def pa_setahbins(long, toset, how):
+        pa_setah(long, toset, ['ignore', 'auto', 'install'],
+                 type='string', metavar='IGNORE|AUTO|INSTALL', default='auto',
+                 help=how + ' ignore binaries, install them as needed'
+                 ' for dependencies, or unconditionally install'
+                 ' them, respectively')
+    pa_setahbins('--binaries', ['deb_forbuilds', 'deb_fortests'], '')
+    pa_setahbins('--binaries-forbuilds', ['deb_forbuilds'], 'for builds, ')
+    pa_setahbins('--binaries-fortests', ['deb_fortests'], 'for tests, ')
 
-	#----------
-	# general options:
+    #----------
+    # general options:
 
-	def cb_vserv(op,optstr,value,parser):
-		parser.values.vserver = list(parser.rargs)
-		del parser.rargs[:]
+    def cb_vserv(op, optstr, value, parser):
+        parser.values.vserver = list(parser.rargs)
+        del parser.rargs[:]
 
-	def cb_path(op,optstr,value,parser, constructor,long,dir):
-		name = long.replace('-','_')
-		af = constructor(long, value,arghandling['tb'])
-		setattr(parser.values, name, af)
+    def cb_path(op, optstr, value, parser, constructor, long, dir):
+        name = long.replace('-', '_')
+        af = constructor(long, value, arghandling['tb'])
+        setattr(parser.values, name, af)
 
-	def pa_path(long, constructor, help, dir=False):
-		pa('','--'+long, action='callback', callback=cb_path,
-			callback_args=(constructor,long,dir),
-			nargs=1, type='string',
-			help=help, metavar='PATH')
+    def pa_path(long, constructor, help, dir=False):
+        pa('', '--' + long, action='callback', callback=cb_path,
+           callback_args=(constructor, long, dir),
+           nargs=1, type='string',
+           help=help, metavar='PATH')
 
-	pa_path('output-dir', OutputDir, dir=True,
-		help='write stderr/out files in PATH')
+    pa_path('output-dir', OutputDir, dir=True,
+            help='write stderr/out files in PATH')
 
-	pa('--leave-lang', dest='set_lang', action='store_false',
-		help="leave LANG on testbed set to testbed's default")
-	pa('--set-lang', dest='set_lang', action='store', metavar='LANGVAL',
-		help='set LANG on testbed to LANGVAL', default='C')
+    pa('--leave-lang', dest='set_lang', action='store_false',
+       help="leave LANG on testbed set to testbed's default")
+    pa('--set-lang', dest='set_lang', action='store', metavar='LANGVAL',
+       help='set LANG on testbed to LANGVAL', default='C')
 
-	pa('','--tmp-dir', 		type='string', dest='tmp',
-		help='write temporary files to TMP, emptying it'
-		     ' beforehand and leaving it behind at the end')
-	pa('','--log-file', 		type='string', dest='logfile',
-		help='write the log LOGFILE, emptying it beforehand,'
-		     ' instead of using OUTPUT-DIR/log or TMPDIR/log')
-	pa('','--summary-file', 	type='string', dest='summary',
-		help='write a summary report to SUMMARY,'
-		     ' emptying it beforehand')
+    pa('', '--tmp-dir', type='string', dest='tmp',
+       help='write temporary files to TMP, emptying it'
+       ' beforehand and leaving it behind at the end')
+    pa('', '--log-file', type='string', dest='logfile',
+       help='write the log LOGFILE, emptying it beforehand,'
+       ' instead of using OUTPUT-DIR/log or TMPDIR/log')
+    pa('', '--summary-file', type='string', dest='summary',
+       help='write a summary report to SUMMARY,'
+       ' emptying it beforehand')
 
-	for k in timeouts.keys():
-		pa('','--timeout-'+k,	type='int', dest='timeout_'+k,
-			metavar='T', help='set %s timeout to T' % k)
-	pa('','--timeout-factor',	type='float', dest='timeout_factor',
-			metavar='FACTOR', default=1.0,
-			help='multiply all default timeouts by FACTOR')
+    for k in timeouts.keys():
+        pa('', '--timeout-' + k, type='int', dest='timeout_' + k,
+           metavar='T', help='set %s timeout to T' % k)
+    pa('', '--timeout-factor', type='float', dest='timeout_factor',
+       metavar='FACTOR', default=1.0,
+       help='multiply all default timeouts by FACTOR')
 
-	pa('','--user',			type='string', dest='user',
-		help='run tests as USER (needs root on testbed)')
-	pa('','--gain-root',		type='string', dest='gainroot',
-		help='prefix debian/rules binary with GAINROOT')
-	pa('-q', '--quiet', action='store_true', dest='quiet', default=False);
-	pa('-d', '--debug', action='count', dest='debuglevel', default=0);
-	pa('','--gnupg-home',		type='string', dest='gnupghome',
-		default='~/.autopkgtest/gpg',
-		help='use GNUPGHOME rather than ~/.autopkgtest (for'
-			" signing private apt archive);"
-			" `fresh' means generate new key each time.")
+    pa('', '--user', type='string', dest='user',
+       help='run tests as USER (needs root on testbed)')
+    pa('', '--gain-root', type='string', dest='gainroot',
+       help='prefix debian/rules binary with GAINROOT')
+    pa('-q', '--quiet', action='store_true', dest='quiet', default=False)
+    pa('-d', '--debug', action='count', dest='debuglevel', default=0)
+    pa('', '--gnupg-home', type='string', dest='gnupghome',
+       default='~/.autopkgtest/gpg',
+       help='use GNUPGHOME rather than ~/.autopkgtest (for'
+       " signing private apt archive);"
+       " `fresh' means generate new key each time.")
 
-	#----------
-	# actual meat:
+    #----------
+    # actual meat:
 
-	class SpecialOption(optparse.Option): pass
-	vs_op = SpecialOption('','--VSERVER-DUMMY')
-	vs_op.action = 'callback'
-	vs_op.type = None
-	vs_op.default = None
-	vs_op.nargs = 0
-	vs_op.callback = cb_vserv
-	vs_op.callback_args = ( )
-	vs_op.callback_kwargs = { }
-	vs_op.help = 'introduces virtualisation server and args'
-	vs_op._short_opts = []
-	vs_op._long_opts = ['---']
+    class SpecialOption(optparse.Option):
+        pass
+    vs_op = SpecialOption('', '--VSERVER-DUMMY')
+    vs_op.action = 'callback'
+    vs_op.type = None
+    vs_op.default = None
+    vs_op.nargs = 0
+    vs_op.callback = cb_vserv
+    vs_op.callback_args = ()
+    vs_op.callback_kwargs = {}
+    vs_op.help = 'introduces virtualisation server and args'
+    vs_op._short_opts = []
+    vs_op._long_opts = ['---']
 
-	pa(vs_op)
+    pa(vs_op)
 
-	(opts,args) = parser.parse_args()
-	if not hasattr(opts,'vserver'):
-		parser.error('you must specifiy --- <virt-server>...')
-	if n_non_actions >= len(parser.largs):
-		parser.error('nothing to do specified')
+    (opts, args) = parser.parse_args()
+    if not hasattr(opts, 'vserver'):
+        parser.error('you must specifiy --- <virt-server>...')
+    if n_non_actions >= len(parser.largs):
+        parser.error('nothing to do specified')
 
-	for k in timeouts.keys():
-		t = getattr(opts,'timeout_'+k)
-		if t is None: t = timeouts[k] * opts.timeout_factor
-		timeouts[k] = int(t)
+    for k in timeouts.keys():
+        t = getattr(opts, 'timeout_' + k)
+        if t is None:
+            t = timeouts[k] * opts.timeout_factor
+        timeouts[k] = int(t)
 
-	arghandling = initial_arghandling
-	opts.actions = []
-	ix = 0
-	for act in args:
-		if type(act) == dict:
-			arghandling = act
-			continue
-		elif type(act) == tuple:
-			pass
-		elif type(act) == str:
-			act = (act,act)
-		else:
-			raise Exception("unknown action in list `%s' having"
-			      " type `%s'" % (act, type(act)))
-		(pathstr, kindpath) = act
+    arghandling = initial_arghandling
+    opts.actions = []
+    ix = 0
+    for act in args:
+        if type(act) == dict:
+            arghandling = act
+            continue
+        elif type(act) == tuple:
+            pass
+        elif type(act) == str:
+            act = (act, act)
+        else:
+            raise Exception("unknown action in list `%s' having"
+                            " type `%s'" % (act, type(act)))
+        (pathstr, kindpath) = act
 
-		constructor = InputFile
-		if type(kindpath) is tuple:		kind = kindpath[0]
-		elif kindpath.endswith('.deb'):		kind = 'deb'
-		elif kindpath.endswith('.dsc'):		kind = 'dsc'
-		elif kindpath.endswith('//'):
-			kind = 'ubtree'
-			constructor = InputDir
-		elif kindpath.endswith('/'):
-			kind = 'tree'
-			constructor = InputDir
-		else: parser.error("do not know how to handle filename `%s';"
-			" specify --source --binary or --build-tree" %
-			kindpath)
+        constructor = InputFile
+        if type(kindpath) is tuple:
+            kind = kindpath[0]
+        elif kindpath.endswith('.deb'):
+            kind = 'deb'
+        elif kindpath.endswith('.dsc'):
+            kind = 'dsc'
+        elif kindpath.endswith('//'):
+            kind = 'ubtree'
+            constructor = InputDir
+        elif kindpath.endswith('/'):
+            kind = 'tree'
+            constructor = InputDir
+        else:
+            parser.error("do not know how to handle filename `%s';"
+                         " specify --source --binary or --build-tree" %
+                         kindpath)
 
-		what = '%s%s' % (kind,ix); ix += 1
+        what = '%s%s' % (kind, ix)
+        ix += 1
 
-		if kind == 'dsc': fwhatx = '/' + os.path.basename(pathstr)
-		else: fwhatx = '-'+kind
+        if kind == 'dsc':
+            fwhatx = '/' + os.path.basename(pathstr)
+        else:
+            fwhatx = '-' + kind
 
-		if pathstr is None: af = None
-		else: af = constructor(what+fwhatx, pathstr, arghandling['tb'])
-		opts.actions.append(Action(kind, af, arghandling, what))
+        if pathstr is None:
+            af = None
+        else:
+            af = constructor(what + fwhatx, pathstr, arghandling['tb'])
+        opts.actions.append(Action(kind, af, arghandling, what))
+
 
 def setup_trace():
-	global trace_stream, tmp, summary_stream
+    global trace_stream, tmp, summary_stream
 
-	if opts.tmp is not None:
-		rmtree('tmp(specified)',opts.tmp)
-		mkdir_okexist(opts.tmp, 0755)
-		tmp = opts.tmp
-	else:
-		assert(tmp is None)
-		tmp = tempfile.mkdtemp()
-		os.chmod(tmp, 0755)
+    if opts.tmp is not None:
+        rmtree('tmp(specified)', opts.tmp)
+        mkdir_okexist(opts.tmp, 0755)
+        tmp = opts.tmp
+    else:
+        assert(tmp is None)
+        tmp = tempfile.mkdtemp()
+        os.chmod(tmp, 0755)
 
-	if opts.logfile is None:
-		if opts.output_dir is not None and opts.output_dir.spec_tbp:
-			opts.logfile = opts.output_dir.spec + '/log'
-		elif opts.tmp is not None:
-			opts.logfile = opts.tmp + '/log'
-	if opts.logfile is not None:
-		trace_stream = open(opts.logfile, 'w', 0)
-	if opts.summary is not None:
-		summary_stream = open(opts.summary, 'w', 0)
+    if opts.logfile is None:
+        if opts.output_dir is not None and opts.output_dir.spec_tbp:
+            opts.logfile = opts.output_dir.spec + '/log'
+        elif opts.tmp is not None:
+            opts.logfile = opts.tmp + '/log'
+    if opts.logfile is not None:
+        trace_stream = open(opts.logfile, 'w', 0)
+    if opts.summary is not None:
+        summary_stream = open(opts.summary, 'w', 0)
 
-	debug('options: '+`opts`+'; timeouts: '+`timeouts`, 1)
+    debug('options: ' + str(opts) + '; timeouts: ' + str(timeouts), 1)
+
 
 def finalise_options():
-	global opts, tb, build_essential
+    global opts, tb, build_essential
 
-	if opts.user is None and 'root-on-testbed' not in testbed.caps:
-		opts.user = ''
+    if opts.user is None and 'root-on-testbed' not in testbed.caps:
+        opts.user = ''
 
-	if opts.user is None:
-		su = 'suggested-normal-user='
-		ul = [
-			e[len(su):]
-			for e in testbed.caps
-			if e.startswith(su)
-			]
-		if ul:
-			opts.user = ul[0]
-		else:
-			opts.user = ''
+    if opts.user is None:
+        su = 'suggested-normal-user='
+        ul = [
+            e[len(su):]
+            for e in testbed.caps
+            if e.startswith(su)
+        ]
+        if ul:
+            opts.user = ul[0]
+        else:
+            opts.user = ''
 
-	if opts.user:
-		if 'root-on-testbed' not in testbed.caps:
-			pstderr("warning: virtualisation"
-				" system does not offer root on testbed,"
-				" but --user option specified: failure likely")
-		opts.user_wrap = lambda x: "su %s -c '%s'" % (opts.user, x)
-	else:
-		opts.user_wrap = lambda x: x
+    if opts.user:
+        if 'root-on-testbed' not in testbed.caps:
+            pstderr("warning: virtualisation"
+                    " system does not offer root on testbed,"
+                    " but --user option specified: failure likely")
+        opts.user_wrap = lambda x: "su %s -c '%s'" % (opts.user, x)
+    else:
+        opts.user_wrap = lambda x: x
 
-	if opts.gainroot is None:
-		opts.gainroot = ''
-		if (opts.user or
-		    'root-on-testbed' not in testbed.caps):
-			opts.gainroot = 'fakeroot'
-			build_essential += ['fakeroot']
+    if opts.gainroot is None:
+        opts.gainroot = ''
+        if (opts.user or
+                'root-on-testbed' not in testbed.caps):
+            opts.gainroot = 'fakeroot'
+            build_essential += ['fakeroot']
 
-	if opts.gnupghome.startswith('~/'):
-		opts.gnupghome = os.path.expanduser(opts.gnupghome)
-	elif opts.gnupghome == 'fresh':
-		opts.gnupghome = None
+    if opts.gnupghome.startswith('~/'):
+        opts.gnupghome = os.path.expanduser(opts.gnupghome)
+    elif opts.gnupghome == 'fresh':
+        opts.gnupghome = None
 
 #---------- testbed management - the Testbed class
 
+
 class Testbed:
- def __init__(tb):
-	tb.sp = None
-	tb.lastsend = None
-	tb.scratch = None
-	tb.modified = False
-	tb.blamed = []
-	tb._debug('init', 1)
-	tb._need_reset_apt = False
- def _debug(tb, m, minlevel=0):
-	debug('** '+m, minlevel)
- def start(tb):
-	tb._debug('start', 1)
-	p = subprocess.PIPE
-	debug_subprocess('vserver', opts.vserver)
-	tb._errplumb = Errplumb(True)
-	tb.sp = subprocess.Popen(opts.vserver,
-		stdin=p, stdout=p, stderr=tb._errplumb.stream)
-	tb.expect('ok')
-	tb.caps = tb.commandr('capabilities')
- def stop(tb):
-	tb._debug('stop', 1)
-	tb.close()
-	if tb.sp is None: return
-	ec = tb.sp.returncode
-	if ec is None:
-		tb.sp.stdout.close()
-		tb.send('quit')
-		tb.sp.stdin.close()
-		ec = tb.sp.wait()
-	if ec:
-		tb.bomb('testbed gave exit status %d after quit' % ec)
-	tb._errplumb.wait()
-	tb.sp = None
- def open(tb):
-	tb._debug('open, scratch=%s' % tb.scratch, 1)
-	if tb.scratch is not None: return
-	pl = tb.commandr('open')
-	tb._opened(pl)
- def _opened(tb, pl):
-	tb.scratch = InputDir('tb-scratch', pl[0], True)
-	tb.deps_processed = []
-	for af in paths: af.invalidate_ephem(True)
-	tb._auxverbscript_make()
- def _auxverbscript_make(tb):
-	pec = tb.commandr('print-auxverb-command')
-	if len(pec) < 1: tb.bomb('too few results from print-execute-command')
-	cmdl = map(urllib.unquote, pec[0].split(','))
 
-	tb._debug('cmdl = %s' % (`cmdl`), 1)
+    def __init__(tb):
+        tb.sp = None
+        tb.lastsend = None
+        tb.scratch = None
+        tb.modified = False
+        tb.blamed = []
+        tb._debug('init', 1)
+        tb._need_reset_apt = False
 
-	tb.ec_auxverbscript = TemporaryFile('satdep-auxverb')
-	print >>open(tb.ec_auxverbscript.write(),'w'), (
-'''#!/bin/sh
+    def _debug(tb, m, minlevel=0):
+        debug('** ' + m, minlevel)
+
+    def start(tb):
+        tb._debug('start', 1)
+        p = subprocess.PIPE
+        debug_subprocess('vserver', opts.vserver)
+        tb._errplumb = Errplumb(True)
+        tb.sp = subprocess.Popen(opts.vserver,
+                                 stdin=p, stdout=p, stderr=tb._errplumb.stream)
+        tb.expect('ok')
+        tb.caps = tb.commandr('capabilities')
+
+    def stop(tb):
+        tb._debug('stop', 1)
+        tb.close()
+        if tb.sp is None:
+            return
+        ec = tb.sp.returncode
+        if ec is None:
+            tb.sp.stdout.close()
+            tb.send('quit')
+            tb.sp.stdin.close()
+            ec = tb.sp.wait()
+        if ec:
+            tb.bomb('testbed gave exit status %d after quit' % ec)
+        tb._errplumb.wait()
+        tb.sp = None
+
+    def open(tb):
+        tb._debug('open, scratch=%s' % tb.scratch, 1)
+        if tb.scratch is not None:
+            return
+        pl = tb.commandr('open')
+        tb._opened(pl)
+
+    def _opened(tb, pl):
+        tb.scratch = InputDir('tb-scratch', pl[0], True)
+        tb.deps_processed = []
+        for af in paths:
+            af.invalidate_ephem(True)
+        tb._auxverbscript_make()
+
+    def _auxverbscript_make(tb):
+        pec = tb.commandr('print-auxverb-command')
+        if len(pec) < 1:
+            tb.bomb('too few results from print-execute-command')
+        cmdl = map(urllib.unquote, pec[0].split(','))
+
+        tb._debug('cmdl = %s' % str(cmdl), 1)
+
+        tb.ec_auxverbscript = TemporaryFile('satdep-auxverb')
+        print >>open(tb.ec_auxverbscript.write(), 'w'), (
+            '''#!/bin/sh
 set -e
 if [ $# = 2 ] && [ "x$1" = xdpkg-architecture ] && [ "x$2" = x-qDEB_HOST_ARCH ]; then
-	# This is a pretty nasty hack.  Hopefully it can go away
-	#  eventually.  See #635763.
-	set -- dpkg --print-architecture
+    # This is a pretty nasty hack.  Hopefully it can go away
+    #  eventually.  See #635763.
+    set -- dpkg --print-architecture
 fi
 export DEBIAN_FRONTEND=noninteractive
-exec '''+shellquote_cmdl(cmdl)+' "$@"'+"\n"
-		)
-	os.chmod(tb.ec_auxverbscript.write(), 0755)
+exec ''' + shellquote_cmdl(cmdl) + ' "$@"' + "\n"
+        )
+        os.chmod(tb.ec_auxverbscript.write(), 0755)
 
- def mungeing_apt(tb):
-	if not 'revert' in tb.caps:
-		tb._need_reset_apt = True
- def reset_apt(tb):
-	if not tb._need_reset_apt: return
-	what = 'aptget-update-reset'
-	cmdl = ['sh','-c','apt-get -qy update 2>&1']
-	rc = tb.execute(what, cmdl, kind='install')
-	if rc:
-		pstderr("\n" "warning: failed to restore"
-			" testbed apt cache, exit code %d" % rc)
-	what = 'aptconf-reset'
-	cmdl = ['rm','-f','/etc/apt/apt.conf.d/90autopkgtest',
-		'/etc/apt/sources.list.d/autopkgtest.list',
-		'/etc/apt/preferences.d/90autopkgtest']
-	rc = tb.execute(what, cmdl, kind='install')
-	if rc:
-		pstderr("\n" "warning: failed to reset changes"
-			" made to testbed apt configuration, exit code %d" % rc)
-	tb._need_reset_apt = False
- def close(tb):
-	tb._debug('close, scratch=%s' % tb.scratch, 1)
-	if tb.scratch is None: return
-	tb.scratch = None
-	if tb.sp is None: return
-	tb.command('close')
- def prepare1(tb, deps_new):
-	tb._debug('prepare1, modified=%s, deps_processed=%s, deps_new=%s' %
-		(tb.modified, tb.deps_processed, deps_new), 1)
-	if 'revert' in tb.caps and (tb.modified or
-	    [d for d in tb.deps_processed if d not in deps_new]):
-		for af in paths: af.read(False)
-		tb._debug('reset **', 1)
-		pl = tb.commandr('revert')
-		tb._opened(pl)
-	tb.modified = False
- def prepare2(tb, deps_new):
-	tb._debug('prepare2, deps_new=%s' % deps_new, 1)
-	binaries.publish()
-	tb._install_deps(deps_new)
- def prepare(tb, deps_new):
-	tb.prepare1(deps_new)
-	tb.prepare2(deps_new)
- def _install_deps(tb, deps_new):
-	tb._debug(' installing dependencies '+`deps_new`, 1)
-	tb.deps_processed = deps_new
-	if not deps_new: return
-	tb.satisfy_dependencies_string(', '.join(deps_new), 'install-deps')
- def needs_reset(tb):
-	tb._debug('needs_reset, previously=%s' % tb.modified, 1)
-	tb.modified = True
- def blame(tb, m):
-	tb._debug('blame += %s' % m, 1)
-	tb.blamed.append(m)
- def bomb(tb, m):
-	tb._debug('bomb %s' % m, 1)
-	tb.reset_apt()
-	tb.stop()
-	raise Quit(16, 'testbed failed: %s' % m)
- def send(tb, string):
-	tb.sp.stdin
-	try:
-		debug('>> '+string, 2)
-		print >>tb.sp.stdin, string
-		tb.sp.stdin.flush()
-		tb.lastsend = string
-	except:
-		(type, value, dummy) = sys.exc_info()
-		tb.bomb('cannot send to testbed: %s' % traceback.
-			format_exception_only(type, value))
- def expect(tb, keyword, nresults=None):
-	l = tb.sp.stdout.readline()
-	if not l: tb.bomb('unexpected eof from the testbed')
-	if not l.endswith('\n'): tb.bomb('unterminated line from the testbed')
-	l = l.rstrip('\n')
-	debug('<< '+l, 2)
-	ll = l.split()
-	if not ll: tb.bomb('unexpected whitespace-only line from the testbed')
-	if ll[0] != keyword:
-		if tb.lastsend is None:
-			tb.bomb("got banner `%s', expected `%s...'" %
-				(l, keyword))
-		else:
-			tb.bomb("sent `%s', got `%s', expected `%s...'" %
-				(tb.lastsend, l, keyword))
-	ll = ll[1:]
-	if nresults is not None and len(ll) != nresults:
-		tb.bomb("sent `%s', got `%s' (%d result parameters),"
-			" expected %d result parameters" %
-			(tb.lastsend, l, len(ll), nresults))
-	return ll
- def commandr(tb, cmd, args=(), nresults=None, unquote=True):
-	# pass args=[None,...] or =(None,...) to avoid more url quoting
-	if type(cmd) is str: cmd = [cmd]
-	if len(args) and args[0] is None: args = args[1:]
-	else: args = map(urllib.quote, args)
-	al = cmd + args
-	tb.send(string.join(al))
-	ll = tb.expect('ok', nresults)
-	if unquote: ll = map(urllib.unquote, ll)
-	return ll
- def command(tb, cmd, args=()):
-	tb.commandr(cmd, args, 0)
- def commandr1(tb, cmd, args=()):
-	rl = tb.commandr(cmd, args, 1)
-	return rl[0]
- def execute(tb, what, cmdl,
-		si='/dev/null', so='/dev/null', se=None, cwd=None,
-		script=False, xenv=[], kind='short'):
-	# Options for script:
-	#   False - do not call debug_subprocess, no synch. reporting required
-	#   None or string - call debug_subprocess with that value,
-	#			plumb stderr through synchronously if possible
-	# Options for se:
-	#   None - usual Errplumb (output is of kind 2c)
-	#   string - path on testbed (output is of kind 2d)
+    def mungeing_apt(tb):
+        if not 'revert' in tb.caps:
+            tb._need_reset_apt = True
 
-	timeout = timeouts[kind]
+    def reset_apt(tb):
+        if not tb._need_reset_apt:
+            return
+        what = 'aptget-update-reset'
+        cmdl = ['sh', '-c', 'apt-get -qy update 2>&1']
+        rc = tb.execute(what, cmdl, kind='install')
+        if rc:
+            pstderr("\n" "warning: failed to restore"
+                    " testbed apt cache, exit code %d" % rc)
+        what = 'aptconf-reset'
+        cmdl = ['rm', '-f', '/etc/apt/apt.conf.d/90autopkgtest',
+                '/etc/apt/sources.list.d/autopkgtest.list',
+                '/etc/apt/preferences.d/90autopkgtest']
+        rc = tb.execute(what, cmdl, kind='install')
+        if rc:
+            pstderr("\n" "warning: failed to reset changes"
+                    " made to testbed apt configuration, exit code %d" % rc)
+        tb._need_reset_apt = False
 
-	if script is not False: debug_subprocess(what, cmdl, script=script)
-	if cwd is None: cwd = tb.scratch.write(True)
+    def close(tb):
+        tb._debug('close, scratch=%s' % tb.scratch, 1)
+        if tb.scratch is None:
+            return
+        tb.scratch = None
+        if tb.sp is None:
+            return
+        tb.command('close')
 
-	xdump = None
-	if se is None:
-		ep = Errplumb()
-		se_catch = TemporaryFile(what+'-xerr')
-		se_use = se_catch.write(True)
-		if not opts.quiet: xdump = 'debug=2-2'
-		elif trace_stream is not None:
-			xdump = 'debug=2-%d' % trace_stream.fileno()
-	else:
-		ep = None
-		se_catch = None
-		se_use = se
+    def prepare1(tb, deps_new):
+        tb._debug('prepare1, modified=%s, deps_processed=%s, deps_new=%s' %
+                 (tb.modified, tb.deps_processed, deps_new), 1)
+        if 'revert' in tb.caps and (
+                tb.modified or [d for d in tb.deps_processed if d not in deps_new]):
+            for af in paths:
+                af.read(False)
+            tb._debug('reset **', 1)
+            pl = tb.commandr('revert')
+            tb._opened(pl)
+        tb.modified = False
 
-	cmdl = [None,
-		','.join(map(urllib.quote, cmdl)),
-		si, so, se_use, cwd]
+    def prepare2(tb, deps_new):
+        tb._debug('prepare2, deps_new=%s' % deps_new, 1)
+        binaries.publish()
+        tb._install_deps(deps_new)
 
-	if timeout is not None and timeout > 0:
-		cmdl.append('timeout=%d' % timeout)
+    def prepare(tb, deps_new):
+        tb.prepare1(deps_new)
+        tb.prepare2(deps_new)
 
-	if xdump is not None and 'execute-debug' in tb.caps: cmdl += [xdump]
-	for e in xenv: cmdl.append('env=%s' % e)
-	if kind=='install': cmdl.append('env=DEBIAN_FRONTEND=noninteractive')
-	if opts.set_lang is not False:
-		cmdl.append('env=LANG=%s' % opts.set_lang)
+    def _install_deps(tb, deps_new):
+        tb._debug(' installing dependencies ' + str(deps_new), 1)
+        tb.deps_processed = deps_new
+        if not deps_new:
+            return
+        tb.satisfy_dependencies_string(', '.join(deps_new), 'install-deps')
 
-	rc = tb.commandr1('execute', cmdl)
-	try: rc = int(rc)
-	except ValueError: bomb("execute for %s gave invalid response `%s'"
-					% (what,rc))
+    def needs_reset(tb):
+        tb._debug('needs_reset, previously=%s' % tb.modified, 1)
+        tb.modified = True
 
-	if se_catch is not None:
-		debug_file(se_catch.read())
-	if ep is not None:
-		ep.wait()
+    def blame(tb, m):
+        tb._debug('blame += %s' % m, 1)
+        tb.blamed.append(m)
 
-	return rc
+    def bomb(tb, m):
+        tb._debug('bomb %s' % m, 1)
+        tb.reset_apt()
+        tb.stop()
+        raise Quit(16, 'testbed failed: %s' % m)
 
- def satisfy_dependencies_string(tb, deps, what):
-	# Must have called Binaries.configure_apt
-	debug('dependencies: %s: satisfying %s' % (what,deps), 1)
-	dsc = TemporaryFile('deps.dsc')
-	print >>open(dsc.write(),'w'), 'Build-Depends: ', deps, '\n\n'
-	# pbuilder-satisfydepends has a bug where it ignores the
-	#  Build-Depends if it's the last line in the dsc (#635696)
-	tb.satisfy_dependencies_dsc(dsc, what)
+    def send(tb, string):
+        tb.sp.stdin
+        try:
+            debug('>> ' + string, 2)
+            print >>tb.sp.stdin, string
+            tb.sp.stdin.flush()
+            tb.lastsend = string
+        except:
+            (type, value, dummy) = sys.exc_info()
+            tb.bomb('cannot send to testbed: %s' % traceback.
+                    format_exception_only(type, value))
 
- def satisfy_dependencies_dsc(tb, dsc, what):
-	# Must have called Binaries.configure_apt
-	cmdl = [ '/usr/lib/pbuilder/pbuilder-satisfydepends-classic',
-		'--binary-all', # --check-key
-		'--internal-chrootexec',tb.ec_auxverbscript.read(),
-		'-c',dsc.read()
-	]
-	# The --internal-chrootexec option is really handy but
-	#  perhaps we are not supposed to use it ?  See also #635697.
-	debug('dependencies: %s: running %s' % (what,`cmdl`))
-	rc = subprocess.call(cmdl, stdout=None, stderr=None)
-	if rc: badpkg('dependency install failed, exit code %d' % rc)
+    def expect(tb, keyword, nresults=None):
+        l = tb.sp.stdout.readline()
+        if not l:
+            tb.bomb('unexpected eof from the testbed')
+        if not l.endswith('\n'):
+            tb.bomb('unterminated line from the testbed')
+        l = l.rstrip('\n')
+        debug('<< ' + l, 2)
+        ll = l.split()
+        if not ll:
+            tb.bomb('unexpected whitespace-only line from the testbed')
+        if ll[0] != keyword:
+            if tb.lastsend is None:
+                tb.bomb("got banner `%s', expected `%s...'" %
+                        (l, keyword))
+            else:
+                tb.bomb("sent `%s', got `%s', expected `%s...'" %
+                        (tb.lastsend, l, keyword))
+        ll = ll[1:]
+        if nresults is not None and len(ll) != nresults:
+            tb.bomb("sent `%s', got `%s' (%d result parameters),"
+                    " expected %d result parameters" %
+                    (tb.lastsend, l, len(ll), nresults))
+        return ll
+
+    def commandr(tb, cmd, args=(), nresults=None, unquote=True):
+        # pass args=[None,...] or =(None,...) to avoid more url quoting
+        if type(cmd) is str:
+            cmd = [cmd]
+        if len(args) and args[0] is None:
+            args = args[1:]
+        else:
+            args = map(urllib.quote, args)
+        al = cmd + args
+        tb.send(string.join(al))
+        ll = tb.expect('ok', nresults)
+        if unquote:
+            ll = map(urllib.unquote, ll)
+        return ll
+
+    def command(tb, cmd, args=()):
+        tb.commandr(cmd, args, 0)
+
+    def commandr1(tb, cmd, args=()):
+        rl = tb.commandr(cmd, args, 1)
+        return rl[0]
+
+    def execute(tb, what, cmdl,
+                si='/dev/null', so='/dev/null', se=None, cwd=None,
+                script=False, xenv=[], kind='short'):
+        # Options for script:
+        #   False - do not call debug_subprocess, no synch. reporting required
+        #   None or string - call debug_subprocess with that value,
+        #			plumb stderr through synchronously if possible
+        # Options for se:
+        #   None - usual Errplumb (output is of kind 2c)
+        #   string - path on testbed (output is of kind 2d)
+
+        timeout = timeouts[kind]
+
+        if script is not False:
+            debug_subprocess(what, cmdl, script=script)
+        if cwd is None:
+            cwd = tb.scratch.write(True)
+
+        xdump = None
+        if se is None:
+            ep = Errplumb()
+            se_catch = TemporaryFile(what + '-xerr')
+            se_use = se_catch.write(True)
+            if not opts.quiet:
+                xdump = 'debug=2-2'
+            elif trace_stream is not None:
+                xdump = 'debug=2-%d' % trace_stream.fileno()
+        else:
+            ep = None
+            se_catch = None
+            se_use = se
+
+        cmdl = [None,
+                ','.join(map(urllib.quote, cmdl)),
+                si, so, se_use, cwd]
+
+        if timeout is not None and timeout > 0:
+            cmdl.append('timeout=%d' % timeout)
+
+        if xdump is not None and 'execute-debug' in tb.caps:
+            cmdl += [xdump]
+        for e in xenv:
+            cmdl.append('env=%s' % e)
+        if kind == 'install':
+            cmdl.append('env=DEBIAN_FRONTEND=noninteractive')
+        if opts.set_lang is not False:
+            cmdl.append('env=LANG=%s' % opts.set_lang)
+
+        rc = tb.commandr1('execute', cmdl)
+        try:
+            rc = int(rc)
+        except ValueError:
+            bomb("execute for %s gave invalid response `%s'"
+                 % (what, rc))
+
+        if se_catch is not None:
+            debug_file(se_catch.read())
+        if ep is not None:
+            ep.wait()
+
+        return rc
+
+    def satisfy_dependencies_string(tb, deps, what):
+        # Must have called Binaries.configure_apt
+        debug('dependencies: %s: satisfying %s' % (what, deps), 1)
+        dsc = TemporaryFile('deps.dsc')
+        print >>open(dsc.write(), 'w'), 'Build-Depends: ', deps, '\n\n'
+        # pbuilder-satisfydepends has a bug where it ignores the
+        # Build-Depends if it's the last line in the dsc (#635696)
+        tb.satisfy_dependencies_dsc(dsc, what)
+
+    def satisfy_dependencies_dsc(tb, dsc, what):
+        # Must have called Binaries.configure_apt
+        cmdl = ['/usr/lib/pbuilder/pbuilder-satisfydepends-classic',
+                '--binary-all',  # --check-key
+                '--internal-chrootexec', tb.ec_auxverbscript.read(),
+                '-c', dsc.read()
+                ]
+        # The --internal-chrootexec option is really handy but
+        # perhaps we are not supposed to use it ?  See also #635697.
+        debug('dependencies: %s: running %s' % (what, str(cmdl)))
+        rc = subprocess.call(cmdl, stdout=None, stderr=None)
+        if rc:
+            badpkg('dependency install failed, exit code %d' % rc)
 
 #---------- representation of test control files: Field*, Test, etc.
 
+
 class FieldBase:
- def __init__(f, fname, stz, base, tnames, vl):
-	assert(vl)
-	f.stz = stz
-	f.fname = fname
-	f.base = base
-	f.tnames = tnames
-	f.vl = vl
- def words(f):
-	def distribute(vle):
-		(lno, v) = vle
-		r = v.split()
-		r = map((lambda w: (lno, w)), r)
-		return r
-	return flatten(map(distribute, f.vl))
- def atmostone(f):
-	if len(f.vl) == 1:
-		(f.lno, f.v) = f.vl[0]
-	else:
-		raise Unsupported(f.vl[1][0],
-			'only one %s field allowed' % f.fname)
-	return f.v
+
+    def __init__(f, fname, stz, base, tnames, vl):
+        assert(vl)
+        f.stz = stz
+        f.fname = fname
+        f.base = base
+        f.tnames = tnames
+        f.vl = vl
+
+    def words(f):
+        def distribute(vle):
+            (lno, v) = vle
+            r = v.split()
+            r = map((lambda w: (lno, w)), r)
+            return r
+        return flatten(map(distribute, f.vl))
+
+    def atmostone(f):
+        if len(f.vl) == 1:
+            (f.lno, f.v) = f.vl[0]
+        else:
+            raise Unsupported(f.vl[1][0],
+                              'only one %s field allowed' % f.fname)
+        return f.v
+
 
 class FieldIgnore(FieldBase):
- def parse(f): pass
+
+    def parse(f):
+        pass
+
 
 class Restriction:
- def __init__(r,rname,base): pass
 
-class Restriction_rw_build_tree(Restriction): pass
-class Restriction_build_needed(Restriction): pass
-class Restriction_allow_stderr(Restriction): pass
+    def __init__(r, rname, base):
+        pass
+
+
+class Restriction_rw_build_tree(Restriction):
+    pass
+
+
+class Restriction_build_needed(Restriction):
+    pass
+
+
+class Restriction_allow_stderr(Restriction):
+    pass
+
+
 class Restriction_breaks_testbed(Restriction):
- def __init__(r, rname, base):
-	if 'revert-full-system' not in testbed.caps:
-		raise Unsupported(-1,
-	'Test breaks testbed but testbed does not advertise revert-full-system')
+
+    def __init__(r, rname, base):
+        if 'revert-full-system' not in testbed.caps:
+            raise Unsupported(-1, 'Test breaks testbed but testbed does not '
+                              'advertise revert-full-system')
+
+
 class Restriction_needs_root(Restriction):
- def __init__(r, rname, base):
-	if 'root-on-testbed' not in testbed.caps:
-		raise Unsupported(-1,
-			'Test needs root on testbed which is not available')
+
+    def __init__(r, rname, base):
+        if 'root-on-testbed' not in testbed.caps:
+            raise Unsupported(-1,
+                              'Test needs root on testbed which is not available')
+
 
 class Field_Restrictions(FieldBase):
- def parse(f):
-	for wle in f.words():
-		(lno, rname) = wle
-		nrname = rname.replace('-','_')
-		try: rclass = globals()['Restriction_'+nrname]
-		except KeyError: raise Unsupported(lno,
-			'unknown restriction %s' % rname)
-		r = rclass(nrname, f.base)
-		f.base['restriction_names'].append(rname)
-		f.base['restrictions'].append(r)
+
+    def parse(f):
+        for wle in f.words():
+            (lno, rname) = wle
+            nrname = rname.replace('-', '_')
+            try:
+                rclass = globals()['Restriction_' + nrname]
+            except KeyError:
+                raise Unsupported(lno,
+                                  'unknown restriction %s' % rname)
+            r = rclass(nrname, f.base)
+            f.base['restriction_names'].append(rname)
+            f.base['restrictions'].append(r)
+
 
 class Field_Features(FieldIgnore):
- def parse(f):
-	for wle in f.words():
-		(lno, fname) = wle
-		f.base['feature_names'].append(fname)
-		nfname = fname.replace('-','_')
-		try: fclass = globals()['Feature_'+nfname]
-		except KeyError: continue
-		ft = fclass(nfname, f.base)
-		f.base['features'].append(ft)
 
-class Field_Tests(FieldIgnore): pass
+    def parse(f):
+        for wle in f.words():
+            (lno, fname) = wle
+            f.base['feature_names'].append(fname)
+            nfname = fname.replace('-', '_')
+            try:
+                fclass = globals()['Feature_' + nfname]
+            except KeyError:
+                continue
+            ft = fclass(nfname, f.base)
+            f.base['features'].append(ft)
+
+
+class Field_Tests(FieldIgnore):
+    pass
+
 
 class Field_Depends(FieldBase):
- def parse(f):
-	debug("Field_Depends: %s %s %s %s" % (f.stz, f.base, f.tnames, f.vl), 2)
-	dl = map(lambda x: x.strip(),
-		flatten(map(lambda (lno, v): v.split(','), f.vl)))
-	# allow empty Depends: field
-	if dl == ['']:
-	    f.base['depends'] = []
-	    return
 
-	dep_re = re.compile(r"(?P<package>[a-z0-9+-.]+)\s*(\((?P<relation><<|<=|>=|=|>>)\s*(?P<version>[^\)]*)\))?(\s*\[[[a-z0-9+-. ]+\])?$")
-	for di in dl:
-		for d in di.split('|'):
-			d = d.strip()
-			if d == '@': continue  # Expanded to binary packages
-			m = dep_re.match(d)
-			if not m:
-				badpkg("Test Depends field contains an invalid "
-				       "dependency `%s'" % d)
-			if m.group("version"):
-				try:
-					debian_support.NativeVersion(m.group("version"))
-				except ValueError:
-					badpkg("Test Depends field contains dependency"
-					       " `%s' with an invalid version" % d)
-	f.base['depends'] = dl
+    def parse(f):
+        debug("Field_Depends: %s %s %s %s" %
+              (f.stz, f.base, f.tnames, f.vl), 2)
+        dl = map(lambda x: x.strip(),
+                 flatten(map(lambda (lno, v): v.split(','), f.vl)))
+        # allow empty Depends: field
+        if dl == ['']:
+            f.base['depends'] = []
+            return
+
+        dep_re = re.compile(
+            r"(?P<package>[a-z0-9+-.]+)\s*(\((?P<relation><<|<=|>=|=|>>)\s*(?P<version>[^\)]*)\))?(\s*\[[[a-z0-9+-. ]+\])?$")
+        for di in dl:
+            for d in di.split('|'):
+                d = d.strip()
+                if d == '@':
+                    continue  # Expanded to binary packages
+                m = dep_re.match(d)
+                if not m:
+                    badpkg("Test Depends field contains an invalid "
+                           "dependency `%s'" % d)
+                if m.group("version"):
+                    try:
+                        debian_support.NativeVersion(m.group("version"))
+                    except ValueError:
+                        badpkg("Test Depends field contains dependency"
+                               " `%s' with an invalid version" % d)
+        f.base['depends'] = dl
+
 
 class Field_Tests_directory(FieldBase):
- def parse(f):
-	td = f.atmostone()
-	if td.startswith('/'): raise Unsupported(f.lno,
-		'Tests-Directory may not be absolute')
-	f.base['testsdir'] = td
+
+    def parse(f):
+        td = f.atmostone()
+        if td.startswith('/'):
+            raise Unsupported(f.lno,
+                              'Tests-Directory may not be absolute')
+        f.base['testsdir'] = td
+
 
 def run_tests(stanzas, tree):
-	global errorcode, testbed
-	if stanzas == ():
-		report('*', 'SKIP no tests in this package')
-		errorcode |= 8
-	for stanza in stanzas:
-		tests = stanza[' tests']
-		if not tests:
-			report('*', 'SKIP package has metadata but no tests')
-			errorcode |= 8
-		for t in tests:
-			t.prepare(tree)
-			t.run(tree)
-			if 'breaks-testbed' in t.restriction_names:
-				testbed.needs_reset()
-		testbed.needs_reset()
+    global errorcode, testbed
+    if stanzas == ():
+        report('*', 'SKIP no tests in this package')
+        errorcode |= 8
+    for stanza in stanzas:
+        tests = stanza[' tests']
+        if not tests:
+            report('*', 'SKIP package has metadata but no tests')
+            errorcode |= 8
+        for t in tests:
+            t.prepare(tree)
+            t.run(tree)
+            if 'breaks-testbed' in t.restriction_names:
+                testbed.needs_reset()
+        testbed.needs_reset()
+
 
 class Test:
- def __init__(t, tname, base, act):
-	if '/' in tname: raise Unsupported(base[' lno'],
-		'test name may not contain / character')
-	for k in base: setattr(t,k,base[k])
-	t.tname = tname
-	t.act = act
-	t.what = act.what+'t-'+tname
-	if len(base['testsdir']): t.path = base['testsdir'] + '/' + tname
-	else: t.path = tname
-	debug('constructed; path=%s' % t.path, 1)
-	debug(' .depends=%s' % t.depends, 1)
- def _debug(t, m):
-	debug('& %s: %s' % (t.what, m))
- def report(t, m):
-	report(t.what, m)
- def reportfail(t, m):
-	global errorcode
-	errorcode |= 4
-	report(t.what, 'FAIL ' + m)
- def prepare(t, tree):
-	t._debug('preparing')
-	dn = []
-	for d in t.depends:
-		t._debug(' processing dependency '+d)
-		if not '@' in d:
-			t._debug('  literal dependency '+d)
-			dn.append(d)
-		else:
-			for pkg in packages_from_source(t.act, tree):
-				dp = d.replace('@',pkg)
-				t._debug('  synthesised dependency '+dp)
-				dn.append(dp)
-	testbed.prepare(dn)
- def run(t, tree):
-	t._debug('[----------------------------------------')
-	def stdouterr(oe):
-		idstr = t.what + '-' + oe
-		if opts.output_dir is not None and opts.output_dir.spec_tbp:
-			use_dir = opts.output_dir
-		else:
-			use_dir = testbed.scratch
-		return RelativeOutputFile(idstr, use_dir, idstr)
 
-	if hasattr(t.act,'work'): t.act.work.write(True)
-	tree.read(True)
+    def __init__(t, tname, base, act):
+        if '/' in tname:
+            raise Unsupported(base[' lno'],
+                              'test name may not contain / character')
+        for k in base:
+            setattr(t, k, base[k])
+        t.tname = tname
+        t.act = act
+        t.what = act.what + 't-' + tname
+        if len(base['testsdir']):
+            t.path = base['testsdir'] + '/' + tname
+        else:
+            t.path = tname
+        debug('constructed; path=%s' % t.path, 1)
+        debug(' .depends=%s' % t.depends, 1)
 
-	af = RelativeInputFile(t.what, tree, t.path)
-	so = stdouterr('stdout')
-	se = stdouterr('stderr')
+    def _debug(t, m):
+        debug('& %s: %s' % (t.what, m))
 
-	tf = af.read(True)
-	xenv = []
+    def report(t, m):
+        report(t.what, m)
 
-	rc = testbed.execute('testchmod-'+t.what, ['chmod','+x','--',tf])
-	if rc: bomb('failed to chmod +x %s' % tf)
+    def reportfail(t, m):
+        global errorcode
+        errorcode |= 4
+        report(t.what, 'FAIL ' + m)
 
-	testtmp = '%s%s-testtmp' % (testbed.scratch.read(True), t.what)
+    def prepare(t, tree):
+        t._debug('preparing')
+        dn = []
+        for d in t.depends:
+            t._debug(' processing dependency ' + d)
+            if not '@' in d:
+                t._debug('  literal dependency ' + d)
+                dn.append(d)
+            else:
+                for pkg in packages_from_source(t.act, tree):
+                    dp = d.replace('@', pkg)
+                    t._debug('  synthesised dependency ' + dp)
+                    dn.append(dp)
+        testbed.prepare(dn)
 
-	script = 'buildtree="$1"; shift\n'
-	script += 'rm -rf -- "$@"; mkdir -- "$@"\n'
+    def run(t, tree):
+        t._debug('[----------------------------------------')
 
-	if 'needs-root' not in t.restriction_names and opts.user is not None:
-		tfl = ['su',opts.user,'-c',tf]
-		if opts.user:
-			script += 'chown %s "$@"\n' % opts.user
-			if 'rw-build-tree' in t.restriction_names:
-				script += ('chown -R %s "$buildtree"\n'
-						 % opts.user)
-	else:
-		tfl = [tf]
+        def stdouterr(oe):
+            idstr = t.what + '-' + oe
+            if opts.output_dir is not None and opts.output_dir.spec_tbp:
+                use_dir = opts.output_dir
+            else:
+                use_dir = testbed.scratch
+            return RelativeOutputFile(idstr, use_dir, idstr)
 
-	test_tmpdir = testtmp+'/tmpdir'; xenv.append('TMPDIR=%s' % test_tmpdir)
-	test_adttmp = testtmp+'/adttmp'; xenv.append('ADTTMP=%s' % test_adttmp)
-	script += 'chmod 1777 "%s"\n' % test_tmpdir
-	rc = testbed.execute('mktmpdir-'+t.what,
-		['sh','-ec',script,'x', tree.read(True),
-			testtmp, test_tmpdir, test_adttmp, 
-			])
-	if rc: bomb("could not create test tmp dirs in `%s', exit code %d"
-			% (testtmp, rc))
+        if hasattr(t.act, 'work'):
+            t.act.work.write(True)
+        tree.read(True)
 
-	# show stdout and stderr in realtime by teeing them (we can't use the
-	# coreutils tee with pipes though, as it aborts on the first read
-	# error)
-	so_write = so.write(True)
-	se_write = se.write(True)
-	fifo_out = os.path.join(testtmp, 'test_stdout')
-	fifo_err = os.path.join(testtmp, 'test_stderr')
-	os.mkfifo(fifo_out)
-	os.mkfifo(fifo_err)
-	debug('teeing to stdout: %s, stderr: %s' % (fifo_out, fifo_err), 1)
-	tee_out = os.fork()
-	if tee_out == 0:
-	    fd_in = os.open(fifo_out, os.O_RDONLY)
-	    fd_out = os.open(so_write, os.O_CREAT|os.O_WRONLY)
+        af = RelativeInputFile(t.what, tree, t.path)
+        so = stdouterr('stdout')
+        se = stdouterr('stderr')
 
-	    while True:
-		block = os.read(fd_in, 1024)
-		if not block:
-		    break
-		os.write(fd_out, block)
-		os.write(1, block)
-	    os._exit(0)
+        tf = af.read(True)
+        xenv = []
 
-	tee_err = os.fork()
-	if tee_err == 0:
-	    fd_in = os.open(fifo_err, os.O_RDONLY)
-	    fd_out = os.open(se_write, os.O_CREAT|os.O_WRONLY)
+        rc = testbed.execute('testchmod-' + t.what, ['chmod', '+x', '--', tf])
+        if rc:
+            bomb('failed to chmod +x %s' % tf)
 
-	    while True:
-		block = os.read(fd_in, 1024)
-		if not block:
-		    break
-		os.write(fd_out, block)
-		os.write(2, block)
-	    os._exit(0)
+        testtmp = '%s%s-testtmp' % (testbed.scratch.read(True), t.what)
 
-	rc = testbed.execute('test-'+t.what, tfl,
-		so=fifo_out, se=fifo_err, cwd=tree.read(True),
-		xenv=xenv, kind='test')
+        script = 'buildtree="$1"; shift\n'
+        script += 'rm -rf -- "$@"; mkdir -- "$@"\n'
 
-	os.waitpid(tee_out, 0)
-	os.waitpid(tee_err, 0)
-	os.unlink(fifo_out)
-	os.unlink(fifo_err)
-	t._debug('----------------------------------------]')
+        if 'needs-root' not in t.restriction_names and opts.user is not None:
+            tfl = ['su', opts.user, '-c', tf]
+            if opts.user:
+                script += 'chown %s "$@"\n' % opts.user
+                if 'rw-build-tree' in t.restriction_names:
+                    script += ('chown -R %s "$buildtree"\n'
+                               % opts.user)
+        else:
+            tfl = [tf]
 
-	so.read()
-	se_read = se.read()
+        test_tmpdir = testtmp + \
+            '/tmpdir'
+        xenv.append('TMPDIR=%s' % test_tmpdir)
+        test_adttmp = testtmp + \
+            '/adttmp'
+        xenv.append('ADTTMP=%s' % test_adttmp)
+        script += 'chmod 1777 "%s"\n' % test_tmpdir
+        rc = testbed.execute('mktmpdir-' + t.what,
+                             ['sh', '-ec', script, 'x', tree.read(True),
+                              testtmp, test_tmpdir, test_adttmp,
+                              ])
+        if rc:
+            bomb("could not create test tmp dirs in `%s', exit code %d"
+                 % (testtmp, rc))
 
-	t._debug(' - - - - - - - - - - results - - - - - - - - - -')
+        # show stdout and stderr in realtime by teeing them (we can't use the
+        # coreutils tee with pipes though, as it aborts on the first read
+        # error)
+        so_write = so.write(True)
+        se_write = se.write(True)
+        fifo_out = os.path.join(testtmp, 'test_stdout')
+        fifo_err = os.path.join(testtmp, 'test_stderr')
+        os.mkfifo(fifo_out)
+        os.mkfifo(fifo_err)
+        debug('teeing to stdout: %s, stderr: %s' % (fifo_out, fifo_err), 1)
+        tee_out = os.fork()
+        if tee_out == 0:
+            fd_in = os.open(fifo_out, os.O_RDONLY)
+            fd_out = os.open(so_write, os.O_CREAT | os.O_WRONLY)
 
-	stderr_stat = os.stat(se_read)
+            while True:
+                block = os.read(fd_in, 1024)
+                if not block:
+                    break
+                os.write(fd_out, block)
+                os.write(1, block)
+            os._exit(0)
 
-	if rc != 0:
-		t.reportfail('non-zero exit status %d' % rc)
-	elif (stderr_stat.st_size != 0 and
-			'allow-stderr' not in t.restriction_names):
-		se_read_fobj = open(se_read)
-		stderr_top = se_read_fobj.readline().rstrip('\n \t\r')
-		se_read_fobj.close()
-		t.reportfail('status: %d, stderr: %s' % (rc, stderr_top))
-		t._debug(' - - - - - - - - - - stderr - - - - - - - - - -')
-		debug_file(se_read)
-	else:
-		t.report('PASS')
+        tee_err = os.fork()
+        if tee_err == 0:
+            fd_in = os.open(fifo_err, os.O_RDONLY)
+            fd_out = os.open(se_write, os.O_CREAT | os.O_WRONLY)
+
+            while True:
+                block = os.read(fd_in, 1024)
+                if not block:
+                    break
+                os.write(fd_out, block)
+                os.write(2, block)
+            os._exit(0)
+
+        rc = testbed.execute('test-' + t.what, tfl,
+                             so=fifo_out, se=fifo_err, cwd=tree.read(True),
+                             xenv=xenv, kind='test')
+
+        os.waitpid(tee_out, 0)
+        os.waitpid(tee_err, 0)
+        os.unlink(fifo_out)
+        os.unlink(fifo_err)
+        t._debug('----------------------------------------]')
+
+        so.read()
+        se_read = se.read()
+
+        t._debug(' - - - - - - - - - - results - - - - - - - - - -')
+
+        stderr_stat = os.stat(se_read)
+
+        if rc != 0:
+            t.reportfail('non-zero exit status %d' % rc)
+        elif (stderr_stat.st_size != 0 and
+              'allow-stderr' not in t.restriction_names):
+            se_read_fobj = open(se_read)
+            stderr_top = se_read_fobj.readline().rstrip('\n \t\r')
+            se_read_fobj.close()
+            t.reportfail('status: %d, stderr: %s' % (rc, stderr_top))
+            t._debug(' - - - - - - - - - - stderr - - - - - - - - - -')
+            debug_file(se_read)
+        else:
+            t.report('PASS')
+
 
 def read_stanzas(af):
-	stanzas = [ ]
+    stanzas = []
 
-	try:
-		control = open(af.read(), 'r')
-	except (IOError,OSError), oe:
-		if oe[0] != errno.ENOENT: raise
-		return []
+    try:
+        control = open(af.read(), 'r')
+    except (IOError, OSError), oe:
+        if oe[0] != errno.ENOENT:
+            raise
+        return []
 
-	lno = 0
-	stz = { }	# stz[field_name][index] = (lno, value)
-			# special field names:
-			# stz[' lno'] = number
-			# stz[' tests'] = list of Test objects
-			# empty dictionary means we're between stanzas
-	for paragraph in deb822.Deb822.iter_paragraphs(control):
-		lno += 1
-		stz = { ' lno': lno, ' tests': [] }
-		for field, value in paragraph.iteritems():
-			v = "".join(value.split('\n')).replace('  ',' ')
-			field = string.capwords(field)
-			stz[field] = [(lno, v)]
-			lno += 1 + value.count('\n')  # Count multilines fields
-		stanzas.append(stz.copy())
+    lno = 0
+    stz = {}  # stz[field_name][index] = (lno, value)
+                # special field names:
+                # stz[' lno'] = number
+                # stz[' tests'] = list of Test objects
+                # empty dictionary means we're between stanzas
+    for paragraph in deb822.Deb822.iter_paragraphs(control):
+        lno += 1
+        stz = {' lno': lno, ' tests': []}
+        for field, value in paragraph.iteritems():
+            v = "".join(value.split('\n')).replace('  ', ' ')
+            field = string.capwords(field)
+            stz[field] = [(lno, v)]
+            lno += 1 + value.count('\n')  # Count multilines fields
+        stanzas.append(stz.copy())
 
-	return stanzas
+    return stanzas
+
 
 def read_control(act, tree, control_override):
 
-	if control_override is not None:
-		control_af = control_override
-		testbed.blame('arg:'+control_override.spec)
-	else:
-		if act.missing_tests_control:
-			return ()
-		control_af = RelativeInputFile(act.what+'-testcontrol',
-			tree, 'debian/tests/control')
+    if control_override is not None:
+        control_af = control_override
+        testbed.blame('arg:' + control_override.spec)
+    else:
+        if act.missing_tests_control:
+            return ()
+        control_af = RelativeInputFile(act.what + '-testcontrol',
+                                       tree, 'debian/tests/control')
 
-        stanzas = read_stanzas(control_af)
+    stanzas = read_stanzas(control_af)
 
-	for stz in stanzas:
-		try:
-			try: tnames = stz['Tests']
-			except KeyError:
-				tnames = ['*']
-				raise Unsupported(stz[' lno'],
-					'no Tests field')
-			tnames = map((lambda lt: lt[1]), tnames)
-			tnames = string.join(tnames).split()
-			base = {
-				'restriction_names': [],
-				'restrictions': [],
-				'feature_names': [],
-				'features': [],
-				'testsdir': 'debian/tests',
-				'depends' : '@'
-			}
-			for fname in stz.keys():
-				if fname.startswith(' '): continue
-				vl = stz[fname]
-				try: fclass = globals()['Field_'+
-					fname.replace('-','_')]
-				except KeyError: raise Unsupported(vl[0][0],
-					'unknown metadata field %s' % fname)
-				f = fclass(stz, fname, base, tnames, vl)
-				f.parse()
-			for tname in tnames:
-				t = Test(tname, base, act)
-				stz[' tests'].append(t)
-		except Unsupported, u:
-			for tname in tnames: u.report(tname)
-			continue
+    for stz in stanzas:
+        try:
+            try:
+                tnames = stz['Tests']
+            except KeyError:
+                tnames = ['*']
+                raise Unsupported(stz[' lno'],
+                                  'no Tests field')
+            tnames = map((lambda lt: lt[1]), tnames)
+            tnames = string.join(tnames).split()
+            base = {
+                'restriction_names': [],
+                'restrictions': [],
+                'feature_names': [],
+                'features': [],
+                'testsdir': 'debian/tests',
+                'depends': '@'
+            }
+            for fname in stz.keys():
+                if fname.startswith(' '):
+                    continue
+                vl = stz[fname]
+                try:
+                    fclass = globals()['Field_' +
+                                       fname.replace('-', '_')]
+                except KeyError:
+                    raise Unsupported(vl[0][0],
+                                      'unknown metadata field %s' % fname)
+                f = fclass(stz, fname, base, tnames, vl)
+                f.parse()
+            for tname in tnames:
+                t = Test(tname, base, act)
+                stz[' tests'].append(t)
+        except Unsupported, u:
+            for tname in tnames:
+                u.report(tname)
+            continue
 
-	return stanzas
+    return stanzas
+
 
 def print_exception(ei, msgprefix=''):
-	if msgprefix: pstderr(msgprefix)
-	(et, q, tb) = ei
-	if et is Quit:
-		pstderr('adt-run: ' + q.m)
-		psummary('quitting: '+q.m)
-		return q.ec
-	else:
-		pstderr("adt-run: unexpected, exceptional, error:")
-		psummary('quitting: unexpected error, consult transcript')
-		traceback.print_exc(None, sys.stderr)
-		if trace_stream is not None:
-			traceback.print_exc(None, trace_stream)
-		return 20
+    if msgprefix:
+        pstderr(msgprefix)
+    (et, q, tb) = ei
+    if et is Quit:
+        pstderr('adt-run: ' + q.m)
+        psummary('quitting: ' + q.m)
+        return q.ec
+    else:
+        pstderr("adt-run: unexpected, exceptional, error:")
+        psummary('quitting: unexpected error, consult transcript')
+        traceback.print_exc(None, sys.stderr)
+        if trace_stream is not None:
+            traceback.print_exc(None, trace_stream)
+        return 20
+
 
 def cleanup():
-	global trace_stream
-	try:
-		if testbed is not None:
-			testbed.reset_apt()
-			testbed.stop()
-		if opts.tmp is None and tmp is not None:
-			rmtree('tmp', tmp)
-		if trace_stream is not None:
-			trace_stream.close()
-			trace_stream = None
-	except:
-		print_exception(sys.exc_info(),
-			'\nadt-run: error cleaning up:\n')
-		os._exit(20)
+    global trace_stream
+    try:
+        if testbed is not None:
+            testbed.reset_apt()
+            testbed.stop()
+        if opts.tmp is None and tmp is not None:
+            rmtree('tmp', tmp)
+        if trace_stream is not None:
+            trace_stream.close()
+            trace_stream = None
+    except:
+        print_exception(sys.exc_info(),
+                        '\nadt-run: error cleaning up:\n')
+        os._exit(20)
 
 #---------- registration, installation etc. of .deb's: Binaries
 
+
 def determine_package(act):
-	cmd = 'dpkg-deb --info --'.split(' ')+[act.af.read(),'control']
-	(rc, output) = subprocess_cooked(cmd, stdout=subprocess.PIPE)
-	if rc: badpkg('failed to parse binary package, code %d' % rc)
-	pkg_re = re.compile('^\s*Package\s*:\s*([0-9a-z][-+.0-9a-z]*)\s*$')
-	act.pkg = None
-	for l in output.split('\n'):
-		m = pkg_re.match(l)
-		if not m: continue
-		if act.pkg: badpkg('two Package: lines in control file')
-		act.pkg = m.groups()[0]
-	if not act.pkg: badpkg('no good Package: line in control file')
+    cmd = 'dpkg-deb --info --'.split(' ') + [act.af.read(), 'control']
+    (rc, output) = subprocess_cooked(cmd, stdout=subprocess.PIPE)
+    if rc:
+        badpkg('failed to parse binary package, code %d' % rc)
+    pkg_re = re.compile('^\s*Package\s*:\s*([0-9a-z][-+.0-9a-z]*)\s*$')
+    act.pkg = None
+    for l in output.split('\n'):
+        m = pkg_re.match(l)
+        if not m:
+            continue
+        if act.pkg:
+            badpkg('two Package: lines in control file')
+        act.pkg = m.groups()[0]
+    if not act.pkg:
+        badpkg('no good Package: line in control file')
+
 
 def packages_from_source(act, tree):
     (rc, output) = subprocess_cooked(['dh_listpackages'],
-            stdout=subprocess.PIPE, cwd=tree.read())
-    if rc: badpkg('failed to parse packages built from source, code %d' % rc)
+                                     stdout=subprocess.PIPE, cwd=tree.read())
+    if rc:
+        badpkg('failed to parse packages built from source, code %d' % rc)
 
     # filter out empty lines
-    packages = [p for p in output.split() if p] 
+    packages = [p for p in output.split() if p]
 
     # filter out udebs
-    control_af = RelativeInputFile(act.what+'-control',
-            tree, 'debian/control')
+    control_af = RelativeInputFile(act.what + '-control',
+                                   tree, 'debian/control')
     for st in read_stanzas(control_af):
-            if 'Package' not in st:
+        if 'Package' not in st:
                     # source stanza
-                    continue
-            if 'Xc-package-type' in st:
-                    try:
-                            packages.remove(st['Package'][0][1])
-                    except ValueError:
-                            pass
+            continue
+        if 'Xc-package-type' in st:
+            try:
+                packages.remove(st['Package'][0][1])
+            except ValueError:
+                pass
 
     return packages
 
+
 class Binaries:
- def __init__(b, tb):
-	b.dir = TemporaryDir('binaries')
-	b.dir.write()
-	ok = False
 
-	if opts.gnupghome is None:
-		opts.gnupghome = tmp+'/gnupg'
+    def __init__(b, tb):
+        b.dir = TemporaryDir('binaries')
+        b.dir.write()
+        ok = False
 
-	b._debug('initialising')
-	try:
-		for x in ['pubring','secring']:
-			os.stat(opts.gnupghome + '/' + x + '.gpg')
-		ok = True
-	except (IOError,OSError), oe:
-		if oe.errno != errno.ENOENT: raise
+        if opts.gnupghome is None:
+            opts.gnupghome = tmp + '/gnupg'
 
-	if ok: b._debug('no key generation needed')
-	else: b.genkey()
+        b._debug('initialising')
+        try:
+            for x in ['pubring', 'secring']:
+                os.stat(opts.gnupghome + '/' + x + '.gpg')
+            ok = True
+        except (IOError, OSError), oe:
+            if oe.errno != errno.ENOENT:
+                raise
 
- def _debug(b, s):
-	debug('* '+s, 1)
+        if ok:
+            b._debug('no key generation needed')
+        else:
+            b.genkey()
 
- def genkey(b):
-	b._debug('preparing for key generation')
+    def _debug(b, s):
+        debug('* ' + s, 1)
 
-	mkdir_okexist(os.path.dirname(opts.gnupghome), 02755)
-	mkdir_okexist(opts.gnupghome, 0700)
+    def genkey(b):
+        b._debug('preparing for key generation')
 
-	script = '''
+        mkdir_okexist(os.path.dirname(opts.gnupghome), 02755)
+        mkdir_okexist(opts.gnupghome, 0700)
+
+        script = '''
   exec >&2
   cd "$1"
   cat <<"END" >key-gen-params
@@ -1445,86 +1690,92 @@ Name-Email: autopkgtest@example.com
 END
   set -x
   gpg --homedir="$1" --batch --gen-key key-gen-params
-		'''
-	cmdl = ['sh','-ec',script,'x',opts.gnupghome]
-	rc = subprocess_cooked(cmdl, dbg=('genkey',script))[0]
-	if rc: bomb('key generation failed, code %d' % rc)
+'''
+        cmdl = ['sh', '-ec', script, 'x', opts.gnupghome]
+        rc = subprocess_cooked(cmdl, dbg=('genkey', script))[0]
+        if rc:
+            bomb('key generation failed, code %d' % rc)
 
- def apt_configs(b):
-	return {
-		"Debug::pkgProblemResolver": "true",
-		"APT::Get::force-yes" : "true",
-		"APT::Get::Assume-Yes" : "true",
-		"quiet" : "true",
-	}
+    def apt_configs(b):
+        return {
+            "Debug::pkgProblemResolver": "true",
+            "APT::Get::force-yes": "true",
+            "APT::Get::Assume-Yes": "true",
+            "quiet": "true",
+        }
 
- def _configure_apt(b, tb):
-	config = OutputFile('apt-config','/etc/apt/apt.conf.d/90autopkgtest',
-			True)
-	f = open(config.write(),'w')
-	for (k,v) in b.apt_configs().iteritems():
-		print >>f, '%s { "%s"; };' % (k, v)
-	f.close()
-	config.read(True)
+    def _configure_apt(b, tb):
+        config = OutputFile('apt-config', '/etc/apt/apt.conf.d/90autopkgtest',
+                            True)
+        f = open(config.write(), 'w')
+        for (k, v) in b.apt_configs().iteritems():
+            print >>f, '%s { "%s"; };' % (k, v)
+        f.close()
+        config.read(True)
 
-	prefs = OutputFile('apt-prefs','/etc/apt/preferences.d/90autopkgtest',
-			True)
-	print >>open(prefs.write(),'w'), '''
+        prefs = OutputFile('apt-prefs', '/etc/apt/preferences.d/90autopkgtest',
+                           True)
+        print >>open(prefs.write(), 'w'), '''
 Package: *
 Pin: origin ""
 Pin-Priority: 1002
 '''
-	prefs.read(True)
-	
- def _apt_get(b):
-	ag = ['apt-get','-q']
-	for kv in b.apt_configs().iteritems():
-		ag += ['-o', '%s=%s' % kv]
-	return ' '.join(ag)
+        prefs.read(True)
 
- def reset(b):
-	b._debug('reset')
-	rmtree('binaries', b.dir.read())
-	b.dir.invalidate()
-	b.dir.write()
-	b.install = []
-	b.blamed = []
-	b.registered = set()
+    def _apt_get(b):
+        ag = ['apt-get', '-q']
+        for kv in b.apt_configs().iteritems():
+            ag += ['-o', '%s=%s' % kv]
+        return ' '.join(ag)
 
- def register(b, act, pkg, af, forwhat, blamed):
-	b._debug('register what=%s deb_%s=%s pkg=%s af=%s'
-		% (act.what, forwhat, act.ah['deb_'+forwhat], pkg, str(af)))
+    def reset(b):
+        b._debug('reset')
+        rmtree('binaries', b.dir.read())
+        b.dir.invalidate()
+        b.dir.write()
+        b.install = []
+        b.blamed = []
+        b.registered = set()
 
-	if act.ah['deb_'+forwhat] == 'ignore': return
+    def register(b, act, pkg, af, forwhat, blamed):
+        b._debug('register what=%s deb_%s=%s pkg=%s af=%s'
+                 % (act.what, forwhat, act.ah['deb_' + forwhat], pkg, str(af)))
 
-	b.blamed += testbed.blamed
+        if act.ah['deb_' + forwhat] == 'ignore':
+            return
 
-	leafname = pkg+'.deb'
-	dest = RelativeOutputFile('binaries--'+leafname, b.dir, leafname)
+        b.blamed += testbed.blamed
 
-	try: os.remove(dest.write())
-	except (IOError,OSError), oe:
-		if oe.errno != errno.ENOENT: raise oe
+        leafname = pkg + '.deb'
+        dest = RelativeOutputFile('binaries--' + leafname, b.dir, leafname)
 
-	try: os.link(af.read(), dest.write())
-	except (IOError,OSError), oe:
-		if oe.errno != errno.EXDEV: raise oe
-		shutil.copy(af.read(), dest.write())
+        try:
+            os.remove(dest.write())
+        except (IOError, OSError), oe:
+            if oe.errno != errno.ENOENT:
+                raise oe
 
-	if act.ah['deb_'+forwhat] == 'install':
-		b.install.append(pkg)
+        try:
+            os.link(af.read(), dest.write())
+        except (IOError, OSError), oe:
+            if oe.errno != errno.EXDEV:
+                raise oe
+            shutil.copy(af.read(), dest.write())
 
-	b.registered.add(pkg)
+        if act.ah['deb_' + forwhat] == 'install':
+            b.install.append(pkg)
 
- def publish(b):
-	b._debug('publish')
+        b.registered.add(pkg)
+
+    def publish(b):
+        b._debug('publish')
         if not b.registered:
             b._debug('no registered binaries, not publishing anything')
             return
 
-	b._configure_apt(testbed)
+        b._configure_apt(testbed)
 
-	script = '''
+        script = '''
   exec >&2
   cd "$1"
   apt-ftparchive packages . >Packages
@@ -1533,389 +1784,419 @@ Pin-Priority: 1002
   rm -f Release.gpg
   gpg --homedir="$2" --batch --detach-sign --armour -o Release.gpg Release
   gpg --homedir="$2" --batch --export >archive-key.pgp
-		'''
-	cmdl = ['sh','-ec',script,'x',b.dir.write(),opts.gnupghome]
-	rc = subprocess_cooked(cmdl, dbg=('ftparchive',script))[0]
-	if rc: bomb('apt-ftparchive or signature failed, code %d' % rc)
+'''
+        cmdl = ['sh', '-ec', script, 'x', b.dir.write(), opts.gnupghome]
+        rc = subprocess_cooked(cmdl, dbg=('ftparchive', script))[0]
+        if rc:
+            bomb('apt-ftparchive or signature failed, code %d' % rc)
 
-	b.dir.invalidate(True)
-	apt_source = b.dir.read(True)
+        b.dir.invalidate(True)
+        apt_source = b.dir.read(True)
 
-	so = TemporaryFile('vlds')
-	script = '''
+        so = TemporaryFile('vlds')
+        script = '''
   exec 3>&1 >&2
   apt-key add archive-key.pgp
-  echo "deb file://'''+apt_source+''' /" >/etc/apt/sources.list.d/autopkgtest.list
+  echo "deb file://''' + apt_source + ''' /" >/etc/apt/sources.list.d/autopkgtest.list
   if [ "x`ls /var/lib/dpkg/updates`" != x ]; then
     echo >&2 "/var/lib/dpkg/updates contains some files, aargh"; exit 1
   fi
-  '''+ b._apt_get() +''' update >&2
+''' + b._apt_get() + ''' update >&2
   cat /var/lib/dpkg/status >&3
-		'''
-	testbed.mungeing_apt()
-	rc = testbed.execute('apt-key', ['sh','-ec',script],
-				so=so.write(True), cwd=b.dir.write(True),
-				script=script, kind='install')
-	if rc: bomb('apt setup failed with exit code %d' % rc)
+'''
+        testbed.mungeing_apt()
+        rc = testbed.execute('apt-key', ['sh', '-ec', script],
+                             so=so.write(True), cwd=b.dir.write(True),
+                             script=script, kind='install')
+        if rc:
+            bomb('apt setup failed with exit code %d' % rc)
 
-	testbed.blamed += b.blamed
+        testbed.blamed += b.blamed
 
-	b._debug('publish reinstall checking...')
-	pkgs_reinstall = set()
-	pkg = None
-	for l in open(so.read()):
-		if l.startswith('Package: '):
-			pkg = l[9:].rstrip()
-		elif l.startswith('Status: install '):
-			if pkg in b.registered:
-				pkgs_reinstall.add(pkg)
-				b._debug(' publish reinstall needs '+pkg)
+        b._debug('publish reinstall checking...')
+        pkgs_reinstall = set()
+        pkg = None
+        for l in open(so.read()):
+            if l.startswith('Package: '):
+                pkg = l[9:].rstrip()
+            elif l.startswith('Status: install '):
+                if pkg in b.registered:
+                    pkgs_reinstall.add(pkg)
+                    b._debug(' publish reinstall needs ' + pkg)
 
-	if pkgs_reinstall:
-		for pkg in pkgs_reinstall: testbed.blame(pkg)
-		what = 'apt-get-reinstall'
-		cmdl = (b._apt_get() + ' --reinstall install '+
-			' '.join([pkg for pkg in pkgs_reinstall])+' >&2')
-		cmdl = ['sh','-c',cmdl]
-		rc = testbed.execute(what, cmdl, script=None, kind='install')
-		if rc: badpkg("installation of basic binarries failed,"
-				" exit code %d" % rc)
+        if pkgs_reinstall:
+            for pkg in pkgs_reinstall:
+                testbed.blame(pkg)
+            what = 'apt-get-reinstall'
+            cmdl = (b._apt_get() + ' --reinstall install ' +
+                    ' '.join([pkg for pkg in pkgs_reinstall]) + ' >&2')
+            cmdl = ['sh', '-c', cmdl]
+            rc = testbed.execute(what, cmdl, script=None, kind='install')
+            if rc:
+                badpkg("installation of basic binarries failed,"
+                       " exit code %d" % rc)
 
-	b._debug('publish install...')
-	for pkg in b.install:
-		what = 'apt-get-install-%s' % pkg
-		testbed.blame(pkg)
-		cmdl = b._apt_get() + ' install ' + pkg + ' >&2'
-		cmdl = ['sh','-c',cmdl]
-		rc = testbed.execute(what, cmdl, script=None, kind='install')
-		if rc: badpkg("installation of %s failed, exit code %d"
-				% (pkg, rc))
+        b._debug('publish install...')
+        for pkg in b.install:
+            what = 'apt-get-install-%s' % pkg
+            testbed.blame(pkg)
+            cmdl = b._apt_get() + ' install ' + pkg + ' >&2'
+            cmdl = ['sh', '-c', cmdl]
+            rc = testbed.execute(what, cmdl, script=None, kind='install')
+            if rc:
+                badpkg("installation of %s failed, exit code %d"
+                       % (pkg, rc))
 
-	b._debug('publish done')
+        b._debug('publish done')
 
 #---------- processing of sources (building)
 
-def source_rules_command(act,script,what,which,work,cwd,
-				results_lines=0,xargs=[]):
-	script = [	"exec 3>&1 >&2",
-			"set -x"	] + script
-	script = '\n'.join(script)
-	so = TemporaryFile('%s-%s-results' % (what,which))
-	rc = testbed.execute('%s-%s' % (what,which),
-			['sh','-ec',script]+xargs, script=script,
-			so=so.write(True), cwd=cwd, kind='build')
-	results = open(so.read()).read().rstrip('\n')
-	if len(results): results = results.split("\n")
-	else: results = []
-	if rc: badpkg("rules %s failed with exit code %d" % (which,rc))
-	if results_lines is not None and len(results) != results_lines:
-		badpkg("got %d lines of results from %s where %d expected"
-			% (len(results), which, results_lines))
-	if results_lines==1: return results[0]
-	return results
+
+def source_rules_command(act, script, what, which, work, cwd,
+                         results_lines=0, xargs=[]):
+    script = [	"exec 3>&1 >&2",
+               "set -x"	] + script
+    script = '\n'.join(script)
+    so = TemporaryFile('%s-%s-results' % (what, which))
+    rc = testbed.execute('%s-%s' % (what, which),
+                         ['sh', '-ec', script] + xargs, script=script,
+                         so=so.write(True), cwd=cwd, kind='build')
+    results = open(so.read()).read().rstrip('\n')
+    if len(results):
+        results = results.split("\n")
+    else:
+        results = []
+    if rc:
+        badpkg("rules %s failed with exit code %d" % (which, rc))
+    if results_lines is not None and len(results) != results_lines:
+        badpkg("got %d lines of results from %s where %d expected"
+               % (len(results), which, results_lines))
+    if results_lines == 1:
+        return results[0]
+    return results
+
 
 def build_source(act, control_override):
-	act.blame = 'arg:'+act.af.spec
-	testbed.blame(act.blame)
-	testbed.prepare1([])
-	testbed.needs_reset()
+    act.blame = 'arg:' + act.af.spec
+    testbed.blame(act.blame)
+    testbed.prepare1([])
+    testbed.needs_reset()
 
-	what = act.what
-	debiancontrol = None
-	act.binaries = []
+    what = act.what
+    debiancontrol = None
+    act.binaries = []
 
-	def debug_b(m): debug('* <%s:%s> %s' % (act.kind, act.what, m))
+    def debug_b(m):
+        debug('* <%s:%s> %s' % (act.kind, act.what, m))
 
-	if act.kind == 'dsc':
-		dsc = act.af
-		dsc_file = open(dsc.read())
-		in_files = False
-		fre = re.compile('^\s+[0-9a-f]+\s+\d+\s+([^/.][^/]*)$')
-		for l in dsc_file:
-			l = l.rstrip('\n')
-			if l.startswith('Files:'): in_files = True; continue
-			elif l.startswith('#'): pass
-			elif not l.startswith(' '):
-				in_files = False
-				if l.startswith('Source:'):
-					act.blame = 'dsc:'+l[7:].strip()
-					testbed.blame(act.blame)
-			if not in_files: continue
+    if act.kind == 'dsc':
+        dsc = act.af
+        dsc_file = open(dsc.read())
+        in_files = False
+        fre = re.compile('^\s+[0-9a-f]+\s+\d+\s+([^/.][^/]*)$')
+        for l in dsc_file:
+            l = l.rstrip('\n')
+            if l.startswith('Files:'):
+                in_files = True
+                continue
+            elif l.startswith('#'):
+                pass
+            elif not l.startswith(' '):
+                in_files = False
+                if l.startswith('Source:'):
+                    act.blame = 'dsc:' + l[7:].strip()
+                    testbed.blame(act.blame)
+            if not in_files:
+                continue
 
-			m = fre.match(l)
-			if not m: badpkg(".dsc contains unparseable line"
-					" in Files: `%s'" % l)
-			leaf = m.groups(0)[0]
-			subfile = RelativeInputFile(what+'/'+leaf, dsc, leaf,
-					sibling=True)
-			subfile.read(True)
-		dsc.read(True)
+            m = fre.match(l)
+            if not m:
+                badpkg(".dsc contains unparseable line"
+                       " in Files: `%s'" % l)
+            leaf = m.groups(0)[0]
+            subfile = RelativeInputFile(what + '/' + leaf, dsc, leaf,
+                                        sibling=True)
+            subfile.read(True)
+        dsc.read(True)
 
-	if act.kind == 'ubtree':
-		debiancontrol = RelativeInputFile(what+'-debiancontrol',
-			act.af, 'debian/control')
-		dsc = TemporaryFile(what+'-fakedsc')
-		dsc_w = open(dsc.write(), 'w')
-		for l in open(debiancontrol.read()):
-			l = l.rstrip('\n')
-			if not len(l): break
-			print >>dsc_w, l
-		print >>dsc_w, 'Binary: none-so-this-is-not-a-package-name'
-		dsc_w.close()
+    if act.kind == 'ubtree':
+        debiancontrol = RelativeInputFile(what + '-debiancontrol',
+                                          act.af, 'debian/control')
+        dsc = TemporaryFile(what + '-fakedsc')
+        dsc_w = open(dsc.write(), 'w')
+        for l in open(debiancontrol.read()):
+            l = l.rstrip('\n')
+            if not len(l):
+                break
+            print >>dsc_w, l
+        print >>dsc_w, 'Binary: none-so-this-is-not-a-package-name'
+        dsc_w.close()
 
-	if act.kind == 'dsc':
-		testbed.prepare2([])
-		testbed.satisfy_dependencies_string('dpkg-dev',
-						'install dpkg-dev')
+    if act.kind == 'dsc':
+        testbed.prepare2([])
+        testbed.satisfy_dependencies_string('dpkg-dev',
+                                            'install dpkg-dev')
 
-	work = TemporaryDir(what+'-build')
-	act.work = work
+    work = TemporaryDir(what + '-build')
+    act.work = work
 
-	tmpdir = work.write(True)+'/tmpdir'
-	tmpdir_script = [
-			'TMPDIR="$1"',
-			'rm -rf -- "$TMPDIR"',
-			'export TMPDIR',
-			opts.user_wrap('mkdir -m 1777 -- "$TMPDIR"'),
-		]
+    tmpdir = work.write(True) + '/tmpdir'
+    tmpdir_script = [
+        'TMPDIR="$1"',
+        'rm -rf -- "$TMPDIR"',
+        'export TMPDIR',
+        opts.user_wrap('mkdir -m 1777 -- "$TMPDIR"'),
+    ]
 
-	if act.kind == 'ubtree':
-		spec = '%s/real-tree' % work.write(True)
-		create_command = '''
-			rm -rf "$spec"
-			mkdir "$spec"
-			cp -rP --preserve=timestamps,links -- "$origpwd"/. "$spec"/.
-			'''
-		initcwd = act.af.read(True)
+    if act.kind == 'ubtree':
+        spec = '%s/real-tree' % work.write(True)
+        create_command = '''
+    rm -rf "$spec"
+    mkdir "$spec"
+    cp -rP --preserve=timestamps,links -- "$origpwd"/. "$spec"/.
+'''
+        initcwd = act.af.read(True)
 
-	if act.kind == 'dsc':
-		spec = dsc.read(True)
-		create_command = '''
-			dpkg-source -x $spec
-			'''
-		initcwd = work.write(True)
+    if act.kind == 'dsc':
+        spec = dsc.read(True)
+        create_command = 'dpkg-source -x $spec\n'
+        initcwd = work.write(True)
 
-	script = [
-		'spec="$2"',
-		'origpwd=`pwd`',
-		'cd '+work.write(True)
-	]
+    script = [
+        'spec="$2"',
+        'origpwd=`pwd`',
+        'cd ' + work.write(True)
+    ]
 
-	if opts.user:
-		script += ([ 'chown '+opts.user+' . ..' ] +
-			tmpdir_script +
-			[ 'spec="$spec" origpwd="$origpwd" '
-				+opts.user_wrap(create_command) ])
-	else:
-		script += (tmpdir_script +
-			[ create_command ])
+    if opts.user:
+        script += (['chown ' + opts.user + ' . ..'] +
+                   tmpdir_script +
+                   ['spec="$spec" origpwd="$origpwd" '
+                    + opts.user_wrap(create_command)])
+    else:
+        script += (tmpdir_script +
+                   [create_command])
 
-	script += [
-			'cd [a-z0-9]*-*/.',
-			'pwd >&3',
-			'set +e; test -f debian/tests/control; echo $? >&3'
-		]
-	(result_pwd, control_test_rc) = source_rules_command(
-			act,script,what,'extract',work,
-			cwd=initcwd, results_lines=2, xargs=['x',tmpdir,spec])
+    script += [
+        'cd [a-z0-9]*-*/.',
+        'pwd >&3',
+        'set +e; test -f debian/tests/control; echo $? >&3'
+    ]
+    (result_pwd, control_test_rc) = source_rules_command(
+        act, script, what, 'extract', work,
+        cwd=initcwd, results_lines=2, xargs=['x', tmpdir, spec])
 
-	filter = act.ah['dsc_filter']
+    filter = act.ah['dsc_filter']
 
-	if control_test_rc == '1': act.missing_tests_control = True
+    if control_test_rc == '1':
+        act.missing_tests_control = True
 
-	# For optional builds:
-	#
-	# We might need to build the package because:
-	#   - we want its binaries (filter isn't _ and at least one of the
-	#	deb_... isn't ignore)
-	#   - the test control file says so
-	#       (assuming we have any tests)
+    # For optional builds:
+    #
+    # We might need to build the package because:
+    #   - we want its binaries (filter isn't _ and at least one of the
+    #	deb_... isn't ignore)
+    #   - the test control file says so
+    #       (assuming we have any tests)
 
-	class NeedBuildException: pass
-	def build_needed(m):
-		debug_b('build needed for %s' % m)
-		raise NeedBuildException()
+    class NeedBuildException:
+        pass
 
-	try:
-		if filter != '_' and (act.ah['deb_forbuilds'] != 'ignore' or
-				      act.ah['deb_fortests'] != 'ignore'):
-			build_needed('binaries')
+    def build_needed(m):
+        debug_b('build needed for %s' % m)
+        raise NeedBuildException()
 
-		result_pwd_af = InputDir(what+'-treeforcontrol',
-			result_pwd, True)
-		stanzas = read_control(act, result_pwd_af, control_override)
-		for stanza in stanzas:
-			for t in stanza[' tests']:
-				if 'build-needed' in t.restriction_names:
-					build_needed('test %s' % t.tname)
+    try:
+        if filter != '_' and (act.ah['deb_forbuilds'] != 'ignore' or
+                              act.ah['deb_fortests'] != 'ignore'):
+            build_needed('binaries')
 
-		debug_b('build not needed')
-		built = False
+        result_pwd_af = InputDir(what + '-treeforcontrol',
+                                 result_pwd, True)
+        stanzas = read_control(act, result_pwd_af, control_override)
+        for stanza in stanzas:
+            for t in stanza[' tests']:
+                if 'build-needed' in t.restriction_names:
+                    build_needed('test %s' % t.tname)
 
-	except NeedBuildException:
+        debug_b('build not needed')
+        built = False
 
-		if act.kind != 'dsc':
-			testbed.prepare2([])
+    except NeedBuildException:
 
-		testbed.satisfy_dependencies_string('build-essential',
-				'install build-essential')
-		testbed.satisfy_dependencies_dsc(dsc, 'build dependencies')
+        if act.kind != 'dsc':
+            testbed.prepare2([])
 
-		script = tmpdir_script + [
-			'cd "$2"',
-			'dpkg-checkbuilddeps',
-			opts.user_wrap('debian/rules build'),
-			]
-		source_rules_command(act,script,what,'build',work,
-				cwd=initcwd, xargs=['x',tmpdir,result_pwd])
+        testbed.satisfy_dependencies_string('build-essential',
+                                            'install build-essential')
+        testbed.satisfy_dependencies_dsc(dsc, 'build dependencies')
 
-		if os.path.dirname(result_pwd)+'/' != work.read(True):
-			badpkg("results dir `%s' is not in expected parent"
-			       " dir `%s'" % (result_pwd, work.read(True)))
+        script = tmpdir_script + [
+            'cd "$2"',
+            'dpkg-checkbuilddeps',
+            opts.user_wrap('debian/rules build'),
+        ]
+        source_rules_command(act, script, what, 'build', work,
+                             cwd=initcwd, xargs=['x', tmpdir, result_pwd])
 
-		built = True
+        if os.path.dirname(result_pwd) + '/' != work.read(True):
+            badpkg("results dir `%s' is not in expected parent"
+                   " dir `%s'" % (result_pwd, work.read(True)))
 
-	act.tests_tree = RelativeInputDir(what+'-tests-tree',
-				work, os.path.basename(result_pwd),
-				True)
+        built = True
 
-	if not built:
-		act.blamed = []
-		return
+    act.tests_tree = RelativeInputDir(what + '-tests-tree',
+                                      work, os.path.basename(result_pwd),
+                                      True)
 
-	act.blamed = copy.copy(testbed.blamed)
+    if not built:
+        act.blamed = []
+        return
 
-	debug_b('filter=%s' % filter)
-	if filter != '_':
-		script = tmpdir_script + [
-			'cd '+work.write(True)+'/[a-z0-9]*-*/.',
-			opts.user_wrap(opts.gainroot+' debian/rules binary'),
-			'cd ..',
-			'echo *.deb >&3',
-			]
-		result_debs = source_rules_command(act,script,what,
-				'binary',work,work.write(True),
-				results_lines=1, xargs=['x',tmpdir])
-		if result_debs == '*.deb': debs = []
-		else: debs = result_debs.split(' ')
-		debug_b('debs='+`debs`)
-		deb_re = re.compile('^([-+.0-9a-z]+)_[^_/]+(?:_[^_/]+)\.deb$')
-		for deb in debs:
-			m = deb_re.match(deb)
-			if not m: badpkg("badly-named binary `%s'" % deb)
-			pkg = m.groups()[0]
-			debug_b(' deb=%s, pkg=%s' % (deb,pkg))
-			for pat in filter.split(','):
-				debug_b('  pat=%s' % pat)
-				if not fnmatch.fnmatchcase(pkg,pat):
-					debug_b('   no match')
-					continue
-				deb_what = pkg+'_'+what+'.deb'
-				bin = RelativeInputFile(deb_what,work,deb,True)
-				debug_b('  deb_what=%s, bin=%s' %
-					(deb_what, str(bin)))
-				binaries.register(act,pkg,bin,
-					'forbuilds',testbed.blamed)
-				act.binaries.append((pkg,bin))
-				break
-		debug_b('all done.')
+    act.blamed = copy.copy(testbed.blamed)
+
+    debug_b('filter=%s' % filter)
+    if filter != '_':
+        script = tmpdir_script + [
+            'cd ' + work.write(True) + '/[a-z0-9]*-*/.',
+            opts.user_wrap(opts.gainroot + ' debian/rules binary'),
+            'cd ..',
+            'echo *.deb >&3',
+        ]
+        result_debs = source_rules_command(act, script, what,
+                                           'binary', work, work.write(True),
+                                           results_lines=1,
+                                           xargs=['x', tmpdir])
+        if result_debs == '*.deb':
+            debs = []
+        else:
+            debs = result_debs.split(' ')
+        debug_b('debs=' + repr(debs))
+        deb_re = re.compile('^([-+.0-9a-z]+)_[^_/]+(?:_[^_/]+)\.deb$')
+        for deb in debs:
+            m = deb_re.match(deb)
+            if not m:
+                badpkg("badly-named binary `%s'" % deb)
+            pkg = m.groups()[0]
+            debug_b(' deb=%s, pkg=%s' % (deb, pkg))
+            for pat in filter.split(','):
+                debug_b('  pat=%s' % pat)
+                if not fnmatch.fnmatchcase(pkg, pat):
+                    debug_b('   no match')
+                    continue
+                deb_what = pkg + '_' + what + '.deb'
+                bin = RelativeInputFile(deb_what, work, deb, True)
+                debug_b('  deb_what=%s, bin=%s' %
+                        (deb_what, str(bin)))
+                binaries.register(act, pkg, bin,
+                                  'forbuilds', testbed.blamed)
+                act.binaries.append((pkg, bin))
+                break
+        debug_b('all done.')
 
 #---------- main processing loop and main program
 
+
 def process_actions():
-	global binaries
+    global binaries
 
-	def debug_a1(m): debug('@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ '+m)
-	def debug_a2(m): debug('@@@@@@@@@@@@@@@@@@@@ '+m)
-	def debug_a3(m): debug('@@@@@@@@@@ '+m)
+    def debug_a1(m):
+        debug('@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ ' + m)
 
-	testbed.open()
-	binaries = Binaries(testbed)
+    def debug_a2(m):
+        debug('@@@@@@@@@@@@@@@@@@@@ ' + m)
 
-	binaries.reset()
-	control_override = None
+    def debug_a3(m):
+        debug('@@@@@@@@@@ ' + m)
 
-	debug_a1('builds ...')
-	for act in opts.actions:
-		debug_a2('%s %s' %
-			(act.kind, act.what))
+    testbed.open()
+    binaries = Binaries(testbed)
 
-		if act.kind == 'control':
-			control_override = act.af
-		if act.kind == 'deb':
-			testbed.blame('arg:'+act.af.spec)
-			determine_package(act)
-			testbed.blame('deb:'+act.pkg)
-			binaries.register(act,act.pkg,act.af,
-				'forbuilds',testbed.blamed)
-		if act.kind == 'dsc' or act.kind == 'ubtree':
-			build_source(act, control_override)
-		if act.kind == 'tree':
-			act.binaries = []
-		if act.kind.endswith('tree') or act.kind == 'dsc':
-			control_override = None
-		if act.kind == 'instantiate':
-			pass
+    binaries.reset()
+    control_override = None
 
-	debug_a1('builds done.')
+    debug_a1('builds ...')
+    for act in opts.actions:
+        debug_a2('%s %s' %
+                (act.kind, act.what))
 
-	binaries.reset()
-	control_override = None
+        if act.kind == 'control':
+            control_override = act.af
+        if act.kind == 'deb':
+            testbed.blame('arg:' + act.af.spec)
+            determine_package(act)
+            testbed.blame('deb:' + act.pkg)
+            binaries.register(act, act.pkg, act.af,
+                              'forbuilds', testbed.blamed)
+        if act.kind == 'dsc' or act.kind == 'ubtree':
+            build_source(act, control_override)
+        if act.kind == 'tree':
+            act.binaries = []
+        if act.kind.endswith('tree') or act.kind == 'dsc':
+            control_override = None
+        if act.kind == 'instantiate':
+            pass
 
-	debug_a1('tests ...')
-	for act in opts.actions:
-		debug_a2('test %s %s' % (act.kind, act.what))
+    debug_a1('builds done.')
 
-		testbed.needs_reset()
-		if act.kind == 'control':
-			control_override = act.af
-		if act.kind == 'deb':
-			binaries.register(act,act.pkg,act.af,'fortests',
-				['deb:'+act.pkg])
-		if act.kind == 'dsc' or act.kind == 'ubtree':
-			for (pkg,bin) in act.binaries:
-				binaries.register(act,pkg,bin,'fortests',
-					act.blamed)
-		if act.kind == 'dsc':
-			if act.ah['dsc_tests']:
-				debug_a3('read control ...')
-				stanzas = read_control(act, act.tests_tree,
-						control_override)
-				testbed.blamed += act.blamed
-				debug_a3('run_tests ...')
-				run_tests(stanzas, act.tests_tree)
-			control_override = None
-		if act.kind == 'tree' or act.kind == 'ubtree':
-			testbed.blame('arg:'+act.af.spec)
-			stanzas = read_control(act, act.af, control_override)
-			debug_a3('run_tests ...')
-			if act.kind == 'ubtree':
-			    run_tests(stanzas, act.tests_tree)
-			else:
-			    run_tests(stanzas, act.af)
-			control_override = None
-		if act.kind == 'instantiate':
-			testbed.prepare([])
-	debug_a1('tests done.')
+    binaries.reset()
+    control_override = None
+
+    debug_a1('tests ...')
+    for act in opts.actions:
+        debug_a2('test %s %s' % (act.kind, act.what))
+
+        testbed.needs_reset()
+        if act.kind == 'control':
+            control_override = act.af
+        if act.kind == 'deb':
+            binaries.register(act, act.pkg, act.af, 'fortests',
+                              ['deb:' + act.pkg])
+        if act.kind == 'dsc' or act.kind == 'ubtree':
+            for (pkg, bin) in act.binaries:
+                binaries.register(act, pkg, bin, 'fortests',
+                                  act.blamed)
+        if act.kind == 'dsc':
+            if act.ah['dsc_tests']:
+                debug_a3('read control ...')
+                stanzas = read_control(act, act.tests_tree,
+                                       control_override)
+                testbed.blamed += act.blamed
+                debug_a3('run_tests ...')
+                run_tests(stanzas, act.tests_tree)
+            control_override = None
+        if act.kind == 'tree' or act.kind == 'ubtree':
+            testbed.blame('arg:' + act.af.spec)
+            stanzas = read_control(act, act.af, control_override)
+            debug_a3('run_tests ...')
+            if act.kind == 'ubtree':
+                run_tests(stanzas, act.tests_tree)
+            else:
+                run_tests(stanzas, act.af)
+            control_override = None
+        if act.kind == 'instantiate':
+            testbed.prepare([])
+    debug_a1('tests done.')
+
 
 def main():
-	global testbed
-	global tmp
-	try:
-		parse_args()
-	except SystemExit:
-		os._exit(20)
-	try:
-		setup_trace()
-		testbed = Testbed()
-		testbed.start()
-		finalise_options()
-		process_actions()
-	except:
-		ec = print_exception(sys.exc_info(), '')
-		cleanup()
-		os._exit(ec)
-	cleanup()
-	os._exit(errorcode)
+    global testbed
+    global tmp
+    try:
+        parse_args()
+    except SystemExit:
+        os._exit(20)
+    try:
+        setup_trace()
+        testbed = Testbed()
+        testbed.start()
+        finalise_options()
+        process_actions()
+    except:
+        ec = print_exception(sys.exc_info(), '')
+        cleanup()
+        os._exit(ec)
+    cleanup()
+    os._exit(errorcode)
 
 main()
