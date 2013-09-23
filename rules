@@ -30,6 +30,8 @@ topdir=`pwd`
 
 build build-indep:
 	$(MAKE)
+	tests/pyflakes
+	tests/pep8
 
 build-arch:
 binary-arch:
