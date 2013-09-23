@@ -1,4 +1,4 @@
-autopkgtest (2.3.4) UNRELEASED; urgency=low
+autopkgtest (2.3.4) unstable; urgency=low
 
   * Add tests/testpkg/: Simple source package for testing autopkgtest.
   * Add tests/adt-run: Automatic regression tests for adt-run, covering/using
@@ -36,7 +36,7 @@ autopkgtest (2.3.4) UNRELEASED; urgency=low
       a bit easier to see which variables refer to foreign objects.
   * Run tests/pep8 and tests/pyflakes during package build.
 
- -- Martin Pitt <mpitt@debian.org>  Fri, 20 Sep 2013 18:07:13 -0500
+ -- Martin Pitt <mpitt@debian.org>  Mon, 23 Sep 2013 14:44:13 +0200
 
 autopkgtest (2.3.3) unstable; urgency=low
 
