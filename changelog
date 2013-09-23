@@ -17,6 +17,8 @@ autopkgtest (2.3.4) UNRELEASED; urgency=low
     watching. Don't split that realtime output, so that stderr messages appear
     in the right context. Show separate stderr if and only if the allow-stderr
     restriction is not set and there is stderr output. (Closes: #722457)
+  * For tests with "build-needed", actually run the tests in the built
+    directory, not in the original unbuilt tree. (Closes: #711209)
 
  -- Martin Pitt <mpitt@debian.org>  Fri, 20 Sep 2013 18:07:13 -0500
 
