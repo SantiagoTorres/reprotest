@@ -33,7 +33,7 @@ try: our_base = os.environ['AUTOPKGTEST_BASE']+'/lib'
 except KeyError: our_base = '/usr/share/autopkgtest/python';
 sys.path.insert(1, our_base)
 
-import VirtSubproc as vsp
+import VirtSubproc
 
 withholder = None
 with_testbed = None
@@ -71,7 +71,7 @@ def parse_args():
 	pa('','--pause', type='string', dest='pause', default='')
 
 	(opts,xlargs) = parser.parse_args()
-	vsp.debuglevel = opts.debug
+	VirtSubproc.debuglevel = opts.debug
 	xargs_userv = []
 	xargs_direct = []
 
@@ -87,9 +87,9 @@ def parse_args():
 		with_testbed = (gain_root + ['adt-xenlvm-with-testbed'] +
 			xargs_direct + xlargs +
 			['--','sh','-ec','echo y; exec cat'])
-		vsp.down = (gain_root + ['adt-xenlvm-on-testbed'] +
+		VirtSubproc.down = (gain_root + ['adt-xenlvm-on-testbed'] +
 			xargs_direct + xlargs + ['--'])
-		vsp.downkind = 'shstring'
+		VirtSubproc.downkind = 'shstring'
 	else:
 		if opts.gain_root:
 			pe('--userv and --gain-root are not compatible')
@@ -101,11 +101,11 @@ def parse_args():
 			stderr=None)
 		(pon0, _) = get_down.communicate()
 		if get_down.returncode:
-			vsp.bomb('failed to check userv service provision'
+			VirtSubproc.bomb('failed to check userv service provision'
 				' and subcommand details (code=%d)' %
 				get_down.returncode)
-		vsp.down = pon0.split('\0')
-		vsp.downkind = 'auxverb'
+		VirtSubproc.down = pon0.split('\0')
+		VirtSubproc.downkind = 'auxverb'
 	pauses = opts.pause.split(',')
 
 def do_open():
@@ -120,9 +120,9 @@ def do_open():
 		withholder.stdin.close()
 		withholder.stdout.close()
 		withholder = None
-		vsp.bomb("with-testbed failed, code %d" % rc)
+		VirtSubproc.bomb("with-testbed failed, code %d" % rc)
 	if l != "y\n":
-		vsp.bomb("with-testbed sh gave wrong output `%s', not `l'"
+		VirtSubproc.bomb("with-testbed sh gave wrong output `%s', not `l'"
 			% l.rstrip("\n"))
 
 def do_close():
@@ -132,7 +132,7 @@ def do_close():
 	withholder.stdout.close()
 	rc = withholder.wait()
 	withholder = None
-	if rc: vsp.bomb("with-testbed failed when closing/reverting,"
+	if rc: VirtSubproc.bomb("with-testbed failed when closing/reverting,"
 			" code %d" % rc)
 
 def hook_forked_inchild():
@@ -145,7 +145,7 @@ def hook_open():
 	return do_open()
 
 def hook_downtmp():
-	vsp.execute('mkdir %s' % downtmp, downp=True)
+	VirtSubproc.execute('mkdir %s' % downtmp, downp=True)
 	return downtmp
 
 def hook_revert():
@@ -163,4 +163,4 @@ def hook_capabilities():
 	return ['revert','root-on-testbed','suggested-normal-user=adtxenu']
 
 parse_args()
-vsp.main()
+VirtSubproc.main()

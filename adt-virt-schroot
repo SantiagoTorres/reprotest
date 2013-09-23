@@ -24,7 +24,7 @@
 
 import sys
 import os
-import re as regexp
+import re
 import grp
 import pwd
 from optparse import OptionParser
@@ -33,7 +33,7 @@ try: our_base = os.environ['AUTOPKGTEST_BASE']+'/lib'
 except KeyError: our_base = '/usr/share/autopkgtest/python';
 sys.path.insert(1, our_base)
 
-import VirtSubproc as vsp
+import VirtSubproc
 capabilities = []
 
 schroot = None
@@ -72,18 +72,18 @@ def parse_args():
 
 	schroot = args[0]
 
-	info = vsp.execute('schroot --config -c', [schroot],
+	info = VirtSubproc.execute('schroot --config -c', [schroot],
 		downp=False, outp=True)
 	cfg = { }
-	ignore_re = regexp.compile('\#|\[|\s*$')
+	ignore_re = re.compile('\#|\[|\s*$')
 	for entry in info.split("\n"):
 		if ignore_re.match(entry): continue
 		(key,val) = entry.split("=",2)
 		cfg[key] = val
 
-	vsp.debuglevel = opts.debug
+	VirtSubproc.debuglevel = opts.debug
 
-	if regexp.search('snapshot',cfg['type']):
+	if re.search('snapshot',cfg['type']):
 		capabilities.append('revert')
 
 	if (match(cfg['root-users'], [os.getuid()], pw_uid) or
@@ -92,24 +92,24 @@ def parse_args():
 
 def hook_open():
 	global schroot, sessid, downtmp
-	sessid = vsp.execute('schroot -b -c',[schroot], downp=False, outp=True)
-	vsp.down = ['schroot','-r','-d','/','-c',sessid]
-	if 'root-on-testbed' in capabilities: vsp.down += ['-u','root']
-	vsp.down += ['--']
-	vsp.downkind = 'auxverb'
+	sessid = VirtSubproc.execute('schroot -b -c',[schroot], downp=False, outp=True)
+	VirtSubproc.down = ['schroot','-r','-d','/','-c',sessid]
+	if 'root-on-testbed' in capabilities: VirtSubproc.down += ['-u','root']
+	VirtSubproc.down += ['--']
+	VirtSubproc.downkind = 'auxverb'
 
 def hook_downtmp():
-	return vsp.downtmp_mktemp()
+	return VirtSubproc.downtmp_mktemp()
 
 def hook_revert():
-	vsp.downtmp_remove()
+	VirtSubproc.downtmp_remove()
 	hook_cleanup()
 	hook_open()
 
 def hook_cleanup():
 	global schroot, sessid, downtmp
-	vsp.downtmp_remove()
-	vsp.execute('schroot -e -c',[sessid], downp=False)
+	VirtSubproc.downtmp_remove()
+	VirtSubproc.execute('schroot -e -c',[sessid], downp=False)
 
 def hook_forked_inchild():
 	pass
@@ -118,4 +118,4 @@ def hook_capabilities():
 	return capabilities
 
 parse_args()
-vsp.main()
+VirtSubproc.main()

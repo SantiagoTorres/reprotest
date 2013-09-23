@@ -30,7 +30,7 @@ try: our_base = os.environ['AUTOPKGTEST_BASE']+'/lib'
 except KeyError: our_base = '/usr/share/autopkgtest/python';
 sys.path.insert(1, our_base)
 
-import VirtSubproc as vsp
+import VirtSubproc
 capabilities = []
 
 def parse_args():
@@ -46,22 +46,22 @@ def parse_args():
 	(opts,args) = parser.parse_args()
 	if len(args): pe("no arguments allowed")
 
-	vsp.debuglevel = opts.debug
+	VirtSubproc.debuglevel = opts.debug
 
 	if os.getuid()==0:
 		capabilities.append('root-on-testbed')
 
-	vsp.down = []
-	vsp.downkind = 'auxverb'
+	VirtSubproc.down = []
+	VirtSubproc.downkind = 'auxverb'
 
 def hook_open():
 	pass
 
 def hook_downtmp():
-	return vsp.downtmp_mktemp()
+	return VirtSubproc.downtmp_mktemp()
 
 def hook_cleanup():
-	vsp.downtmp_remove()
+	VirtSubproc.downtmp_remove()
 
 def hook_forked_inchild():
 	pass
@@ -70,4 +70,4 @@ def hook_capabilities():
 	return capabilities
 
 parse_args()
-vsp.main()
+VirtSubproc.main()
