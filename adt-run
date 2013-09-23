@@ -30,7 +30,7 @@ import subprocess
 import traceback
 import urllib
 import string
-import re as regexp
+import re
 import os
 import errno
 import fnmatch
@@ -1070,12 +1070,12 @@ class Field_Depends(FieldBase):
 	    f.base['depends'] = []
 	    return
 
-	re = regexp.compile(r"(?P<package>[a-z0-9+-.]+)\s*(\((?P<relation><<|<=|>=|=|>>)\s*(?P<version>[^\)]*)\))?(\s*\[[[a-z0-9+-. ]+\])?$")
+	dep_re = re.compile(r"(?P<package>[a-z0-9+-.]+)\s*(\((?P<relation><<|<=|>=|=|>>)\s*(?P<version>[^\)]*)\))?(\s*\[[[a-z0-9+-. ]+\])?$")
 	for di in dl:
 		for d in di.split('|'):
 			d = d.strip()
 			if d == '@': continue  # Expanded to binary packages
-			m = re.match(d)
+			m = dep_re.match(d)
 			if not m:
 				badpkg("Test Depends field contains an invalid "
 				       "dependency `%s'" % d)
@@ -1371,10 +1371,10 @@ def determine_package(act):
 	cmd = 'dpkg-deb --info --'.split(' ')+[act.af.read(),'control']
 	(rc, output) = subprocess_cooked(cmd, stdout=subprocess.PIPE)
 	if rc: badpkg('failed to parse binary package, code %d' % rc)
-	re = regexp.compile('^\s*Package\s*:\s*([0-9a-z][-+.0-9a-z]*)\s*$')
+	pkg_re = re.compile('^\s*Package\s*:\s*([0-9a-z][-+.0-9a-z]*)\s*$')
 	act.pkg = None
 	for l in output.split('\n'):
-		m = re.match(l)
+		m = pkg_re.match(l)
 		if not m: continue
 		if act.pkg: badpkg('two Package: lines in control file')
 		act.pkg = m.groups()[0]
@@ -1630,7 +1630,7 @@ def build_source(act, control_override):
 		dsc = act.af
 		dsc_file = open(dsc.read())
 		in_files = False
-		fre = regexp.compile('^\s+[0-9a-f]+\s+\d+\s+([^/.][^/]*)$')
+		fre = re.compile('^\s+[0-9a-f]+\s+\d+\s+([^/.][^/]*)$')
 		for l in dsc_file:
 			l = l.rstrip('\n')
 			if l.startswith('Files:'): in_files = True; continue
@@ -1799,9 +1799,9 @@ def build_source(act, control_override):
 		if result_debs == '*.deb': debs = []
 		else: debs = result_debs.split(' ')
 		debug_b('debs='+`debs`)
-		re = regexp.compile('^([-+.0-9a-z]+)_[^_/]+(?:_[^_/]+)\.deb$')
+		deb_re = re.compile('^([-+.0-9a-z]+)_[^_/]+(?:_[^_/]+)\.deb$')
 		for deb in debs:
-			m = re.match(deb)
+			m = deb_re.match(deb)
 			if not m: badpkg("badly-named binary `%s'" % deb)
 			pkg = m.groups()[0]
 			debug_b(' deb=%s, pkg=%s' % (deb,pkg))
