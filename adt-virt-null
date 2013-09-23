@@ -26,48 +26,57 @@ import sys
 import os
 from optparse import OptionParser
 
-try: our_base = os.environ['AUTOPKGTEST_BASE']+'/lib'
-except KeyError: our_base = '/usr/share/autopkgtest/python';
+try:
+    our_base = os.environ['AUTOPKGTEST_BASE'] + '/lib'
+except KeyError:
+    our_base = '/usr/share/autopkgtest/python'
 sys.path.insert(1, our_base)
 
 import VirtSubproc
 capabilities = []
 
+
 def parse_args():
-	global down, debuglevel
+    global down, debuglevel
 
-	usage = "%prog [<options>]"
-	parser = OptionParser(usage=usage)
-	pa = parser.add_option
-	pe = parser.error
+    usage = "%prog [<options>]"
+    parser = OptionParser(usage=usage)
+    pa = parser.add_option
+    pe = parser.error
 
-	pa('-d', '--debug', action='store_true', dest='debug');
+    pa('-d', '--debug', action='store_true', dest='debug')
 
-	(opts,args) = parser.parse_args()
-	if len(args): pe("no arguments allowed")
+    (opts, args) = parser.parse_args()
+    if len(args):
+        pe("no arguments allowed")
 
-	VirtSubproc.debuglevel = opts.debug
+    VirtSubproc.debuglevel = opts.debug
 
-	if os.getuid()==0:
-		capabilities.append('root-on-testbed')
+    if os.getuid() == 0:
+        capabilities.append('root-on-testbed')
 
-	VirtSubproc.down = []
-	VirtSubproc.downkind = 'auxverb'
+    VirtSubproc.down = []
+    VirtSubproc.downkind = 'auxverb'
+
 
 def hook_open():
-	pass
+    pass
+
 
 def hook_downtmp():
-	return VirtSubproc.downtmp_mktemp()
+    return VirtSubproc.downtmp_mktemp()
+
 
 def hook_cleanup():
-	VirtSubproc.downtmp_remove()
+    VirtSubproc.downtmp_remove()
+
 
 def hook_forked_inchild():
-	pass
+    pass
+
 
 def hook_capabilities():
-	return capabilities
+    return capabilities
 
 parse_args()
 VirtSubproc.main()

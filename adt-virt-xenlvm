@@ -29,8 +29,10 @@ import fnmatch
 import signal
 from optparse import OptionParser
 
-try: our_base = os.environ['AUTOPKGTEST_BASE']+'/lib'
-except KeyError: our_base = '/usr/share/autopkgtest/python';
+try:
+    our_base = os.environ['AUTOPKGTEST_BASE'] + '/lib'
+except KeyError:
+    our_base = '/usr/share/autopkgtest/python'
 sys.path.insert(1, our_base)
 
 import VirtSubproc
@@ -39,128 +41,147 @@ withholder = None
 with_testbed = None
 downtmp = '/root/adt-downtmp'
 pauses = None
-event_counters = { }
+event_counters = {}
+
 
 def check_pause(kind):
-	if not event_counters.has_key(kind): event_counters[kind] = 0
-	event = '%s#%d' % (kind, event_counters[kind])
-	event_counters[kind] += 1
-	for pattern in pauses:
-		if not '#' in pattern: matched = kind == pattern
-		else: matched = fnmatch.fnmatchcase(event,pattern)
-		if matched: break
-	if not matched:
-		return
-	print >>sys.stderr, ("----- adt-virt-xenlvm pause (event=%s),"
-				" stopping -----" % event)
-	os.kill(0, signal.SIGSTOP)
+    if kind not in event_counters:
+        event_counters[kind] = 0
+    event = '%s#%d' % (kind, event_counters[kind])
+    event_counters[kind] += 1
+    for pattern in pauses:
+        if not '#' in pattern:
+            matched = kind == pattern
+        else:
+            matched = fnmatch.fnmatchcase(event, pattern)
+        if matched:
+            break
+    if not matched:
+        return
+    print >>sys.stderr, ("----- adt-virt-xenlvm pause (event=%s),"
+                         " stopping -----" % event)
+    os.kill(0, signal.SIGSTOP)
+
 
 def parse_args():
-	global debuglevel, with_testbed, console, pauses
+    global debuglevel, with_testbed, console, pauses
 
-	usage = "%prog <options> [-- <adt-xenlvm options>]"
-	parser = OptionParser(usage=usage)
-	pa = parser.add_option
-	pe = parser.error
+    usage = "%prog <options> [-- <adt-xenlvm options>]"
+    parser = OptionParser(usage=usage)
+    pa = parser.add_option
+    pe = parser.error
 
-	pa('-r', '--gain-root', type='string', dest='gain_root')
-	pa('-d', '--debug', action='store_true', dest='debug')
-	pa('', '--userv', action='store_true', dest='userv')
-	pa('', '--distro', type='string', dest='distro')
-	pa('', '--nominum', type='string', dest='nominum')
-	pa('','--pause', type='string', dest='pause', default='')
+    pa('-r', '--gain-root', type='string', dest='gain_root')
+    pa('-d', '--debug', action='store_true', dest='debug')
+    pa('', '--userv', action='store_true', dest='userv')
+    pa('', '--distro', type='string', dest='distro')
+    pa('', '--nominum', type='string', dest='nominum')
+    pa('', '--pause', type='string', dest='pause', default='')
 
-	(opts,xlargs) = parser.parse_args()
-	VirtSubproc.debuglevel = opts.debug
-	xargs_userv = []
-	xargs_direct = []
+    (opts, xlargs) = parser.parse_args()
+    VirtSubproc.debuglevel = opts.debug
+    xargs_userv = []
+    xargs_direct = []
 
-	for k in ['distro','nominum']:
-		v = getattr(opts,k)
-		if v is None: continue
-		xargs_direct.append('--%s=%s' % (k, v))
-		xargs_userv.append('-D%s=%s' % (k, v))
+    for k in ['distro', 'nominum']:
+        v = getattr(opts, k)
+        if v is None:
+            continue
+        xargs_direct.append('--%s=%s' % (k, v))
+        xargs_userv.append('-D%s=%s' % (k, v))
 
-	if not opts.userv:
-		if opts.gain_root is None: gain_root = []
-		else: gain_root = opts.gain_root.split()
-		with_testbed = (gain_root + ['adt-xenlvm-with-testbed'] +
-			xargs_direct + xlargs +
-			['--','sh','-ec','echo y; exec cat'])
-		VirtSubproc.down = (gain_root + ['adt-xenlvm-on-testbed'] +
-			xargs_direct + xlargs + ['--'])
-		VirtSubproc.downkind = 'shstring'
-	else:
-		if opts.gain_root:
-			pe('--userv and --gain-root are not compatible')
-		basis = (['userv'] + xargs_userv + xlargs +
-			['root','adt-xenlvm-testbed'])
-		with_testbed = basis + ['with']
-		get_down = subprocess.Popen(basis + ['pon0'],
-			stdin=file('/dev/null'), stdout=subprocess.PIPE,
-			stderr=None)
-		(pon0, _) = get_down.communicate()
-		if get_down.returncode:
-			VirtSubproc.bomb('failed to check userv service provision'
-				' and subcommand details (code=%d)' %
-				get_down.returncode)
-		VirtSubproc.down = pon0.split('\0')
-		VirtSubproc.downkind = 'auxverb'
-	pauses = opts.pause.split(',')
+    if not opts.userv:
+        if opts.gain_root is None:
+            gain_root = []
+        else:
+            gain_root = opts.gain_root.split()
+        with_testbed = (gain_root + ['adt-xenlvm-with-testbed'] +
+                        xargs_direct + xlargs +
+                        ['--', 'sh', '-ec', 'echo y; exec cat'])
+        VirtSubproc.down = (gain_root + ['adt-xenlvm-on-testbed'] +
+                            xargs_direct + xlargs + ['--'])
+        VirtSubproc.downkind = 'shstring'
+    else:
+        if opts.gain_root:
+            pe('--userv and --gain-root are not compatible')
+        basis = (['userv'] + xargs_userv + xlargs +
+                 ['root', 'adt-xenlvm-testbed'])
+        with_testbed = basis + ['with']
+        get_down = subprocess.Popen(basis + ['pon0'],
+                                    stdin=file('/dev/null'),
+                                    stdout=subprocess.PIPE,
+                                    stderr=None)
+        (pon0, _) = get_down.communicate()
+        if get_down.returncode:
+            VirtSubproc.bomb('failed to check userv service provision'
+                             ' and subcommand details (code=%d)' %
+                             get_down.returncode)
+        VirtSubproc.down = pon0.split('\0')
+        VirtSubproc.downkind = 'auxverb'
+    pauses = opts.pause.split(',')
+
 
 def do_open():
-	global withholder
-	assert(withholder is None)
-	withholder = subprocess.Popen(
-		with_testbed,
-		stdin=subprocess.PIPE, stdout=subprocess.PIPE )
-	l = withholder.stdout.readline(2)
-	rc = withholder.poll()
-	if rc is not None:
-		withholder.stdin.close()
-		withholder.stdout.close()
-		withholder = None
-		VirtSubproc.bomb("with-testbed failed, code %d" % rc)
-	if l != "y\n":
-		VirtSubproc.bomb("with-testbed sh gave wrong output `%s', not `l'"
-			% l.rstrip("\n"))
+    global withholder
+    assert(withholder is None)
+    withholder = subprocess.Popen(
+        with_testbed,
+        stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+    l = withholder.stdout.readline(2)
+    rc = withholder.poll()
+    if rc is not None:
+        withholder.stdin.close()
+        withholder.stdout.close()
+        withholder = None
+        VirtSubproc.bomb("with-testbed failed, code %d" % rc)
+    if l != "y\n":
+        VirtSubproc.bomb("with-testbed sh gave wrong output `%s', not `l'"
+                         % l.rstrip("\n"))
+
 
 def do_close():
-	global withholder
-	check_pause('close')
-	withholder.stdin.close()
-	withholder.stdout.close()
-	rc = withholder.wait()
-	withholder = None
-	if rc: VirtSubproc.bomb("with-testbed failed when closing/reverting,"
-			" code %d" % rc)
+    global withholder
+    check_pause('close')
+    withholder.stdin.close()
+    withholder.stdout.close()
+    rc = withholder.wait()
+    withholder = None
+    if rc:
+        VirtSubproc.bomb("with-testbed failed when closing/reverting,"
+                         " code %d" % rc)
+
 
 def hook_forked_inchild():
-	if withholder is not None:
-		withholder.stdin.close()
-		withholder.stdout.close()
+    if withholder is not None:
+        withholder.stdin.close()
+        withholder.stdout.close()
+
 
 def hook_open():
-	hook_cleanup()
-	return do_open()
+    hook_cleanup()
+    return do_open()
+
 
 def hook_downtmp():
-	VirtSubproc.execute('mkdir %s' % downtmp, downp=True)
-	return downtmp
+    VirtSubproc.execute('mkdir %s' % downtmp, downp=True)
+    return downtmp
+
 
 def hook_revert():
-	check_pause('revert')
-	do_close()
-	return do_open()
+    check_pause('revert')
+    do_close()
+    return do_open()
+
 
 def hook_cleanup():
-	check_pause('cleanup')
-	global withholder
-	if withholder is not None:
-		do_close()
+    check_pause('cleanup')
+    global withholder
+    if withholder is not None:
+        do_close()
+
 
 def hook_capabilities():
-	return ['revert','root-on-testbed','suggested-normal-user=adtxenu']
+    return ['revert', 'root-on-testbed', 'suggested-normal-user=adtxenu']
 
 parse_args()
 VirtSubproc.main()

@@ -26,72 +26,82 @@ import sys
 import os
 from optparse import OptionParser
 
-try: our_base = os.environ['AUTOPKGTEST_BASE']+'/lib'
-except KeyError: our_base = '/usr/share/autopkgtest/python';
+try:
+    our_base = os.environ['AUTOPKGTEST_BASE'] + '/lib'
+except KeyError:
+    our_base = '/usr/share/autopkgtest/python'
 sys.path.insert(1, our_base)
 
 import VirtSubproc
 capabilities = []
 
+
 def parse_args():
-	global down, debuglevel
+    global down, debuglevel
 
-	usage = "%prog [<options>] =<dchroot>|/path/to/chroot"
-	parser = OptionParser(usage=usage)
-	pa = parser.add_option
-	pe = parser.error
+    usage = "%prog [<options>] =<dchroot>|/path/to/chroot"
+    parser = OptionParser(usage=usage)
+    pa = parser.add_option
+    pe = parser.error
 
-	pa('-r', '--gain-root', type='string', dest='gain_root');
-	pa('-d', '--debug', action='store_true', dest='debug');
+    pa('-r', '--gain-root', type='string', dest='gain_root')
+    pa('-d', '--debug', action='store_true', dest='debug')
 
-	(opts,args) = parser.parse_args()
-	if len(args) != 1: pe("need exactly one arg, chroot specification")
+    (opts, args) = parser.parse_args()
+    if len(args) != 1:
+        pe("need exactly one arg, chroot specification")
 
-	VirtSubproc.debuglevel = opts.debug
+    VirtSubproc.debuglevel = opts.debug
 
-	chroot_arg = args[0]
-	if not chroot_arg: pe("chroot specification may not be empty")
-	if chroot_arg == '=':
-		down = ['dchroot','-q','--']
-	elif chroot_arg == '=':
-		down = ['dchroot','-q','--']
-	elif chroot_arg[0] == '=':
-		down = ['dchroot','-q','-c',chroot_arg[1:],'--']
-	elif chroot_arg[0] == '/':
-		down = ['chroot',chroot_arg]
-	else:
-		pe("chroot spec must be =[DCHROOT] or /PATH/TO/CHROOT")
+    chroot_arg = args[0]
+    if not chroot_arg:
+        pe("chroot specification may not be empty")
+    if chroot_arg == '=':
+        down = ['dchroot', '-q', '--']
+    elif chroot_arg == '=':
+        down = ['dchroot', '-q', '--']
+    elif chroot_arg[0] == '=':
+        down = ['dchroot', '-q', '-c', chroot_arg[1:], '--']
+    elif chroot_arg[0] == '/':
+        down = ['chroot', chroot_arg]
+    else:
+        pe("chroot spec must be =[DCHROOT] or /PATH/TO/CHROOT")
 
-	if down[0] == 'chroot':
-		VirtSubproc.downkind = 'auxverb'
-	elif down[0] == 'dchroot':
-		VirtSubproc.downkind = 'shstring'
-	else:
-		print >>sys.stderr, 'down[0]=%s' % `down[0]`
-		assert(False)
+    if down[0] == 'chroot':
+        VirtSubproc.downkind = 'auxverb'
+    elif down[0] == 'dchroot':
+        VirtSubproc.downkind = 'shstring'
+    else:
+        print >>sys.stderr, 'down[0]=%s' % str(down[0])
+        assert(False)
 
-	if opts.gain_root != None:
-		down = opts.gain_root.split() + down
+    if opts.gain_root:
+        down = opts.gain_root.split() + down
 
-	if opts.gain_root or os.getuid()==0:
-		capabilities.append('root-on-testbed')
+    if opts.gain_root or os.getuid() == 0:
+        capabilities.append('root-on-testbed')
 
-	VirtSubproc.down = down
+    VirtSubproc.down = down
+
 
 def hook_open():
-	pass
+    pass
+
 
 def hook_downtmp():
-	return VirtSubproc.downtmp_mktemp()
+    return VirtSubproc.downtmp_mktemp()
+
 
 def hook_cleanup():
-	VirtSubproc.downtmp_remove()
+    VirtSubproc.downtmp_remove()
+
 
 def hook_forked_inchild():
-	pass
+    pass
+
 
 def hook_capabilities():
-	return capabilities
+    return capabilities
 
 parse_args()
 VirtSubproc.main()
