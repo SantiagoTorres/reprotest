@@ -24,7 +24,6 @@
 
 import sys
 import os
-import string
 import re as regexp
 import grp
 import pwd
@@ -36,6 +35,9 @@ sys.path.insert(1, our_base)
 
 import VirtSubproc as vsp
 capabilities = []
+
+schroot = None
+sessid = None
 
 def pw_uid(exp_name):
 	try:

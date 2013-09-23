@@ -24,7 +24,6 @@
 
 import sys
 import os
-import string
 from optparse import OptionParser
 
 try: our_base = os.environ['AUTOPKGTEST_BASE']+'/lib'

@@ -24,8 +24,6 @@
 
 import sys
 import os
-import re as regexp
-import string
 import subprocess
 import fnmatch
 import signal
@@ -38,6 +36,7 @@ sys.path.insert(1, our_base)
 import VirtSubproc as vsp
 
 withholder = None
+with_testbed = None
 downtmp = '/root/adt-downtmp'
 pauses = None
 event_counters = { }
