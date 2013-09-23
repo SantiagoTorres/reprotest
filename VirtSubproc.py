@@ -33,13 +33,18 @@ import errno
 import tempfile
 import re as regexp
 
-from Autopkgtest import *
+from Autopkgtest import shellquote_arg, shellquote_cmdl
 
 debuglevel = None
 progname = "<VirtSubproc>"
 devnull_read = file('/dev/null','r')
 caller = __main__
 copy_timeout = 300
+
+downtmp = None
+down = None
+downkind = None
+downs = None
 
 class Quit:
 	def __init__(q,ec,m): q.ec = ec; q.m = m
@@ -187,7 +192,7 @@ def cmd_revert(c, ce):
 
 def cmd_execute(c, ce):
 	cmdnumargs(c, ce, 5, None)
-	if not downtmp: bomb("`execute' when not open" % which)
+	if not downtmp: bomb("`execute' when not open")
 	debug_re = regexp.compile('debug=(\d+)\-(\d+)$')
 	debug_g = None
 	timeout = 0
@@ -254,7 +259,7 @@ def cmd_execute(c, ce):
 
 def copyupdown(c, ce, upp):
 	cmdnumargs(c, ce, 2)
-	if not downtmp: bomb("`copyup'/`copydown' when not open" % which)
+	if not downtmp: bomb("`copyup'/`copydown' when not open")
 	isrc = 0
 	idst = 1
 	ilocal = 0 + upp
@@ -264,16 +269,13 @@ def copyupdown(c, ce, upp):
 	if not sd[0] or not sd[1]:
 		bomb("%s paths must be nonempty" % wh)
 	dirsp = sd[0][-1]=='/'
-	functions = "import errno\n"
 	if dirsp != (sd[1][-1]=='/'):
 		bomb("% paths must agree about directoryness"
 			" (presence or absence of trailing /)" % wh)
-	localfd = None
 	deststdout = devnull_read
 	srcstdin = devnull_read
 	remfileq = shellquote_arg(sd[iremote])
 	if not dirsp:
-		modestr = ''
 		rune = 'cat %s%s' % ('><'[upp], remfileq)
 		if upp:
 			deststdout = file(sd[idst], 'w')
