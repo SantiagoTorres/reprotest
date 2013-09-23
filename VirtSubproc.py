@@ -49,9 +49,9 @@ downs = None
 
 class Quit:
 
-    def __init__(q, ec, m):
-        q.ec = ec
-        q.m = m
+    def __init__(self, ec, m):
+        self.ec = ec
+        self.m = m
 
 
 class Timeout:
@@ -72,8 +72,8 @@ def timeout_stop():
 
 class FailedCmd:
 
-    def __init__(fc, e):
-        fc.e = e
+    def __init__(self, e):
+        self.e = e
 
 
 def debug(m):
