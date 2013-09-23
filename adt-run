@@ -36,19 +36,21 @@ import errno
 import fnmatch
 import shutil
 import copy
+
 try:
     from debian import deb822, debian_support
 except ImportError:
     from debian_bundle import deb822, debian_support
 
 from optparse import OptionParser
+
 signal.signal(signal.SIGINT, signal.SIG_DFL) # undo stupid Python SIGINT thing
 
 try: our_base = os.environ['AUTOPKGTEST_BASE']+'/lib'
 except KeyError: our_base = '/usr/share/autopkgtest/python';
 sys.path.insert(1, our_base)
 
-from Autopkgtest import *
+from Autopkgtest import shellquote_cmdl
 
 #---------- global variables
 
@@ -182,7 +184,7 @@ def badpkg(m):
 	preport('badpkg: ' + m)
 	raise Quit(12, "erroneous package: %s" % m)
 
-class Unsupported:
+class Unsupported(Exception):
  def __init__(u, lno, m):
 	if lno >= 0: u.m = '%s (control line %d)' % (m, lno)
 	else: u.m = m
@@ -994,6 +996,7 @@ class FieldBase:
  def __init__(f, fname, stz, base, tnames, vl):
 	assert(vl)
 	f.stz = stz
+	f.fname = fname
 	f.base = base
 	f.tnames = tnames
 	f.vl = vl
@@ -1009,7 +1012,7 @@ class FieldBase:
 		(f.lno, f.v) = f.vl[0]
 	else:
 		raise Unsupported(f.vl[1][0],
-			'only one %s field allowed' % fn)
+			'only one %s field allowed' % f.fname)
 	return f.v
 
 class FieldIgnore(FieldBase):
@@ -1082,7 +1085,7 @@ class Field_Depends(FieldBase):
 class Field_Tests_directory(FieldBase):
  def parse(f):
 	td = f.atmostone()
-	if td.startswith('/'): raise Unspported(f.lno,
+	if td.startswith('/'): raise Unsupported(f.lno,
 		'Tests-Directory may not be absolute')
 	f.base['testsdir'] = td
 
@@ -1231,12 +1234,11 @@ class Test:
 	os.unlink(fifo_err)
 	t._debug('----------------------------------------]')
 
-	so_read = so.read()
+	so.read()
 	se_read = se.read()
 
 	t._debug(' - - - - - - - - - - results - - - - - - - - - -')
 
-	stdout_stat = os.stat(so_read)
 	stderr_stat = os.stat(se_read)
 
 	if rc != 0:
@@ -1291,10 +1293,6 @@ def read_control(act, tree, control_override):
 			tree, 'debian/tests/control')
 
         stanzas = read_stanzas(control_af)
-
-	def testbadctrl(stz, lno, m):
-		report_badctrl(lno, m)
-		stz[' errs'] += 1
 
 	for stz in stanzas:
 		try:
