@@ -31,6 +31,9 @@ autopkgtest (2.3.4) UNRELEASED; urgency=low
   * Some code cleanups:
     - Don't rename modules on import.
     - Format to be PEP-8 compliant.
+    - Rename first argument of methods to "self", as that's the wide
+      convention, gets rid of some single-letter variable names, and makes it
+      a bit easier to see which variables refer to foreign objects.
   * Run tests/pep8 and tests/pyflakes during package build.
 
  -- Martin Pitt <mpitt@debian.org>  Fri, 20 Sep 2013 18:07:13 -0500
