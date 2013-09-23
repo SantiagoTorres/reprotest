@@ -27,6 +27,8 @@ autopkgtest (2.3.4) UNRELEASED; urgency=low
   * README.package-tests: Point out that you can use upper-case test names as
     well. Update test_tree_tmp_dir() test to use these, to ensure it stays
     working. (Closes: #711844)
+  * Some code cleanups:
+    - Don't rename modules on import.
 
  -- Martin Pitt <mpitt@debian.org>  Fri, 20 Sep 2013 18:07:13 -0500
 
