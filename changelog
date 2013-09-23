@@ -29,6 +29,7 @@ autopkgtest (2.3.4) UNRELEASED; urgency=low
     working. (Closes: #711844)
   * Some code cleanups:
     - Don't rename modules on import.
+    - Format to be PEP-8 compliant.
 
  -- Martin Pitt <mpitt@debian.org>  Fri, 20 Sep 2013 18:07:13 -0500
 
