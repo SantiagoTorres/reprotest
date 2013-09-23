@@ -1062,9 +1062,14 @@ class Field_Tests(FieldIgnore): pass
 
 class Field_Depends(FieldBase):
  def parse(f):
-	debug("Field_DependS: %s %s %s %s" % (f.stz, f.base, f.tnames, f.vl), 2)
+	debug("Field_Depends: %s %s %s %s" % (f.stz, f.base, f.tnames, f.vl), 2)
 	dl = map(lambda x: x.strip(),
 		flatten(map(lambda (lno, v): v.split(','), f.vl)))
+	# allow empty Depends: field
+	if dl == ['']:
+	    f.base['depends'] = []
+	    return
+
 	re = regexp.compile(r"(?P<package>[a-z0-9+-.]+)\s*(\((?P<relation><<|<=|>=|=|>>)\s*(?P<version>[^\)]*)\))?(\s*\[[[a-z0-9+-. ]+\])?$")
 	for di in dl:
 		for d in di.split('|'):
