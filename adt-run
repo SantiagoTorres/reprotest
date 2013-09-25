@@ -1452,12 +1452,20 @@ class Test:
                 os.write(2, block)
             os._exit(0)
 
-        rc = testbed.execute('test-' + self.what, tfl,
-                             so=fifo_out, se=fifo_err, cwd=tree.read(True),
-                             xenv=xenv, kind='test')
+        try:
+            rc = testbed.execute('test-' + self.what, tfl,
+                                 so=fifo_out, se=fifo_err, cwd=tree.read(True),
+                                 xenv=xenv, kind='test')
+            debug('testbed executing test finished with exit status %i' % rc, 1)
+        except Quit:
+            debug('testbed execute failed, killing tee child', 1)
+            os.kill(tee_out, signal.SIGTERM)
+            os.kill(tee_err, signal.SIGTERM)
+            raise
+        finally:
+            os.waitpid(tee_out, 0)
+            os.waitpid(tee_err, 0)
 
-        os.waitpid(tee_out, 0)
-        os.waitpid(tee_err, 0)
         os.unlink(fifo_out)
         os.unlink(fifo_err)
         self._debug('----------------------------------------]')
