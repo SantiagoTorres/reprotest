@@ -1,3 +1,9 @@
+autopkgtest (2.3.5) UNRELEASED; urgency=low
+
+  * Don't show source_rules_command() "set -x" trace unless running with -d.
+
+ -- Martin Pitt <mpitt@debian.org>  Wed, 25 Sep 2013 08:18:40 +0200
+
 autopkgtest (2.3.4) unstable; urgency=low
 
   * Add tests/testpkg/: Simple source package for testing autopkgtest.
