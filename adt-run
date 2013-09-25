@@ -1855,8 +1855,10 @@ Pin-Priority: 1002
 
 def source_rules_command(act, script, what, which, work, cwd,
                          results_lines=0, xargs=[]):
-    script = [	"exec 3>&1 >&2",
-               "set -x"	] + script
+    if opts.debuglevel >= 1:
+        script = ["exec 3>&1 >&2", "set -x"] + script
+    else:
+        script = ["exec 3>&1 >&2"] + script
     script = '\n'.join(script)
     so = TemporaryFile('%s-%s-results' % (what, which))
     rc = testbed.execute('%s-%s' % (what, which),
