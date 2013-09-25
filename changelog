@@ -4,6 +4,7 @@ autopkgtest (2.3.5) UNRELEASED; urgency=low
   * Kill the tee child process if the testbed bombs out (e. g. due to a
     timeout), to avoid hanging eternally. Add test case for --timeout-test
     handling.
+  * Add test case for --summary option.
 
  -- Martin Pitt <mpitt@debian.org>  Wed, 25 Sep 2013 08:18:40 +0200
 
