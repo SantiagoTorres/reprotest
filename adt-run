@@ -36,6 +36,7 @@ import errno
 import fnmatch
 import shutil
 import copy
+import time
 
 try:
     from debian import deb822, debian_support
@@ -1457,12 +1458,11 @@ class Test:
                                  so=fifo_out, se=fifo_err, cwd=tree.read(True),
                                  xenv=xenv, kind='test')
             debug('testbed executing test finished with exit status %i' % rc, 1)
-        except Quit:
-            debug('testbed execute failed, killing tee child', 1)
+        finally:
+            # give tee childs another second to mop up last output
+            time.sleep(1)
             os.kill(tee_out, signal.SIGTERM)
             os.kill(tee_err, signal.SIGTERM)
-            raise
-        finally:
             os.waitpid(tee_out, 0)
             os.waitpid(tee_err, 0)
 
