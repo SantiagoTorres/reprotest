@@ -426,7 +426,7 @@ class AutoFile:
         if sibling:
             sh_sibl = ' (sibling)'
         parent._debug('using as base: %s: %s%s%s' %
-                     (str(parent), leaf, sh_on, sh_sibl))
+                      (str(parent), leaf, sh_on, sh_sibl))
         if not sibling and not parent.dir:
             parent._wrong('asked for non-sibling relative path of non-dir')
         if sibling:
@@ -609,7 +609,7 @@ def parse_args():
             if not value in setval:
                 parser.error('value for %s option (%s) is not '
                              'one of the permitted values (%s)' %
-                            (value, opt_str, setval.join(' ')))
+                             (value, opt_str, setval.join(' ')))
         elif setval is not None:
             value = setval
         for v in toset:
@@ -2129,8 +2129,7 @@ def process_actions():
 
     debug_a1('builds ...')
     for act in opts.actions:
-        debug_a2('%s %s' %
-                (act.kind, act.what))
+        debug_a2('%s %s' % (act.kind, act.what))
 
         if act.kind == 'control':
             control_override = act.af
