@@ -40,6 +40,7 @@ import time
 
 try:
     from debian import deb822, debian_support
+    deb822, debian_support  # pyflakes
 except ImportError:
     from debian_bundle import deb822, debian_support
 
