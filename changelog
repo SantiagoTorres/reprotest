@@ -4,6 +4,7 @@ autopkgtest (2.3.6) UNRELEASED; urgency=low
     condition when they get stuck in a read() call which doesn't return with
     "no data".
   * Fix pyflakes failure on older Debian/Ubuntu releases.
+  * Fix PEP-8 errors.
 
  -- Martin Pitt <mpitt@debian.org>  Thu, 26 Sep 2013 12:49:13 +0200
 
