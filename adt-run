@@ -108,9 +108,9 @@ summary_stream = None
 
 
 def pstderr(m):
-    print >>sys.stderr, m
+    print >> sys.stderr, m
     if trace_stream is not None:
-        print >>trace_stream, m
+        print >> trace_stream, m
 
 
 def debug(m, minlevel=0):
