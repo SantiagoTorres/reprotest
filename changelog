@@ -1,4 +1,4 @@
-autopkgtest (2.3.6) UNRELEASED; urgency=low
+autopkgtest (2.3.6) unstable; urgency=low
 
   * Always kill the tee children after a test finishes, to avoid race
     condition when they get stuck in a read() call which doesn't return with
@@ -6,7 +6,7 @@ autopkgtest (2.3.6) UNRELEASED; urgency=low
   * Fix pyflakes failure on older Debian/Ubuntu releases.
   * Fix PEP-8 errors.
 
- -- Martin Pitt <mpitt@debian.org>  Thu, 26 Sep 2013 12:49:13 +0200
+ -- Martin Pitt <mpitt@debian.org>  Thu, 26 Sep 2013 13:12:11 +0200
 
 autopkgtest (2.3.5) unstable; urgency=low
 
