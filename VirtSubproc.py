@@ -193,8 +193,8 @@ def cmd_open(c, ce):
 
 
 def downtmp_mktemp():
-    d = tempfile.mkdtemp()
-    os.chmod(d, 0755)
+    d = execute('mktemp -t -d', [], downp=True, outp=True)
+    execute('chmod 755', [d], downp=True)
     return d
 
 
