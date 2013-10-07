@@ -1,6 +1,9 @@
 autopkgtest (2.3.7) UNRELEASED; urgency=low
 
   * tests/adt-run: Factorize a base test class with common functionality.
+  * lib/VirtSubproc.py, downtmp_mktemp(): Create temporary directory in the
+    target (which isn't the host for anything but the null runner), to fix the
+    schroot/chroot runners for directories.
 
  -- Martin Pitt <mpitt@debian.org>  Mon, 07 Oct 2013 14:22:01 +0200
 
