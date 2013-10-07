@@ -30,7 +30,6 @@ import signal
 import subprocess
 import traceback
 import errno
-import tempfile
 import re
 
 from Autopkgtest import shellquote_arg, shellquote_cmdl
