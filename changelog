@@ -4,6 +4,10 @@ autopkgtest (2.3.7) UNRELEASED; urgency=low
   * lib/VirtSubproc.py, downtmp_mktemp(): Create temporary directory in the
     target (which isn't the host for anything but the null runner), to fix the
     schroot/chroot runners for directories.
+  * Only show stdout/stderr in realtime if tests run in the same file system
+    as the host, as otherwise we cannot create/use a named pipe. If not, fall
+    back to the old way of just showing the complete stdout/stderr after the
+    tests finished. (LP: #1235189)
 
  -- Martin Pitt <mpitt@debian.org>  Mon, 07 Oct 2013 14:22:01 +0200
 
