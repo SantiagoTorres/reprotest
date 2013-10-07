@@ -1,3 +1,9 @@
+autopkgtest (2.3.7) UNRELEASED; urgency=low
+
+  * tests/adt-run: Factorize a base test class with common functionality.
+
+ -- Martin Pitt <mpitt@debian.org>  Mon, 07 Oct 2013 14:22:01 +0200
+
 autopkgtest (2.3.6) unstable; urgency=low
 
   * Always kill the tee children after a test finishes, to avoid race
