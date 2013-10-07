@@ -1418,60 +1418,72 @@ class Test:
             bomb("could not create test tmp dirs in `%s', exit code %d"
                  % (testtmp, rc))
 
-        # show stdout and stderr in realtime by teeing them (we can't use the
+        # if testtmp is a local dir, we are using the null runner and can show
+        # stdout and stderr in realtime by teeing them (we can't use the
         # coreutils tee with pipes though, as it aborts on the first read
         # error)
-        so_write = so.write(True)
-        se_write = se.write(True)
-        fifo_out = os.path.join(testtmp, 'test_stdout')
-        fifo_err = os.path.join(testtmp, 'test_stderr')
-        os.mkfifo(fifo_out)
-        os.mkfifo(fifo_err)
-        debug('teeing to stdout: %s, stderr: %s' % (fifo_out, fifo_err), 1)
-        tee_out = os.fork()
-        if tee_out == 0:
-            fd_in = os.open(fifo_out, os.O_RDONLY)
-            fd_out = os.open(so_write, os.O_CREAT | os.O_WRONLY)
+        show_realtime = os.path.isdir(testtmp)
+        if show_realtime:
+            so_write = so.write(True)
+            se_write = se.write(True)
+            fifo_out = os.path.join(testtmp, 'test_stdout')
+            fifo_err = os.path.join(testtmp, 'test_stderr')
+            os.mkfifo(fifo_out)
+            os.mkfifo(fifo_err)
+            debug('teeing to stdout: %s, stderr: %s' % (fifo_out, fifo_err), 1)
+            tee_out = os.fork()
+            if tee_out == 0:
+                fd_in = os.open(fifo_out, os.O_RDONLY)
+                fd_out = os.open(so_write, os.O_CREAT | os.O_WRONLY)
 
-            while True:
-                block = os.read(fd_in, 1024)
-                if not block:
-                    break
-                os.write(fd_out, block)
-                os.write(1, block)
-            os._exit(0)
+                while True:
+                    block = os.read(fd_in, 1024)
+                    if not block:
+                        break
+                    os.write(fd_out, block)
+                    os.write(1, block)
+                os._exit(0)
 
-        tee_err = os.fork()
-        if tee_err == 0:
-            fd_in = os.open(fifo_err, os.O_RDONLY)
-            fd_out = os.open(se_write, os.O_CREAT | os.O_WRONLY)
+            tee_err = os.fork()
+            if tee_err == 0:
+                fd_in = os.open(fifo_err, os.O_RDONLY)
+                fd_out = os.open(se_write, os.O_CREAT | os.O_WRONLY)
 
-            while True:
-                block = os.read(fd_in, 1024)
-                if not block:
-                    break
-                os.write(fd_out, block)
-                os.write(2, block)
-            os._exit(0)
+                while True:
+                    block = os.read(fd_in, 1024)
+                    if not block:
+                        break
+                    os.write(fd_out, block)
+                    os.write(2, block)
+                os._exit(0)
 
-        try:
+            try:
+                rc = testbed.execute('test-' + self.what, tfl,
+                                     so=fifo_out, se=fifo_err, cwd=tree.read(True),
+                                     xenv=xenv, kind='test')
+                debug('testbed executing test finished with exit status %i' % rc, 1)
+            finally:
+                # give tee childs another second to mop up last output
+                time.sleep(1)
+                os.kill(tee_out, signal.SIGTERM)
+                os.kill(tee_err, signal.SIGTERM)
+                os.waitpid(tee_out, 0)
+                os.waitpid(tee_err, 0)
+
+            os.unlink(fifo_out)
+            os.unlink(fifo_err)
+
+        # if testtmp is not accessible, we cannot show realtime output and need
+        # to show stdout afterwards
+        else:
             rc = testbed.execute('test-' + self.what, tfl,
-                                 so=fifo_out, se=fifo_err, cwd=tree.read(True),
+                                 so=so.write(True), se=se.write(True), cwd=tree.read(True),
                                  xenv=xenv, kind='test')
             debug('testbed executing test finished with exit status %i' % rc, 1)
-        finally:
-            # give tee childs another second to mop up last output
-            time.sleep(1)
-            os.kill(tee_out, signal.SIGTERM)
-            os.kill(tee_err, signal.SIGTERM)
-            os.waitpid(tee_out, 0)
-            os.waitpid(tee_err, 0)
 
-        os.unlink(fifo_out)
-        os.unlink(fifo_err)
         self._debug('----------------------------------------]')
 
-        so.read()
+        so_read = so.read()
         se_read = se.read()
 
         self._debug(' - - - - - - - - - - results - - - - - - - - - -')
@@ -1490,6 +1502,11 @@ class Test:
             debug_file(se_read)
         else:
             self.report('PASS')
+
+        if not show_realtime:
+            if os.stat(so_read).st_size != 0:
+                self._debug(' - - - - - - - - - - stdout - - - - - - - - - -')
+                debug_file(so_read)
 
 
 def read_stanzas(af):
