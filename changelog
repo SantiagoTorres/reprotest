@@ -13,6 +13,8 @@ autopkgtest (2.3.7) UNRELEASED; urgency=low
     down to adt-virt-* via the environment ($ADT_VIRT_COPY_TIMEOUT).
     (LP: #1200693)
   * Fix tests to also work with Python 3.1.
+  * tests/testpkg: Go back to compat level 7 so that this also works on older
+    Debian/Ubuntu releases.
 
  -- Martin Pitt <mpitt@debian.org>  Mon, 07 Oct 2013 14:22:01 +0200
 
