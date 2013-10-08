@@ -192,7 +192,7 @@ def cmd_open(c, ce):
 
 
 def downtmp_mktemp():
-    d = execute('mktemp -t -d', [], downp=True, outp=True)
+    d = execute('mktemp -d /tmp/adt-run.XXXXXX', [], downp=True, outp=True)
     execute('chmod 755', [d], downp=True)
     return d
 
