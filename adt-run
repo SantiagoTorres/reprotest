@@ -61,7 +61,7 @@ from Autopkgtest import shellquote_cmdl
 tmp = None		# pathstring on host
 testbed = None		# Testbed
 errorcode = 0		# exit status that we are going to use
-timeouts = {'short': 100, 'install': 3000, 'test': 10000, 'build': 100000}
+timeouts = {'short': 100, 'copy': 300, 'install': 3000, 'test': 10000, 'build': 100000}
 binaries = None		# Binaries (.debs we have registered)
 build_essential = ["build-essential"]
 paths = []
@@ -741,6 +741,9 @@ def parse_args():
         if t is None:
             t = timeouts[k] * opts.timeout_factor
         timeouts[k] = int(t)
+
+    # this timeout is for adt-virt-*, so pass it down via environment
+    os.environ['ADT_VIRT_COPY_TIMEOUT'] = str(timeouts['copy'])
 
     arghandling = initial_arghandling
     opts.actions = []
