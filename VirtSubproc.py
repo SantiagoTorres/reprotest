@@ -38,7 +38,7 @@ debuglevel = None
 progname = "<VirtSubproc>"
 devnull_read = file('/dev/null', 'r')
 caller = __main__
-copy_timeout = 300
+copy_timeout = int(os.getenv('ADT_VIRT_COPY_TIMEOUT', '300'))
 
 downtmp = None
 down = None
