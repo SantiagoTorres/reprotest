@@ -871,6 +871,7 @@ class Testbed:
         self.blamed = []
         self._debug('init', 1)
         self._need_reset_apt = False
+        self.stop_sent = False
 
     def _debug(self, m, minlevel=0):
         debug('** ' + m, minlevel)
@@ -888,6 +889,11 @@ class Testbed:
 
     def stop(self):
         self._debug('stop', 1)
+        if self.stop_sent:
+            # avoid endless loop
+            return
+        self.stop_sent = True
+
         self.close()
         if self.sp is None:
             return
