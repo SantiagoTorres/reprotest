@@ -1,3 +1,10 @@
+autopkgtest (2.3.8) UNRELEASED; urgency=low
+
+  * Skip ChrootRunner test if running under cowdancer, as chrooting in
+    cowdancer doesn't work.
+
+ -- Martin Pitt <mpitt@debian.org>  Thu, 10 Oct 2013 12:12:01 +0200
+
 autopkgtest (2.3.7) unstable; urgency=low
 
   * tests/adt-run: Factorize a base test class with common functionality.
