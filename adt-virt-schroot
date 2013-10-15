@@ -91,11 +91,15 @@ def parse_args():
 
     VirtSubproc.debuglevel = opts.debug
 
+    VirtSubproc.debug('schroot config: %s' % cfg)
+
     if re.search('snapshot', cfg['type']):
+        VirtSubproc.debug('have "revert" capability')
         capabilities.append('revert')
 
     if (match(cfg['root-users'], [os.getuid()], pw_uid) or
             match(cfg['root-groups'], [os.getgid()] + os.getgroups(), gr_gid)):
+        VirtSubproc.debug('have "root-on-testbed" capability')
         capabilities.append('root-on-testbed')
 
 
