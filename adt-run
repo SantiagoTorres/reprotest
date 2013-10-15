@@ -1427,11 +1427,11 @@ class Test:
             bomb("could not create test tmp dirs in `%s', exit code %d"
                  % (testtmp, rc))
 
-        # if testtmp is a local dir, we are using the null runner and can show
-        # stdout and stderr in realtime by teeing them (we can't use the
-        # coreutils tee with pipes though, as it aborts on the first read
-        # error)
-        show_realtime = os.path.isdir(testtmp)
+        # if testtmp is a local dir, we are using the null runner or some
+        # runner which bind-mounts the hosts' /tmp and can show stdout and
+        # stderr in realtime by teeing them (we can't use the coreutils tee
+        # with pipes though, as it aborts on the first read error)
+        show_realtime = os.path.isdir(testtmp) and os.access(testtmp, os.W_OK)
         if show_realtime:
             so_write = so.write(True)
             se_write = se.write(True)
