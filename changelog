@@ -5,6 +5,11 @@ autopkgtest (2.3.8) UNRELEASED; urgency=low
   * Fix endless bomb/stop loop if the virt runner fails and exits
     unexpectedly.
   * adt-virt-schroot: Add some debugging output of the schroot config.
+  * Fix OSError crash with real-time output when running adt-run as non-root
+    on the host, and the runner bind-mounts /tmp (such as -schroot), in which
+    case the temporary runner dir isn't accessible to the host. This is a
+    quickfix, eventually we should make real-time output work properly in this
+    situation.
 
  -- Martin Pitt <mpitt@debian.org>  Thu, 10 Oct 2013 12:12:01 +0200
 
