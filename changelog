@@ -10,6 +10,7 @@ autopkgtest (2.3.8) UNRELEASED; urgency=low
     case the temporary runner dir isn't accessible to the host. This is a
     quickfix, eventually we should make real-time output work properly in this
     situation.
+  * Show stderr also for non-zero exit codes.
 
  -- Martin Pitt <mpitt@debian.org>  Thu, 10 Oct 2013 12:12:01 +0200
 
