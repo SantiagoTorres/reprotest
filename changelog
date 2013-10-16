@@ -1,4 +1,4 @@
-autopkgtest (2.3.8) UNRELEASED; urgency=low
+autopkgtest (2.3.8) unstable; urgency=low
 
   * Skip ChrootRunner test if running under cowdancer, as chrooting in
     cowdancer doesn't work.
@@ -18,7 +18,7 @@ autopkgtest (2.3.8) UNRELEASED; urgency=low
     otherwise skip the tests.
   * Show stderr for all non-null runners with "allow-stderr".
 
- -- Martin Pitt <mpitt@debian.org>  Thu, 10 Oct 2013 12:12:01 +0200
+ -- Martin Pitt <mpitt@debian.org>  Wed, 16 Oct 2013 14:55:39 +0200
 
 autopkgtest (2.3.7) unstable; urgency=low
 
