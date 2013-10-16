@@ -1501,6 +1501,10 @@ class Test:
 
         if rc != 0:
             self.reportfail('non-zero exit status %d' % rc)
+            if (stderr_stat.st_size != 0 and
+               'allow-stderr' not in self.restriction_names):
+                self._debug(' - - - - - - - - - - stderr - - - - - - - - - -')
+                debug_file(se_read)
         elif (stderr_stat.st_size != 0 and
               'allow-stderr' not in self.restriction_names):
             se_read_fobj = open(se_read)
