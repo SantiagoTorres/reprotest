@@ -11,6 +11,8 @@ autopkgtest (2.3.8) UNRELEASED; urgency=low
     quickfix, eventually we should make real-time output work properly in this
     situation.
   * Show stderr also for non-zero exit codes.
+  * Restrict live stdout/stderr to the null virt runner for now, as it does
+    not work properly with the schroot runner even if /tmp gets bind-mounted.
 
  -- Martin Pitt <mpitt@debian.org>  Thu, 10 Oct 2013 12:12:01 +0200
 
