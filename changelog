@@ -16,6 +16,7 @@ autopkgtest (2.3.8) UNRELEASED; urgency=low
   * Add tests for the schroot runner. Ad building a schroot would be too
     expensive for a test, use an existing schroot if $ADT_TEST_SCHROOT is set,
     otherwise skip the tests.
+  * Show stderr for all non-null runners with "allow-stderr".
 
  -- Martin Pitt <mpitt@debian.org>  Thu, 10 Oct 2013 12:12:01 +0200
 
