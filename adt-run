@@ -1427,11 +1427,14 @@ class Test:
             bomb("could not create test tmp dirs in `%s', exit code %d"
                  % (testtmp, rc))
 
-        # if testtmp is a local dir, we are using the null runner or some
-        # runner which bind-mounts the hosts' /tmp and can show stdout and
-        # stderr in realtime by teeing them (we can't use the coreutils tee
-        # with pipes though, as it aborts on the first read error)
-        show_realtime = os.path.isdir(testtmp) and os.access(testtmp, os.W_OK)
+        # With the NULL runner the test and the controller both run on the same
+        # file system and can route stdout/stderr through a common FIFO to
+        # watch them in realtime. FIXME: Make this work for schroot/lxc/etc. if
+        # they use a bind-mounted /tmp.
+        # Note that we can't use the coreutils tee with pipes, as it aborts on
+        # the first read error.
+        #show_realtime = os.path.isdir(testtmp) and os.access(testtmp, os.W_OK)
+        show_realtime = opts.vserver[0].endswith('-null')
         if show_realtime:
             so_write = so.write(True)
             se_write = se.write(True)
