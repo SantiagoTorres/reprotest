@@ -1504,25 +1504,23 @@ class Test:
 
         if rc != 0:
             self.reportfail('non-zero exit status %d' % rc)
-            if (stderr_stat.st_size != 0 and
-               'allow-stderr' not in self.restriction_names):
-                self._debug(' - - - - - - - - - - stderr - - - - - - - - - -')
-                debug_file(se_read)
         elif (stderr_stat.st_size != 0 and
               'allow-stderr' not in self.restriction_names):
             se_read_fobj = open(se_read)
             stderr_top = se_read_fobj.readline().rstrip('\n \t\r')
             se_read_fobj.close()
             self.reportfail('status: %d, stderr: %s' % (rc, stderr_top))
-            self._debug(' - - - - - - - - - - stderr - - - - - - - - - -')
-            debug_file(se_read)
         else:
             self.report('PASS')
 
-        if not show_realtime:
-            if os.stat(so_read).st_size != 0:
-                self._debug(' - - - - - - - - - - stdout - - - - - - - - - -')
-                debug_file(so_read)
+        if not show_realtime and os.stat(so_read).st_size != 0:
+            self._debug(' - - - - - - - - - - stdout - - - - - - - - - -')
+            debug_file(so_read)
+
+        if stderr_stat.st_size != 0 and (not show_realtime or 'allow-stderr'
+                                         not in self.restriction_names):
+            self._debug(' - - - - - - - - - - stderr - - - - - - - - - -')
+            debug_file(se_read)
 
 
 def read_stanzas(af):
