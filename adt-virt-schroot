@@ -64,7 +64,7 @@ def match(exp_names, ids, extract_id):
 
 
 def parse_args():
-    global schroot, debuglevel
+    global schroot
 
     usage = "%prog [<options>] <schroot>"
     parser = OptionParser(usage=usage)
@@ -102,7 +102,7 @@ def parse_args():
 
 
 def hook_open():
-    global schroot, sessid, downtmp
+    global schroot, sessid
     sessid = VirtSubproc.execute(
         'schroot -b -c', [schroot], downp=False, outp=True)
     VirtSubproc.down = ['schroot', '-r', '-d', '/', '-c', sessid]
@@ -123,7 +123,7 @@ def hook_revert():
 
 
 def hook_cleanup():
-    global schroot, sessid, downtmp
+    global schroot, sessid
     VirtSubproc.downtmp_remove()
     VirtSubproc.execute('schroot -e -c', [sessid], downp=False)
 

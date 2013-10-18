@@ -64,7 +64,7 @@ def check_pause(kind):
 
 
 def parse_args():
-    global debuglevel, with_testbed, console, pauses
+    global with_testbed, pauses
 
     usage = '%prog <options> [-- <adt-xenlvm options>]'
     parser = OptionParser(usage=usage)

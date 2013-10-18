@@ -73,7 +73,7 @@ def match(exp_names, ids, extract_id):
 
 
 def parse_args():
-    global lxc_template, debuglevel, eatmydata, ephemeral
+    global lxc_template, eatmydata, ephemeral
 
     usage = '%prog [<options>] <template>'
     parser = OptionParser(usage=usage)
@@ -184,7 +184,8 @@ def get_available_lxc_container_name():
 
 
 def hook_open():
-    global sessid, downtmp, lxc_container_name
+    global lxc_container_name
+
     lxc_container_name = get_available_lxc_container_name()
     if ephemeral:
         VirtSubproc.execute('sudo lxc-start-ephemeral -n %s -k -d -o'
@@ -202,8 +203,8 @@ def hook_open():
         VirtSubproc.down = ['sudo', '-E', 'lxc-attach', '-n',
                             lxc_container_name, '--']
         if eatmydata:
-                check_for_eatmydata(lxc_container_name, lxc_template)
-                VirtSubproc.down.extend(['eatmydata', '--'])
+            check_for_eatmydata(lxc_container_name, lxc_template)
+            VirtSubproc.down.extend(['eatmydata', '--'])
         VirtSubproc.downkind = 'auxverb'
     except:
         # Clean up on failure
@@ -227,7 +228,6 @@ def hook_revert():
 
 
 def hook_cleanup():
-    global sessid, downtmp
     VirtSubproc.downtmp_remove()
     VirtSubproc.execute('sudo lxc-stop -n', [lxc_container_name],
                         downp=False, outp=True)

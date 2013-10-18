@@ -37,8 +37,6 @@ capabilities = []
 
 
 def parse_args():
-    global down, debuglevel
-
     usage = "%prog [<options>]"
     parser = OptionParser(usage=usage)
 
