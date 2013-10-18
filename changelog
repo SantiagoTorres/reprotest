@@ -9,6 +9,9 @@ autopkgtest (2.4) UNRELEASED; urgency=low
     with the different user setups (debian using "root",  ubuntu using an
     "ubuntu" user with sudo capabilities).
   * Add tests for adt-virt-lxc.
+  * Code cleanup to slightly improve readability:
+    - Drop two-letter aliases for methods.
+    - Consistent usage of quotes.
 
  -- Martin Pitt <mpitt@debian.org>  Fri, 18 Oct 2013 08:43:22 +0200
 
