@@ -2063,7 +2063,7 @@ def build_source(act, control_override):
         if act.kind != 'dsc':
             testbed.prepare2([])
 
-        testbed.satisfy_dependencies_string('build-essential',
+        testbed.satisfy_dependencies_string(', '.join(build_essential),
                                             'install build-essential')
         testbed.satisfy_dependencies_dsc(dsc, 'build dependencies')
 
