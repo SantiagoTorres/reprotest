@@ -60,6 +60,7 @@ from Autopkgtest import shellquote_cmdl
 
 tmp = None		# pathstring on host
 testbed = None		# Testbed
+opts = None             # optparse options
 errorcode = 0		# exit status that we are going to use
 timeouts = {'short': 100, 'copy': 300, 'install': 3000, 'test': 10000, 'build': 100000}
 binaries = None		# Binaries (.debs we have registered)
@@ -69,6 +70,7 @@ os.putenv('APT_LISTBUGS_FRONTEND', 'none')
           # do not consider using apt-listbugs
 os.putenv('APT_LISTCHANGES_FRONTEND', 'none')
           # do not consider using apt-listchanges
+
 
 #---------- output handling
 #
@@ -96,102 +98,138 @@ os.putenv('APT_LISTCHANGES_FRONTEND', 'none')
 # is done by forking off a copy of ourselves to do plumbing,
 # which copy we wait for at the appropriate point.
 
-
-class DummyOpts:
-
-    def __init__(self):
-        self.debuglevel = 0
-
-opts = DummyOpts()
-trace_stream = None
+log_stream = None
 summary_stream = None
 
 
-def pstderr(m):
-    print >> sys.stderr, m
-    if trace_stream is not None:
-        print >> trace_stream, m
+def error(message):
+    '''Write an error message to stderr/trace log'''
+
+    print >> sys.stderr, message
+    if log_stream is not None:
+        print >> log_stream, message
 
 
-def debug(m, minlevel=0):
+def debug(message, minlevel=0):
+    '''Write a debug message to stderr/trace log according to --quiet/--logfile'''
+
     if opts.debuglevel < minlevel:
         return
-    if opts.quiet and trace_stream is None:
-        return
+
     p = 'adt-run'
     if minlevel:
         p += str(minlevel)
     p += ': '
-    for l in m.rstrip('\n').split('\n'):
-        s = p + l
+    log_msg(message, p)
+
+
+def log_msg(message, prefix=''):
+    '''Write a string to stderr/trace log according to --quiet/--logfile'''
+
+    if opts.quiet and log_stream is None:
+        return
+    for line in message.rstrip('\n').splitlines():
+        s = prefix + line
         if not opts.quiet:
             print >>sys.stderr, s
-        if trace_stream is not None:
-            print >>trace_stream, s
+        if log_stream is not None:
+            print >>log_stream, s
 
 
-def debug_file(hp, minlevel=0):
+def log_file(path, minlevel=0):
+    '''Write a file to stderr/trace log according to --quiet/--logfile'''
+
     if opts.debuglevel < minlevel:
         return
 
     def do_copy(stream, what):
-        rc = subprocess.call(['cat', hp], stdout=stream)
+        rc = subprocess.call(['cat', path], stdout=stream)
         if rc:
             bomb('cat failed copying data from %s'
-                 ' to %s, exit code %d' % (hp, what, rc))
+                 ' to %s, exit code %d' % (path, what, rc))
     if not opts.quiet:
         do_copy(sys.stderr, 'stderr')
-    if trace_stream is not None:
-        do_copy(trace_stream, 'trace log')
+    if log_stream is not None:
+        do_copy(log_stream, 'trace log')
 
 
-class Errplumb:
+class StreamLogger:
+    '''Write a stream to stderr/trace log according to --quiet/--logfile'''
 
-    def __init__(self, critical=False):
-        to_stderr = critical or not opts.quiet
-        count = to_stderr + (trace_stream is not None)
+    def __init__(self, show_with_quiet=False):
+        '''Initialize stream according to --quiet/--logfile
+
+        The returned object's "stream" attribute is an input stream suitable
+        for directing error output to. Depending on --quiet and --logfile
+        options, this will be directed to stderr and/or to the log file.
+        '''
+        self.p_tee = None
+        self.stream = None
+
+        to_stderr = show_with_quiet or not opts.quiet
+        count = to_stderr + (log_stream is not None)
         if count == 0:
             self.stream = open('/dev/null', 'w')
-            self._sp = None
         elif count == 1:
             if to_stderr:
                 self.stream = os.dup(2)
             else:
-                self.stream = trace_stream
-            self._sp = None
+                self.stream = log_stream
         else:
-            self._sp = subprocess.Popen(['tee', '-a', '/dev/stderr'],
-                                        stdin=subprocess.PIPE,
-                                        stdout=trace_stream,
-                                        close_fds=True)
-            self.stream = self._sp.stdin
+            self.p_tee = subprocess.Popen(['tee', '-a', '/dev/stderr'],
+                                          stdin=subprocess.PIPE,
+                                          stdout=log_stream,
+                                          close_fds=True)
+            self.stream = self.p_tee.stdin
 
     def wait(self):
-        if self._sp is None:
+        if self.p_tee is None:
             return
         if isinstance(self.stream, int):
             os.close(self.stream)
-            self.stream = ()
-        self._sp.stdin.close()
-        rc = self._sp.wait()
+            self.stream = None
+        self.p_tee.stdin.close()
+        rc = self.p_tee.wait()
         if rc:
-            bomb('stderr plumbing tee(1) failed, exit code %d' % rc)
-        self._sp = None
+            bomb('StreamLogger tee(1) failed, exit code %d' % rc)
+        self.p_tee = None
 
 
-def subprocess_cooked(cmdl, critical=False, dbg=None, **kwargs):
-    if dbg is not None:
-        if isinstance(dbg, tuple):
-            (what, script) = dbg
-        else:
-            (what, script) = (dbg, None)
-        debug_subprocess(what, cmdl, script=script)
-    ep = Errplumb(critical)
-    running = subprocess.Popen(cmdl, stderr=ep.stream, **kwargs)
-    output = running.communicate()[0]
-    rc = running.wait()
+def debug_subprocess(what, argv, script=None):
+    '''Log a subprocess call for debugging'''
+
+    o = '$ ' + what + ':'
+    if argv is not None:
+        ol = []
+        for x in argv:
+            if x is script:
+                x = '<SCRIPT>'
+            ol.append(x.replace('\\', '\\\\').replace(' ', '\\ '))
+        o += ' ' + ' '.join(ol)
+    debug(o)
+    if script is not None and opts.debuglevel >= 1:
+        o = ''
+        for l in script.rstrip('\n').split('\n'):
+            o += '$     ' + l + '\n'
+        debug(o, 1)
+
+
+def error_logged_subprocess_call(argv, show_with_quiet=False, what=None,
+                                 script=None, **kwargs):
+    '''Call a process, route its stderr to stderr/logfile according to --quiet/--logfile
+
+    If what/script are given, log these for debugging.
+
+    Return (exitcode, stdout). stdout will be a string if kwargs contains
+    stdout=subprocess.PIPE, otherwise None.
+    '''
+    if what:
+        debug_subprocess(what, argv, script=script)
+    ep = StreamLogger(show_with_quiet)
+    process = subprocess.Popen(argv, stderr=ep.stream, **kwargs)
+    output = process.communicate()[0]
     ep.wait()
-    return (rc, output)
+    return (process.returncode, output)
 
 
 def psummary(m):
@@ -202,8 +240,8 @@ def psummary(m):
 def preport(m):
     print m
     sys.stdout.flush()
-    if trace_stream is not None:
-        print >>trace_stream, m
+    if log_stream is not None:
+        print >>log_stream, m
     psummary(m)
 
 
@@ -261,23 +299,6 @@ def rmtree(what, pathname):
     except (IOError, OSError), oe:
         if oe.errno != errno.EEXIST:
             raise
-
-
-def debug_subprocess(what, cmdl=None, script=None):
-    o = '$ ' + what + ':'
-    if cmdl is not None:
-        ol = []
-        for x in cmdl:
-            if x is script:
-                x = '<SCRIPT>'
-            ol.append(x.replace('\\', '\\\\').replace(' ', '\\ '))
-        o += ' ' + ' '.join(ol)
-    debug(o)
-    if script is not None and opts.debuglevel >= 1:
-        o = ''
-        for l in script.rstrip('\n').split('\n'):
-            o += '$     ' + l + '\n'
-        debug(o, 1)
 
 
 def flatten(l):
@@ -788,7 +809,7 @@ def parse_args():
 
 
 def setup_trace():
-    global trace_stream, tmp, summary_stream
+    global log_stream, tmp, summary_stream
 
     if opts.tmp is not None:
         rmtree('tmp(specified)', opts.tmp)
@@ -805,7 +826,7 @@ def setup_trace():
         elif opts.tmp is not None:
             opts.logfile = opts.tmp + '/log'
     if opts.logfile is not None:
-        trace_stream = open(opts.logfile, 'w', 0)
+        log_stream = open(opts.logfile, 'w', 0)
     if opts.summary is not None:
         summary_stream = open(opts.summary, 'w', 0)
 
@@ -832,9 +853,8 @@ def finalise_options():
 
     if opts.user:
         if 'root-on-testbed' not in testbed.caps:
-            pstderr('warning: virtualisation'
-                    ' system does not offer root on testbed,'
-                    ' but --user option specified: failure likely')
+            error('warning: virtualisation system does not offer root on '
+                  'testbed but --user option specified: failure likely')
         opts.user_wrap = lambda x: "su %s -c '%s'" % (opts.user, x)
     else:
         opts.user_wrap = lambda x: x
@@ -872,7 +892,7 @@ class Testbed:
     def start(self):
         self._debug('start', 1)
         debug_subprocess('vserver', opts.vserver)
-        self._errplumb = Errplumb(True)
+        self._errplumb = StreamLogger(True)
         self.sp = subprocess.Popen(opts.vserver,
                                    stdin=subprocess.PIPE,
                                    stdout=subprocess.PIPE,
@@ -948,16 +968,16 @@ exec ''' + shellquote_cmdl(cmdl) + ' "$@"\n'
         cmdl = ['sh', '-c', 'apt-get -qy update 2>&1']
         rc = self.execute(what, cmdl, kind='install')
         if rc:
-            pstderr('\nwarning: failed to restore'
-                    ' testbed apt cache, exit code %d' % rc)
+            error('\nwarning: failed to restore testbed apt cache, '
+                  'exit code %d' % rc)
         what = 'aptconf-reset'
         cmdl = ['rm', '-f', '/etc/apt/apt.conf.d/90autopkgtest',
                 '/etc/apt/sources.list.d/autopkgtest.list',
                 '/etc/apt/preferences.d/90autopkgtest']
         rc = self.execute(what, cmdl, kind='install')
         if rc:
-            pstderr('\nwarning: failed to reset changes'
-                    ' made to testbed apt configuration, exit code %d' % rc)
+            error('\nwarning: failed to reset changes '
+                  'made to testbed apt configuration, exit code %d' % rc)
         self._need_reset_apt = False
 
     def close(self):
@@ -1078,7 +1098,7 @@ exec ''' + shellquote_cmdl(cmdl) + ' "$@"\n'
         #   None or string - call debug_subprocess with that value,
         #			plumb stderr through synchronously if possible
         # Options for se:
-        #   None - usual Errplumb (output is of kind 2c)
+        #   None - usual StreamLogger (output is of kind 2c)
         #   string - path on testbed (output is of kind 2d)
 
         timeout = timeouts[kind]
@@ -1090,13 +1110,13 @@ exec ''' + shellquote_cmdl(cmdl) + ' "$@"\n'
 
         xdump = None
         if se is None:
-            ep = Errplumb()
+            ep = StreamLogger()
             se_catch = TemporaryFile(what + '-xerr')
             se_use = se_catch.write(True)
             if not opts.quiet:
                 xdump = 'debug=2-2'
-            elif trace_stream is not None:
-                xdump = 'debug=2-%d' % trace_stream.fileno()
+            elif log_stream is not None:
+                xdump = 'debug=2-%d' % log_stream.fileno()
         else:
             ep = None
             se_catch = None
@@ -1126,7 +1146,7 @@ exec ''' + shellquote_cmdl(cmdl) + ' "$@"\n'
                  % (what, rc))
 
         if se_catch is not None:
-            debug_file(se_catch.read())
+            log_file(se_catch.read())
         if ep is not None:
             ep.wait()
 
@@ -1508,12 +1528,12 @@ class Test:
 
         if not show_realtime and os.stat(so_read).st_size != 0:
             self._debug(' - - - - - - - - - - stdout - - - - - - - - - -')
-            debug_file(so_read)
+            log_file(so_read)
 
         if stderr_stat.st_size != 0 and (not show_realtime or 'allow-stderr'
                                          not in self.restriction_names):
             self._debug(' - - - - - - - - - - stderr - - - - - - - - - -')
-            debug_file(se_read)
+            log_file(se_read)
 
 
 def read_stanzas(af):
@@ -1601,32 +1621,32 @@ def read_control(act, tree, control_override):
 
 def print_exception(ei, msgprefix=''):
     if msgprefix:
-        pstderr(msgprefix)
+        error(msgprefix)
     (et, q, tb) = ei
     if et is Quit:
-        pstderr('adt-run: ' + q.m)
+        error('adt-run: ' + q.m)
         psummary('quitting: ' + q.m)
         return q.ec
     else:
-        pstderr('adt-run: unexpected, exceptional, error:')
+        error('adt-run: unexpected, exceptional, error:')
         psummary('quitting: unexpected error, consult transcript')
         traceback.print_exc(None, sys.stderr)
-        if trace_stream is not None:
-            traceback.print_exc(None, trace_stream)
+        if log_stream is not None:
+            traceback.print_exc(None, log_stream)
         return 20
 
 
 def cleanup():
-    global trace_stream
+    global log_stream
     try:
         if testbed is not None:
             testbed.reset_apt()
             testbed.stop()
         if opts.tmp is None and tmp is not None:
             rmtree('tmp', tmp)
-        if trace_stream is not None:
-            trace_stream.close()
-            trace_stream = None
+        if log_stream is not None:
+            log_stream.close()
+            log_stream = None
     except:
         print_exception(sys.exc_info(),
                         '\nadt-run: error cleaning up:\n')
@@ -1637,7 +1657,7 @@ def cleanup():
 
 def determine_package(act):
     cmd = 'dpkg-deb --info --'.split(' ') + [act.af.read(), 'control']
-    (rc, output) = subprocess_cooked(cmd, stdout=subprocess.PIPE)
+    (rc, output) = error_logged_subprocess_call(cmd, stdout=subprocess.PIPE)
     if rc:
         badpkg('failed to parse binary package, code %d' % rc)
     pkg_re = re.compile('^\s*Package\s*:\s*([0-9a-z][-+.0-9a-z]*)\s*$')
@@ -1654,8 +1674,9 @@ def determine_package(act):
 
 
 def packages_from_source(act, tree):
-    (rc, output) = subprocess_cooked(['dh_listpackages'],
-                                     stdout=subprocess.PIPE, cwd=tree.read())
+    (rc, output) = error_logged_subprocess_call(['dh_listpackages'],
+                                                stdout=subprocess.PIPE,
+                                                cwd=tree.read())
     if rc:
         badpkg('failed to parse packages built from source, code %d' % rc)
 
@@ -1726,7 +1747,7 @@ END
   gpg --homedir="$1" --batch --gen-key key-gen-params
 '''
         cmdl = ['sh', '-ec', script, 'x', opts.gnupghome]
-        rc = subprocess_cooked(cmdl, dbg=('genkey', script))[0]
+        rc = error_logged_subprocess_call(cmdl, what='genkey', script=script)[0]
         if rc:
             bomb('key generation failed, code %d' % rc)
 
@@ -1820,7 +1841,7 @@ Pin-Priority: 1002
   gpg --homedir="$2" --batch --export >archive-key.pgp
 '''
         cmdl = ['sh', '-ec', script, 'x', self.dir.write(), opts.gnupghome]
-        rc = subprocess_cooked(cmdl, dbg=('ftparchive', script))[0]
+        rc = error_logged_subprocess_call(cmdl, what='ftparchive', script=script)[0]
         if rc:
             bomb('apt-ftparchive or signature failed, code %d' % rc)
 
@@ -2216,7 +2237,6 @@ def process_actions():
 
 def main():
     global testbed
-    global tmp
     try:
         parse_args()
     except SystemExit:
