@@ -1,0 +1,251 @@
+#!/usr/bin/python
+#
+# adt-virt-lxc is part of autopkgtest
+# autopkgtest is a tool for testing Debian binary packages
+#
+# autopkgtest is Copyright (C) 2006-2007, 2013 Canonical Ltd.
+#
+# adt-virt-lxc was derived from adt-virt-schroot and modified to suit LXC by
+# Robie Basak <robie.basak@canonical.com>.
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+#
+# See the file CREDITS for a full list of credits information (often
+# installed as /usr/share/doc/autopkgtest/CREDITS).
+
+import sys
+import os
+import string
+import grp
+import pwd
+from optparse import OptionParser
+import random
+import subprocess
+import time
+
+LXC_WAIT_RETRY_TIME = 0.2
+
+try:
+    our_base = os.environ['AUTOPKGTEST_BASE']+'/lib'
+except KeyError:
+    our_base = '/usr/share/autopkgtest/python'
+sys.path.insert(1, our_base)
+
+import VirtSubproc
+
+ephemeral = False
+eatmydata = False
+lxc_template = None
+lxc_container_name = None
+
+
+def pw_uid(exp_name):
+    try:
+        return pwd.getpwnam(exp_name).pw_uid
+    except KeyError:
+        return None
+
+
+def gr_gid(exp_name):
+    try:
+        return grp.getgrnam(exp_name).gr_gid
+    except KeyError:
+        return None
+
+
+def match(exp_names, ids, extract_id):
+    for exp_name in [n for n in exp_names.split(',') if n]:
+        if extract_id(exp_name) in ids:
+            return True
+    return False
+
+
+def parse_args():
+    global lxc_template, debuglevel, eatmydata, ephemeral
+
+    usage = "%prog [<options>] <template>"
+    parser = OptionParser(usage=usage)
+    pa = parser.add_option
+    pe = parser.error
+
+    pa('-d', '--debug', action='store_true', dest='debug')
+    pa('--eatmydata', action='store_true')
+    pa('--ephemeral', action='store_true')
+
+    (opts, args) = parser.parse_args()
+    if len(args) != 1:
+        pe("need exactly one arg, template lxc container name")
+
+    lxc_template = args[0]
+    eatmydata = opts.eatmydata
+    ephemeral = opts.ephemeral
+
+    VirtSubproc.debuglevel = opts.debug
+
+
+def check_for_cloud_init(container, template_name):
+    with open('/dev/null', 'wb') as null:
+        result = subprocess.call(
+            ['sudo', 'lxc-attach', '-n', container, '--', 'dpkg-query', '-W',
+                'cloud-init'],
+            close_fds=True, stdout=null, stderr=null)
+    if result:
+        raise RuntimeError(
+            ("Container %s does not use cloud-init, and this driver " +
+             "requires it. Use eg. " +
+             "\"lxc-create -t ubuntu-cloud ...\" to create your " +
+             "container instead.") % repr(template_name)
+        )
+
+
+def check_for_eatmydata(container, template_name):
+    with open('/dev/null', 'wb') as null:
+        result = subprocess.call(
+            ['sudo', 'lxc-attach', '-n', container, '--', 'sh', '-c',
+                'command -v eatmydata'],
+            close_fds=True, stdout=null, stderr=null)
+    if result:
+        raise RuntimeError(
+            ("Container %s does not contain eatmydata, which is required "
+                "for the --eatmydata option."
+                % repr(template_name))
+        )
+
+
+def full_path_split(path):
+    head, tail = os.path.split(os.path.normpath(path))
+    if head in ['', os.path.sep, 2 * os.path.sep]:
+        return [head, tail]
+    else:
+        return full_path_split(head) + [tail]
+
+
+def wait_for_lexists(path):
+    VirtSubproc.debug('waiting for %s to exist' % repr(path))
+    while not os.path.lexists(path):
+        time.sleep(LXC_WAIT_RETRY_TIME)
+
+
+def wait_for_lxc_guest_start(lxc_name, template_name):
+    check_for_cloud_init(lxc_name, template_name)
+    for subdir in ['delta0', 'rootfs']:
+        host_guest_root = '/var/lib/lxc/%s/%s' % (lxc_name, subdir)
+        if os.path.lexists(host_guest_root):
+            break
+    else:
+        raise RuntimeError(
+            "Failed to find host root directory for container %s." %
+            repr(lxc_name)
+        )
+    host_instance_path = os.path.join(
+        host_guest_root, 'var/lib/cloud/instance')
+    wait_for_lexists(host_instance_path)
+    guest_instance_link = os.readlink(host_instance_path)
+    # Due to overlayfs, we can sometimes read the link when it doesn't
+    # officially exist in the guest. Keep waiting in this case. The
+    # "(overlay-whiteout)" string is defined by the overlayfs module.
+    while guest_instance_link == '(overlay-whiteout)':  # do not translate
+        time.sleep(LXC_WAIT_RETRY_TIME)
+        guest_instance_link = os.readlink(host_instance_path)
+    host_instance_link = os.path.join(
+        host_guest_root, *full_path_split(guest_instance_link)[1:])
+    host_boot_finished_path = os.path.join(
+        host_instance_link, 'boot-finished')
+    wait_for_lexists(host_boot_finished_path)
+
+
+def generate_random_lxc_container_name():
+    return ('adt-virt-lxc-' +
+            ''.join([random.choice(string.ascii_lowercase) for i in range(6)]))
+
+
+def get_available_lxc_container_name():
+    '''Return an LXC container name that isn't already taken.
+
+    There is a race condition between returning this name and creation of
+    the container. Ideally lxc-start-ephemeral would generate a name in a
+    race free way and return the name used in machine-readable way, so that
+    this function would not be necessary. See LP: #1197754.
+    '''
+
+    candidate = generate_random_lxc_container_name()
+    while os.path.lexists('/var/lib/lxc/%s' % candidate):
+        candidate = generate_random_lxc_container_name()
+    return candidate
+
+
+def hook_open():
+    global sessid, downtmp, lxc_container_name
+    lxc_container_name = get_available_lxc_container_name()
+    if ephemeral:
+        VirtSubproc.execute('sudo lxc-start-ephemeral -n %s -k -d -o'
+                            % lxc_container_name, [lxc_template],
+                            downp=False, outp=True)
+    else:
+        VirtSubproc.execute('sudo lxc-clone -n %s -o' % lxc_container_name,
+                            [lxc_template], downp=False, outp=True)
+        VirtSubproc.execute('sudo lxc-start -n %s -d' % lxc_container_name,
+                            [], downp=False, outp=True)
+    try:
+        VirtSubproc.debug('waiting for lxc guest start')
+        wait_for_lxc_guest_start(lxc_container_name, lxc_template)
+        VirtSubproc.debug('lxc guest started')
+        VirtSubproc.down = ['sudo', '-E', 'lxc-attach', '-n',
+                            lxc_container_name, '--']
+        if eatmydata:
+                check_for_eatmydata(lxc_container_name, lxc_template)
+                VirtSubproc.down.extend(['eatmydata', '--'])
+        VirtSubproc.downkind = 'auxverb'
+    except:
+        # Clean up on failure
+        VirtSubproc.execute('sudo lxc-stop -n', [lxc_container_name],
+                            downp=False, outp=True)
+        VirtSubproc.execute('sudo lxc-destroy -n', [lxc_container_name],
+                            downp=False, outp=True)
+        raise
+
+
+def hook_downtmp():
+    downtmp = '/tmp/adt-downtmp'
+    VirtSubproc.execute('mkdir %s' % downtmp, downp=True)
+    return downtmp
+
+
+def hook_revert():
+    VirtSubproc.downtmp_remove()
+    hook_cleanup()
+    hook_open()
+
+
+def hook_cleanup():
+    global sessid, downtmp
+    VirtSubproc.downtmp_remove()
+    VirtSubproc.execute('sudo lxc-stop -n', [lxc_container_name],
+                        downp=False, outp=True)
+    VirtSubproc.execute('sudo lxc-destroy -n', [lxc_container_name],
+                        downp=False, outp=True)
+
+
+def hook_forked_inchild():
+    pass
+
+
+def hook_capabilities():
+    return ['revert', 'revert-full-system', 'root-on-testbed',
+            'suggested-normal-user=ubuntu']
+
+
+parse_args()
+VirtSubproc.main()

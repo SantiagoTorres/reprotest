@@ -1,0 +1,124 @@
+.TH adt\-virt-lxc 1 2013 "Linux Programmer's Manual"
+.SH NAME
+adt\-virt\-lxc \- autopkgtest virtualisation server using LXC
+.SH SYNOPSYS
+.B adt\-virt\-lxc
+.RB [ \-\-d | \-\-debug ]
+.RB [ \-\-eatmydata ]
+.RB [ \-\-ephemeral ]
+.I lxc\-template
+.SH DESCRIPTION
+.B adt-virt-lxc
+provides an autopkgtest virtualisation server using LXC. It adapts the raw
+functionality provided by the
+.BR lxc- *
+tools for use by autopkgtest.
+
+Normally
+.B adt-virt-lxc
+will be invoked by
+.BR adt-run .
+
+.SH REQUIREMENTS
+.B adt-virt-lxc
+assumes that you have already prepared a suitable LXC template container. The
+template must be Debian-based and use cloud-init. \fBdebootstrap\fR(8)-based
+containers such as those created with the \fIdebian\fR or \fIubuntu\fR LXC
+templates will not work.
+
+On Ubuntu, you can automatically download and install a suitable template using
+the command:
+
+.RS
+.EX
+lxc-create -t ubuntu-cloud -n adt -- -r $(distro-info --devel) -d daily
+.EE
+.RE
+
+The supplied LXC template must be clean. The \fBcloud-init\fR
+\fI/var/cloud/instance\fR symlink should not exist, and the subsequent
+\fI/var/lib/cloud/instance/boot-finished\fR should also not exist. If you start
+your template container in order to modify it, make sure you remove these
+artifacts when you have finished making your modifications.
+
+
+.SH OPTIONS
+.TP
+.B --eatmydata
+This option is intended for test developer use. It enables the use of
+\fBeatmydata\fR(1) inside the container on all commands in order to improve
+performance. This requires
+.BR eatmydata (1)
+to already be installed inside the supplied template, which you will need to do
+manually.
+
+However, since eatmydata is not part of the dep8 specification and may affect
+the test
+environment, it is not recommended for use in automation.
+.TP
+.B --ephemeral
+This option makes use of lxc-start-ephemeral to create temporary containers,
+instead of the default behaviour of cloning your containers. This can be used
+to dramatically improve performance, although you may see issues due to the
+overlayfs filesystem as used by lxc-start-ephemeral not being completely
+transparent. To avoid issues, you should not use this option in automation.
+.TP
+.BR \-d " | " \-\-debug
+Enables debugging output.
+.SH INPUT, OUTPUT AND EXIT STATUS
+The behaviour of
+.B adt-virt-lxc
+is as described by the AutomatedTesting virtualisation regime
+specification.
+
+.SH NOTES
+
+\fBadt-run\fR assumes it can use \fBfakeroot\fR(1) to gain root for the
+\fIbinary\fR target in a package build. If \fBfakeroot\fR(1) isn't available in
+your template container, you should use \fBadt-run\fR's \fB\-\-gain\-root\fR
+option to specify what to use instead. On Ubuntu, you can use
+\fB\-\-gain\-root=sudo\fR since this is included in Ubuntu cloud images
+configured to permit root access without a password for the default user. See
+the example below.
+
+\fBadt-run\fR does not run \fBapt-get update\fR at the start of a package
+build, which can cause a build failure if you are using a development release
+template. You will need to run \fBapt-get update\fR in the template yourself as
+required, and remove the boot artifacts as discussed in \fBREQUIREMENTS\fR
+before trying again.
+
+.SH EXAMPLE
+
+On Ubuntu, download and install a suitable template and call it \fIadt\fR:
+
+.RS
+.EX
+lxc-create -t ubuntu-cloud -n \fIadt\fR -- -r $(distro-info --devel) -d daily
+.EE
+.RE
+
+Run tests against \fIhello_2.8\-4.dsc\fR, using the LXC template \fIadt\fR,
+and with an ephemeral container for speed:
+
+.RS
+.EX
+adt-run --gain-root=sudo \fIhello_2.8\-4.dsc\fR --- adt-virt-lxc --ephemeral \fIadt\fR
+.EE
+.RE
+
+.SH SEE ALSO
+\fBadt-run\fR(1),
+\fBadt\-virt-null\fR(1),
+\fBadt\-virt-chroot\fR(1),
+\fBeatmydata\fR(1),
+\fB/usr/share/doc/autopkgtest/\fR.
+
+.SH AUTHORS AND COPYRIGHT
+.B adt-virt-lxc
+was written by Robie Basak <robie.basak@canonical.com>.
+
+This manpage is part of autopkgtest, a tool for testing Debian binary
+packages.  autopkgtest is Copyright (C) 2006-2013 Canonical Ltd and others.
+
+See \fB/usr/share/doc/autopkgtest/CREDITS\fR for the list of
+contributors and full copying conditions.
