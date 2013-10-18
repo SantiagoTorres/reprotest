@@ -13,6 +13,7 @@ autopkgtest (2.4) UNRELEASED; urgency=low
     - Drop two-letter aliases for methods.
     - Consistent usage of quotes.
     - Drop orphaned/unnecessary globals.
+    - Consistent logging methods/object names, add some docstrings.
   * Install fakeroot into testbed for "build-needed". Thanks Jean-Baptiste
     Lallement! (Closes: #726714, LP: #1241456)
 
