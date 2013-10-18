@@ -63,11 +63,11 @@ testbed = None		# Testbed
 errorcode = 0		# exit status that we are going to use
 timeouts = {'short': 100, 'copy': 300, 'install': 3000, 'test': 10000, 'build': 100000}
 binaries = None		# Binaries (.debs we have registered)
-build_essential = ["build-essential"]
+build_essential = ['build-essential']
 paths = []
-os.putenv("APT_LISTBUGS_FRONTEND", "none")
+os.putenv('APT_LISTBUGS_FRONTEND', 'none')
           # do not consider using apt-listbugs
-os.putenv("APT_LISTCHANGES_FRONTEND", "none")
+os.putenv('APT_LISTCHANGES_FRONTEND', 'none')
           # do not consider using apt-listchanges
 
 #---------- output handling
@@ -221,13 +221,13 @@ class Quit:
 
 
 def bomb(m):
-    raise Quit(20, "unexpected error: %s" % m)
+    raise Quit(20, 'unexpected error: %s' % m)
 
 
 def badpkg(m):
     preport('blame: ' + ' '.join(testbed.blamed))
     preport('badpkg: ' + m)
-    raise Quit(12, "erroneous package: %s" % m)
+    raise Quit(12, 'erroneous package: %s' % m)
 
 
 class Unsupported(Exception):
@@ -305,7 +305,7 @@ class AutoFile:
         self.dir = ''
 
     def __repr__(self):
-        return "<AF@%s>" % self.__str__()
+        return '<AF@%s>' % self.__str__()
 
     def __str__(self):
         def ptbp(tbp):
@@ -334,7 +334,7 @@ class AutoFile:
         xtra = ''
         if self.spec is not None:
             xtra = ' spec[%s]=%s' % (self.spec, getattr(self, 'spec_tb', None))
-        raise Exception("internal error: %s (%s)%s" % (how, str(self), xtra))
+        raise Exception('internal error: %s (%s)%s' % (how, str(self), xtra))
 
     def _ensure_path(self, tbp):
         if self.path[tbp] is None:
@@ -374,7 +374,7 @@ class AutoFile:
 
         if self.file[tbp] is None:
             if self.file[not tbp] is None:
-                self._wrong("requesting read but nonexistent")
+                self._wrong('requesting read but nonexistent')
             cud = ['copyup', 'copydown'][tbp]
             src = self.file[not tbp] + self.dir
             dst = self.path[tbp] + self.dir
@@ -538,15 +538,14 @@ class Action:
         self.missing_tests_control = False
 
     def __repr__(self):
-        return "<Action %s %s %s>" % (self.kind, self.what, repr(self.af))
+        return '<Action %s %s %s>' % (self.kind, self.what, repr(self.af))
 
 
 def parse_args():
     global opts, timeouts
     global n_non_actions  # argh, stupid python scoping rules
-    usage = "%prog <options> --- <virt-server>..."
+    usage = '%prog <options> --- <virt-server>...'
     parser = OptionParser(usage=usage)
-    pa = parser.add_option
 
     arghandling = {
         'dsc_tests': True,
@@ -568,33 +567,29 @@ def parse_args():
         parser.largs.append((value, kindpath))
         n_non_actions += not(is_act)
 
-    def pa_action(long, metavar, kindpath, help, is_act=True):
-        pa('', '--' + long, action='callback', callback=cb_action,
-           nargs=1, type='string',
-           callback_args=(long, kindpath, is_act), help=help)
+    def pa_action(longname, metavar, kindpath, help, is_act=True):
+        parser.add_option('--' + longname, action='callback', callback=cb_action,
+                          nargs=1, type='string', callback_args=(long, kindpath, is_act),
+                          help=help)
 
-    pa_action('built-tree', 'TREE', '@/',
-              help='run tests from build tree TREE')
-
-    pa_action('unbuilt-tree', 'TREE', '@//',
-              help='run tests from build tree TREE')
+    pa_action('built-tree', 'TREE', '@/', help='run tests from build tree TREE')
+    pa_action('unbuilt-tree', 'TREE', '@//', help='run tests from build tree TREE')
 
     pa_action('source', 'DSC', '@.dsc',
-              help='build DSC and use its tests and/or'
-              ' generated binary packages')
+              help='build DSC and use its tests and/or generated binary packages')
 
     pa_action('binary', 'DEB', '@.deb',
-              help='use binary package DEB according'
-              ' to most recent --binaries-* settings')
+              help='use binary package DEB according to most recent --binaries-* settings')
 
     def cb_actnoarg(op, optstr, value, parser, largsentry):
         parser.largs.append(largsentry)
-    pa('', '--instantiate', action='callback', callback=cb_actnoarg,
-       callback_args=((None, ('instantiate',)),),
-       help='instantiate testbed now (during testing phase)'
-       ' and install packages'
-       ' selected for automatic installation, even'
-       ' if this might apparently not be required otherwise')
+
+    parser.add_option('--instantiate', action='callback', callback=cb_actnoarg,
+                      callback_args=((None, ('instantiate',)),),
+                      help='instantiate testbed now (during testing phase)'
+                      ' and install packages'
+                      ' selected for automatic installation, even'
+                      ' if this might apparently not be required otherwise')
 
     pa_action('override-control', 'CONTROL', ('control',), is_act=0,
               help='run tests from control file CONTROL instead,'
@@ -620,8 +615,8 @@ def parse_args():
         type = metavar
         if type is not None:
             type = 'string'
-        pa('', long, action='callback', callback=cb_setah,
-           callback_args=(affected, effect), **kwargs)
+        parser.add_option(long, action='callback', callback=cb_setah,
+                          callback_args=(affected, effect), **kwargs)
 
     #---- paths: host or testbed:
     #
@@ -669,47 +664,45 @@ def parse_args():
         setattr(parser.values, name, af)
 
     def pa_path(long, constructor, help, dir=False):
-        pa('', '--' + long, action='callback', callback=cb_path,
-           callback_args=(constructor, long, dir),
-           nargs=1, type='string',
-           help=help, metavar='PATH')
+        parser.add_option('--' + long, action='callback', callback=cb_path,
+                          callback_args=(constructor, long, dir),
+                          nargs=1, type='string',
+                          help=help, metavar='PATH')
 
     pa_path('output-dir', OutputDir, dir=True,
             help='write stderr/out files in PATH')
 
-    pa('--leave-lang', dest='set_lang', action='store_false',
-       help="leave LANG on testbed set to testbed's default")
-    pa('--set-lang', dest='set_lang', action='store', metavar='LANGVAL',
-       help='set LANG on testbed to LANGVAL', default='C')
+    parser.add_option('--leave-lang', dest='set_lang', action='store_false',
+                      help="leave LANG on testbed set to testbed's default")
+    parser.add_option('--set-lang', metavar='LANGVAL',
+                      help='set LANG on testbed to LANGVAL', default='C')
 
-    pa('', '--tmp-dir', type='string', dest='tmp',
-       help='write temporary files to TMP, emptying it'
-       ' beforehand and leaving it behind at the end')
-    pa('', '--log-file', type='string', dest='logfile',
-       help='write the log LOGFILE, emptying it beforehand,'
-       ' instead of using OUTPUT-DIR/log or TMPDIR/log')
-    pa('', '--summary-file', type='string', dest='summary',
-       help='write a summary report to SUMMARY,'
-       ' emptying it beforehand')
+    parser.add_option('--tmp-dir', dest='tmp',
+                      help='write temporary files to TMP, emptying it'
+                      ' beforehand and leaving it behind at the end')
+    parser.add_option('--log-file', dest='logfile',
+                      help='write the log LOGFILE, emptying it beforehand,'
+                      ' instead of using OUTPUT-DIR/log or TMPDIR/log')
+    parser.add_option('--summary-file', dest='summary',
+                      help='write a summary report to SUMMARY, emptying it beforehand')
 
     for k in timeouts.keys():
-        pa('', '--timeout-' + k, type='int', dest='timeout_' + k,
-           metavar='T', help='set %s timeout to T' % k)
-    pa('', '--timeout-factor', type='float', dest='timeout_factor',
-       metavar='FACTOR', default=1.0,
-       help='multiply all default timeouts by FACTOR')
+        parser.add_option('--timeout-' + k, type='int', dest='timeout_' + k,
+                          metavar='T', help='set %s timeout to T' % k)
+    parser.add_option('--timeout-factor', type='float', metavar='FACTOR',
+                      default=1.0,
+                      help='multiply all default timeouts by FACTOR')
 
-    pa('', '--user', type='string', dest='user',
-       help='run tests as USER (needs root on testbed)')
-    pa('', '--gain-root', type='string', dest='gainroot',
-       help='prefix debian/rules binary with GAINROOT')
-    pa('-q', '--quiet', action='store_true', dest='quiet', default=False)
-    pa('-d', '--debug', action='count', dest='debuglevel', default=0)
-    pa('', '--gnupg-home', type='string', dest='gnupghome',
-       default='~/.autopkgtest/gpg',
-       help='use GNUPGHOME rather than ~/.autopkgtest (for'
-       " signing private apt archive);"
-       " `fresh' means generate new key each time.")
+    parser.add_option('--user', help='run tests as USER (needs root on testbed)')
+    parser.add_option('--gain-root', type='string', dest='gainroot',
+                      help='prefix debian/rules binary with GAINROOT')
+    parser.add_option('-q', '--quiet', action='store_true', dest='quiet', default=False)
+    parser.add_option('-d', '--debug', action='count', dest='debuglevel', default=0)
+    parser.add_option('--gnupg-home', type='string', dest='gnupghome',
+                      default='~/.autopkgtest/gpg',
+                      help='use GNUPGHOME rather than ~/.autopkgtest (for'
+                      ' signing private apt archive);'
+                      ' "fresh" means generate new key each time.')
 
     #----------
     # actual meat:
@@ -728,7 +721,7 @@ def parse_args():
     vs_op._short_opts = []
     vs_op._long_opts = ['---']
 
-    pa(vs_op)
+    parser.add_option(vs_op)
 
     (opts, args) = parser.parse_args()
     if not hasattr(opts, 'vserver'):
@@ -839,9 +832,9 @@ def finalise_options():
 
     if opts.user:
         if 'root-on-testbed' not in testbed.caps:
-            pstderr("warning: virtualisation"
-                    " system does not offer root on testbed,"
-                    " but --user option specified: failure likely")
+            pstderr('warning: virtualisation'
+                    ' system does not offer root on testbed,'
+                    ' but --user option specified: failure likely')
         opts.user_wrap = lambda x: "su %s -c '%s'" % (opts.user, x)
     else:
         opts.user_wrap = lambda x: x
@@ -940,7 +933,7 @@ if [ $# = 2 ] && [ "x$1" = xdpkg-architecture ] && [ "x$2" = x-qDEB_HOST_ARCH ];
     set -- dpkg --print-architecture
 fi
 export DEBIAN_FRONTEND=noninteractive
-exec ''' + shellquote_cmdl(cmdl) + ' "$@"' + "\n"
+exec ''' + shellquote_cmdl(cmdl) + ' "$@"\n'
         )
         os.chmod(self.ec_auxverbscript.write(), 0755)
 
@@ -955,16 +948,16 @@ exec ''' + shellquote_cmdl(cmdl) + ' "$@"' + "\n"
         cmdl = ['sh', '-c', 'apt-get -qy update 2>&1']
         rc = self.execute(what, cmdl, kind='install')
         if rc:
-            pstderr("\n" "warning: failed to restore"
-                    " testbed apt cache, exit code %d" % rc)
+            pstderr('\nwarning: failed to restore'
+                    ' testbed apt cache, exit code %d' % rc)
         what = 'aptconf-reset'
         cmdl = ['rm', '-f', '/etc/apt/apt.conf.d/90autopkgtest',
                 '/etc/apt/sources.list.d/autopkgtest.list',
                 '/etc/apt/preferences.d/90autopkgtest']
         rc = self.execute(what, cmdl, kind='install')
         if rc:
-            pstderr("\n" "warning: failed to reset changes"
-                    " made to testbed apt configuration, exit code %d" % rc)
+            pstderr('\nwarning: failed to reset changes'
+                    ' made to testbed apt configuration, exit code %d' % rc)
         self._need_reset_apt = False
 
     def close(self):
@@ -1270,7 +1263,7 @@ class Field_Tests(FieldIgnore):
 class Field_Depends(FieldBase):
 
     def parse(self):
-        debug("Field_Depends: %s %s %s %s" %
+        debug('Field_Depends: %s %s %s %s' %
               (self.stz, self.base, self.tnames, self.vl), 2)
         dl = map(lambda x: x.strip(),
                  flatten(map(lambda (lno, v): v.split(','), self.vl)))
@@ -1280,7 +1273,7 @@ class Field_Depends(FieldBase):
             return
 
         dep_re = re.compile(
-            r"(?P<package>[a-z0-9+-.]+)\s*(\((?P<relation><<|<=|>=|=|>>)\s*(?P<version>[^\)]*)\))?(\s*\[[[a-z0-9+-. ]+\])?$")
+            r'(?P<package>[a-z0-9+-.]+)\s*(\((?P<relation><<|<=|>=|=|>>)\s*(?P<version>[^\)]*)\))?(\s*\[[[a-z0-9+-. ]+\])?$')
         for di in dl:
             for d in di.split('|'):
                 d = d.strip()
@@ -1292,7 +1285,7 @@ class Field_Depends(FieldBase):
                            "dependency `%s'" % d)
                 if m.group("version"):
                     try:
-                        debian_support.NativeVersion(m.group("version"))
+                        debian_support.NativeVersion(m.group('version'))
                     except ValueError:
                         badpkg("Test Depends field contains dependency"
                                " `%s' with an invalid version" % d)
@@ -1543,7 +1536,7 @@ def read_stanzas(af):
         lno += 1
         stz = {' lno': lno, ' tests': []}
         for field, value in paragraph.iteritems():
-            v = "".join(value.split('\n')).replace('  ', ' ')
+            v = ''.join(value.split('\n')).replace('  ', ' ')
             field = string.capwords(field)
             stz[field] = [(lno, v)]
             lno += 1 + value.count('\n')  # Count multilines fields
@@ -1615,7 +1608,7 @@ def print_exception(ei, msgprefix=''):
         psummary('quitting: ' + q.m)
         return q.ec
     else:
-        pstderr("adt-run: unexpected, exceptional, error:")
+        pstderr('adt-run: unexpected, exceptional, error:')
         psummary('quitting: unexpected error, consult transcript')
         traceback.print_exc(None, sys.stderr)
         if trace_stream is not None:
@@ -1739,10 +1732,10 @@ END
 
     def apt_configs(self):
         return {
-            "Debug::pkgProblemResolver": "true",
-            "APT::Get::force-yes": "true",
-            "APT::Get::Assume-Yes": "true",
-            "quiet": "true",
+            'Debug::pkgProblemResolver': 'true',
+            'APT::Get::force-yes': 'true',
+            'APT::Get::Assume-Yes': 'true',
+            'quiet': 'true',
         }
 
     def _configure_apt(self, tb):
@@ -1874,8 +1867,8 @@ Pin-Priority: 1002
             cmdl = ['sh', '-c', cmdl]
             rc = testbed.execute(what, cmdl, script=None, kind='install')
             if rc:
-                badpkg("installation of basic binarries failed,"
-                       " exit code %d" % rc)
+                badpkg('installation of basic binarries failed,'
+                       ' exit code %d' % rc)
 
         self._debug('publish install...')
         for pkg in self.install:
@@ -1885,7 +1878,7 @@ Pin-Priority: 1002
             cmdl = ['sh', '-c', cmdl]
             rc = testbed.execute(what, cmdl, script=None, kind='install')
             if rc:
-                badpkg("installation of %s failed, exit code %d"
+                badpkg('installation of %s failed, exit code %d'
                        % (pkg, rc))
 
         self._debug('publish done')
@@ -1896,9 +1889,9 @@ Pin-Priority: 1002
 def source_rules_command(act, script, what, which, work, cwd,
                          results_lines=0, xargs=[]):
     if opts.debuglevel >= 1:
-        script = ["exec 3>&1 >&2", "set -x"] + script
+        script = ['exec 3>&1 >&2', 'set -x'] + script
     else:
-        script = ["exec 3>&1 >&2"] + script
+        script = ['exec 3>&1 >&2'] + script
     script = '\n'.join(script)
     so = TemporaryFile('%s-%s-results' % (what, which))
     rc = testbed.execute('%s-%s' % (what, which),
@@ -1906,13 +1899,13 @@ def source_rules_command(act, script, what, which, work, cwd,
                          so=so.write(True), cwd=cwd, kind='build')
     results = open(so.read()).read().rstrip('\n')
     if len(results):
-        results = results.split("\n")
+        results = results.split('\n')
     else:
         results = []
     if rc:
-        badpkg("rules %s failed with exit code %d" % (which, rc))
+        badpkg('rules %s failed with exit code %d' % (which, rc))
     if results_lines is not None and len(results) != results_lines:
-        badpkg("got %d lines of results from %s where %d expected"
+        badpkg('got %d lines of results from %s where %d expected'
                % (len(results), which, results_lines))
     if results_lines == 1:
         return results[0]
