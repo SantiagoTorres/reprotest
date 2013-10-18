@@ -1,3 +1,16 @@
+autopkgtest (2.4) UNRELEASED; urgency=low
+
+  * Add adt-virt-lxc test runner, many thanks to Robie Basak for this! This
+    runner provides "revert" and "revert-full-system" capabilities which is
+    useful for packages which have the "breaks-testbed" restriction and
+    multiple tests. For the time being this only works with the ubuntu-cloud
+    template; support for general debian/ubuntu containers requires an
+    lxc-wait mechanism ("did the container finish booting?") and getting along
+    with the different user setups (debian using "root",  ubuntu using an
+    "ubuntu" user with sudo capabilities).
+
+ -- Martin Pitt <mpitt@debian.org>  Fri, 18 Oct 2013 08:43:22 +0200
+
 autopkgtest (2.3.8) unstable; urgency=low
 
   * Skip ChrootRunner test if running under cowdancer, as chrooting in
