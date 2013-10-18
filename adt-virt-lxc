@@ -75,18 +75,16 @@ def match(exp_names, ids, extract_id):
 def parse_args():
     global lxc_template, debuglevel, eatmydata, ephemeral
 
-    usage = "%prog [<options>] <template>"
+    usage = '%prog [<options>] <template>'
     parser = OptionParser(usage=usage)
-    pa = parser.add_option
-    pe = parser.error
 
-    pa('-d', '--debug', action='store_true', dest='debug')
-    pa('--eatmydata', action='store_true')
-    pa('--ephemeral', action='store_true')
+    parser.add_option('-d', '--debug', action='store_true')
+    parser.add_option('--eatmydata', action='store_true')
+    parser.add_option('--ephemeral', action='store_true')
 
     (opts, args) = parser.parse_args()
     if len(args) != 1:
-        pe("need exactly one arg, template lxc container name")
+        parser.error('need exactly one arg, template lxc container name')
 
     lxc_template = args[0]
     eatmydata = opts.eatmydata
@@ -103,10 +101,10 @@ def check_for_cloud_init(container, template_name):
             close_fds=True, stdout=null, stderr=null)
     if result:
         raise RuntimeError(
-            ("Container %s does not use cloud-init, and this driver " +
-             "requires it. Use eg. " +
-             "\"lxc-create -t ubuntu-cloud ...\" to create your " +
-             "container instead.") % repr(template_name)
+            ('Container %s does not use cloud-init, and this driver ' +
+             'requires it. Use eg. ' +
+             '"lxc-create -t ubuntu-cloud ..." to create your ' +
+             'container instead.') % repr(template_name)
         )
 
 
@@ -118,9 +116,8 @@ def check_for_eatmydata(container, template_name):
             close_fds=True, stdout=null, stderr=null)
     if result:
         raise RuntimeError(
-            ("Container %s does not contain eatmydata, which is required "
-                "for the --eatmydata option."
-                % repr(template_name))
+            ('Container %s does not contain eatmydata, which is required '
+             'for the --eatmydata option.' % repr(template_name))
         )
 
 
@@ -146,7 +143,7 @@ def wait_for_lxc_guest_start(lxc_name, template_name):
             break
     else:
         raise RuntimeError(
-            "Failed to find host root directory for container %s." %
+            'Failed to find host root directory for container %s.' %
             repr(lxc_name)
         )
     host_instance_path = os.path.join(
@@ -156,7 +153,7 @@ def wait_for_lxc_guest_start(lxc_name, template_name):
     # Due to overlayfs, we can sometimes read the link when it doesn't
     # officially exist in the guest. Keep waiting in this case. The
     # "(overlay-whiteout)" string is defined by the overlayfs module.
-    while guest_instance_link == '(overlay-whiteout)':  # do not translate
+    while guest_instance_link == '(overlay-whiteout)':
         time.sleep(LXC_WAIT_RETRY_TIME)
         guest_instance_link = os.readlink(host_instance_path)
     host_instance_link = os.path.join(

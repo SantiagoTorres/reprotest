@@ -41,14 +41,12 @@ def parse_args():
 
     usage = "%prog [<options>]"
     parser = OptionParser(usage=usage)
-    pa = parser.add_option
-    pe = parser.error
 
-    pa('-d', '--debug', action='store_true', dest='debug')
+    parser.add_option('-d', '--debug', action='store_true')
 
     (opts, args) = parser.parse_args()
     if len(args):
-        pe("no arguments allowed")
+        parser.error("no arguments allowed")
 
     VirtSubproc.debuglevel = opts.debug
 

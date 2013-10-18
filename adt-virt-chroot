@@ -41,21 +41,19 @@ def parse_args():
 
     usage = "%prog [<options>] =<dchroot>|/path/to/chroot"
     parser = OptionParser(usage=usage)
-    pa = parser.add_option
-    pe = parser.error
 
-    pa('-r', '--gain-root', type='string', dest='gain_root')
-    pa('-d', '--debug', action='store_true', dest='debug')
+    parser.add_option('-r', '--gain-root')
+    parser.add_option('-d', '--debug', action='store_true')
 
     (opts, args) = parser.parse_args()
     if len(args) != 1:
-        pe("need exactly one arg, chroot specification")
+        parser.error("need exactly one arg, chroot specification")
 
     VirtSubproc.debuglevel = opts.debug
 
     chroot_arg = args[0]
     if not chroot_arg:
-        pe("chroot specification may not be empty")
+        parser.error("chroot specification may not be empty")
     if chroot_arg == '=':
         down = ['dchroot', '-q', '--']
     elif chroot_arg == '=':
@@ -65,7 +63,7 @@ def parse_args():
     elif chroot_arg[0] == '/':
         down = ['chroot', chroot_arg]
     else:
-        pe("chroot spec must be =[DCHROOT] or /PATH/TO/CHROOT")
+        parser.error("chroot spec must be =[DCHROOT] or /PATH/TO/CHROOT")
 
     if down[0] == 'chroot':
         VirtSubproc.downkind = 'auxverb'

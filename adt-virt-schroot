@@ -68,14 +68,12 @@ def parse_args():
 
     usage = "%prog [<options>] <schroot>"
     parser = OptionParser(usage=usage)
-    pa = parser.add_option
-    pe = parser.error
 
-    pa('-d', '--debug', action='store_true', dest='debug')
+    parser.add_option('-d', '--debug', action='store_true')
 
     (opts, args) = parser.parse_args()
     if len(args) != 1:
-        pe("need exactly one arg, schroot name")
+        parser.error("need exactly one arg, schroot name")
 
     schroot = args[0]
 

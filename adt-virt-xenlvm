@@ -58,25 +58,23 @@ def check_pause(kind):
             break
     if not matched:
         return
-    print >>sys.stderr, ("----- adt-virt-xenlvm pause (event=%s),"
-                         " stopping -----" % event)
+    print >>sys.stderr, ('----- adt-virt-xenlvm pause (event=%s),'
+                         ' stopping -----' % event)
     os.kill(0, signal.SIGSTOP)
 
 
 def parse_args():
     global debuglevel, with_testbed, console, pauses
 
-    usage = "%prog <options> [-- <adt-xenlvm options>]"
+    usage = '%prog <options> [-- <adt-xenlvm options>]'
     parser = OptionParser(usage=usage)
-    pa = parser.add_option
-    pe = parser.error
 
-    pa('-r', '--gain-root', type='string', dest='gain_root')
-    pa('-d', '--debug', action='store_true', dest='debug')
-    pa('', '--userv', action='store_true', dest='userv')
-    pa('', '--distro', type='string', dest='distro')
-    pa('', '--nominum', type='string', dest='nominum')
-    pa('', '--pause', type='string', dest='pause', default='')
+    parser.add_option('-r', '--gain-root')
+    parser.add_option('-d', '--debug', action='store_true')
+    parser.add_option('--userv', action='store_true')
+    parser.add_option('--distro')
+    parser.add_option('--nominum')
+    parser.add_option('--pause', default='')
 
     (opts, xlargs) = parser.parse_args()
     VirtSubproc.debuglevel = opts.debug
@@ -103,7 +101,7 @@ def parse_args():
         VirtSubproc.downkind = 'shstring'
     else:
         if opts.gain_root:
-            pe('--userv and --gain-root are not compatible')
+            parser.error('--userv and --gain-root are not compatible')
         basis = (['userv'] + xargs_userv + xlargs +
                  ['root', 'adt-xenlvm-testbed'])
         with_testbed = basis + ['with']
@@ -133,10 +131,10 @@ def do_open():
         withholder.stdin.close()
         withholder.stdout.close()
         withholder = None
-        VirtSubproc.bomb("with-testbed failed, code %d" % rc)
-    if l != "y\n":
+        VirtSubproc.bomb('with-testbed failed, code %d' % rc)
+    if l != 'y\n':
         VirtSubproc.bomb("with-testbed sh gave wrong output `%s', not `l'"
-                         % l.rstrip("\n"))
+                         % l.rstrip('\n'))
 
 
 def do_close():
@@ -147,8 +145,8 @@ def do_close():
     rc = withholder.wait()
     withholder = None
     if rc:
-        VirtSubproc.bomb("with-testbed failed when closing/reverting,"
-                         " code %d" % rc)
+        VirtSubproc.bomb('with-testbed failed when closing/reverting,'
+                         ' code %d' % rc)
 
 
 def hook_forked_inchild():
