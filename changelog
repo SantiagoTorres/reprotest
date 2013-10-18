@@ -13,6 +13,8 @@ autopkgtest (2.4) UNRELEASED; urgency=low
     - Drop two-letter aliases for methods.
     - Consistent usage of quotes.
     - Drop orphaned/unnecessary globals.
+  * Install fakeroot into testbed for "build-needed". Thanks Jean-Baptiste
+    Lallement! (Closes: #726714, LP: #1241456)
 
  -- Martin Pitt <mpitt@debian.org>  Fri, 18 Oct 2013 08:43:22 +0200
 
