@@ -44,6 +44,7 @@ downtmp = None
 down = None
 downkind = None
 downs = None
+cleaning = False
 
 
 class Quit:
@@ -483,7 +484,7 @@ def error_cleanup():
 
 
 def prepare():
-    global downtmp, cleaning
+    global downtmp
     downtmp = None
 
     def handler(sig, *any):
