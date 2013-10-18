@@ -8,6 +8,7 @@ autopkgtest (2.4) UNRELEASED; urgency=low
     lxc-wait mechanism ("did the container finish booting?") and getting along
     with the different user setups (debian using "root",  ubuntu using an
     "ubuntu" user with sudo capabilities).
+  * Add tests for adt-virt-lxc.
 
  -- Martin Pitt <mpitt@debian.org>  Fri, 18 Oct 2013 08:43:22 +0200
 
