@@ -1413,7 +1413,7 @@ class Test:
         testtmp = '%s%s-testtmp' % (testbed.scratch.read(True), self.what)
 
         script = 'buildtree="$1"; shift\n'
-        script += 'rm -rf -- "$@"; mkdir -- "$@"\n'
+        script += 'rm -rf -- "$@"; mkdir -m 755 -- "$@"\n'
 
         if 'needs-root' not in self.restriction_names and opts.user is not None:
             tfl = ['su', opts.user, '-c', tf]
