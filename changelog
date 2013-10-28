@@ -20,6 +20,7 @@ autopkgtest (2.4) UNRELEASED; urgency=low
     umasks. Thanks Arthur de Jong! (Closes: #728057)
   * Allow test control Depends: to have a trailing comma. Thanks Jean-Baptiste
     Lallement for the patch!
+  * Make test stdout re-appear in --log-file file for realtime output.
 
  -- Martin Pitt <mpitt@debian.org>  Fri, 18 Oct 2013 08:43:22 +0200
 
