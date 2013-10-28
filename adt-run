@@ -1453,7 +1453,7 @@ class Test:
             fifo_err = os.path.join(testtmp, 'test_stderr')
             os.mkfifo(fifo_out)
             os.mkfifo(fifo_err)
-            debug('teeing to stdout: %s, stderr: %s' % (fifo_out, fifo_err), 1)
+            debug('teeing to stdout: %s, stderr: %s' % (fifo_out, fifo_err), 2)
             tee_out = os.fork()
             if tee_out == 0:
                 fd_in = os.open(fifo_out, os.O_RDONLY)
