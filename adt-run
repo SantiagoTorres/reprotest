@@ -1287,10 +1287,8 @@ class Field_Depends(FieldBase):
               (self.stz, self.base, self.tnames, self.vl), 2)
         dl = map(lambda x: x.strip(),
                  flatten(map(lambda (lno, v): v.split(','), self.vl)))
-        # allow empty Depends: field
-        if dl == ['']:
-            self.base['depends'] = []
-            return
+        # Remove empty dependencies
+        dl = filter(None, dl)
 
         dep_re = re.compile(
             r'(?P<package>[a-z0-9+-.]+)\s*(\((?P<relation><<|<=|>=|=|>>)\s*(?P<version>[^\)]*)\))?(\s*\[[[a-z0-9+-. ]+\])?$')
