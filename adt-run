@@ -1524,9 +1524,15 @@ class Test:
         else:
             self.report('PASS')
 
-        if not show_realtime and os.stat(so_read).st_size != 0:
-            self._debug(' - - - - - - - - - - stdout - - - - - - - - - -')
-            log_file(so_read)
+        if os.stat(so_read).st_size != 0:
+            if show_realtime:
+                # just put stdout to the log
+                if log_stream is not None:
+                    log_stream.write(' - - - - - - - - - - stdout - - - - - - - - - -\n')
+                    subprocess.call(['cat', so_read], stdout=log_stream)
+            else:
+                self._debug(' - - - - - - - - - - stdout - - - - - - - - - -')
+                log_file(so_read)
 
         if stderr_stat.st_size != 0 and (not show_realtime or 'allow-stderr'
                                          not in self.restriction_names):
