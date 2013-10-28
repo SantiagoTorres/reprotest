@@ -1,4 +1,4 @@
-autopkgtest (2.4) UNRELEASED; urgency=low
+autopkgtest (2.4) unstable; urgency=low
 
   * Add adt-virt-lxc test runner, many thanks to Robie Basak for this! This
     runner provides "revert" and "revert-full-system" capabilities which is
@@ -22,7 +22,7 @@ autopkgtest (2.4) UNRELEASED; urgency=low
     Lallement for the patch!
   * Make test stdout re-appear in --log-file file for realtime output.
 
- -- Martin Pitt <mpitt@debian.org>  Fri, 18 Oct 2013 08:43:22 +0200
+ -- Martin Pitt <mpitt@debian.org>  Mon, 28 Oct 2013 11:25:30 +0100
 
 autopkgtest (2.3.8) unstable; urgency=low
 
