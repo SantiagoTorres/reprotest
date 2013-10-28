@@ -16,6 +16,8 @@ autopkgtest (2.4) UNRELEASED; urgency=low
     - Consistent logging methods/object names, add some docstrings.
   * Install fakeroot into testbed for "build-needed". Thanks Jean-Baptiste
     Lallement! (Closes: #726714, LP: #1241456)
+  * Create testtmp directory with 0755 permissions to fix failure with tight
+    umasks. Thanks Arthur de Jong! (Closes: #728057)
 
  -- Martin Pitt <mpitt@debian.org>  Fri, 18 Oct 2013 08:43:22 +0200
 
