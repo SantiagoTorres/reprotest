@@ -1,4 +1,4 @@
-autopkgtest (2.5) UNRELEASED; urgency=low
+autopkgtest (2.4.1) UNRELEASED; urgency=low
 
   * Add test case for accessing /dev/std{out,err} in a non-root test, like the
     "mafft" autopkgtest does.
