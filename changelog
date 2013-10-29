@@ -2,6 +2,7 @@ autopkgtest (2.4.1) UNRELEASED; urgency=low
 
   * Add test case for accessing /dev/std{out,err} in a non-root test, like the
     "mafft" autopkgtest does.
+  * Drop obsolete autodebtest Conflicts/Replaces.
 
  -- Martin Pitt <mpitt@debian.org>  Mon, 28 Oct 2013 16:40:15 +0100
 
