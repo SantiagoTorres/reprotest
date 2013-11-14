@@ -7,6 +7,8 @@ autopkgtest (2.4.1) UNRELEASED; urgency=low
   * adt-run: Simplify logging by dropping the explicit functions for writing
     to stderr plus log, and instead set up pipes so that the whole
     stdout/stderr will be tee'd into the logfile.
+  * adt-run: Add some comments/documentation to the AutoFile class, to make it
+    a bit less obfuscated.
 
  -- Martin Pitt <mpitt@debian.org>  Mon, 28 Oct 2013 16:40:15 +0100
 
