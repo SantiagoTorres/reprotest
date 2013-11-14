@@ -766,7 +766,7 @@ def setup_trace():
 
 
 def finalise_options():
-    global opts, tb, build_essential
+    global opts, testbed, build_essential
 
     if opts.user is None and 'root-on-testbed' not in testbed.caps:
         opts.user = ''
@@ -2154,7 +2154,10 @@ def main():
     try:
         parse_args()
     except SystemExit:
+        # optparser exits with error 2 by default, but we have a different
+        # meaning for that already
         os._exit(20)
+
     try:
         setup_trace()
         testbed = Testbed()
