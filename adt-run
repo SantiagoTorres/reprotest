@@ -65,7 +65,7 @@ errorcode = 0		# exit status that we are going to use
 timeouts = {'short': 100, 'copy': 300, 'install': 3000, 'test': 10000, 'build': 100000}
 binaries = None		# Binaries (.debs we have registered)
 build_essential = ['build-essential']
-paths = []
+paths = []              # constructed AutoFile objects
 os.putenv('APT_LISTBUGS_FRONTEND', 'none')
           # do not consider using apt-listbugs
 os.putenv('APT_LISTCHANGES_FRONTEND', 'none')
@@ -228,13 +228,18 @@ def flatten(l):
 
 
 class AutoFile:
-    # p.what
+    # p.what            human readable categorization of meaning of the file/dir
+    # the following three come in pairs: first (False/0) is the value on the
+    # host, the second (True/1) on the testbed
     # p.path[tb]	None or path	not None => path known
     # p.file[tb]	None or path	not None => file exists
     # p.ephem[tb]       boolean         True => destroyed by tb reset
-    # p.spec	        string or None
+    # p.spec	        string or None (mostly just documentation)
     # p.spec_tbp	True or False, or not set if spec is None
-    # p.dir		'' or '/'
+    # p.dir		'' (object is a file) or '/' (object is a dir)
+
+    # In the following methods, "tbp" selects whether the operation applies to
+    # the host (False) or to the testbed (True)
 
     def __init__(self, what):
         self.what = what
@@ -244,6 +249,46 @@ class AutoFile:
         self.spec = None
         self.spec_tbp = None
         self.dir = ''
+
+    def _relative_init(self, what, parent, leaf, onlyon_tbp, setfiles, sibling):
+        '''Constructor relative to a parent AutoFile
+
+        This is being used by the Relative* classes below only.
+
+        what: as for normal constructor
+        parent: another AutoFile object
+        leaf: name of new file without path
+        setfiles: If True, initialize self.file (to self.path); False: do nothing
+        onlyon_tbp: If not None, setfiles will only be set on the host(False)
+                    or testbed(True) side
+        sibling: True: file will be in directory of parent file; False: file
+                 will be in parent (which then must be a dir)
+        '''
+        AutoFile.__init__(self, what)
+        sh_on = ''
+        sh_sibl = ''
+        if onlyon_tbp is not None:
+            sh_on = ' (on %s)' % ('HT'[onlyon_tbp])
+        if sibling:
+            sh_sibl = ' (sibling)'
+        parent._debug('using as base: %s: %s%s%s' %
+                      (str(parent), leaf, sh_on, sh_sibl))
+        if not sibling and not parent.dir:
+            parent._wrong('asked for non-sibling relative path of non-dir')
+        if sibling:
+            trim = os.path.dirname
+        else:
+            trim = lambda x: x
+        for tbp in [False, True]:
+            self.ephem[tbp] = parent.ephem[tbp]
+            if parent.path[tbp] is None:
+                continue
+            trimmed = trim(parent.path[tbp])
+            if trimmed:
+                trimmed += '/'
+            self.path[tbp] = trimmed + leaf
+            if setfiles and (onlyon_tbp is None or onlyon_tbp == tbp):
+                self.file[tbp] = self.path[tbp]
 
     def __repr__(self):
         return '<AF@%s>' % self.__str__()
@@ -278,6 +323,8 @@ class AutoFile:
         raise Exception('internal error: %s (%s)%s' % (how, str(self), xtra))
 
     def _ensure_path(self, tbp):
+        '''build self.path[tbp] from self.what in host/testbed tmpdir, if not set'''
+
         if self.path[tbp] is None:
             if '/' in self.what:
                 self._debug('tmp-parent %s...' % 'HT'[tbp])
@@ -289,6 +336,14 @@ class AutoFile:
                 self.path[tbp] = testbed.scratch.path[True] + '/' + self.what
 
     def write(self, tbp=False):
+        '''Prepare file for writing (doesn't need to exist)
+
+        Ensure self.path is set (construct from self.what if not), and create
+        its directory on the host/testbed. Set self.file to self.path, i. e.
+        mark it as "exists".
+
+        Return path according to tbp.
+        '''
         self._debug('write %s...' % 'HT'[tbp])
         self._ensure_path(tbp)
 
@@ -310,6 +365,14 @@ class AutoFile:
         return self.path[tbp]
 
     def read(self, tbp=False):
+        '''Make file available for reading, copying it from/to testbed if necessary
+
+        Ensure self.path is set (construct from self.what if not). If the file
+        does not yet exist in the requested location (tbp), copy it from the
+        other place (host/testbed).
+
+        Return file path according to tbp.
+        '''
         self._debug('read %s...' % 'HT'[tbp])
         self._ensure_path(tbp)
 
@@ -339,6 +402,8 @@ class AutoFile:
         debug('/ %s#%x: %s' % (self.what, id(self), m), 3)
 
     def _constructed(self):
+        global paths
+
         self._debug('constructed: ' + str(self))
         self._check()
         paths.append(self)
@@ -350,6 +415,7 @@ class AutoFile:
                     continue
                 if not pf[tbp]:
                     bomb('empty path specified for %s' % self.what)
+                # cut off trailing '/' from directories
                 if self.dir and pf[tbp].endswith('/'):
                     pf[tbp] = pf[tbp].rstrip('/')
                     if not pf[tbp]:
@@ -357,33 +423,6 @@ class AutoFile:
                 if not self.dir and pf[tbp].endswith('/'):
                     bomb("directory `%s' specified for "
                          "non-directory %s" % (pf[tbp], self.what))
-
-    def _relative_init(self, what, parent, leaf, onlyon_tbp, setfiles, sibling):
-        AutoFile.__init__(self, what)
-        sh_on = ''
-        sh_sibl = ''
-        if onlyon_tbp is not None:
-            sh_on = ' (on %s)' % ('HT'[onlyon_tbp])
-        if sibling:
-            sh_sibl = ' (sibling)'
-        parent._debug('using as base: %s: %s%s%s' %
-                      (str(parent), leaf, sh_on, sh_sibl))
-        if not sibling and not parent.dir:
-            parent._wrong('asked for non-sibling relative path of non-dir')
-        if sibling:
-            trim = os.path.dirname
-        else:
-            trim = lambda x: x
-        for tbp in [False, True]:
-            self.ephem[tbp] = parent.ephem[tbp]
-            if parent.path[tbp] is None:
-                continue
-            trimmed = trim(parent.path[tbp])
-            if trimmed:
-                trimmed += '/'
-            self.path[tbp] = trimmed + leaf
-            if setfiles and (onlyon_tbp is None or onlyon_tbp == tbp):
-                self.file[tbp] = self.path[tbp]
 
 
 class InputFile(AutoFile):
