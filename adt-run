@@ -638,20 +638,6 @@ def parse_args():
         parser.values.vserver = list(parser.rargs)
         del parser.rargs[:]
 
-    def cb_path(op, optstr, value, parser, constructor, long, dir):
-        name = long.replace('-', '_')
-        af = constructor(long, value, arghandling['tb'])
-        setattr(parser.values, name, af)
-
-    def pa_path(long, constructor, help, dir=False):
-        parser.add_option('--' + long, action='callback', callback=cb_path,
-                          callback_args=(constructor, long, dir),
-                          nargs=1, type='string',
-                          help=help, metavar='PATH')
-
-    pa_path('output-dir', OutputDir, dir=True,
-            help='write stderr/out files in PATH')
-
     parser.add_option('--leave-lang', dest='set_lang', action='store_false',
                       help="leave LANG on testbed set to testbed's default")
     parser.add_option('--set-lang', metavar='LANGVAL',
@@ -779,11 +765,8 @@ def setup_trace():
         tmp = tempfile.mkdtemp()
         os.chmod(tmp, 0755)
 
-    if opts.logfile is None:
-        if opts.output_dir is not None and opts.output_dir.spec_tbp:
-            opts.logfile = opts.output_dir.spec + '/log'
-        elif opts.tmp is not None:
-            opts.logfile = opts.tmp + '/log'
+    if opts.logfile is None and opts.tmp is not None:
+        opts.logfile = opts.tmp + '/log'
 
     if opts.logfile is not None:
         # tee stdout/err into log file
@@ -1349,11 +1332,7 @@ class Test:
 
         def stdouterr(oe):
             idstr = self.what + '-' + oe
-            if opts.output_dir is not None and opts.output_dir.spec_tbp:
-                use_dir = opts.output_dir
-            else:
-                use_dir = testbed.scratch
-            return RelativeOutputFile(idstr, use_dir, idstr)
+            return RelativeOutputFile(idstr, testbed.scratch, idstr)
 
         if hasattr(self.act, 'work'):
             self.act.work.write(True)

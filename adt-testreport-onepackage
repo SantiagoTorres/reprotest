@@ -303,7 +303,6 @@ xrc () {
 echo 'fatal: adt-run did not start properly' >"$tmp"/_summary
 
 xrc adt-run --tmp-dir "$tp"/tmp				\
-	--output-dir "$tp"/out				\
 	--log-file "$tp"/log 				\
 	--summary "$tmp"/_summary 			\
 	$adtrun_extra_opts				\

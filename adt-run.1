@@ -107,25 +107,6 @@ package under test), or unconditionally installed, when tests are run
 (as a result of \fB--source\fR, \fB--built-tree\fR or \fB--unbuilt-tree\fR).
 .SH OTHER OPTIONS
 .TP
-.BI --output-dir " " \fIoutput-dir\fR
-Specifies that stderr and stdout from the tests should be placed in
-.IR output-dir .
-These files are named
-.BI argid- test -stderr
-and
-.BI argid- test -stdout
-for each test
-.IR test ,
-and
-.BR log
-for the log transcript.  If no \fIoutput-dir\fR is specified, or the
-path is specified to be on the testbed (ie, if \fB--output-dir\fR
-follows \fB--paths-testbed\fR), then the \fBlog\fR file is instead
-written to the temporary directory \fItmp\fR if one was specified,
-or otherwise no separate copy is made.  Note that the log transcript
-output will also be sent to \fBadt-run\fR's stderr unless
-\fB--quiet\fR is specified.
-.TP
 .BI --user= user
 Run builds and tests as \fIuser\fR on the testbed.  This needs root on
 the testbed; if root on the testbed is not available then builds and
@@ -151,7 +132,7 @@ again that all of the contents of \fItmp\fR will be \fBdeleted\fR.
 .TP
 .BI --log-file= logfile
 Specifies that the trace log should be written to \fIlogfile\fR
-instead of to \fBlog\fR in \fIoutput-dir\fR or \fItmp\fR.
+instead of to \fItmp-dir\fR.
 \fIlog-file\fR is not affected by \fB--paths-testbed\fR.
 .TP
 .BI --summary= summary
@@ -202,8 +183,8 @@ quantities of high-quality entropy.
 .TP
 .BR -q " | " --quiet
 Do not send a copy of \fBadt-run\fR's trace logstream to stderr.  This
-option does not affect the copy sent to \fIlogfile\fR,
-\fIoutput-dir\fR or \fItmp\fR.  Note that without the trace
+option does not affect the copy sent to \fIlogfile\fR or
+\fItmp-dir\fR.  Note that without the trace
 logstream it can be very hard to diagnose problems.
 .TP
 \fB---\fR \fIvirt-server virt-server-arg\fR...
