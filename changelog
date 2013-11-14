@@ -4,6 +4,9 @@ autopkgtest (2.4.1) UNRELEASED; urgency=low
     "mafft" autopkgtest does.
   * Drop obsolete autodebtest Conflicts/Replaces.
   * Add --log-file test cases for chroot and schroot runners.
+  * adt-run: Simplify logging by dropping the explicit functions for writing
+    to stderr plus log, and instead set up pipes so that the whole
+    stdout/stderr will be tee'd into the logfile.
 
  -- Martin Pitt <mpitt@debian.org>  Mon, 28 Oct 2013 16:40:15 +0100
 
