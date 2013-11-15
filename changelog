@@ -23,6 +23,7 @@ autopkgtest (2.5) UNRELEASED; urgency=low
   * Access /dev/std{out,err} in a non-root test, like the "mafft" autopkgtest
     does.
   * --log-file test cases for chroot and schroot runners.
+  * schroot and LXC runner test cases for installing built binaries.
 
  -- Martin Pitt <mpitt@debian.org>  Mon, 28 Oct 2013 16:40:15 +0100
 
