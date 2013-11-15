@@ -533,7 +533,6 @@ def parse_args():
         'deb_forbuilds': 'auto',
         'deb_fortests': 'auto',
         'tb': False,
-        'override_control': None,
         'set_lang': 'C'
     }
     initial_arghandling = arghandling.copy()
@@ -570,10 +569,6 @@ def parse_args():
                       ' and install packages'
                       ' selected for automatic installation, even'
                       ' if this might apparently not be required otherwise')
-
-    pa_action('override-control', 'CONTROL', ('control',), is_act=0,
-              help='run tests from control file CONTROL instead,'
-              ' (applies to next test suite only)')
 
     #----------
     # argument handling settings (what ways to use action
@@ -1505,16 +1500,12 @@ def read_stanzas(af):
     return stanzas
 
 
-def read_control(act, tree, control_override):
+def read_control(act, tree):
 
-    if control_override is not None:
-        control_af = control_override
-        testbed.blame('arg:' + control_override.spec)
-    else:
-        if act.missing_tests_control:
-            return ()
-        control_af = RelativeInputFile(act.what + '-testcontrol',
-                                       tree, 'debian/tests/control')
+    if act.missing_tests_control:
+        return ()
+    control_af = RelativeInputFile(act.what + '-testcontrol',
+                                   tree, 'debian/tests/control')
 
     stanzas = read_stanzas(control_af)
 
@@ -1865,7 +1856,7 @@ def source_rules_command(script, what, which, cwd,
     return results
 
 
-def build_source(act, control_override):
+def build_source(act):
     act.blame = 'arg:' + act.af.spec
     testbed.blame(act.blame)
     testbed.prepare1([])
@@ -2002,7 +1993,7 @@ def build_source(act, control_override):
 
         result_pwd_af = InputDir(what + '-treeforcontrol',
                                  result_pwd, True)
-        stanzas = read_control(act, result_pwd_af, control_override)
+        stanzas = read_control(act, result_pwd_af)
         for stanza in stanzas:
             for t in stanza[' tests']:
                 if 'build-needed' in t.restriction_names:
@@ -2102,14 +2093,11 @@ def process_actions():
     binaries = Binaries(testbed)
 
     binaries.reset()
-    control_override = None
 
     debug_a1('builds ...')
     for act in opts.actions:
         debug_a2('%s %s' % (act.kind, act.what))
 
-        if act.kind == 'control':
-            control_override = act.af
         if act.kind == 'deb':
             testbed.blame('arg:' + act.af.spec)
             determine_package(act)
@@ -2117,26 +2105,21 @@ def process_actions():
             binaries.register(act, act.pkg, act.af,
                               'forbuilds', testbed.blamed)
         if act.kind == 'dsc' or act.kind == 'ubtree':
-            build_source(act, control_override)
+            build_source(act)
         if act.kind == 'tree':
             act.binaries = []
-        if act.kind.endswith('tree') or act.kind == 'dsc':
-            control_override = None
         if act.kind == 'instantiate':
             pass
 
     debug_a1('builds done.')
 
     binaries.reset()
-    control_override = None
 
     debug_a1('tests ...')
     for act in opts.actions:
         debug_a2('test %s %s' % (act.kind, act.what))
 
         testbed.needs_reset()
-        if act.kind == 'control':
-            control_override = act.af
         if act.kind == 'deb':
             binaries.register(act, act.pkg, act.af, 'fortests',
                               ['deb:' + act.pkg])
@@ -2147,21 +2130,18 @@ def process_actions():
         if act.kind == 'dsc':
             if act.ah['dsc_tests']:
                 debug_a3('read control ...')
-                stanzas = read_control(act, act.tests_tree,
-                                       control_override)
+                stanzas = read_control(act, act.tests_tree)
                 testbed.blamed += act.blamed
                 debug_a3('run_tests ...')
                 run_tests(stanzas, act.tests_tree)
-            control_override = None
         if act.kind == 'tree' or act.kind == 'ubtree':
             testbed.blame('arg:' + act.af.spec)
-            stanzas = read_control(act, act.af, control_override)
+            stanzas = read_control(act, act.af)
             debug_a3('run_tests ...')
             if act.kind == 'ubtree':
                 run_tests(stanzas, act.tests_tree)
             else:
                 run_tests(stanzas, act.af)
-            control_override = None
         if act.kind == 'instantiate':
             testbed.prepare([])
     debug_a1('tests done.')
