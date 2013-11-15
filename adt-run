@@ -1821,7 +1821,7 @@ Pin-Priority: 1002
 #---------- processing of sources (building)
 
 
-def source_rules_command(act, script, what, which, work, cwd,
+def source_rules_command(script, what, which, cwd,
                          results_lines=0, xargs=[]):
     if opts.debuglevel >= 1:
         script = ['exec 3>&1 >&2', 'set -x'] + script
@@ -1954,7 +1954,7 @@ def build_source(act, control_override):
         'set +e; test -f debian/tests/control; echo $? >&3'
     ]
     (result_pwd, control_test_rc) = source_rules_command(
-        act, script, what, 'extract', work,
+        script, what, 'extract',
         cwd=initcwd, results_lines=2, xargs=['x', tmpdir, spec])
 
     filter = act.ah['dsc_filter']
@@ -2007,7 +2007,7 @@ def build_source(act, control_override):
             'dpkg-checkbuilddeps',
             opts.user_wrap('debian/rules build'),
         ]
-        source_rules_command(act, script, what, 'build', work,
+        source_rules_command(script, what, 'build',
                              cwd=initcwd, xargs=['x', tmpdir, result_pwd])
 
         if os.path.dirname(result_pwd) + '/' != work.read(True):
@@ -2034,8 +2034,8 @@ def build_source(act, control_override):
             'cd ..',
             'echo *.deb >&3',
         ]
-        result_debs = source_rules_command(act, script, what,
-                                           'binary', work, work.write(True),
+        result_debs = source_rules_command(script, what,
+                                           'binary', work.write(True),
                                            results_lines=1,
                                            xargs=['x', tmpdir])
         if result_debs == '*.deb':
