@@ -1,17 +1,26 @@
-autopkgtest (2.4.1) UNRELEASED; urgency=low
+autopkgtest (2.5) UNRELEASED; urgency=low
 
-  * Add test case for accessing /dev/std{out,err} in a non-root test, like the
-    "mafft" autopkgtest does.
-  * Drop obsolete autodebtest Conflicts/Replaces.
-  * Add --log-file test cases for chroot and schroot runners.
-  * adt-run: Simplify logging by dropping the explicit functions for writing
-    to stderr plus log, and instead set up pipes so that the whole
-    stdout/stderr will be tee'd into the logfile.
-  * adt-run: Add some comments/documentation to the AutoFile class, to make it
-    a bit less obfuscated.
+  Behaviour changes:
   * Drop --output-dir option. It has never really been useful as it only works
     for paths in the testbed, has a confusing semantics, is redundant with
     --tmp-dir, and currently even crashes adt-run.
+  * Drop --override-control option. It complicates the code too much for its
+    very limited utility, and it was not even documented in the manpage.
+
+  Packaging changes:
+  * Drop obsolete autodebtest Conflicts/Replaces.
+
+  Code cleanup:
+  * Simplify logging by dropping the explicit functions for writing to stderr
+    plus log, and instead set up pipes so that the whole stdout/stderr will be
+    tee'd into the logfile.
+  * adt-run: Add some comments/documentation to the AutoFile class, to make it
+    a bit less obfuscated.
+
+  New test cases:
+  * Access /dev/std{out,err} in a non-root test, like the "mafft" autopkgtest
+    does.
+  * --log-file test cases for chroot and schroot runners.
 
  -- Martin Pitt <mpitt@debian.org>  Mon, 28 Oct 2013 16:40:15 +0100
 
