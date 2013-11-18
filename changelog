@@ -6,6 +6,8 @@ autopkgtest (2.5) UNRELEASED; urgency=low
     --tmp-dir, and currently even crashes adt-run.
   * Drop --override-control option. It complicates the code too much for its
     very limited utility, and it was not even documented in the manpage.
+  * Drop --paths-testbed (and thus also --paths-host) options. There is no
+    use case for them.
 
   Packaging changes:
   * Drop obsolete autodebtest Conflicts/Replaces.
