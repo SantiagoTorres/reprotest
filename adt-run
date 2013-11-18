@@ -532,7 +532,6 @@ def parse_args():
         'dsc_filter': '*',
         'deb_forbuilds': 'auto',
         'deb_fortests': 'auto',
-        'tb': False,
         'set_lang': 'C'
     }
     initial_arghandling = arghandling.copy()
@@ -592,13 +591,6 @@ def parse_args():
             type = 'string'
         parser.add_option(long, action='callback', callback=cb_setah,
                           callback_args=(affected, effect), **kwargs)
-
-    #---- paths: host or testbed:
-    #
-    pa_setah('--paths-testbed', ['tb'], True,
-             help='subsequent path specifications refer to the testbed')
-    pa_setah('--paths-host', ['tb'], False,
-             help='subsequent path specifications refer to the host')
 
     #---- source processing settings:
 
@@ -744,7 +736,7 @@ def parse_args():
         if pathstr is None:
             af = None
         else:
-            af = constructor(what + fwhatx, pathstr, arghandling['tb'])
+            af = constructor(what + fwhatx, pathstr, False)
         opts.actions.append(Action(kind, af, arghandling, what))
 
 

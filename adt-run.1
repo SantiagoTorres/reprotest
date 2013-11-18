@@ -66,12 +66,6 @@ slashes at the end are taken to mean \fB--unbuilt-tree\fR.
 .SH PROCESSING OPTIONS
 These affect processing instructions.  Unless stated
 otherwise, they affect all subsequent options.
-.TP
-.BR --paths-testbed | --paths-host
-Specifies that subsequent pathnames in command-line arguments refer to
-files on the testbed, or on the host, respectively.  The default is
-\fB--paths-host\fR.
-.TP
 .BR --sources-tests | --sources-no-tests
 Specifies that the tests in subsequent \fB--source\fR and
 \fB--unbuilt-tree\fR arguments should (or should not) be run.
@@ -125,21 +119,18 @@ default is \fBfakeroot\fR.
 Specifies that \fItmp\fR should be used instead of a fresh
 temporary directory on the host.  \fItmp\fR will be created if
 necessary, and emptied of all of its contents before \fBadt-run\fR
-starts, and it will not be cleaned out afterwards.  \fItmp\fR is
-not affected by \fB--paths-testbed\fR.
+starts, and it will not be cleaned out afterwards.
 .B NOTE
 again that all of the contents of \fItmp\fR will be \fBdeleted\fR.
 .TP
 .BI --log-file= logfile
 Specifies that the trace log should be written to \fIlogfile\fR
 instead of to \fItmp-dir\fR.
-\fIlog-file\fR is not affected by \fB--paths-testbed\fR.
 .TP
 .BI --summary= summary
 Specifies that a summary of the outcome should be written to
 \fIsummary\fR.  The events in the summary are written to the log
 in any case.
-\fIsummary\fR is not affected by \fB--paths-testbed\fR.
 .TP
 .BR --timeout- \fIwhich\fR = \fIseconds\fR
 Use a different timeout for operations on or with the testbed.  There
@@ -174,7 +165,6 @@ The specified directory should not contain keyrings containing other
 unrelated keys, since \fBadt-run\fR does not specify to \fBgpg\fR
 which keys to use.  The default is
 .BR $HOME/.autopkgtest .
-\fB--paths-testbed\fR has no effect on this option.
 .TP
 .B --gnupg-home=fresh
 Use a fresh temporary directory and generate fresh keys each run.
