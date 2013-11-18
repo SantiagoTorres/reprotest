@@ -65,7 +65,6 @@ errorcode = 0		# exit status that we are going to use
 timeouts = {'short': 100, 'copy': 300, 'install': 3000, 'test': 10000, 'build': 100000}
 binaries = None		# Binaries (.debs we have registered)
 build_essential = ['build-essential']
-paths = []              # constructed AutoFile objects
 os.putenv('APT_LISTBUGS_FRONTEND', 'none')
           # do not consider using apt-listbugs
 os.putenv('APT_LISTCHANGES_FRONTEND', 'none')
@@ -224,301 +223,21 @@ def rmtree(what, pathname):
 def flatten(l):
     return reduce((lambda a, b: a + b), l, [])
 
-#---------- fancy automatic file-copying class
-
-
-class AutoFile:
-    # p.what            human readable categorization of meaning of the file/dir
-    # the following three come in pairs: first (False/0) is the value on the
-    # host, the second (True/1) on the testbed
-    # p.path[tb]	None or path	not None => path known
-    # p.file[tb]	None or path	not None => file exists
-    # p.ephem[tb]       boolean         True => destroyed by tb reset
-    # p.spec	        string or None (mostly just documentation)
-    # p.spec_tbp	True or False, or not set if spec is None
-    # p.dir		'' (object is a file) or '/' (object is a dir)
-
-    # In the following methods, "tbp" selects whether the operation applies to
-    # the host (False) or to the testbed (True)
-
-    def __init__(self, what):
-        self.what = what
-        self.path = [None, None]
-        self.file = [None, None]
-        self.ephem = [False, False]
-        self.spec = None
-        self.spec_tbp = None
-        self.dir = ''
-
-    def _relative_init(self, what, parent, leaf, onlyon_tbp, setfiles, sibling):
-        '''Constructor relative to a parent AutoFile
-
-        This is being used by the Relative* classes below only.
-
-        what: as for normal constructor
-        parent: another AutoFile object
-        leaf: name of new file without path
-        setfiles: If True, initialize self.file (to self.path); False: do nothing
-        onlyon_tbp: If not None, setfiles will only be set on the host(False)
-                    or testbed(True) side
-        sibling: True: file will be in directory of parent file; False: file
-                 will be in parent (which then must be a dir)
-        '''
-        AutoFile.__init__(self, what)
-        sh_on = ''
-        sh_sibl = ''
-        if onlyon_tbp is not None:
-            sh_on = ' (on %s)' % ('HT'[onlyon_tbp])
-        if sibling:
-            sh_sibl = ' (sibling)'
-        parent._debug('using as base: %s: %s%s%s' %
-                      (str(parent), leaf, sh_on, sh_sibl))
-        if not sibling and not parent.dir:
-            parent._wrong('asked for non-sibling relative path of non-dir')
-        if sibling:
-            trim = os.path.dirname
-        else:
-            trim = lambda x: x
-        for tbp in [False, True]:
-            self.ephem[tbp] = parent.ephem[tbp]
-            if parent.path[tbp] is None:
-                continue
-            trimmed = trim(parent.path[tbp])
-            if trimmed:
-                trimmed += '/'
-            self.path[tbp] = trimmed + leaf
-            if setfiles and (onlyon_tbp is None or onlyon_tbp == tbp):
-                self.file[tbp] = self.path[tbp]
-
-    def __repr__(self):
-        return '<AF@%s>' % self.__str__()
-
-    def __str__(self):
-        def ptbp(tbp):
-            if self.path[tbp] is None:
-                return '-' + self.dir
-            elif self.file[tbp] is None:
-                return self.path[tbp] + self.dir + '?'
-            else:
-                return self.path[tbp] + self.dir + '!'
-        out = self.what
-        if self.spec is not None:
-            if not hasattr(self, 'spec_tb'):
-                out += '~'
-            elif self.spec_tbp:
-                out += '#'
-            else:
-                out += '='
-            out += self.spec
-        out += ':'
-        out += ptbp(False)
-        out += '|'
-        out += ptbp(True)
-        return out
-
-    def _wrong(self, how):
-        xtra = ''
-        if self.spec is not None:
-            xtra = ' spec[%s]=%s' % (self.spec, getattr(self, 'spec_tb', None))
-        raise Exception('internal error: %s (%s)%s' % (how, str(self), xtra))
-
-    def _ensure_path(self, tbp):
-        '''build self.path[tbp] from self.what in host/testbed tmpdir, if not set'''
-
-        if self.path[tbp] is None:
-            if '/' in self.what:
-                self._debug('tmp-parent %s...' % 'HT'[tbp])
-                TemporaryDir(os.path.dirname(self.what)).write(tbp)
-            if not tbp:
-                self.path[tbp] = tmp + '/' + self.what
-            else:
-                self.ephem[tbp] = True
-                self.path[tbp] = testbed.scratch.path[True] + '/' + self.what
-
-    def write(self, tbp=False):
-        '''Prepare file for writing (doesn't need to exist)
-
-        Ensure self.path is set (construct from self.what if not), and create
-        its directory on the host/testbed. Set self.file to self.path, i. e.
-        mark it as "exists".
-
-        Return path according to tbp.
-        '''
-        self._debug('write %s...' % 'HT'[tbp])
-        self._ensure_path(tbp)
-
-        if self.dir and not self.file[tbp]:
-            if not tbp:
-                self._debug('mkdir H')
-                mkdir_okexist(self.path[tbp])
-            else:
-                cmdl = ['sh', '-ec',
-                        'test -d "$1" || mkdir -p "$1"',
-                        'x', self.path[tbp]]
-                tf_what = urllib.quote(self.what).replace('/', '%2F')
-                rc = testbed.execute('mkdir-' + tf_what, cmdl)
-                if rc:
-                    bomb('failed to create directory %s' %
-                         self.path[tbp])
-
-        self.file[tbp] = self.path[tbp]
-        return self.path[tbp]
-
-    def read(self, tbp=False):
-        '''Make file available for reading, copying it from/to testbed if necessary
-
-        Ensure self.path is set (construct from self.what if not). If the file
-        does not yet exist in the requested location (tbp), copy it from the
-        other place (host/testbed).
-
-        Return file path according to tbp.
-        '''
-        self._debug('read %s...' % 'HT'[tbp])
-        self._ensure_path(tbp)
-
-        if self.file[tbp] is None:
-            if self.file[not tbp] is None:
-                self._wrong('requesting read but nonexistent')
-            cud = ['copyup', 'copydown'][tbp]
-            src = self.file[not tbp] + self.dir
-            dst = self.path[tbp] + self.dir
-            testbed.command(cud, (src, dst))
-            self.file[tbp] = self.path[tbp]
-
-        return self.file[tbp] + self.dir
-
-    def invalidate(self, tbp=False):
-        if self.path[tbp] is not None:
-            self._debug('invalidating %s' % 'HT'[tbp])
-        self.file[tbp] = None
-        if self.spec_tbp != tbp or self.spec is None:
-            self.path[tbp] = None
-
-    def invalidate_ephem(self, tbp=False):
-        if self.ephem[tbp]:
-            self.invalidate(tbp)
-
-    def _debug(self, m):
-        debug('/ %s#%x: %s' % (self.what, id(self), m), 3)
-
-    def _constructed(self):
-        global paths
-
-        self._debug('constructed: ' + str(self))
-        self._check()
-        paths.append(self)
-
-    def _check(self):
-        for tbp in [False, True]:
-            for pf in [self.path, self.file]:
-                if pf[tbp] is None:
-                    continue
-                if not pf[tbp]:
-                    bomb('empty path specified for %s' % self.what)
-                # cut off trailing '/' from directories
-                if self.dir and pf[tbp].endswith('/'):
-                    pf[tbp] = pf[tbp].rstrip('/')
-                    if not pf[tbp]:
-                        pf[tbp] = '/'
-                if not self.dir and pf[tbp].endswith('/'):
-                    bomb("directory `%s' specified for "
-                         "non-directory %s" % (pf[tbp], self.what))
-
-
-class InputFile(AutoFile):
-
-    def _init(self, what, spec, spec_tbp=False):
-        AutoFile.__init__(self, what)
-        self.spec = spec
-        self.spec_tbp = spec_tbp
-        self.path[spec_tbp] = spec
-        self.file[self.spec_tbp] = self.path[self.spec_tbp]
-
-    def __init__(self, what, spec, spec_tbp=False):
-        self._init(what, spec, spec_tbp)
-        self._constructed()
-
-
-class InputDir(InputFile):
-
-    def __init__(self, what, spec, spec_tbp=False):
-        InputFile._init(self, what, spec, spec_tbp)
-        self.dir = '/'
-        self._constructed()
-
-
-class OutputFile(AutoFile):
-
-    def _init(self, what, spec, spec_tbp=False):
-        AutoFile.__init__(self, what)
-        self.spec = spec
-        self.spec_tbp = spec_tbp
-        self.path[spec_tbp] = spec
-
-    def __init__(self, what, spec, spec_tbp=False):
-        self._init(what, spec, spec_tbp)
-        self._constructed()
-
-
-class OutputDir(OutputFile):
-
-    def __init__(self, what, spec, spec_tbp=False):
-        OutputFile._init(self, what, spec, spec_tbp)
-        self.dir = '/'
-        self._constructed()
-
-
-class RelativeInputDir(AutoFile):
-
-    def __init__(self, what, parent, leaf, onlyon_tbp=None, sibling=False):
-        self._relative_init(what, parent, leaf, onlyon_tbp, True, sibling)
-        self.dir = '/'
-        self._constructed()
-
-
-class RelativeInputFile(AutoFile):
-
-    def __init__(self, what, parent, leaf, onlyon_tbp=None, sibling=False):
-        self._relative_init(what, parent, leaf, onlyon_tbp, True, sibling)
-        self._constructed()
-
-
-class RelativeOutputFile(AutoFile):
-
-    def __init__(self, what, parent, leaf, sibling=False):
-        self._relative_init(what, parent, leaf, None, False, sibling)
-        self._constructed()
-
-
-class TemporaryFile(AutoFile):
-
-    def __init__(self, what):
-        AutoFile.__init__(self, what)
-        self._constructed()
-
-
-class TemporaryDir(AutoFile):
-
-    def __init__(self, what):
-        AutoFile.__init__(self, what)
-        self.dir = '/'
-        self._constructed()
-
 #---------- parsing and representation of the arguments
 
 
 class Action:
 
-    def __init__(self, kind, af, arghandling, what):
+    def __init__(self, kind, arg, arghandling, what):
         # extra attributes get added during processing
         self.kind = kind
-        self.af = af
+        self.arg = arg
         self.ah = arghandling
         self.what = what
         self.missing_tests_control = False
 
     def __repr__(self):
-        return '<Action %s %s %s>' % (self.kind, self.what, repr(self.af))
+        return '<Action %s %s %s>' % (self.kind, self.what, self.arg)
 
 
 def parse_args():
@@ -707,7 +426,6 @@ def parse_args():
                             " type `%s'" % (act, type(act)))
         (pathstr, kindpath) = act
 
-        constructor = InputFile
         if type(kindpath) is tuple:
             kind = kindpath[0]
         elif kindpath.endswith('.deb'):
@@ -716,10 +434,8 @@ def parse_args():
             kind = 'dsc'
         elif kindpath.endswith('//'):
             kind = 'ubtree'
-            constructor = InputDir
         elif kindpath.endswith('/'):
             kind = 'tree'
-            constructor = InputDir
         else:
             parser.error("do not know how to handle filename `%s';"
                          " specify --source --binary or --build-tree" %
@@ -728,16 +444,7 @@ def parse_args():
         what = '%s%s' % (kind, ix)
         ix += 1
 
-        if kind == 'dsc':
-            fwhatx = '/' + os.path.basename(pathstr)
-        else:
-            fwhatx = '-' + kind
-
-        if pathstr is None:
-            af = None
-        else:
-            af = constructor(what + fwhatx, pathstr, False)
-        opts.actions.append(Action(kind, af, arghandling, what))
+        opts.actions.append(Action(kind, pathstr, arghandling, what))
 
 
 def setup_trace():
@@ -867,10 +574,8 @@ class Testbed:
         self._opened(pl)
 
     def _opened(self, pl):
-        self.scratch = InputDir('tb-scratch', pl[0], True)
+        self.scratch = pl[0]
         self.deps_processed = []
-        for af in paths:
-            af.invalidate_ephem(True)
         self._auxverbscript_make()
 
     def _auxverbscript_make(self):
@@ -881,9 +586,9 @@ class Testbed:
 
         self._debug('cmdl = %s' % str(cmdl), 1)
 
-        self.ec_auxverbscript = TemporaryFile('satdep-auxverb')
-        print >>open(self.ec_auxverbscript.write(), 'w'), (
-            '''#!/bin/sh
+        self.ec_auxverbscript = os.path.join(tmp, 'satdep-auxverb')
+        with open(self.ec_auxverbscript, 'w') as f:
+            f.write('''#!/bin/sh
 set -e
 if [ $# = 2 ] && [ "x$1" = xdpkg-architecture ] && [ "x$2" = x-qDEB_HOST_ARCH ]; then
     # This is a pretty nasty hack.  Hopefully it can go away
@@ -891,9 +596,8 @@ if [ $# = 2 ] && [ "x$1" = xdpkg-architecture ] && [ "x$2" = x-qDEB_HOST_ARCH ];
     set -- dpkg --print-architecture
 fi
 export DEBIAN_FRONTEND=noninteractive
-exec ''' + shellquote_cmdl(cmdl) + ' "$@"\n'
-        )
-        os.chmod(self.ec_auxverbscript.write(), 0755)
+exec ''' + shellquote_cmdl(cmdl) + ' "$@"\n')
+        os.chmod(self.ec_auxverbscript, 0755)
 
     def mungeing_apt(self):
         if not 'revert' in self.caps:
@@ -932,8 +636,6 @@ exec ''' + shellquote_cmdl(cmdl) + ' "$@"\n'
                     (self.modified, self.deps_processed, deps_new), 1)
         if 'revert' in self.caps and (
                 self.modified or [d for d in self.deps_processed if d not in deps_new]):
-            for af in paths:
-                af.read(False)
             self._debug('reset **', 1)
             pl = self.commandr('revert')
             self._opened(pl)
@@ -1044,12 +746,12 @@ exec ''' + shellquote_cmdl(cmdl) + ' "$@"\n'
         if script is not False:
             debug_subprocess(what, cmdl, script=script)
         if cwd is None:
-            cwd = self.scratch.write(True)
+            cwd = self.scratch
 
         xdump = None
         if se is None:
-            se_catch = TemporaryFile(what + '-xerr')
-            se_use = se_catch.write(True)
+            se_catch = TempTestbedPath(testbed, what + '-xerr')
+            se_use = se_catch.tb
             if not opts.quiet:
                 xdump = 'debug=2-2'
         else:
@@ -1080,15 +782,17 @@ exec ''' + shellquote_cmdl(cmdl) + ' "$@"\n'
                  % (what, rc))
 
         if se_catch is not None:
-            log_file(se_catch.read())
+            se_catch.copyup()
+            log_file(se_catch.host)
 
         return rc
 
     def satisfy_dependencies_string(self, deps, what):
         # Must have called Binaries.configure_apt
         debug('dependencies: %s: satisfying %s' % (what, deps), 1)
-        dsc = TemporaryFile('deps.dsc')
-        print >>open(dsc.write(), 'w'), 'Build-Depends: ', deps, '\n\n'
+        dsc = os.path.join(tmp, 'deps.dsc')
+        with open(dsc, 'w') as f:
+            f.write('Build-Depends: %s\n\n' % deps)
         # pbuilder-satisfydepends has a bug where it ignores the
         # Build-Depends if it's the last line in the dsc (#635696)
         self.satisfy_dependencies_dsc(dsc, what)
@@ -1097,8 +801,8 @@ exec ''' + shellquote_cmdl(cmdl) + ' "$@"\n'
         # Must have called Binaries.configure_apt
         cmdl = ['/usr/lib/pbuilder/pbuilder-satisfydepends-classic',
                 '--binary-all',  # --check-key
-                '--internal-chrootexec', self.ec_auxverbscript.read(),
-                '-c', dsc.read()
+                '--internal-chrootexec', self.ec_auxverbscript,
+                '-c', dsc
                 ]
         # The --internal-chrootexec option is really handy but
         # perhaps we are not supposed to use it ?  See also #635697.
@@ -1106,6 +810,73 @@ exec ''' + shellquote_cmdl(cmdl) + ' "$@"\n'
         rc = subprocess.call(cmdl, stdout=None, stderr=None)
         if rc:
             badpkg('dependency install failed, exit code %d' % rc)
+
+
+class TestbedPath:
+    '''Represent a file/dir with a host and a testbed path'''
+
+    def __init__(self, testbed, host, tb, is_dir=None):
+        '''Create a TestbedPath object.
+
+        The object itself is just a pair of file names, nothing more. They do
+        not need to exist until you call copyup() or copydown() on them.
+
+        testbed: the Testbed object which this refers to
+        host: path of the file on the host
+        tb: path of the file in testbed
+        is_dir: whether path is a directory; None for "unspecified" if you only
+                need copydown()
+        '''
+        self.testbed = testbed
+        self.host = host
+        self.tb = tb
+        self.is_dir = is_dir
+
+    def copydown(self):
+        '''Copy file from the host to the testbed'''
+
+        # create directory on testbed
+        rc = testbed.execute('mkdir',
+                             ['sh', '-ec', 'test -d "$1" || mkdir -p "$1"',
+                              'x', os.path.dirname(self.tb)])
+        if rc:
+            bomb('failed to create directory %s' % os.path.dirname(self.tb))
+
+        if os.path.isdir(self.host):
+            # directories need explicit '/' appended for VirtSubproc
+            testbed.command('copydown', (self.host + '/', self.tb + '/'))
+        else:
+            testbed.command('copydown', (self.host, self.tb))
+
+    def copyup(self):
+        '''Copy file from the testbed to the host'''
+
+        mkdir_okexist(os.path.dirname(self.host))
+        assert self.is_dir is not None
+        if self.is_dir:
+            testbed.command('copyup', (self.tb + '/', self.host + '/'))
+        else:
+            testbed.command('copyup', (self.tb, self.host))
+
+
+class TempTestbedPath(TestbedPath):
+    '''Represent a file in the hosts'/testbed's temporary directories'''
+
+    def __init__(self, testbed, name, is_dir=False):
+        '''Create a temporary TestbedPath object.
+
+        The object itself is just a pair of file names, nothing more. They do
+        not need to exist until you call copyup() or copydown() on them.
+
+        testbed: the Testbed object which this refers to
+        name: name of the temporary file (without path); host and tb
+              will then be derived from that
+        is_dir: whether path is a directory; None for "unspecified" if you only
+                need copydown()
+        '''
+        TestbedPath.__init__(self, testbed, os.path.join(tmp, name),
+                             os.path.join(testbed.scratch, name),
+                             is_dir)
 
 #---------- representation of test control files: Field*, Test, etc.
 
@@ -1317,39 +1088,34 @@ class Test:
     def run(self, tree):
         self._debug('[----------------------------------------')
 
-        def stdouterr(oe):
-            idstr = self.what + '-' + oe
-            return RelativeOutputFile(idstr, testbed.scratch, idstr)
+        # ensure our tests are in the testbed
+        tree.copydown()
 
-        if hasattr(self.act, 'work'):
-            self.act.work.write(True)
-        tree.read(True)
+        # stdout/err files in testbed
+        so = TempTestbedPath(testbed, self.what + '-stdout')
+        se = TempTestbedPath(testbed, self.what + '-stderr')
 
-        af = RelativeInputFile(self.what, tree, self.path)
-        so = stdouterr('stdout')
-        se = stdouterr('stderr')
-
-        tf = af.read(True)
+        tb_test_path = os.path.join(tree.tb, self.path)
         xenv = []
 
-        rc = testbed.execute('testchmod-' + self.what, ['chmod', '+x', '--', tf])
+        rc = testbed.execute('testchmod-' + self.what, ['chmod', '+x', '--', tb_test_path])
         if rc:
-            bomb('failed to chmod +x %s' % tf)
+            bomb('failed to chmod +x %s' % tb_test_path)
 
-        testtmp = '%s%s-testtmp' % (testbed.scratch.read(True), self.what)
+        testtmp = '%s/%s-testtmp' % (testbed.scratch, self.what)
 
         script = 'buildtree="$1"; shift\n'
         script += 'rm -rf -- "$@"; mkdir -m 755 -- "$@"\n'
 
         if 'needs-root' not in self.restriction_names and opts.user is not None:
-            tfl = ['su', opts.user, '-c', tf]
+            test_argv = ['su', opts.user, '-c', tb_test_path]
             if opts.user:
                 script += 'chown %s "$@"\n' % opts.user
                 if 'rw-build-tree' in self.restriction_names:
                     script += ('chown -R %s "$buildtree"\n'
                                % opts.user)
         else:
-            tfl = [tf]
+            test_argv = [tb_test_path]
 
         test_tmpdir = testtmp + \
             '/tmpdir'
@@ -1359,7 +1125,7 @@ class Test:
         xenv.append('ADTTMP=%s' % test_adttmp)
         script += 'chmod 1777 "%s"\n' % test_tmpdir
         rc = testbed.execute('mktmpdir-' + self.what,
-                             ['sh', '-ec', script, 'x', tree.read(True),
+                             ['sh', '-ec', script, 'x', tree.tb,
                               testtmp, test_tmpdir, test_adttmp,
                               ])
         if rc:
@@ -1375,8 +1141,6 @@ class Test:
         #show_realtime = os.path.isdir(testtmp) and os.access(testtmp, os.W_OK)
         show_realtime = opts.vserver[0].endswith('-null')
         if show_realtime:
-            so_write = so.write(True)
-            se_write = se.write(True)
             fifo_out = os.path.join(testtmp, 'test_stdout')
             fifo_err = os.path.join(testtmp, 'test_stderr')
             os.mkfifo(fifo_out)
@@ -1385,7 +1149,7 @@ class Test:
             tee_out = os.fork()
             if tee_out == 0:
                 fd_in = os.open(fifo_out, os.O_RDONLY)
-                fd_out = os.open(so_write, os.O_CREAT | os.O_WRONLY)
+                fd_out = os.open(so.tb, os.O_CREAT | os.O_WRONLY)
 
                 while True:
                     block = os.read(fd_in, 1024)
@@ -1398,7 +1162,7 @@ class Test:
             tee_err = os.fork()
             if tee_err == 0:
                 fd_in = os.open(fifo_err, os.O_RDONLY)
-                fd_out = os.open(se_write, os.O_CREAT | os.O_WRONLY)
+                fd_out = os.open(se.tb, os.O_CREAT | os.O_WRONLY)
 
                 while True:
                     block = os.read(fd_in, 1024)
@@ -1409,8 +1173,8 @@ class Test:
                 os._exit(0)
 
             try:
-                rc = testbed.execute('test-' + self.what, tfl,
-                                     so=fifo_out, se=fifo_err, cwd=tree.read(True),
+                rc = testbed.execute('test-' + self.what, test_argv,
+                                     so=fifo_out, se=fifo_err, cwd=tree.tb,
                                      xenv=xenv, kind='test')
                 debug('testbed executing test finished with exit status %i' % rc, 1)
             finally:
@@ -1427,47 +1191,44 @@ class Test:
         # if testtmp is not accessible, we cannot show realtime output and need
         # to show stdout afterwards
         else:
-            rc = testbed.execute('test-' + self.what, tfl,
-                                 so=so.write(True), se=se.write(True), cwd=tree.read(True),
+            rc = testbed.execute('test-' + self.what, test_argv,
+                                 so=so.tb, se=se.tb, cwd=tree.tb,
                                  xenv=xenv, kind='test')
             debug('testbed executing test finished with exit status %i' % rc, 1)
 
         self._debug('----------------------------------------]')
 
-        so_read = so.read()
-        se_read = se.read()
+        # copy stdout/err files to host
+        so.copyup()
+        se.copyup()
+        se_size = os.path.getsize(se.host)
 
         self._debug(' - - - - - - - - - - results - - - - - - - - - -')
 
-        stderr_stat = os.stat(se_read)
-
         if rc != 0:
             self.reportfail('non-zero exit status %d' % rc)
-        elif (stderr_stat.st_size != 0 and
-              'allow-stderr' not in self.restriction_names):
-            se_read_fobj = open(se_read)
-            stderr_top = se_read_fobj.readline().rstrip('\n \t\r')
-            se_read_fobj.close()
+        elif se_size != 0 and 'allow-stderr' not in self.restriction_names:
+            with open(se.host) as f:
+                stderr_top = f.readline().rstrip('\n \t\r')
             self.reportfail('status: %d, stderr: %s' % (rc, stderr_top))
         else:
             self.report('PASS')
 
-        if os.stat(so_read).st_size != 0:
-            if not show_realtime:
-                self._debug(' - - - - - - - - - - stdout - - - - - - - - - -')
-                log_file(so_read)
+        if os.path.getsize(so.host) != 0 and not show_realtime:
+            self._debug(' - - - - - - - - - - stdout - - - - - - - - - -')
+            log_file(so.host)
 
-        if stderr_stat.st_size != 0 and (not show_realtime or 'allow-stderr'
-                                         not in self.restriction_names):
+        if se_size != 0 and (not show_realtime or 'allow-stderr'
+                             not in self.restriction_names):
             self._debug(' - - - - - - - - - - stderr - - - - - - - - - -')
-            log_file(se_read)
+            log_file(se.host)
 
 
-def read_stanzas(af):
+def read_stanzas(path):
     stanzas = []
 
     try:
-        control = open(af.read(), 'r')
+        control = open(path, 'r')
     except (IOError, OSError), oe:
         if oe[0] != errno.ENOENT:
             raise
@@ -1492,14 +1253,11 @@ def read_stanzas(af):
     return stanzas
 
 
-def read_control(act, tree):
+def read_control(act, control_path):
 
     if act.missing_tests_control:
         return ()
-    control_af = RelativeInputFile(act.what + '-testcontrol',
-                                   tree, 'debian/tests/control')
-
-    stanzas = read_stanzas(control_af)
+    stanzas = read_stanzas(control_path)
 
     for stz in stanzas:
         try:
@@ -1573,7 +1331,7 @@ def cleanup():
 
 
 def determine_package(act):
-    cmd = 'dpkg-deb --info --'.split(' ') + [act.af.read(), 'control']
+    cmd = 'dpkg-deb --info --'.split(' ') + [act.arg, 'control']
     (rc, output) = script_out(cmd, stdout=subprocess.PIPE)
     if rc:
         badpkg('failed to parse binary package, code %d' % rc)
@@ -1591,7 +1349,7 @@ def determine_package(act):
 
 
 def packages_from_source(act, tree):
-    (rc, output) = script_out(['dh_listpackages'], stdout=subprocess.PIPE, cwd=tree.read())
+    (rc, output) = script_out(['dh_listpackages'], stdout=subprocess.PIPE, cwd=tree.host)
     if rc:
         badpkg('failed to parse packages built from source, code %d' % rc)
 
@@ -1599,9 +1357,7 @@ def packages_from_source(act, tree):
     packages = [p for p in output.split() if p]
 
     # filter out udebs
-    control_af = RelativeInputFile(act.what + '-control',
-                                   tree, 'debian/control')
-    for st in read_stanzas(control_af):
+    for st in read_stanzas(os.path.join(tree.host, 'debian/control')):
         if 'Package' not in st:
                     # source stanza
             continue
@@ -1617,8 +1373,8 @@ def packages_from_source(act, tree):
 class Binaries:
 
     def __init__(self, tb):
-        self.dir = TemporaryDir('binaries')
-        self.dir.write()
+        self.dir = TempTestbedPath(testbed, 'binaries', is_dir=True)
+        os.mkdir(self.dir.host)
         ok = False
 
         if opts.gnupghome is None:
@@ -1675,22 +1431,21 @@ END
         }
 
     def _configure_apt(self, tb):
-        config = OutputFile('apt-config', '/etc/apt/apt.conf.d/90autopkgtest',
-                            True)
-        f = open(config.write(), 'w')
-        for (k, v) in self.apt_configs().iteritems():
-            print >>f, '%s { "%s"; };' % (k, v)
-        f.close()
-        config.read(True)
+        config = TestbedPath(testbed, os.path.join(tmp, 'apt-config'),
+                             '/etc/apt/apt.conf.d/90autopkgtest')
+        with open(config.host, 'w') as f:
+            for (k, v) in self.apt_configs().iteritems():
+                print >>f, '%s { "%s"; };' % (k, v)
+        config.copydown()
 
-        prefs = OutputFile('apt-prefs', '/etc/apt/preferences.d/90autopkgtest',
-                           True)
-        print >>open(prefs.write(), 'w'), '''
-Package: *
+        prefs = TestbedPath(testbed, os.path.join(tmp, 'apt-prefs'),
+                            '/etc/apt/preferences.d/90autopkgtest')
+        with open(prefs.host, 'w') as f:
+            f.write('''Package: *
 Pin: origin ""
 Pin-Priority: 1002
-'''
-        prefs.read(True)
+''')
+        prefs.copydown()
 
     def _apt_get(self):
         ag = ['apt-get', '-q']
@@ -1700,37 +1455,35 @@ Pin-Priority: 1002
 
     def reset(self):
         self._debug('reset')
-        rmtree('binaries', self.dir.read())
-        self.dir.invalidate()
-        self.dir.write()
+        rmtree('binaries', self.dir.host)
+        os.mkdir(self.dir.host)
         self.install = []
         self.blamed = []
         self.registered = set()
 
-    def register(self, act, pkg, af, forwhat, blamed):
-        self._debug('register what=%s deb_%s=%s pkg=%s af=%s' %
-                    (act.what, forwhat, act.ah['deb_' + forwhat], pkg, str(af)))
+    def register(self, act, pkg, path, forwhat, blamed):
+        self._debug('register what=%s deb_%s=%s pkg=%s path=%s' %
+                    (act.what, forwhat, act.ah['deb_' + forwhat], pkg, path))
 
         if act.ah['deb_' + forwhat] == 'ignore':
             return
 
         self.blamed += testbed.blamed
 
-        leafname = pkg + '.deb'
-        dest = RelativeOutputFile('binaries--' + leafname, self.dir, leafname)
+        dest = os.path.join(self.dir.host, pkg + '.deb')
 
         try:
-            os.remove(dest.write())
+            os.remove(dest)
         except (IOError, OSError), oe:
             if oe.errno != errno.ENOENT:
                 raise oe
 
         try:
-            os.link(af.read(), dest.write())
+            os.link(path, dest)
         except (IOError, OSError), oe:
             if oe.errno != errno.EXDEV:
                 raise oe
-            shutil.copy(af.read(), dest.write())
+            shutil.copy(path, dest)
 
         if act.ah['deb_' + forwhat] == 'install':
             self.install.append(pkg)
@@ -1755,19 +1508,19 @@ Pin-Priority: 1002
   gpg --homedir="$2" --batch --detach-sign --armour -o Release.gpg Release
   gpg --homedir="$2" --batch --export >archive-key.pgp
 '''
-        cmdl = ['sh', '-ec', script, 'x', self.dir.write(), opts.gnupghome]
+        cmdl = ['sh', '-ec', script, 'x', self.dir.host, opts.gnupghome]
         rc = script_out(cmdl, what='ftparchive', script=script)[0]
         if rc:
             bomb('apt-ftparchive or signature failed, code %d' % rc)
 
-        self.dir.invalidate(True)
-        apt_source = self.dir.read(True)
+        # copy binaries directory to testbed
+        self.dir.copydown()
 
-        so = TemporaryFile('vlds')
+        aptkey_out = TempTestbedPath(testbed, 'apt-key.out')
         script = '''
   exec 3>&1 >&2
   apt-key add archive-key.pgp
-  echo "deb file://''' + apt_source + ''' /" >/etc/apt/sources.list.d/autopkgtest.list
+  echo "deb file://''' + self.dir.tb + ''' /" >/etc/apt/sources.list.d/autopkgtest.list
   if [ "x`ls /var/lib/dpkg/updates`" != x ]; then
     echo >&2 "/var/lib/dpkg/updates contains some files, aargh"; exit 1
   fi
@@ -1776,17 +1529,19 @@ Pin-Priority: 1002
 '''
         testbed.mungeing_apt()
         rc = testbed.execute('apt-key', ['sh', '-ec', script],
-                             so=so.write(True), cwd=self.dir.write(True),
+                             so=aptkey_out.tb, cwd=self.dir.tb,
                              script=script, kind='install')
         if rc:
             bomb('apt setup failed with exit code %d' % rc)
 
         testbed.blamed += self.blamed
 
+        aptkey_out.copyup()
+
         self._debug('publish reinstall checking...')
         pkgs_reinstall = set()
         pkg = None
-        for l in open(so.read()):
+        for l in open(aptkey_out.host):
             if l.startswith('Package: '):
                 pkg = l[9:].rstrip()
             elif l.startswith('Status: install '):
@@ -1829,11 +1584,13 @@ def source_rules_command(script, what, which, cwd,
     else:
         script = ['exec 3>&1 >&2'] + script
     script = '\n'.join(script)
-    so = TemporaryFile('%s-%s-results' % (what, which))
+    so = TempTestbedPath(testbed, '%s-%s-results' % (what, which))
     rc = testbed.execute('%s-%s' % (what, which),
                          ['sh', '-ec', script] + xargs, script=script,
-                         so=so.write(True), cwd=cwd, kind='build')
-    results = open(so.read()).read().rstrip('\n')
+                         so=so.tb, cwd=cwd, kind='build')
+    so.copyup()
+    with open(so.host) as f:
+        results = f.read().rstrip('\n')
     if len(results):
         results = results.split('\n')
     else:
@@ -1849,70 +1606,74 @@ def source_rules_command(script, what, which, cwd,
 
 
 def build_source(act):
-    act.blame = 'arg:' + act.af.spec
+    act.blame = 'arg:' + act.arg
     testbed.blame(act.blame)
     testbed.prepare1([])
     testbed.needs_reset()
 
     what = act.what
-    debiancontrol = None
     act.binaries = []
 
     def debug_b(m):
         debug('* <%s:%s> %s' % (act.kind, act.what, m))
 
     if act.kind == 'dsc':
-        dsc = act.af
-        dsc_file = open(dsc.read())
+        dsc = act.arg
+        dsc_tb = os.path.join(testbed.scratch, what, os.path.basename(dsc))
+
+        # copy .dsc file itself
+        TestbedPath(testbed, dsc, dsc_tb).copydown()
+
+        # parse source file parts from the .dsc and copy them to testbed
         in_files = False
         fre = re.compile('^\s+[0-9a-f]+\s+\d+\s+([^/.][^/]*)$')
-        for l in dsc_file:
-            l = l.rstrip('\n')
-            if l.startswith('Files:'):
-                in_files = True
-                continue
-            elif l.startswith('#'):
-                pass
-            elif not l.startswith(' '):
-                in_files = False
-                if l.startswith('Source:'):
-                    act.blame = 'dsc:' + l[7:].strip()
-                    testbed.blame(act.blame)
-            if not in_files:
-                continue
+        with open(dsc) as f:
+            for l in f:
+                l = l.rstrip('\n')
+                if l.startswith('Files:'):
+                    in_files = True
+                    continue
+                elif l.startswith('#'):
+                    pass
+                elif not l.startswith(' '):
+                    in_files = False
+                    if l.startswith('Source:'):
+                        act.blame = 'dsc:' + l[7:].strip()
+                        testbed.blame(act.blame)
+                if not in_files:
+                    continue
 
-            m = fre.match(l)
-            if not m:
-                badpkg(".dsc contains unparseable line"
-                       " in Files: `%s'" % l)
-            leaf = m.groups(0)[0]
-            subfile = RelativeInputFile(what + '/' + leaf, dsc, leaf,
-                                        sibling=True)
-            subfile.read(True)
-        dsc.read(True)
+                m = fre.match(l)
+                if not m:
+                    badpkg(".dsc contains unparseable line"
+                           " in Files: `%s'" % l)
+                leaf = m.groups(0)[0]
+
+                part = TestbedPath(
+                    testbed,
+                    os.path.join(os.path.dirname(dsc), leaf),
+                    os.path.join(testbed.scratch, what, leaf))
+                part.copydown()
 
     if act.kind == 'ubtree':
-        debiancontrol = RelativeInputFile(what + '-debiancontrol',
-                                          act.af, 'debian/control')
-        dsc = TemporaryFile(what + '-fakedsc')
-        dsc_w = open(dsc.write(), 'w')
-        for l in open(debiancontrol.read()):
-            l = l.rstrip('\n')
-            if not len(l):
-                break
-            print >>dsc_w, l
-        print >>dsc_w, 'Binary: none-so-this-is-not-a-package-name'
-        dsc_w.close()
+        dsc = os.path.join(tmp, what + '-fakedsc')
+        with open(dsc, 'w') as f_dsc:
+            with open(os.path.join(act.arg, 'debian/control')) as f_control:
+                for l in f_control:
+                    if l == '\n':
+                        break
+                    f_dsc.write(l)
+            f_dsc.write('Binary: none-so-this-is-not-a-package-name\n')
 
     if act.kind == 'dsc':
         testbed.prepare2([])
         testbed.satisfy_dependencies_string('dpkg-dev',
                                             'install dpkg-dev')
 
-    work = TemporaryDir(what + '-build')
-    act.work = work
+    # we only use the testbed path from this
+    work = os.path.join(testbed.scratch, what + '-build')
 
-    tmpdir = work.write(True) + '/tmpdir'
+    tmpdir = work + '/tmpdir'
     tmpdir_script = [
         'TMPDIR="$1"',
         'rm -rf -- "$TMPDIR"',
@@ -1921,23 +1682,28 @@ def build_source(act):
     ]
 
     if act.kind == 'ubtree':
-        spec = '%s/real-tree' % work.write(True)
+        spec = '%s/real-tree' % work
         create_command = '''
     rm -rf "$spec"
     mkdir "$spec"
     cp -rP --preserve=timestamps,links -- "$origpwd"/. "$spec"/.
 '''
-        initcwd = act.af.read(True)
+        # copy unbuilt tree into testbed
+        ubtree = TestbedPath(testbed, act.arg,
+                             os.path.join(testbed.scratch, act.what + '-ubtree'))
+        ubtree.copydown()
+        initcwd = ubtree.tb
 
     if act.kind == 'dsc':
-        spec = dsc.read(True)
+        spec = dsc_tb
         create_command = 'dpkg-source -x $spec\n'
-        initcwd = work.write(True)
+        initcwd = work
 
     script = [
         'spec="$2"',
-        'origpwd=`pwd`',
-        'cd ' + work.write(True)
+        'origpwd=' + initcwd,
+        'mkdir -p ' + work,
+        'cd ' + work
     ]
 
     if opts.user:
@@ -1956,7 +1722,7 @@ def build_source(act):
     ]
     (result_pwd, control_test_rc) = source_rules_command(
         script, what, 'extract',
-        cwd=initcwd, results_lines=2, xargs=['x', tmpdir, spec])
+        cwd=None, results_lines=2, xargs=['x', tmpdir, spec])
 
     filter = act.ah['dsc_filter']
 
@@ -1983,9 +1749,12 @@ def build_source(act):
                               act.ah['deb_fortests'] != 'ignore'):
             build_needed('binaries')
 
-        result_pwd_af = InputDir(what + '-treeforcontrol',
-                                 result_pwd, True)
-        stanzas = read_control(act, result_pwd_af)
+        # get test control file from testbed
+        test_control = TestbedPath(testbed,
+                                   os.path.join(tmp, what + '-testcontrol'),
+                                   os.path.join(result_pwd, 'debian/tests/control'), False)
+        test_control.copyup()
+        stanzas = read_control(act, test_control.host)
         for stanza in stanzas:
             for t in stanza[' tests']:
                 if 'build-needed' in t.restriction_names:
@@ -2011,15 +1780,20 @@ def build_source(act):
         source_rules_command(script, what, 'build',
                              cwd=initcwd, xargs=['x', tmpdir, result_pwd])
 
-        if os.path.dirname(result_pwd) + '/' != work.read(True):
+        if os.path.dirname(result_pwd) != work:
             badpkg("results dir `%s' is not in expected parent"
-                   " dir `%s'" % (result_pwd, work.read(True)))
+                   " dir `%s'" % (result_pwd, work))
 
         built = True
 
-    act.tests_tree = RelativeInputDir(what + '-tests-tree',
-                                      work, os.path.basename(result_pwd),
-                                      True)
+    act.tests_tree = TestbedPath(
+        testbed,
+        os.path.join(tmp, what + '-tests-tree'),
+        os.path.join(work, os.path.basename(result_pwd)),
+        is_dir=True)
+    # copy tests from testbed to hosts, we need that for parsing control files
+    # and some runners like LXC run a fresh testbed after build for the tests
+    act.tests_tree.copyup()
 
     if not built:
         act.blamed = []
@@ -2030,13 +1804,13 @@ def build_source(act):
     debug_b('filter=%s' % filter)
     if filter != '_':
         script = tmpdir_script + [
-            'cd ' + work.write(True) + '/[a-z0-9]*-*/.',
+            'cd ' + work + '/[a-z0-9]*-*/.',
             opts.user_wrap(opts.gainroot + ' debian/rules binary'),
             'cd ..',
             'echo *.deb >&3',
         ]
         result_debs = source_rules_command(script, what,
-                                           'binary', work.write(True),
+                                           'binary', work,
                                            results_lines=1,
                                            xargs=['x', tmpdir])
         if result_debs == '*.deb':
@@ -2044,6 +1818,8 @@ def build_source(act):
         else:
             debs = result_debs.split(' ')
         debug_b('debs=' + repr(debs))
+
+        # determine built debs and copy them from testbed
         deb_re = re.compile('^([-+.0-9a-z]+)_[^_/]+(?:_[^_/]+)\.deb$')
         for deb in debs:
             m = deb_re.match(deb)
@@ -2057,12 +1833,16 @@ def build_source(act):
                     debug_b('   no match')
                     continue
                 deb_what = pkg + '_' + what + '.deb'
-                bin = RelativeInputFile(deb_what, work, deb, True)
-                debug_b('  deb_what=%s, bin=%s' %
-                        (deb_what, str(bin)))
-                binaries.register(act, pkg, bin,
+                deb_path = TestbedPath(testbed,
+                                       os.path.join(tmp, deb_what),
+                                       os.path.join(work, deb),
+                                       False)
+                debug_b('  deb_what=%s, deb_path=%s' %
+                        (deb_what, str(deb_path)))
+                deb_path.copyup()
+                binaries.register(act, pkg, deb_path.host,
                                   'forbuilds', testbed.blamed)
-                act.binaries.append((pkg, bin))
+                act.binaries.append((pkg, deb_path.host))
                 break
         debug_b('all done.')
 
@@ -2091,10 +1871,10 @@ def process_actions():
         debug_a2('%s %s' % (act.kind, act.what))
 
         if act.kind == 'deb':
-            testbed.blame('arg:' + act.af.spec)
+            testbed.blame('arg:' + act.arg)
             determine_package(act)
             testbed.blame('deb:' + act.pkg)
-            binaries.register(act, act.pkg, act.af,
+            binaries.register(act, act.pkg, act.arg,
                               'forbuilds', testbed.blamed)
         if act.kind == 'dsc' or act.kind == 'ubtree':
             build_source(act)
@@ -2113,27 +1893,31 @@ def process_actions():
 
         testbed.needs_reset()
         if act.kind == 'deb':
-            binaries.register(act, act.pkg, act.af, 'fortests',
+            binaries.register(act, act.pkg, act.arg, 'fortests',
                               ['deb:' + act.pkg])
         if act.kind == 'dsc' or act.kind == 'ubtree':
-            for (pkg, bin) in act.binaries:
-                binaries.register(act, pkg, bin, 'fortests',
+            for (pkg, path) in act.binaries:
+                binaries.register(act, pkg, path, 'fortests',
                                   act.blamed)
         if act.kind == 'dsc':
             if act.ah['dsc_tests']:
                 debug_a3('read control ...')
-                stanzas = read_control(act, act.tests_tree)
+                stanzas = read_control(
+                    act, os.path.join(act.tests_tree.host, 'debian/tests/control'))
                 testbed.blamed += act.blamed
                 debug_a3('run_tests ...')
                 run_tests(stanzas, act.tests_tree)
         if act.kind == 'tree' or act.kind == 'ubtree':
-            testbed.blame('arg:' + act.af.spec)
-            stanzas = read_control(act, act.af)
+            testbed.blame('arg:' + act.arg)
+            stanzas = read_control(
+                act, os.path.join(act.arg, 'debian/tests/control'))
             debug_a3('run_tests ...')
             if act.kind == 'ubtree':
                 run_tests(stanzas, act.tests_tree)
             else:
-                run_tests(stanzas, act.af)
+                tree = TestbedPath(testbed, act.arg,
+                                   os.path.join(testbed.scratch, act.what + '-tree'))
+                run_tests(stanzas, tree)
         if act.kind == 'instantiate':
             testbed.prepare([])
     debug_a1('tests done.')
