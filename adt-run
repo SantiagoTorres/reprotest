@@ -1394,6 +1394,9 @@ class Binaries:
         else:
             self.genkey()
 
+        self.apt_get_cmd = 'apt-get -q -o Debug::pkgProblemResolver=true ' \
+            '-o APT::Get::force-yes=true -o APT::Get::Assume-Yes=true'
+
     def _debug(self, s):
         debug('* ' + s, 1)
 
@@ -1422,22 +1425,7 @@ END
         if rc:
             bomb('key generation failed, code %d' % rc)
 
-    def apt_configs(self):
-        return {
-            'Debug::pkgProblemResolver': 'true',
-            'APT::Get::force-yes': 'true',
-            'APT::Get::Assume-Yes': 'true',
-            'quiet': 'true',
-        }
-
     def _configure_apt(self, tb):
-        config = TestbedPath(testbed, os.path.join(tmp, 'apt-config'),
-                             '/etc/apt/apt.conf.d/90autopkgtest')
-        with open(config.host, 'w') as f:
-            for (k, v) in self.apt_configs().iteritems():
-                print >>f, '%s { "%s"; };' % (k, v)
-        config.copydown()
-
         prefs = TestbedPath(testbed, os.path.join(tmp, 'apt-prefs'),
                             '/etc/apt/preferences.d/90autopkgtest')
         with open(prefs.host, 'w') as f:
@@ -1446,12 +1434,6 @@ Pin: origin ""
 Pin-Priority: 1002
 ''')
         prefs.copydown()
-
-    def _apt_get(self):
-        ag = ['apt-get', '-q']
-        for kv in self.apt_configs().iteritems():
-            ag += ['-o', '%s=%s' % kv]
-        return ' '.join(ag)
 
     def reset(self):
         self._debug('reset')
@@ -1524,7 +1506,7 @@ Pin-Priority: 1002
   if [ "x`ls /var/lib/dpkg/updates`" != x ]; then
     echo >&2 "/var/lib/dpkg/updates contains some files, aargh"; exit 1
   fi
-''' + self._apt_get() + ''' update >&2
+''' + self.apt_get_cmd + ''' update >&2
   cat /var/lib/dpkg/status >&3
 '''
         testbed.mungeing_apt()
@@ -1553,7 +1535,7 @@ Pin-Priority: 1002
             for pkg in pkgs_reinstall:
                 testbed.blame(pkg)
             what = 'apt-get-reinstall'
-            cmdl = (self._apt_get() + ' --reinstall install ' +
+            cmdl = (self.apt_get_cmd + ' --reinstall install ' +
                     ' '.join([pkg for pkg in pkgs_reinstall]) + ' >&2')
             cmdl = ['sh', '-c', cmdl]
             rc = testbed.execute(what, cmdl, script=None, kind='install')
@@ -1565,7 +1547,7 @@ Pin-Priority: 1002
         for pkg in self.install:
             what = 'apt-get-install-%s' % pkg
             testbed.blame(pkg)
-            cmdl = self._apt_get() + ' install ' + pkg + ' >&2'
+            cmdl = self.apt_get_cmd + ' install ' + pkg + ' >&2'
             cmdl = ['sh', '-c', cmdl]
             rc = testbed.execute(what, cmdl, script=None, kind='install')
             if rc:
