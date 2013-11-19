@@ -19,6 +19,8 @@ autopkgtest (2.5) UNRELEASED; urgency=low
   * Replace the usage of the AutoFile classes (which are underdocumented,
     magic, and hard to understand) with a more explicit and much simpler
     TestbedPath class.
+  * Stop installing the redundant /etc/apt/apt.conf.d/90autopkgtest into
+    testbeds, and simplify invocation of apt-get.
 
   New test cases:
   * Access /dev/std{out,err} in a non-root test, like the "mafft" autopkgtest
