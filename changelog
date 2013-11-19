@@ -11,6 +11,10 @@ autopkgtest (2.5) UNRELEASED; urgency=low
   * Drop --paths-testbed (and thus also --paths-host) options. There is no
     use case for them.
   * Clean up uninteresting files from --output-dir directory.
+  * Tests which want to create additional artifacts can now put them into the
+    $ADT_ARTIFACTS directory. When using the --output-dir option, they will be
+    copied into <outputdir>/artifacts/. Document this new feature in
+    README.package-tests. (LP: #1137763)
 
   Packaging changes:
   * Drop obsolete autodebtest Conflicts/Replaces.
