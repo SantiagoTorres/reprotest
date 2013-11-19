@@ -1577,7 +1577,7 @@ Pin-Priority: 1002
             cmdl = ['sh', '-c', cmdl]
             rc = testbed.execute(what, cmdl, script=None, kind='install')
             if rc:
-                badpkg('installation of basic binarries failed,'
+                badpkg('installation of basic binaries failed,'
                        ' exit code %d' % rc)
 
         self._debug('publish install...')
