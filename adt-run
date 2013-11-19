@@ -1138,13 +1138,17 @@ class Test:
         else:
             test_argv = [tb_test_path]
 
-        test_tmpdir = testtmp + \
-            '/tmpdir'
+        test_tmpdir = testtmp + '/tmpdir'
         xenv.append('TMPDIR=%s' % test_tmpdir)
-        test_adttmp = testtmp + \
-            '/adttmp'
-        xenv.append('ADTTMP=%s' % test_adttmp)
         script += 'chmod 1777 "%s"\n' % test_tmpdir
+
+        test_adttmp = testtmp + '/adttmp'
+        xenv.append('ADTTMP=%s' % test_adttmp)
+
+        test_artifacts = testtmp + '/artifacts'
+        script += 'mkdir -m 1777 "%s"\n' % test_artifacts
+        xenv.append('ADT_ARTIFACTS=%s' % test_artifacts)
+
         rc = testbed.execute('mktmpdir-' + self.what,
                              ['sh', '-ec', script, 'x', tree.tb,
                               testtmp, test_tmpdir, test_adttmp,
@@ -1243,6 +1247,16 @@ class Test:
                              not in self.restriction_names):
             self._debug(' - - - - - - - - - - stderr - - - - - - - - - -')
             log_file(se.host)
+
+        # copy artifacts to host, if we have --output-dir
+        if opts.output_dir:
+            ap = TestbedPath(testbed,
+                             os.path.join(opts.output_dir, 'artifacts'),
+                             test_artifacts, is_dir=True)
+            ap.copyup()
+            # don't keep an empty artifacts dir around
+            if not os.listdir(ap.host):
+                os.rmdir(ap.host)
 
 
 def read_stanzas(path):
