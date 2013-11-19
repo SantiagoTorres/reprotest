@@ -350,12 +350,16 @@ def parse_args():
     parser.add_option('--set-lang', metavar='LANGVAL',
                       help='set LANG on testbed to LANGVAL', default='C')
 
-    parser.add_option('--tmp-dir', dest='tmp',
-                      help='write temporary files to TMP, emptying it'
-                      ' beforehand and leaving it behind at the end')
+    parser.add_option('--output-dir',
+                      help='write test artifacts (stdout/err, log, debs, etc.) '
+                      'to OUTPUT-DIR, emptying it beforehand')
+    # backwards compatible alias
+    parser.add_option('--tmp-dir', dest='output_dir',
+                      help='alias for --output-dir for backwards compatibility')
+
     parser.add_option('--log-file', dest='logfile',
                       help='write the log LOGFILE, emptying it beforehand,'
-                      ' instead of using OUTPUT-DIR/log or TMPDIR/log')
+                      ' instead of using OUTPUT-DIR/log')
     parser.add_option('--summary-file', dest='summary',
                       help='write a summary report to SUMMARY, emptying it beforehand')
 
@@ -451,17 +455,17 @@ def parse_args():
 def setup_trace():
     global tmp, summary_stream
 
-    if opts.tmp is not None:
-        rmtree('tmp(specified)', opts.tmp)
-        mkdir_okexist(opts.tmp, 0755)
-        tmp = opts.tmp
+    if opts.output_dir is not None:
+        rmtree('tmp(specified)', opts.output_dir)
+        mkdir_okexist(opts.output_dir, 0755)
+        tmp = opts.output_dir
     else:
         assert(tmp is None)
         tmp = tempfile.mkdtemp()
         os.chmod(tmp, 0755)
 
-    if opts.logfile is None and opts.tmp is not None:
-        opts.logfile = opts.tmp + '/log'
+    if opts.logfile is None and opts.output_dir is not None:
+        opts.logfile = opts.output_dir + '/log'
 
     if opts.logfile is not None:
         # tee stdout/err into log file
@@ -882,7 +886,7 @@ class TempTestbedPath(TestbedPath):
                 need copydown()
         autoclean: If True (default), remove file when adt-run finishes. Should
                 be set to False for files which you want to keep in the
-                --tmp-dir which are useful for reporting results, like test
+                --output-dir which are useful for reporting results, like test
                 stdout/err, log files, and binaries.
         '''
         TestbedPath.__init__(self, testbed, os.path.join(tmp, name),
@@ -1337,7 +1341,7 @@ def cleanup():
         if testbed is not None:
             testbed.reset_apt()
             testbed.stop()
-        if opts.tmp is None and tmp is not None:
+        if opts.output_dir is None and tmp is not None:
             rmtree('tmp', tmp)
     except:
         print_exception(sys.exc_info(),

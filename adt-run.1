@@ -115,17 +115,15 @@ The default is not to use anything, except that if
 \fB--user\fR is supplied or root on the testbed is not available the
 default is \fBfakeroot\fR.
 .TP
-.BI --tmp-dir= tmp
-Specifies that \fItmp\fR should be used instead of a fresh
-temporary directory on the host.  \fItmp\fR will be created if
-necessary, and emptied of all of its contents before \fBadt-run\fR
-starts, and it will not be cleaned out afterwards.
-.B NOTE
-again that all of the contents of \fItmp\fR will be \fBdeleted\fR.
+.BI --output-dir= dir
+Specifies that test artifacts (stderr and stdout from the tests, the log file,
+built binary packages etc.) should be placed in the given directory.
+\fIdir\fR will be created if necessary, and \fIemptied of all of its contents\fR
+before \fBadt-run\fR starts.
 .TP
 .BI --log-file= logfile
 Specifies that the trace log should be written to \fIlogfile\fR
-instead of to \fItmp-dir\fR.
+instead of to \fIoutput-dir\fR.
 .TP
 .BI --summary= summary
 Specifies that a summary of the outcome should be written to
@@ -174,7 +172,7 @@ quantities of high-quality entropy.
 .BR -q " | " --quiet
 Do not send a copy of \fBadt-run\fR's trace logstream to stderr.  This
 option does not affect the copy sent to \fIlogfile\fR or
-\fItmp-dir\fR.  Note that without the trace
+\fIoutput-dir\fR.  Note that without the trace
 logstream it can be very hard to diagnose problems.
 .TP
 \fB---\fR \fIvirt-server virt-server-arg\fR...
