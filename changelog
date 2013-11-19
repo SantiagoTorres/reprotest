@@ -15,6 +15,10 @@ autopkgtest (2.5) UNRELEASED; urgency=low
   Packaging changes:
   * Drop obsolete autodebtest Conflicts/Replaces.
 
+  Bug fixes:
+  * Fix OSError crash if --output-dir/--tmp-dir does not exist.
+    (Closes: #729791)
+
   Code cleanup:
   * Simplify logging by dropping the explicit functions for writing to stderr
     plus log, and instead set up pipes so that the whole stdout/stderr will be
