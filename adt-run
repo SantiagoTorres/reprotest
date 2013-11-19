@@ -37,6 +37,7 @@ import fnmatch
 import shutil
 import copy
 import time
+import atexit
 
 try:
     from debian import deb822, debian_support
@@ -466,6 +467,7 @@ def setup_trace():
         # tee stdout/err into log file
         fifo_log = os.path.join(tmp, 'fifo_log')
         os.mkfifo(fifo_log)
+        atexit.register(os.unlink, fifo_log)
         out_tee = subprocess.Popen(['tee', fifo_log],
                                    stdin=subprocess.PIPE)
         err_tee = subprocess.Popen(['tee', fifo_log, '-a', '/dev/stderr'],
@@ -533,6 +535,7 @@ class Testbed:
         self._debug('init', 1)
         self._need_reset_apt = False
         self.stop_sent = False
+        self.ec_auxverbscript = None
 
     def _debug(self, m, minlevel=0):
         debug('** ' + m, minlevel)
@@ -624,6 +627,9 @@ exec ''' + shellquote_cmdl(cmdl) + ' "$@"\n')
 
     def close(self):
         self._debug('close, scratch=%s' % self.scratch, 1)
+        if self.ec_auxverbscript:
+            os.unlink(self.ec_auxverbscript)
+            self.ec_auxverbscript = None
         if self.scratch is None:
             return
         self.scratch = None
@@ -796,6 +802,7 @@ exec ''' + shellquote_cmdl(cmdl) + ' "$@"\n')
         # pbuilder-satisfydepends has a bug where it ignores the
         # Build-Depends if it's the last line in the dsc (#635696)
         self.satisfy_dependencies_dsc(dsc, what)
+        os.unlink(dsc)
 
     def satisfy_dependencies_dsc(self, dsc, what):
         # Must have called Binaries.configure_apt
@@ -862,7 +869,7 @@ class TestbedPath:
 class TempTestbedPath(TestbedPath):
     '''Represent a file in the hosts'/testbed's temporary directories'''
 
-    def __init__(self, testbed, name, is_dir=False):
+    def __init__(self, testbed, name, is_dir=False, autoclean=True):
         '''Create a temporary TestbedPath object.
 
         The object itself is just a pair of file names, nothing more. They do
@@ -873,10 +880,20 @@ class TempTestbedPath(TestbedPath):
               will then be derived from that
         is_dir: whether path is a directory; None for "unspecified" if you only
                 need copydown()
+        autoclean: If True (default), remove file when adt-run finishes. Should
+                be set to False for files which you want to keep in the
+                --tmp-dir which are useful for reporting results, like test
+                stdout/err, log files, and binaries.
         '''
         TestbedPath.__init__(self, testbed, os.path.join(tmp, name),
                              os.path.join(testbed.scratch, name),
                              is_dir)
+        self.autoclean = autoclean
+
+    def __del__(self):
+        if self.autoclean:
+            if os.path.exists(self.host):
+                os.unlink(self.host)
 
 #---------- representation of test control files: Field*, Test, etc.
 
@@ -1092,8 +1109,8 @@ class Test:
         tree.copydown()
 
         # stdout/err files in testbed
-        so = TempTestbedPath(testbed, self.what + '-stdout')
-        se = TempTestbedPath(testbed, self.what + '-stderr')
+        so = TempTestbedPath(testbed, self.what + '-stdout', autoclean=False)
+        se = TempTestbedPath(testbed, self.what + '-stderr', autoclean=False)
 
         tb_test_path = os.path.join(tree.tb, self.path)
         xenv = []
@@ -1325,7 +1342,7 @@ def cleanup():
     except:
         print_exception(sys.exc_info(),
                         '\nadt-run: error cleaning up:\n')
-        os._exit(20)
+        sys.exit(20)
 
 #---------- registration, installation etc. of .deb's: Binaries
 
@@ -1373,7 +1390,7 @@ def packages_from_source(act, tree):
 class Binaries:
 
     def __init__(self, tb):
-        self.dir = TempTestbedPath(testbed, 'binaries', is_dir=True)
+        self.dir = TempTestbedPath(testbed, 'binaries', is_dir=True, autoclean=False)
         os.mkdir(self.dir.host)
         ok = False
 
@@ -1434,6 +1451,7 @@ Pin: origin ""
 Pin-Priority: 1002
 ''')
         prefs.copydown()
+        os.unlink(prefs.host)
 
     def reset(self):
         self._debug('reset')
@@ -1466,6 +1484,7 @@ Pin-Priority: 1002
             if oe.errno != errno.EXDEV:
                 raise oe
             shutil.copy(path, dest)
+        atexit.register(lambda f: os.path.exists(f) and os.unlink(f), path)
 
         if act.ah['deb_' + forwhat] == 'install':
             self.install.append(pkg)
@@ -1646,6 +1665,7 @@ def build_source(act):
                         break
                     f_dsc.write(l)
             f_dsc.write('Binary: none-so-this-is-not-a-package-name\n')
+        atexit.register(lambda f: os.path.exists(f) and os.unlink(f), dsc)
 
     if act.kind == 'dsc':
         testbed.prepare2([])
@@ -1737,6 +1757,7 @@ def build_source(act):
                                    os.path.join(result_pwd, 'debian/tests/control'), False)
         test_control.copyup()
         stanzas = read_control(act, test_control.host)
+        os.unlink(test_control.host)
         for stanza in stanzas:
             for t in stanza[' tests']:
                 if 'build-needed' in t.restriction_names:
@@ -1776,6 +1797,7 @@ def build_source(act):
     # copy tests from testbed to hosts, we need that for parsing control files
     # and some runners like LXC run a fresh testbed after build for the tests
     act.tests_tree.copyup()
+    atexit.register(rmtree, 'tests-tree', act.tests_tree.host)
 
     if not built:
         act.blamed = []
@@ -1912,7 +1934,7 @@ def main():
     except SystemExit:
         # optparser exits with error 2 by default, but we have a different
         # meaning for that already
-        os._exit(20)
+        sys.exit(20)
 
     try:
         setup_trace()
@@ -1923,8 +1945,8 @@ def main():
     except:
         ec = print_exception(sys.exc_info(), '')
         cleanup()
-        os._exit(ec)
+        sys.exit(ec)
     cleanup()
-    os._exit(errorcode)
+    sys.exit(errorcode)
 
 main()
