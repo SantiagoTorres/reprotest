@@ -217,7 +217,7 @@ def rmtree(what, pathname):
     try:
         shutil.rmtree(pathname)
     except (IOError, OSError), oe:
-        if oe.errno != errno.EEXIST:
+        if oe.errno not in (errno.EEXIST, errno.ENOENT):
             raise
 
 
