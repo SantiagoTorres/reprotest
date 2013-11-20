@@ -1310,7 +1310,8 @@ def read_control(act, control_path):
                 'feature_names': [],
                 'features': [],
                 'testsdir': 'debian/tests',
-                'depends': '@'
+                'depends': '@',
+                ' lno': stz[' lno'],
             }
             for fname in stz.keys():
                 if fname.startswith(' '):
