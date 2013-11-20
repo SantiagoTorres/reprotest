@@ -25,6 +25,7 @@ autopkgtest (2.5) UNRELEASED; urgency=low
     (Closes: #729791)
   * Pass line number to Test constructor argument, to be able to report proper
     errors instead of crashing. (side issue in #698551)
+  * Fix exit code for "Unsupported" error.
 
   Code cleanup:
   * Simplify logging by dropping the explicit functions for writing to stderr
