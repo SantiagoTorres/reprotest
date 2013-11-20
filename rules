@@ -22,32 +22,18 @@
 # See the file CREDITS for a full list of credits information (often
 # installed as /usr/share/doc/autopkgtest/CREDITS).
 
-SHELL=/bin/bash
+%:
+	dh "$@"
 
-p=autopkgtest
-x=xenlvm
-topdir=`pwd`
-
-build build-indep:
-	$(MAKE)
-	tests/pyflakes
-	tests/pep8
-
-build-arch:
-binary-arch:
-
-binary binary-indep: checkdir
-	dh_testroot
-	dh_clean
-	dh_installdirs usr
-
-	$(MAKE) install-here prefix=debian/$p/usr
+override_dh_auto_install:
+	$(MAKE) install-here DESTDIR=$(CURDIR)/debian/autopkgtest prefix=/usr
 	$(MAKE) -C xen install \
-		pkgname=$p-$x \
-		DESTDIR=$(topdir)/debian/$p-$x \
+		DESTDIR=$(CURDIR)/debian/autopkgtest-xenlvm \
 		prefix=/usr \
+		pkgname=autopkgtest-xenlvm \
 		cfg_suffix=''
-	cd debian/$p-$x/etc/userv/services.d && \
+
+	cd debian/autopkgtest-xenlvm/etc/userv/services.d && \
 		mv -f adt-xenlvm-testbed:dist adt-xenlvm-testbed
 
 	set -e;								\
@@ -65,23 +51,13 @@ binary binary-indep: checkdir
 	    fi;								\
 	  done
 
-	dh_installinit -p $p-$x --onlyscripts --name=adt$x -- defaults 19
-	dh_installchangelogs
-	dh_installdocs
-	dh_compress
-	dh_link
-	dh_md5sums
-	dh_gencontrol
-	dh_fixperms
-	dh_installdeb
-	dh_builddeb
+override_dh_installinit:
+	dh_installinit -p autopkgtest-xenlvm --onlyscripts --name=adtxenlvm -- defaults 19
 
-clean: checkdir
-	dh_testroot
-	$(MAKE) clean
-	rm -rf runner/tmp
-	dh_clean
+override_dh_auto_test:
+	tests/pyflakes
+	tests/pep8
 
-checkdir:
-	dh_testdir runner/adt-run
-
+# necessary until we move to compat level 9
+override_dh_pysupport:
+	true

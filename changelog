@@ -24,6 +24,7 @@ autopkgtest (2.5) UNRELEASED; urgency=low
   * Makefile: Support $DESTDIR, like automake.
   * Adjust sharedir* defaults in settings.make to what we actually want, and
     drop their overrides in debian/rules
+  * Move debian/rules to using dh.
 
   Bug fixes:
   * Fix OSError crash if --output-dir/--tmp-dir does not exist.
