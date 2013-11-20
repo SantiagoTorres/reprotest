@@ -1326,8 +1326,12 @@ def read_control(act, control_path):
                 f = fclass(stz, fname, base, tnames, vl)
                 f.parse()
             for tname in tnames:
-                t = Test(tname, base, act)
-                stz[' tests'].append(t)
+                try:
+                    t = Test(tname, base, act)
+                    stz[' tests'].append(t)
+                except Unsupported, u:
+                    u.report(tname)
+                    continue
         except Unsupported, u:
             for tname in tnames:
                 u.report(tname)
