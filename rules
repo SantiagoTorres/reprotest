@@ -44,10 +44,9 @@ binary binary-indep: checkdir
 	$(MAKE) install-here prefix=debian/$p/usr
 	$(MAKE) -C xen install \
 		pkgname=$p-$x \
-		prefix=$(topdir)/debian/$p-$x/usr \
-		sharedir_lnfrom=/usr/share/$p/$x \
-		sharedir=$(topdir)/debian/$p-$x/usr/share/$p/$x \
-		etcdir=$(topdir)/debian/$p-$x/etc cfg_suffix=''
+		DESTDIR=$(topdir)/debian/$p-$x \
+		prefix=/usr \
+		cfg_suffix=''
 	cd debian/$p-$x/etc/userv/services.d && \
 		mv -f adt-xenlvm-testbed:dist adt-xenlvm-testbed
 
