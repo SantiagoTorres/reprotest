@@ -46,6 +46,7 @@ autopkgtest (2.5) UNRELEASED; urgency=low
   * schroot and LXC runner test cases for installing built binaries.
   * --output-dir in schroot runner with complete package build.
   * Recommends do not get installed by default.
+  * Test case with '/' in the name.
 
  -- Martin Pitt <mpitt@debian.org>  Mon, 28 Oct 2013 16:40:15 +0100
 
