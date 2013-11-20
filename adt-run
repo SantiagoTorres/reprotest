@@ -198,7 +198,7 @@ class Unsupported(Exception):
 
     def report(self, tname):
         global errorcode
-        errorcode != 2
+        errorcode |= 2
         report(tname, 'SKIP %s' % self.m)
 
 #---------- convenience function
