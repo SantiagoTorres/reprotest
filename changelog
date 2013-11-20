@@ -21,6 +21,7 @@ autopkgtest (2.5) UNRELEASED; urgency=low
   * Update copyright years.
   * Bump Standards-Version to 3.9.5. No changes necessary.
   * CREDITS: Add myself.
+  * Makefile: Support $DESTDIR, like automake.
 
   Bug fixes:
   * Fix OSError crash if --output-dir/--tmp-dir does not exist.
