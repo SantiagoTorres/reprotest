@@ -28,6 +28,7 @@ autopkgtest (2.5) UNRELEASED; urgency=low
   * Fix exit code for "Unsupported" error.
   * When encountering an unsupported test, report only this test as skipped,
     not all the others in the same "Tests:" stanza.
+  * README.package-tests: Test names must not contain '/'. (Closes: #698551)
 
   Code cleanup:
   * Simplify logging by dropping the explicit functions for writing to stderr
