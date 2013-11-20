@@ -490,10 +490,7 @@ def setup_trace():
 def finalise_options():
     global opts, testbed, build_essential
 
-    if opts.user is None and 'root-on-testbed' not in testbed.caps:
-        opts.user = ''
-
-    if opts.user is None:
+    if opts.user is None and 'root-on-testbed' in testbed.caps:
         su = 'suggested-normal-user='
         ul = [
             e[len(su):]
@@ -1129,6 +1126,8 @@ class Test:
         script += 'rm -rf -- "$@"; mkdir -m 755 -- "$@"\n'
 
         if 'needs-root' not in self.restriction_names and opts.user is not None:
+            if 'root-on-testbed' not in testbed.caps:
+                bomb('cannot change to user %s without root-on-testbed' % opts.user)
             test_argv = ['su', opts.user, '-c', tb_test_path]
             if opts.user:
                 script += 'chown %s "$@"\n' % opts.user
