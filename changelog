@@ -31,6 +31,8 @@ autopkgtest (2.5) UNRELEASED; urgency=low
     not all the others in the same "Tests:" stanza.
   * README.package-tests: Test names must not contain '/'. (Closes: #698551)
   * Create manpage for adt-virt-schroot. (first half of #695974)
+  * Fix "su: must be run from a terminal" failure when running as user and
+    testbed doesn't provide root-on-testbed. (Closes: #648148)
 
   Code cleanup:
   * Simplify logging by dropping the explicit functions for writing to stderr
