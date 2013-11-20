@@ -29,6 +29,7 @@ autopkgtest (2.5) UNRELEASED; urgency=low
   * When encountering an unsupported test, report only this test as skipped,
     not all the others in the same "Tests:" stanza.
   * README.package-tests: Test names must not contain '/'. (Closes: #698551)
+  * Create manpage for adt-virt-schroot. (first half of #695974)
 
   Code cleanup:
   * Simplify logging by dropping the explicit functions for writing to stderr
