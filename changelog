@@ -10,6 +10,9 @@ autopkgtest (2.5) UNRELEASED; urgency=low
     very limited utility, and it was not even documented in the manpage.
   * Drop --paths-testbed (and thus also --paths-host) options. There is no
     use case for them.
+  * Add short options for common command line options: -B for
+    --no-built-binaries, -o for --output-dir, -l for --log-file,
+    -u for --user.
   * Clean up uninteresting files from --output-dir directory.
   * Tests which want to create additional artifacts can now put them into the
     $ADT_ARTIFACTS directory. When using the --output-dir option, they will be
