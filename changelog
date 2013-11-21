@@ -25,6 +25,8 @@ autopkgtest (2.5) UNRELEASED; urgency=low
   * Adjust sharedir* defaults in settings.make to what we actually want, and
     drop their overrides in debian/rules
   * Move debian/rules to using dh.
+  * Add ./run-from-checkout script to run adt-run from the git checkout or
+    source package. Change tests/adt-run to use it.
 
   Bug fixes:
   * Fix OSError crash if --output-dir/--tmp-dir does not exist.
