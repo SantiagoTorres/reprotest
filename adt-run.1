@@ -75,7 +75,7 @@ Specifies that only binaries whose package names match one of the
 specified patterns should be used; others will be ignored.  This
 option applies to subsequent \fB--source\fR and \fB--unbuilt-tree\fR arguments.
 .TP
-.BR --no-built-binaries
+.BR -B " | " --no-built-binaries
 Specifies that all built binaries should be ignored completely;
 equivalent to
 .BR --built-binaries-filter=_
@@ -101,7 +101,7 @@ package under test), or unconditionally installed, when tests are run
 (as a result of \fB--source\fR, \fB--built-tree\fR or \fB--unbuilt-tree\fR).
 .SH OTHER OPTIONS
 .TP
-.BI --user= user
+.BI -u " user" " | --user=" user
 Run builds and tests as \fIuser\fR on the testbed.  This needs root on
 the testbed; if root on the testbed is not available then builds and
 tests run as whatever user is provided.
@@ -115,13 +115,13 @@ The default is not to use anything, except that if
 \fB--user\fR is supplied or root on the testbed is not available the
 default is \fBfakeroot\fR.
 .TP
-.BI --output-dir= dir
+.BI -o " dir" " | --output-dir=" dir
 Specifies that test artifacts (stderr and stdout from the tests, the log file,
 built binary packages etc.) should be placed in the given directory.
 \fIdir\fR will be created if necessary, and \fIemptied of all of its contents\fR
 before \fBadt-run\fR starts.
 .TP
-.BI --log-file= logfile
+.BI -l " logfile" " | --log-file=" logfile
 Specifies that the trace log should be written to \fIlogfile\fR
 instead of to \fIoutput-dir\fR.
 .TP

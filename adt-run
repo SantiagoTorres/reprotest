@@ -305,31 +305,31 @@ def parse_args():
             arghandling[v] = value
         parser.largs.append(arghandling.copy())
 
-    def pa_setah(long, affected, effect, metavar=None, **kwargs):
+    def pa_setah(short, long, affected, effect, metavar=None, **kwargs):
         type = metavar
         if type is not None:
             type = 'string'
-        parser.add_option(long, action='callback', callback=cb_setah,
+        parser.add_option(long, short, action='callback', callback=cb_setah,
                           callback_args=(affected, effect), **kwargs)
 
     #---- source processing settings:
 
-    pa_setah('--sources-tests', ['dsc_tests'], True,
+    pa_setah(None, '--sources-tests', ['dsc_tests'], True,
              help='run tests from builds of subsequent sources')
-    pa_setah('--sources-no-tests', ['dsc_tests'], False,
+    pa_setah(None, '--sources-no-tests', ['dsc_tests'], False,
              help='do not run tests from builds of subsequent sources')
 
-    pa_setah('--built-binaries-filter', ['dsc_filter'], None,
+    pa_setah(None, '--built-binaries-filter', ['dsc_filter'], None,
              type='string', metavar='PATTERN-LIST',
              help='from subsequent sources, use binaries matching'
              ' PATTERN-LIST (comma-separated glob patterns)'
              ' according to most recent --binaries-* settings')
-    pa_setah('--no-built-binaries', ['dsc_filter'], '_',
+    pa_setah('-B', '--no-built-binaries', ['dsc_filter'], '_',
              help='from subsequent sources, do not use any binaries')
     #---- binary package processing settings:
 
     def pa_setahbins(long, toset, how):
-        pa_setah(long, toset, ['ignore', 'auto', 'install'],
+        pa_setah(None, long, toset, ['ignore', 'auto', 'install'],
                  type='string', metavar='IGNORE|AUTO|INSTALL', default='auto',
                  help=how + ' ignore binaries, install them as needed'
                  ' for dependencies, or unconditionally install'
@@ -350,14 +350,14 @@ def parse_args():
     parser.add_option('--set-lang', metavar='LANGVAL',
                       help='set LANG on testbed to LANGVAL', default='C')
 
-    parser.add_option('--output-dir',
+    parser.add_option('-o', '--output-dir',
                       help='write test artifacts (stdout/err, log, debs, etc.) '
                       'to OUTPUT-DIR, emptying it beforehand')
     # backwards compatible alias
     parser.add_option('--tmp-dir', dest='output_dir',
                       help='alias for --output-dir for backwards compatibility')
 
-    parser.add_option('--log-file', dest='logfile',
+    parser.add_option('-l', '--log-file', dest='logfile',
                       help='write the log LOGFILE, emptying it beforehand,'
                       ' instead of using OUTPUT-DIR/log')
     parser.add_option('--summary-file', dest='summary',
@@ -370,7 +370,7 @@ def parse_args():
                       default=1.0,
                       help='multiply all default timeouts by FACTOR')
 
-    parser.add_option('--user', help='run tests as USER (needs root on testbed)')
+    parser.add_option('-u', '--user', help='run tests as USER (needs root on testbed)')
     parser.add_option('--gain-root', type='string', dest='gainroot',
                       help='prefix debian/rules binary with GAINROOT')
     parser.add_option('-q', '--quiet', action='store_true', dest='quiet', default=False)
