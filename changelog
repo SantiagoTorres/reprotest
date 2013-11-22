@@ -44,6 +44,8 @@ autopkgtest (2.5) UNRELEASED; urgency=low
   * Create manpage for adt-virt-schroot. (first half of #695974)
   * Fix "su: must be run from a terminal" failure when running as user and
     testbed doesn't provide root-on-testbed. (Closes: #648148)
+  * Add bandaid to avoid mixing order of stdout and stderr in the log file
+    when reporting results.
 
   Code cleanup:
   * Simplify logging by dropping the explicit functions for writing to stderr
