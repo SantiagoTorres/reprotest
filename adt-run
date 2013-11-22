@@ -1227,6 +1227,11 @@ class Test:
         se.copyup()
         se_size = os.path.getsize(se.host)
 
+        # avoid mixing up stdout (from report) and stderr (from _debug) in output
+        sys.stdout.flush()
+        sys.stderr.flush()
+        time.sleep(0.1)
+
         self._debug(' - - - - - - - - - - results - - - - - - - - - -')
 
         if rc != 0:
@@ -1237,6 +1242,11 @@ class Test:
             self.reportfail('status: %d, stderr: %s' % (rc, stderr_top))
         else:
             self.report('PASS')
+
+        # avoid mixing up stdout (from report) and stderr (from _debug) in output
+        sys.stdout.flush()
+        sys.stderr.flush()
+        time.sleep(0.1)
 
         if os.path.getsize(so.host) != 0 and not show_realtime:
             self._debug(' - - - - - - - - - - stdout - - - - - - - - - -')
