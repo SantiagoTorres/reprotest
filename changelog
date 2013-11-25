@@ -1,4 +1,4 @@
-autopkgtest (2.5) UNRELEASED; urgency=low
+autopkgtest (2.5) unstable; urgency=low
 
   Behaviour changes:
   * Drop --output-dir option. It has never really been useful as it only works
@@ -68,7 +68,7 @@ autopkgtest (2.5) UNRELEASED; urgency=low
   * --user option for schroot and null runners.
   * breaks-testbed restriction for all runners.
 
- -- Martin Pitt <mpitt@debian.org>  Mon, 28 Oct 2013 16:40:15 +0100
+ -- Martin Pitt <mpitt@debian.org>  Mon, 25 Nov 2013 07:31:22 +0100
 
 autopkgtest (2.4) unstable; urgency=low
 
