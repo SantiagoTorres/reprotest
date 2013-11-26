@@ -1,6 +1,7 @@
 autopkgtest (2.5.1) UNRELEASED; urgency=low
 
   * adt-virt-lxc: Drop some dead code.
+  * Fix ownership of test tree with --user option.
 
  -- Martin Pitt <mpitt@debian.org>  Mon, 25 Nov 2013 15:50:21 +0100
 
