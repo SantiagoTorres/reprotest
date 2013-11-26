@@ -1108,6 +1108,10 @@ class Test:
 
         # ensure our tests are in the testbed
         tree.copydown()
+        if opts.user:
+            rc = testbed.execute('testchown-' + self.what, ['chown', '-R', opts.user, '--', tree.tb])
+            if rc:
+                bomb('failed to chown %s' % tree.tb)
 
         # stdout/err files in testbed
         so = TempTestbedPath(testbed, self.what + '-stdout', autoclean=False)
