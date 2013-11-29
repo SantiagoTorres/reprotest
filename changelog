@@ -1,6 +1,8 @@
 autopkgtest (2.5.2) UNRELEASED; urgency=low
 
   * virt-subproc/adt-virt-lxc: Fix PEP-8 error.
+  * Explicitly kill the logging tee processes, for backwards compatibility
+    with Python 2.6.
 
  -- Martin Pitt <mpitt@debian.org>  Fri, 29 Nov 2013 13:39:07 +0100
 
