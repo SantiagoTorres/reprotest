@@ -1,3 +1,9 @@
+autopkgtest (2.5.2) UNRELEASED; urgency=low
+
+  * virt-subproc/adt-virt-lxc: Fix PEP-8 error.
+
+ -- Martin Pitt <mpitt@debian.org>  Fri, 29 Nov 2013 13:39:07 +0100
+
 autopkgtest (2.5.1) unstable; urgency=low
 
   * adt-virt-lxc: Drop some dead code.
