@@ -36,7 +36,7 @@ import time
 LXC_WAIT_RETRY_TIME = 0.2
 
 try:
-    our_base = os.environ['AUTOPKGTEST_BASE']+'/lib'
+    our_base = os.environ['AUTOPKGTEST_BASE'] + '/lib'
 except KeyError:
     our_base = '/usr/share/autopkgtest/python'
 sys.path.insert(1, our_base)
