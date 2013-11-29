@@ -5,6 +5,8 @@ autopkgtest (2.5.2) UNRELEASED; urgency=low
     with Python 2.6.
   * Avoid assertNotRegex() in test suite as it isn't yet available in Python
     3.1.
+  * Skip dependency version check instead of crashing if python-debian does
+    not provide NativeVersion() (for wheezy/lucid).
 
  -- Martin Pitt <mpitt@debian.org>  Fri, 29 Nov 2013 13:39:07 +0100
 
