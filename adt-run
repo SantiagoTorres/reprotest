@@ -480,6 +480,10 @@ def setup_trace():
         subprocess.Popen(['cat', fifo_log], stdout=open(opts.logfile, 'wb'))
         os.dup2(out_tee.stdin.fileno(), sys.stdout.fileno())
         os.dup2(err_tee.stdin.fileno(), sys.stderr.fileno())
+        atexit.register(out_tee.wait)
+        atexit.register(out_tee.terminate)
+        atexit.register(err_tee.wait)
+        atexit.register(err_tee.terminate)
 
     if opts.summary is not None:
         summary_stream = open(opts.summary, 'w', 0)
