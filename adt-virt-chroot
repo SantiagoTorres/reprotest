@@ -68,7 +68,7 @@ def parse_args():
     elif down[0] == 'dchroot':
         VirtSubproc.downkind = 'shstring'
     else:
-        print >>sys.stderr, 'down[0]=%s' % str(down[0])
+        print >> sys.stderr, 'down[0]=%s' % str(down[0])
         assert(False)
 
     if opts.gain_root:

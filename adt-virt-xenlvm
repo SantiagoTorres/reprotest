@@ -58,8 +58,8 @@ def check_pause(kind):
             break
     if not matched:
         return
-    print >>sys.stderr, ('----- adt-virt-xenlvm pause (event=%s),'
-                         ' stopping -----' % event)
+    print >> sys.stderr, ('----- adt-virt-xenlvm pause (event=%s),'
+                          ' stopping -----' % event)
     os.kill(0, signal.SIGSTOP)
 
 
