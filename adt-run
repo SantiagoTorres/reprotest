@@ -1032,6 +1032,9 @@ class Field_Depends(FieldBase):
                     except ValueError:
                         badpkg("Test Depends field contains dependency"
                                " `%s' with an invalid version" % d)
+                    except AttributeError:
+                        # too old python-debian, skip the check
+                        pass
         self.base['depends'] = dl
 
 
