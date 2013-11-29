@@ -106,7 +106,7 @@ def log_msg(message, prefix=''):
     for line in message.rstrip('\n').splitlines():
         s = prefix + line
         if not opts.quiet:
-            print >>sys.stderr, s
+            print >> sys.stderr, s
 
 
 def log_file(path, minlevel=0):
