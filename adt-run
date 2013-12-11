@@ -156,11 +156,13 @@ def script_out(argv, what=None, script=None, **kwargs):
 
 def psummary(m):
     if summary_stream is not None:
-        print >>summary_stream, m
+        summary_stream.write(m.encode('UTF-8'))
+        summary_stream.write('\n')
 
 
 def preport(m):
-    print m
+    sys.stdout.write(m.encode('UTF-8'))
+    sys.stdout.write('\n')
     sys.stdout.flush()
     psummary(m)
 
