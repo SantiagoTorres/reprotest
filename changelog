@@ -6,6 +6,7 @@ autopkgtest (2.5.3) UNRELEASED; urgency=low
     and/or Jenkins, not from cron.
   * Move adt-testreport-* scripts and manpages into autopkgtest-xenlvm
     package, as they require the xen runner.
+  * tests/run-parallel: Immediately stop on pep8/pyflakes errors.
 
  -- Martin Pitt <mpitt@debian.org>  Wed, 11 Dec 2013 07:08:03 +0100
 
