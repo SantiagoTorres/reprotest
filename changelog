@@ -9,6 +9,8 @@ autopkgtest (2.5.3) UNRELEASED; urgency=low
   * tests/run-parallel: Immediately stop on pep8/pyflakes errors.
   * Adjust SchrootRunner.test_tree_built_binaries test to also work with
     current apt.
+  * Always write UTF-8 to stdout and summary stream, to avoid
+    UnicodeEncodeError crash when running in a C locale. (LP: #1259529)
 
  -- Martin Pitt <mpitt@debian.org>  Wed, 11 Dec 2013 07:08:03 +0100
 
