@@ -1,4 +1,4 @@
-autopkgtest (2.5.3) UNRELEASED; urgency=low
+autopkgtest (2.5.3) unstable; urgency=low
 
   * Drop hosts/ and {onepackage,ubuntu}-config example files; these scripts
     haven't been used nor maintained in years, and we won't need them anytime
@@ -15,7 +15,7 @@ autopkgtest (2.5.3) UNRELEASED; urgency=low
     get along with non-ASCII strings when running under a non-UTF-8 locale (as
     in sbuild).
 
- -- Martin Pitt <mpitt@debian.org>  Wed, 11 Dec 2013 07:08:03 +0100
+ -- Martin Pitt <mpitt@debian.org>  Wed, 11 Dec 2013 08:45:07 +0100
 
 autopkgtest (2.5.2) unstable; urgency=low
 
