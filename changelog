@@ -7,6 +7,8 @@ autopkgtest (2.5.3) UNRELEASED; urgency=low
   * Move adt-testreport-* scripts and manpages into autopkgtest-xenlvm
     package, as they require the xen runner.
   * tests/run-parallel: Immediately stop on pep8/pyflakes errors.
+  * Adjust SchrootRunner.test_tree_built_binaries test to also work with
+    current apt.
 
  -- Martin Pitt <mpitt@debian.org>  Wed, 11 Dec 2013 07:08:03 +0100
 
