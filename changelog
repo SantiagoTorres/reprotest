@@ -1,8 +1,9 @@
 autopkgtest (2.5.3) UNRELEASED; urgency=low
 
-  * Drop hosts/; these scripts haven't been used nor maintained in years, and
-    we won't need them anytime soon. Ubuntu does, and Debian plans to drive
-    autopkgtest from britney and/or Jenkins, not from cron.
+  * Drop hosts/ and {onepackage,ubuntu}-config example files; these scripts
+    haven't been used nor maintained in years, and we won't need them anytime
+    soon. Ubuntu does, and Debian plans to drive autopkgtest from britney
+    and/or Jenkins, not from cron.
 
  -- Martin Pitt <mpitt@debian.org>  Wed, 11 Dec 2013 07:08:03 +0100
 
