@@ -11,6 +11,9 @@ autopkgtest (2.5.3) UNRELEASED; urgency=low
     current apt.
   * Always write UTF-8 to stdout and summary stream, to avoid
     UnicodeEncodeError crash when running in a C locale. (LP: #1259529)
+  * tests/pyflakes: Always use pyflakes, not pyflakes3, as the latter doesn't
+    get along with non-ASCII strings when running under a non-UTF-8 locale (as
+    in sbuild).
 
  -- Martin Pitt <mpitt@debian.org>  Wed, 11 Dec 2013 07:08:03 +0100
 
