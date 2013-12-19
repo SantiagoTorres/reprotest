@@ -1529,7 +1529,10 @@ Pin-Priority: 1002
             if oe.errno != errno.EXDEV:
                 raise oe
             shutil.copy(path, dest)
-        atexit.register(lambda f: os.path.exists(f) and os.unlink(f), path)
+        # clean up locally built debs (what=ubtreeN) to keep a clean
+        # --output-dir, but don't clean up --binary arguments
+        if opts.output_dir and path.startswith(opts.output_dir):
+            atexit.register(lambda f: os.path.exists(f) and os.unlink(f), path)
 
         if act.ah['deb_' + forwhat] == 'install':
             self.install.append(pkg)
