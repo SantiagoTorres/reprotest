@@ -1,9 +1,9 @@
-autopkgtest (2.5.4) UNRELEASED; urgency=medium
+autopkgtest (2.5.4) unstable; urgency=medium
 
   * Only clean up binary if we built them ourselves. adt-run previously
     removed debs specified with --binary.
 
- -- Martin Pitt <mpitt@debian.org>  Thu, 19 Dec 2013 15:27:40 +0100
+ -- Martin Pitt <mpitt@debian.org>  Thu, 19 Dec 2013 16:18:03 +0100
 
 autopkgtest (2.5.3) unstable; urgency=low
 
