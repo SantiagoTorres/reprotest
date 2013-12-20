@@ -100,6 +100,10 @@ def parse_args():
         VirtSubproc.debug('have "root-on-testbed" capability')
         capabilities.append('root-on-testbed')
 
+    if os.geteuid() != 0:
+        username = pwd.getpwuid(os.geteuid()).pw_name
+        capabilities.append('suggested-normal-user=' + username)
+
 
 def hook_open():
     global schroot, sessid
