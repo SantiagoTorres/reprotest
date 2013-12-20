@@ -6,6 +6,9 @@ autopkgtest (2.5.5) UNRELEASED; urgency=medium
   * adt-virt-schroot: Add suggested-normal-user capability to the calling user
     (unless that's root), so that tests are run as user by default.
     (Closes: #728304)
+  * Add support for virtual "@builddeps@" test dependency, which will be
+    replaced with the package's B-D and B-D-I. Document in
+    doc/README.package-tests. (Closes: #720458)
 
  -- Martin Pitt <mpitt@debian.org>  Fri, 20 Dec 2013 13:15:14 +0100
 
