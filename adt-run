@@ -1024,6 +1024,8 @@ class Field_Depends(FieldBase):
                 d = d.strip()
                 if d == '@':
                     continue  # Expanded to binary packages
+                if d == '@builddeps@':
+                    continue  # Expanded to build dependencies
                 m = dep_re.match(d)
                 if not m:
                     badpkg("Test Depends field contains an invalid "
@@ -1102,14 +1104,19 @@ class Test:
         dn = []
         for d in self.depends:
             self._debug(' processing dependency ' + d)
-            if not '@' in d:
-                self._debug('  literal dependency ' + d)
-                dn.append(d)
-            else:
+            if d == '@':
+                # expand to all binaries from that source
                 for pkg in packages_from_source(self.act, tree):
                     dp = d.replace('@', pkg)
                     self._debug('  synthesised dependency ' + dp)
                     dn.append(dp)
+            elif d == '@builddeps@':
+                for dp in build_deps_from_source(self.act, tree):
+                    self._debug('  synthesised dependency ' + dp)
+                    dn.append(dp)
+            else:
+                self._debug('  literal dependency ' + d)
+                dn.append(d)
         testbed.prepare(dn)
 
     def run(self, tree):
@@ -1430,6 +1437,22 @@ def packages_from_source(act, tree):
                 pass
 
     return packages
+
+
+def build_deps_from_source(act, tree):
+    deps = []
+    for st in read_stanzas(os.path.join(tree.host, 'debian/control')):
+        if 'Build-depends' in st:
+            for d in st['Build-depends'][-1][1].split(','):
+                dp = d.strip()
+                if dp:
+                    deps.append(dp)
+        if 'Build-depends-indep' in st:
+            for d in st['Build-depends-indep'][-1][1].split(','):
+                dp = d.strip()
+                if dp:
+                    deps.append(dp)
+    return deps
 
 
 class Binaries:
