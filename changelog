@@ -1,3 +1,11 @@
+autopkgtest (2.5.5) UNRELEASED; urgency=medium
+
+  * Test that the schroot runner installs packages with --user, and that it
+    runs the tests as root with --user if the test has a "needs-root"
+    restriction. (Related to #728304)
+
+ -- Martin Pitt <mpitt@debian.org>  Fri, 20 Dec 2013 13:15:14 +0100
+
 autopkgtest (2.5.4) unstable; urgency=medium
 
   * Only clean up binary if we built them ourselves. adt-run previously
