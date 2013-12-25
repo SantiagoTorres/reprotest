@@ -1,4 +1,4 @@
-autopkgtest (2.5.5) UNRELEASED; urgency=medium
+autopkgtest (2.5.5) unstable; urgency=medium
 
   * Test that the schroot runner installs packages with --user, and that it
     runs the tests as root with --user if the test has a "needs-root"
@@ -10,7 +10,7 @@ autopkgtest (2.5.5) UNRELEASED; urgency=medium
     replaced with the package's B-D and B-D-I. Document in
     doc/README.package-tests. (Closes: #720458)
 
- -- Martin Pitt <mpitt@debian.org>  Fri, 20 Dec 2013 13:15:14 +0100
+ -- Martin Pitt <mpitt@debian.org>  Wed, 25 Dec 2013 21:12:38 +0100
 
 autopkgtest (2.5.4) unstable; urgency=medium
 
