@@ -1,9 +1,9 @@
-autopkgtest (2.5.6) UNRELEASED; urgency=medium
+autopkgtest (2.5.6) unstable; urgency=medium
 
   * Adjust "su" calls to explicitly specify /bin/sh as shell, as recent
     base-passwd disables them now for system users. (Closes: #734740)
 
- -- Martin Pitt <mpitt@debian.org>  Thu, 09 Jan 2014 15:09:04 +0100
+ -- Martin Pitt <mpitt@debian.org>  Thu, 09 Jan 2014 15:21:44 +0100
 
 autopkgtest (2.5.5) unstable; urgency=medium
 
