@@ -1,6 +1,6 @@
 autopkgtest (2.6) UNRELEASED; urgency=medium
 
-  * Add some tests for correct --timeout handling.
+  New features:
   * Add --apt-source option as an alternative for --source, implied if
     argument is a valid package name. It calls "apt-get source" in the testbed
     instead of using a .dsc from the host, which for the common case of
@@ -8,8 +8,15 @@ autopkgtest (2.6) UNRELEASED; urgency=medium
     the source and then copying it into the testbed. This simplifies the
     command line for running tests for a package in the archive to
     "adt-run mypkgname --- adt-virt-[...]".
+  * Add --setup-commands option to run things like "apt-get update" or adding
+    apt sources after opening the testbed.
+
+  Bug fixes:
   * adt-virt-lxc: Stop assuming that containers live in /var/lib/lxc/; ask
     lxc-config about the root path instead.
+
+  New test cases:
+  * --timeout handling.
 
  -- Martin Pitt <mpitt@debian.org>  Mon, 13 Jan 2014 08:34:05 +0100
 
