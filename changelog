@@ -1,6 +1,13 @@
-autopkgtest (2.5.7) UNRELEASED; urgency=medium
+autopkgtest (2.6) UNRELEASED; urgency=medium
 
   * Add some tests for correct --timeout handling.
+  * Add --apt-source option as an alternative for --source, implied if
+    argument is a valid package name. It calls "apt-get source" in the testbed
+    instead of using a .dsc from the host, which for the common case of
+    testing packages in the acual archive avoids having to manually download
+    the source and then copying it into the testbed. This simplifies the
+    command line for running tests for a package in the archive to
+    "adt-run mypkgname --- adt-virt-[...]".
 
  -- Martin Pitt <mpitt@debian.org>  Mon, 13 Jan 2014 08:34:05 +0100
 
