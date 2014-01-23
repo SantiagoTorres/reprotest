@@ -281,6 +281,9 @@ def parse_args():
     pa_action('binary', 'DEB', '@.deb',
               help='use binary package DEB according to most recent --binaries-* settings')
 
+    pa_action('apt-source', 'SRCPKG', '@.apt',
+              help='download with apt-get source in testbed and use its tests')
+
     def cb_actnoarg(op, optstr, value, parser, largsentry):
         parser.largs.append(largsentry)
 
@@ -439,17 +442,25 @@ def parse_args():
             kind = 'deb'
         elif kindpath.endswith('.dsc'):
             kind = 'dsc'
+        elif kindpath.endswith('.apt'):
+            kind = 'apt'
         elif kindpath.endswith('//'):
             kind = 'ubtree'
         elif kindpath.endswith('/'):
             kind = 'tree'
+        elif re.match('[0-9a-z][0-9a-z.+-]+', kindpath):
+            kind = 'apt'
         else:
             parser.error("do not know how to handle filename `%s';"
-                         " specify --source --binary or --build-tree" %
+                         " specify --source, --binary, --build-tree, or --apt-source" %
                          kindpath)
 
         what = '%s%s' % (kind, ix)
         ix += 1
+
+        # "no built binaries" for apt sources
+        if kind == 'apt':
+            arghandling['dsc_filter'] = '_'
 
         opts.actions.append(Action(kind, pathstr, arghandling, what))
 
@@ -1738,7 +1749,7 @@ def build_source(act):
             f_dsc.write('Binary: none-so-this-is-not-a-package-name\n')
         atexit.register(lambda f: os.path.exists(f) and os.unlink(f), dsc)
 
-    if act.kind == 'dsc':
+    if act.kind in ['dsc', 'apt']:
         testbed.prepare2([])
         testbed.satisfy_dependencies_string('dpkg-dev',
                                             'install dpkg-dev')
@@ -1770,6 +1781,11 @@ def build_source(act):
     if act.kind == 'dsc':
         spec = dsc_tb
         create_command = 'dpkg-source -x $spec\n'
+        initcwd = work
+
+    if act.kind == 'apt':
+        spec = act.arg
+        create_command = 'apt-get source $spec\n'
         initcwd = work
 
     script = [
@@ -1839,8 +1855,26 @@ def build_source(act):
 
     except NeedBuildException:
 
-        if act.kind != 'dsc':
+        if act.kind not in ['dsc', 'apt']:
             testbed.prepare2([])
+
+        if act.kind == 'apt':
+            # we need to get the downloaded debian/control from the testbed, so
+            # that we can avoid calling "apt-get build-dep" and thus
+            # introducing a second mechanism for installing build deps
+            pkg_control = TestbedPath(testbed,
+                                      os.path.join(tmp, what + '-control'),
+                                      os.path.join(result_pwd, 'debian/control'), False)
+            pkg_control.copyup()
+            dsc = os.path.join(tmp, what + '-fakedsc')
+            with open(dsc, 'w') as f_dsc:
+                with open(pkg_control.host) as f_control:
+                    for l in f_control:
+                        if l == '\n':
+                            break
+                        f_dsc.write(l)
+                f_dsc.write('Binary: none-so-this-is-not-a-package-name\n')
+            atexit.register(lambda f: os.path.exists(f) and os.unlink(f), dsc)
 
         testbed.satisfy_dependencies_string(', '.join(build_essential),
                                             'install build-essential')
@@ -1951,7 +1985,7 @@ def process_actions():
             testbed.blame('deb:' + act.pkg)
             binaries.register(act, act.pkg, act.arg,
                               'forbuilds', testbed.blamed)
-        if act.kind == 'dsc' or act.kind == 'ubtree':
+        if act.kind in ['dsc', 'ubtree', 'apt']:
             build_source(act)
         if act.kind == 'tree':
             act.binaries = []
@@ -1974,7 +2008,7 @@ def process_actions():
             for (pkg, path) in act.binaries:
                 binaries.register(act, pkg, path, 'fortests',
                                   act.blamed)
-        if act.kind == 'dsc':
+        if act.kind in ['dsc', 'apt']:
             if act.ah['dsc_tests']:
                 debug_a3('read control ...')
                 stanzas = read_control(

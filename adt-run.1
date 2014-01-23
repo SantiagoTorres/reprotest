@@ -46,9 +46,19 @@ binaries it produces.
 .BR --unbuilt-tree " " \fIdirectory\fR
 Specifies that tests from the unbuilt source tree
 .IR directory
-should be run.  This is very similar to specifing \fB--source\fR
+should be run.  This is very similar to specifying \fB\-\-source\fR
 except that a directory tree (which should be pristine) is supplied,
 instead of a source package.
+.TP
+.BR --apt-source " " \fIsrcpkgname\fR
+Downloads \fIsrcpkgname\fR with \fBapt\-get source\fR in the testbed and run
+its tests. This is similar to specifying
+.B \-\-source
+but avoids copying the source from the host to the testbed. Resulting binaries
+will
+.B not
+be used to satisfy dependencies, as usually in this mode you want to test
+binaries from a real archive.
 .TP
 .BR --binary " " \fIdeb\fR
 Specifies that \fIdeb\fR should be used.  By default it will be used
@@ -58,7 +68,7 @@ necessarily installed.  The ordering is significant, as for
 .TP
 .I filename
 Bare filename arguments are processed as if
-.BR --built-tree ", " --source ", " --unbuilt-tree " or " --binary
+.BR --built-tree ", " --source ", " --unbuilt-tree ", " --apt-source ", or " --binary
 was specified; the nature of the argument is guessed from the form of
 the filename.  In the case of \fB--built-tree\fR, either the
 option must be specified, or the filename must end in a slash; two
