@@ -8,6 +8,8 @@ autopkgtest (2.6) UNRELEASED; urgency=medium
     the source and then copying it into the testbed. This simplifies the
     command line for running tests for a package in the archive to
     "adt-run mypkgname --- adt-virt-[...]".
+  * adt-virt-lxc: Stop assuming that containers live in /var/lib/lxc/; ask
+    lxc-config about the root path instead.
 
  -- Martin Pitt <mpitt@debian.org>  Mon, 13 Jan 2014 08:34:05 +0100
 
