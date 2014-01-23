@@ -14,6 +14,7 @@ autopkgtest (2.6) UNRELEASED; urgency=medium
   Bug fixes:
   * adt-virt-lxc: Stop assuming that containers live in /var/lib/lxc/; ask
     lxc-config about the root path instead.
+  * Only reset the test bed after the build stage if builds actually happened.
 
   New test cases:
   * --timeout handling.
