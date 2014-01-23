@@ -705,7 +705,10 @@ exec ''' + shellquote_cmdl(cmdl) + ' "$@"\n')
         self.satisfy_dependencies_string(', '.join(deps_new), 'install-deps')
 
     def needs_reset(self):
-        self._debug('needs_reset, previously=%s' % self.modified, 1)
+        # show what caused a reset
+        (fname, lineno, function, code) = traceback.extract_stack(limit=2)[0]
+        self._debug('needs_reset, previously=%s, requested by %s() line %i' %
+                    (self.modified, function, lineno), 1)
         self.modified = True
 
     def blame(self, m):
@@ -1715,7 +1718,6 @@ def build_source(act):
     act.blame = 'arg:' + act.arg
     testbed.blame(act.blame)
     testbed.prepare1([])
-    testbed.needs_reset()
 
     what = act.what
     act.binaries = []
@@ -1877,6 +1879,7 @@ def build_source(act):
         built = False
 
     except NeedBuildException:
+        testbed.needs_reset()
 
         if act.kind not in ['dsc', 'apt']:
             testbed.prepare2([])
