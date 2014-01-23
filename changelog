@@ -1,4 +1,4 @@
-autopkgtest (2.6) UNRELEASED; urgency=medium
+autopkgtest (2.6) unstable; urgency=medium
 
   New features:
   * Add --apt-source option as an alternative for --source, implied if
@@ -22,7 +22,7 @@ autopkgtest (2.6) UNRELEASED; urgency=medium
   New test cases:
   * --timeout handling.
 
- -- Martin Pitt <mpitt@debian.org>  Mon, 13 Jan 2014 08:34:05 +0100
+ -- Martin Pitt <mpitt@debian.org>  Thu, 23 Jan 2014 17:19:11 +0100
 
 autopkgtest (2.5.6) unstable; urgency=medium
 
