@@ -165,7 +165,11 @@ def get_available_lxc_container_name():
 def hook_open():
     global lxc_container_name, lxc_path
 
-    lxc_path = subprocess.check_output(['lxc-config', 'lxc.lxcpath']).strip()
+    try:
+        lxc_path = subprocess.check_output(['lxc-config', 'lxc.lxcpath']).strip()
+    except subprocess.CalledProcessError:
+        # older LXC versions call this differently
+        lxc_path = subprocess.check_output(['lxc-config', 'lxcpath']).strip()
     VirtSubproc.debug('lxc containers are in %s' % lxc_path)
 
     lxc_container_name = get_available_lxc_container_name()
