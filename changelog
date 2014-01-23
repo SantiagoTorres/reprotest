@@ -17,6 +17,7 @@ autopkgtest (2.6) UNRELEASED; urgency=medium
   * Only reset the test bed after the build stage if builds actually happened.
   * Reset the test bed after running a test group, to avoid an unnecessary
     setup if there is just one test.
+  * Don't put an empty "binaries" directory into the output directory.
 
   New test cases:
   * --timeout handling.
