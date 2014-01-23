@@ -156,8 +156,7 @@ def get_available_lxc_container_name():
     '''
 
     candidate = generate_random_lxc_container_name()
-    while subprocess.call(['lxc-info', '-n', candidate],
-                          stdout=subprocess.PIPE, stderr=subprocess.PIPE) == 0:
+    while os.path.lexists(os.path.join(lxc_path, candidate)):
         candidate = generate_random_lxc_container_name()
     return candidate
 
@@ -173,6 +172,7 @@ def hook_open():
     VirtSubproc.debug('lxc containers are in %s' % lxc_path)
 
     lxc_container_name = get_available_lxc_container_name()
+    VirtSubproc.debug('using container name %s' % lxc_container_name)
     if ephemeral:
         VirtSubproc.execute('sudo lxc-start-ephemeral -n %s -k -d -o'
                             % lxc_container_name, [lxc_template],
