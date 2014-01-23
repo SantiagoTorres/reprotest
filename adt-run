@@ -2027,7 +2027,6 @@ def process_actions():
     for act in opts.actions:
         debug_a2('test %s %s' % (act.kind, act.what))
 
-        testbed.needs_reset()
         if act.kind == 'deb':
             binaries.register(act, act.pkg, act.arg, 'fortests',
                               ['deb:' + act.pkg])
@@ -2056,6 +2055,7 @@ def process_actions():
                 run_tests(stanzas, tree)
         if act.kind == 'instantiate':
             testbed.prepare([])
+        testbed.needs_reset()
     debug_a1('tests done.')
 
 
