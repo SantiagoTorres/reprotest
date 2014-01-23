@@ -385,6 +385,11 @@ def parse_args():
                       help='use GNUPGHOME rather than ~/.autopkgtest (for'
                       ' signing private apt archive);'
                       ' "fresh" means generate new key each time.')
+    parser.add_option('--setup-commands', metavar='COMMANDS_OR_PATH',
+                      help='Run these commands after opening the testbed '
+                      '(e. g. "apt-get update" or adding apt sources); can be '
+                      'a string with the commands, or a file containing the '
+                      'commands')
 
     #----------
     # actual meat:
@@ -539,6 +544,11 @@ def finalise_options():
     elif opts.gnupghome == 'fresh':
         opts.gnupghome = None
 
+    # if we have --setup-commands and it points to a file, read its contents
+    if opts.setup_commands and os.path.exists(opts.setup_commands):
+        with open(opts.setup_commands) as f:
+            opts.setup_commands = f.read()
+
 #---------- testbed management - the Testbed class
 
 
@@ -598,6 +608,7 @@ class Testbed:
         self.scratch = pl[0]
         self.deps_processed = []
         self._auxverbscript_make()
+        self.run_setup_commands()
 
     def _auxverbscript_make(self):
         pec = self.commandr('print-auxverb-command')
@@ -654,6 +665,18 @@ exec ''' + shellquote_cmdl(cmdl) + ' "$@"\n')
         if self.sp is None:
             return
         self.command('close')
+
+    def run_setup_commands(self):
+        if not opts.setup_commands:
+            return
+
+        debug('@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ test bed setup')
+        rc = testbed.execute('setup-commands',
+                             ['sh', '-ec', opts.setup_commands],
+                             script=opts.setup_commands,
+                             so='/dev/stdout')
+        if rc:
+            bomb('testbed setup commands failed with status %i' % rc)
 
     def prepare1(self, deps_new):
         self._debug('prepare1, modified=%s, deps_processed=%s, deps_new=%s' %
@@ -1971,6 +1994,7 @@ def process_actions():
         debug('@@@@@@@@@@ ' + m)
 
     testbed.open()
+
     binaries = Binaries(testbed)
 
     binaries.reset()

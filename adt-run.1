@@ -200,6 +200,18 @@ to \fBC\fR.
 Suppresses the setting by \fBadt-run\fR of \fBLANG\fR on the testbed.
 This results in tests and builds using the testbed's own normal
 \fBLANG\fR value setting.
+.TP
+.BI \-\-setup\-commands= commands
+Run
+.I commands
+after opening the testbed. This can be used e. g. to enable additional apt
+sources, run
+.B apt-get update
+or similar.
+If
+.I commands
+is an existing file name, the commands are read from that; otherwise it
+is a string with the actual commands that gets run as-is.
 
 .SH OUTPUT FORMAT
 During a normal test run, one line is printed for each test.  This
