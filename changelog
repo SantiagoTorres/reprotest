@@ -1,3 +1,10 @@
+autopkgtest (2.6.1) UNRELEASED; urgency=medium
+
+  * adt-virt-lxc: Call lxc-config through sudo as well like all the other LXC
+    commands. This fixes running adt-run as user with the LXC runner.
+
+ -- Martin Pitt <mpitt@debian.org>  Tue, 28 Jan 2014 11:16:34 +0100
+
 autopkgtest (2.6) unstable; urgency=medium
 
   New features:
