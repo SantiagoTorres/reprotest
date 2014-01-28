@@ -106,10 +106,26 @@ def full_path_split(path):
     else:
         return full_path_split(head) + [tail]
 
+def path_exists_root(path):
+    '''Check as root if a given path exists.
+
+    This is necessary as LXC's default dir /var/lib/lxc/ stopped being
+    world-readable.
+    '''
+    return subprocess.call(['sudo', 'test', '-e', path, '-o', '-L', path]) == 0
+
+def readlink_root(path):
+    '''Read given link as root.
+
+    This is necessary as LXC's default dir /var/lib/lxc/ stopped being
+    world-readable.
+    '''
+    return subprocess.check_output(['sudo', 'readlink', path],
+                                   universal_newlines=True).strip()
 
 def wait_for_lexists(path):
     VirtSubproc.debug('waiting for %s to exist' % repr(path))
-    while not os.path.lexists(path):
+    while not path_exists_root(path):
         time.sleep(LXC_WAIT_RETRY_TIME)
 
 
@@ -117,7 +133,7 @@ def wait_for_lxc_guest_start(lxc_name, template_name):
     check_for_cloud_init(lxc_name, template_name)
     for subdir in ['delta0', 'rootfs']:
         host_guest_root = os.path.join(lxc_path, lxc_name, subdir)
-        if os.path.lexists(host_guest_root):
+        if path_exists_root(host_guest_root):
             break
     else:
         raise RuntimeError(
@@ -127,13 +143,13 @@ def wait_for_lxc_guest_start(lxc_name, template_name):
     host_instance_path = os.path.join(
         host_guest_root, 'var/lib/cloud/instance')
     wait_for_lexists(host_instance_path)
-    guest_instance_link = os.readlink(host_instance_path)
+    guest_instance_link = readlink_root(host_instance_path)
     # Due to overlayfs, we can sometimes read the link when it doesn't
     # officially exist in the guest. Keep waiting in this case. The
     # "(overlay-whiteout)" string is defined by the overlayfs module.
     while guest_instance_link == '(overlay-whiteout)':
         time.sleep(LXC_WAIT_RETRY_TIME)
-        guest_instance_link = os.readlink(host_instance_path)
+        guest_instance_link = readlink_root(host_instance_path)
     host_instance_link = os.path.join(
         host_guest_root, *full_path_split(guest_instance_link)[1:])
     host_boot_finished_path = os.path.join(
@@ -145,7 +161,6 @@ def generate_random_lxc_container_name():
     return ('adt-virt-lxc-' +
             ''.join([random.choice(string.ascii_lowercase) for i in range(6)]))
 
-
 def get_available_lxc_container_name():
     '''Return an LXC container name that isn't already taken.
 
@@ -156,7 +171,7 @@ def get_available_lxc_container_name():
     '''
 
     candidate = generate_random_lxc_container_name()
-    while os.path.lexists(os.path.join(lxc_path, candidate)):
+    while path_exists_root(os.path.join(lxc_path, candidate)):
         candidate = generate_random_lxc_container_name()
     return candidate
 
