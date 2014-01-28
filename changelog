@@ -13,6 +13,9 @@ autopkgtest (2.6.1) UNRELEASED; urgency=medium
     /var/lib/lxc not readably by non-users. Fixes running adt-virt-lxc/adt-run
     as user. (LP: #1266809)
   * Add test for --binary with --built-tree.
+  * adt-run.1: Clarify and fix some wrong and misleading documentation what
+    happens with debs produced by source packages and specified with --binary.
+    (LP: #1175557)
 
  -- Martin Pitt <mpitt@debian.org>  Tue, 28 Jan 2014 11:16:34 +0100
 
