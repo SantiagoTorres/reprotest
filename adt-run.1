@@ -26,22 +26,19 @@ supplied) in the top level directory of the built source tree, on the
 host.  The package should be installed on the testbed.
 
 .SH PROCESSING INSTRUCTIONS
-.TP
-.BR --built-tree " " \fIdirectory\fR
-Specifies that tests from the built source tree
-.IR directory
-should be run.  Note that the packages that would normally be
-installed as a result of \fB@\fR in the tests' \fBDepends\fR field
-(which includes the case where the \fBDepends\fR field is not
-specified) are \fInot\fR installed.  The caller must explicitly
-instruct \fBadt-run\fR to install any relevant packages.
+
 .TP
 .BR --source " " \fIdsc\fR
-Builds \fIdsc\fR.  The resulting binaries will (by default) be used to
-satisfy dependencies.  The tests from that built tree will also be run
-(by default).  The ordering is significant: each \fB--source\fR option
-should precede options whose dependencies are to be satisfied by the
-binaries it produces.
+Run tests from source package \fIdsc\fR. By default the package will also be
+built and the resulting binaries will be used to satisfy test dependencies;
+to disable that, specify the
+.BR -B / --no-built-binaries
+option before.
+
+The ordering is significant: each \fB--source\fR option should precede
+options whose dependencies are to be satisfied by the binaries it
+produces.
+
 .TP
 .BR --unbuilt-tree " " \fIdirectory\fR
 Specifies that tests from the unbuilt source tree
@@ -49,22 +46,36 @@ Specifies that tests from the unbuilt source tree
 should be run.  This is very similar to specifying \fB\-\-source\fR
 except that a directory tree (which should be pristine) is supplied,
 instead of a source package.
+
+.TP
+.BR --built-tree " " \fIdirectory\fR
+Specifies that tests from the built source tree
+.IR directory
+should be run. Note that all test dependencies are then satisfied by
+archive packages, unless you explicitly specify locally built .debs with
+.BR --binary .
+
 .TP
 .BR --apt-source " " \fIsrcpkgname\fR
-Downloads \fIsrcpkgname\fR with \fBapt\-get source\fR in the testbed and run
-its tests. This is similar to specifying
+Downloads \fIsrcpkgname\fR with \fBapt\-get source\fR in the testbed and
+run its tests. This is similar to specifying
 .B \-\-source
-but avoids copying the source from the host to the testbed. Resulting binaries
-will
+but avoids copying the source from the host to the testbed. Resulting
+binaries will
 .B not
 be used to satisfy dependencies, as usually in this mode you want to test
 binaries from a real archive.
+
 .TP
 .BR --binary " " \fIdeb\fR
-Specifies that \fIdeb\fR should be used.  By default it will be used
-to satisfy dependencies, both during building and testing, but not
-necessarily installed.  The ordering is significant, as for
-\fB--source\fR.
+Specifies that \fIdeb\fR should be used for tests of all following
+source packages.  By default it will be used to satisfy dependencies,
+both during building and testing.
+
+The ordering is significant, as for \fB--source\fR. In particular, if a
+subsequent source package will build a binary of the same name, that will be
+used from then on, and \fIdeb\fR will be ignored.
+
 .TP
 .I filename
 Bare filename arguments are processed as if
@@ -73,23 +84,30 @@ was specified; the nature of the argument is guessed from the form of
 the filename.  In the case of \fB--built-tree\fR, either the
 option must be specified, or the filename must end in a slash; two
 slashes at the end are taken to mean \fB--unbuilt-tree\fR.
+
 .SH PROCESSING OPTIONS
 These affect processing instructions.  Unless stated
 otherwise, they affect all subsequent options.
+
 .BR --sources-tests | --sources-no-tests
 Specifies that the tests in subsequent \fB--source\fR and
 \fB--unbuilt-tree\fR arguments should (or should not) be run.
+
 .TP
 .BR --built-binaries-filter= \fIpattern\fB,\fIpattern\fB,\fR...
 Specifies that only binaries whose package names match one of the
 specified patterns should be used; others will be ignored.  This
 option applies to subsequent \fB--source\fR and \fB--unbuilt-tree\fR arguments.
+
 .TP
 .BR -B " | " --no-built-binaries
-Specifies that all built binaries should be ignored completely;
-equivalent to
+Specifies that all built binaries from source packages should be ignored
+completely, and dependencies are satisfied with packages from the archive. Note
+that packages still get built if a test requires
+\fBbuild-needed\fR. Equivalent to
 .BR --built-binaries-filter=_
 (since no package name ever contains \fB_\fR).
+
 .TP
 .B --binaries=ignore | --binaries=auto | --binaries=install
 Specifies that binary package (in subsequently specified
@@ -98,17 +116,20 @@ Specifies that binary package (in subsequently specified
 only to satisfy dependencies, or installed unconditionally,
 respectively.  Equivalent to specifying both
 .BR --binaries-forbuilds " and " --binaries-fortests .
+
 .TP
 .BI --binaries-forbuilds= ...
 Like \fB--binaries=\fR but only changes the handling during package
 building: packages will be ignored, used for dependencies, or
 unconditionally installed, when a source package is built.
+
 .TP
 .BI --binaries-fortests= ...
 Like \fB--binaries=\fR but only changes the handling during testing:
 packages will be ignored, used for dependencies (including as the
 package under test), or unconditionally installed, when tests are run
 (as a result of \fB--source\fR, \fB--built-tree\fR or \fB--unbuilt-tree\fR).
+
 .SH OTHER OPTIONS
 .TP
 .BI -u " user" " | --user=" user
