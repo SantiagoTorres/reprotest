@@ -12,6 +12,7 @@ autopkgtest (2.6.1) UNRELEASED; urgency=medium
     and os.readlink() as recent LXC now makes the default container dir
     /var/lib/lxc not readably by non-users. Fixes running adt-virt-lxc/adt-run
     as user. (LP: #1266809)
+  * Add test for --binary with --built-tree.
 
  -- Martin Pitt <mpitt@debian.org>  Tue, 28 Jan 2014 11:16:34 +0100
 
