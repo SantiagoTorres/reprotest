@@ -6,6 +6,8 @@ autopkgtest (2.6.1) UNRELEASED; urgency=medium
     user (if available). This fixes a "Permission denied" error with the
     schroot or LXC runners and --unbuilt-tree if the source tree has tight
     permissions. (LP: #1266811)
+  * Adjust LxcRunner.test_tree_built_binaries to also work with current apt
+    (similar to commit 5798b7f for the schroot runner).
 
  -- Martin Pitt <mpitt@debian.org>  Tue, 28 Jan 2014 11:16:34 +0100
 
