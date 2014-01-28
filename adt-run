@@ -899,6 +899,13 @@ class TestbedPath:
         else:
             testbed.command('copydown', (self.host, self.tb))
 
+        # we usually want our files be readable for the non-root user
+        if opts.user:
+            rc = testbed.execute('copydown-chown-' + os.path.basename(self.host),
+                                 ['chown', '-R', opts.user, '--', self.tb])
+            if rc:
+                bomb('failed to chown %s' % self.tb)
+
     def copyup(self):
         '''Copy file from the testbed to the host'''
 
@@ -1161,10 +1168,6 @@ class Test:
 
         # ensure our tests are in the testbed
         tree.copydown()
-        if opts.user:
-            rc = testbed.execute('testchown-' + self.what, ['chown', '-R', opts.user, '--', tree.tb])
-            if rc:
-                bomb('failed to chown %s' % tree.tb)
 
         # stdout/err files in testbed
         so = TempTestbedPath(testbed, self.what + '-stdout', autoclean=False)
