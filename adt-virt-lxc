@@ -165,7 +165,8 @@ def hook_open():
     global lxc_container_name, lxc_path
 
     try:
-        lxc_path = subprocess.check_output(['sudo', 'lxc-config', 'lxc.lxcpath'])
+        lxc_path = subprocess.check_output(['sudo', 'lxc-config',
+                                            'lxc.lxcpath'])
     except subprocess.CalledProcessError:
         # older LXC versions call this differently
         lxc_path = subprocess.check_output(['sudo', 'lxc-config', 'lxcpath'])
