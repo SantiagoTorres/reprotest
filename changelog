@@ -10,6 +10,11 @@ autopkgtest (2.7) UNRELEASED; urgency=medium
     related to LXC specifically and otherwise not really used/useful).
   * adt-virt-lxc.1: Add example how to create a Debian container, and some
     cleanup of obsolete commentary.
+  * adt-virt-lxc: Add -s/--sudo option to run lxc-* commands through sudo; use
+    this option if you run adt-run as normal user, but need to run the
+    container itself as root (which is required until LXC supports per-user
+    containers). This drops the hardcoded sudo commands and thus the
+    dependency on sudo, which is more palatable for Debian. (LP: #1273977)
 
  -- Martin Pitt <mpitt@debian.org>  Wed, 29 Jan 2014 08:29:38 +0100
 
