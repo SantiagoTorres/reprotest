@@ -3,7 +3,7 @@
 # adt-virt-lxc is part of autopkgtest
 # autopkgtest is a tool for testing Debian binary packages
 #
-# autopkgtest is Copyright (C) 2006-2007, 2013 Canonical Ltd.
+# autopkgtest is Copyright (C) 2006-2014 Canonical Ltd.
 #
 # adt-virt-lxc was derived from adt-virt-schroot and modified to suit LXC by
 # Robie Basak <robie.basak@canonical.com>.
@@ -33,8 +33,6 @@ import random
 import subprocess
 import time
 
-LXC_WAIT_RETRY_TIME = 0.2
-
 try:
     our_base = os.environ['AUTOPKGTEST_BASE'] + '/lib'
 except KeyError:
@@ -47,7 +45,6 @@ ephemeral = False
 eatmydata = False
 lxc_template = None
 lxc_container_name = None
-lxc_path = None
 
 
 def parse_args():
@@ -71,21 +68,6 @@ def parse_args():
     VirtSubproc.debuglevel = opts.debug
 
 
-def check_for_cloud_init(container, template_name):
-    with open('/dev/null', 'wb') as null:
-        result = subprocess.call(
-            ['sudo', 'lxc-attach', '-n', container, '--', 'dpkg-query', '-W',
-                'cloud-init'],
-            close_fds=True, stdout=null, stderr=null)
-    if result:
-        raise RuntimeError(
-            ('Container %s does not use cloud-init, and this driver ' +
-             'requires it. Use eg. ' +
-             '"lxc-create -t ubuntu-cloud ..." to create your ' +
-             'container instead.') % repr(template_name)
-        )
-
-
 def check_for_eatmydata(container, template_name):
     with open('/dev/null', 'wb') as null:
         result = subprocess.call(
@@ -99,72 +81,6 @@ def check_for_eatmydata(container, template_name):
         )
 
 
-def full_path_split(path):
-    head, tail = os.path.split(os.path.normpath(path))
-    if head in ['', os.path.sep, 2 * os.path.sep]:
-        return [head, tail]
-    else:
-        return full_path_split(head) + [tail]
-
-
-def path_exists_root(path):
-    '''Check as root if a given path exists.
-
-    This is necessary as LXC's default dir /var/lib/lxc/ stopped being
-    world-readable.
-    '''
-    return subprocess.call(['sudo', 'test', '-e', path, '-o', '-L', path]) == 0
-
-
-def readlink_root(path):
-    '''Read given link as root.
-
-    This is necessary as LXC's default dir /var/lib/lxc/ stopped being
-    world-readable.
-    '''
-    return subprocess.check_output(['sudo', 'readlink', path],
-                                   universal_newlines=True).strip()
-
-
-def wait_for_lexists(path):
-    VirtSubproc.debug('waiting for %s to exist' % repr(path))
-    while not path_exists_root(path):
-        time.sleep(LXC_WAIT_RETRY_TIME)
-
-
-def wait_for_lxc_guest_start(lxc_name, template_name):
-    check_for_cloud_init(lxc_name, template_name)
-    for subdir in ['delta0', 'rootfs']:
-        host_guest_root = os.path.join(lxc_path, lxc_name, subdir)
-        if path_exists_root(host_guest_root):
-            break
-    else:
-        raise RuntimeError(
-            'Failed to find host root directory for container %s.' %
-            repr(lxc_name)
-        )
-    host_instance_path = os.path.join(
-        host_guest_root, 'var/lib/cloud/instance')
-    wait_for_lexists(host_instance_path)
-    guest_instance_link = readlink_root(host_instance_path)
-    # Due to overlayfs, we can sometimes read the link when it doesn't
-    # officially exist in the guest. Keep waiting in this case. The
-    # "(overlay-whiteout)" string is defined by the overlayfs module.
-    while guest_instance_link == '(overlay-whiteout)':
-        time.sleep(LXC_WAIT_RETRY_TIME)
-        guest_instance_link = readlink_root(host_instance_path)
-    host_instance_link = os.path.join(
-        host_guest_root, *full_path_split(guest_instance_link)[1:])
-    host_boot_finished_path = os.path.join(
-        host_instance_link, 'boot-finished')
-    wait_for_lexists(host_boot_finished_path)
-
-
-def generate_random_lxc_container_name():
-    return ('adt-virt-lxc-' +
-            ''.join([random.choice(string.ascii_lowercase) for i in range(6)]))
-
-
 def get_available_lxc_container_name():
     '''Return an LXC container name that isn't already taken.
 
@@ -173,24 +89,45 @@ def get_available_lxc_container_name():
     race free way and return the name used in machine-readable way, so that
     this function would not be necessary. See LP: #1197754.
     '''
+    while True:
+        # generate random container name
+        rnd = [random.choice(string.ascii_lowercase) for i in range(6)]
+        candidate = 'adt-virt-lxc-' + ''.join(rnd)
 
-    candidate = generate_random_lxc_container_name()
-    while path_exists_root(os.path.join(lxc_path, candidate)):
-        candidate = generate_random_lxc_container_name()
-    return candidate
+        containers = subprocess.check_output(['sudo', 'lxc-ls'],
+                                             universal_newlines=True)
+        if candidate not in containers:
+            return candidate
+
+
+def wait_booted(lxc_name):
+    '''Wait until the container has sufficiently booted to interact with it
+
+    Do this by checking that the runlevel is someting numeric, i. e. not
+    "unknown" or "S".
+    '''
+    timeout = 60
+    while timeout > 0:
+        try:
+            out = subprocess.check_output(['sudo', 'lxc-attach', '-n',
+                                           lxc_name, 'runlevel']).strip()
+            if out.split()[-1].isdigit():
+                return
+
+            VirtSubproc.debug('wait_booted: runlevel "%s", retrying...' % out)
+        except subprocess.CalledProcessError:
+            VirtSubproc.debug('wait_booted: lxc-attach failed, retrying...')
+            pass
+
+        timeout -= 1
+        time.sleep(1)
+
+    VirtSubproc.bomb('timed out waiting for container %s to start; '
+                     'last runlevel "%s"' % (lxc_name, out))
 
 
 def hook_open():
-    global lxc_container_name, lxc_path
-
-    try:
-        lxc_path = subprocess.check_output(['sudo', 'lxc-config',
-                                            'lxc.lxcpath'])
-    except subprocess.CalledProcessError:
-        # older LXC versions call this differently
-        lxc_path = subprocess.check_output(['sudo', 'lxc-config', 'lxcpath'])
-    lxc_path = lxc_path.strip()
-    VirtSubproc.debug('lxc containers are in %s' % lxc_path)
+    global lxc_container_name
 
     lxc_container_name = get_available_lxc_container_name()
     VirtSubproc.debug('using container name %s' % lxc_container_name)
@@ -205,7 +142,7 @@ def hook_open():
                             [], downp=False, outp=True)
     try:
         VirtSubproc.debug('waiting for lxc guest start')
-        wait_for_lxc_guest_start(lxc_container_name, lxc_template)
+        wait_booted(lxc_container_name)
         VirtSubproc.debug('lxc guest started')
         VirtSubproc.down = ['sudo', '-E', 'lxc-attach', '-n',
                             lxc_container_name, '--']

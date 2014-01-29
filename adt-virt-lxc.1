@@ -22,25 +22,8 @@ will be invoked by
 .SH REQUIREMENTS
 .B adt-virt-lxc
 assumes that you have already prepared a suitable LXC template container. The
-template must be Debian-based and use cloud-init. \fBdebootstrap\fR(8)-based
-containers such as those created with the \fIdebian\fR or \fIubuntu\fR LXC
-templates will not work.
-
-On Ubuntu, you can automatically download and install a suitable template using
-the command:
-
-.RS
-.EX
-lxc-create -t ubuntu-cloud -n adt -- -r $(distro-info --devel) -d daily
-.EE
-.RE
-
-The supplied LXC template must be clean. The \fBcloud-init\fR
-\fI/var/cloud/instance\fR symlink should not exist, and the subsequent
-\fI/var/lib/cloud/instance/boot-finished\fR should also not exist. If you start
-your template container in order to modify it, make sure you remove these
-artifacts when you have finished making your modifications.
-
+template must be Debian-based. See \fBlxc-create\fR(1) for how to create
+containers.
 
 .SH OPTIONS
 .TP
@@ -107,10 +90,11 @@ adt-run --gain-root=sudo \fIhello_2.8\-4.dsc\fR --- adt-virt-lxc --ephemeral \fI
 .RE
 
 .SH SEE ALSO
-\fBadt-run\fR(1),
+\fBadt\-run\fR(1),
 \fBadt\-virt-null\fR(1),
 \fBadt\-virt-chroot\fR(1),
 \fBeatmydata\fR(1),
+\fBlxc\-create\fR(1),
 \fB/usr/share/doc/autopkgtest/\fR.
 
 .SH AUTHORS AND COPYRIGHT
