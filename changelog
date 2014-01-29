@@ -1,3 +1,13 @@
+autopkgtest (2.7) UNRELEASED; urgency=medium
+
+  * adt-virt-lxc: Drop all the file-based checks for container bootup, and
+    replace with "lxc-attach runlevel" to wait until the container booted to a
+    numeric runlevel. This greatly simplifies the logic and drops the
+    cloud-init requirement so that this runner is now suitable for Debian or
+    debootstrap-based Ubuntu containers. (LP: #1273725)
+
+ -- Martin Pitt <mpitt@debian.org>  Wed, 29 Jan 2014 08:29:38 +0100
+
 autopkgtest (2.6.1) unstable; urgency=medium
 
   * adt-virt-lxc: Call lxc-config through sudo as well like all the other LXC
