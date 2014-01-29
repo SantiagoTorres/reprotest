@@ -56,7 +56,9 @@ def parse_args():
 
     parser.add_option('-d', '--debug', action='store_true')
     parser.add_option('--eatmydata', action='store_true')
-    parser.add_option('--ephemeral', action='store_true')
+    parser.add_option('-e', '--ephemeral', action='store_true',
+                      help='Use ephemeral overlays instead of cloning (much '
+                      'faster, but might cause errors in some corner cases)')
     parser.add_option('-s', '--sudo', action='store_true',
                       help='Run lxc-* commands with sudo; use if you run '
                       'adt-run as normal user')
