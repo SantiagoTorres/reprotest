@@ -56,14 +56,6 @@ specification.
 
 .SH NOTES
 
-\fBadt-run\fR assumes it can use \fBfakeroot\fR(1) to gain root for the
-\fIbinary\fR target in a package build. If \fBfakeroot\fR(1) isn't available in
-your template container, you should use \fBadt-run\fR's \fB\-\-gain\-root\fR
-option to specify what to use instead. On Ubuntu, you can use
-\fB\-\-gain\-root=sudo\fR since this is included in Ubuntu cloud images
-configured to permit root access without a password for the default user. See
-the example below.
-
 \fBadt-run\fR does not run \fBapt-get update\fR at the start of a package
 build, which can cause a build failure if you are using a development release
 template. You will need to run \fBapt-get update\fR in the template yourself as
@@ -85,7 +77,7 @@ and with an ephemeral container for speed:
 
 .RS
 .EX
-adt-run --gain-root=sudo \fIhello_2.8\-4.dsc\fR --- adt-virt-lxc --ephemeral \fIadt\fR
+adt-run \fIhello_2.8\-4.dsc\fR --- adt-virt-lxc --ephemeral \fIadt\fR
 .EE
 .RE
 
