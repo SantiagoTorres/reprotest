@@ -15,6 +15,9 @@ autopkgtest (2.7) UNRELEASED; urgency=medium
     container itself as root (if you use LXC system-level containers).
     This drops the hardcoded sudo commands and thus the dependency on sudo,
     which is more palatable for Debian. (LP: #1273977)
+  * adt-virt-lxc: Add -e shortcut for --ephemeral, as this is an option which
+    you pretty much always want.
+  * adt-virt-lxc.1: Move more important options to the top.
 
  -- Martin Pitt <mpitt@debian.org>  Wed, 29 Jan 2014 08:29:38 +0100
 
