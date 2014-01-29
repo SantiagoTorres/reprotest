@@ -1,4 +1,4 @@
-autopkgtest (2.6.1) UNRELEASED; urgency=medium
+autopkgtest (2.6.1) unstable; urgency=medium
 
   * adt-virt-lxc: Call lxc-config through sudo as well like all the other LXC
     commands. This fixes running adt-run as user with the LXC runner.
@@ -17,7 +17,7 @@ autopkgtest (2.6.1) UNRELEASED; urgency=medium
     happens with debs produced by source packages and specified with --binary.
     (LP: #1175557)
 
- -- Martin Pitt <mpitt@debian.org>  Tue, 28 Jan 2014 11:16:34 +0100
+ -- Martin Pitt <mpitt@debian.org>  Wed, 29 Jan 2014 06:53:16 +0100
 
 autopkgtest (2.6) unstable; urgency=medium
 
