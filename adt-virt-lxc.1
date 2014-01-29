@@ -1,12 +1,15 @@
 .TH adt\-virt-lxc 1 2013 "Linux Programmer's Manual"
 .SH NAME
 adt\-virt\-lxc \- autopkgtest virtualisation server using LXC
+
 .SH SYNOPSYS
 .B adt\-virt\-lxc
 .RB [ \-\-d | \-\-debug ]
 .RB [ \-\-eatmydata ]
 .RB [ \-\-ephemeral ]
+.RB [ \-\-sudo ]
 .I lxc\-template
+
 .SH DESCRIPTION
 .B adt-virt-lxc
 provides an autopkgtest virtualisation server using LXC. It adapts the raw
@@ -26,6 +29,7 @@ template must be Debian-based. See \fBlxc-create\fR(1) for how to create
 containers.
 
 .SH OPTIONS
+
 .TP
 .B --eatmydata
 This option is intended for test developer use. It enables the use of
@@ -38,6 +42,7 @@ manually.
 However, since eatmydata is not part of the dep8 specification and may affect
 the test
 environment, it is not recommended for use in automation.
+
 .TP
 .B --ephemeral
 This option makes use of lxc-start-ephemeral to create temporary containers,
@@ -45,9 +50,17 @@ instead of the default behaviour of cloning your containers. This can be used
 to dramatically improve performance, although you may see issues due to the
 overlayfs filesystem as used by lxc-start-ephemeral not being completely
 transparent. To avoid issues, you should not use this option in automation.
+
+.TP
+.BR \-s " | " \-\-sudo
+Run lxc-* commands through sudo; use this option if you run adt-run as normal
+user, but need to run the container itself as root (which is required until LXC
+supports per-user containers).
+
 .TP
 .BR \-d " | " \-\-debug
 Enables debugging output.
+
 .SH INPUT, OUTPUT AND EXIT STATUS
 The behaviour of
 .B adt-virt-lxc
