@@ -5,6 +5,9 @@ autopkgtest (2.7) UNRELEASED; urgency=medium
     numeric runlevel. This greatly simplifies the logic and drops the
     cloud-init requirement so that this runner is now suitable for Debian or
     debootstrap-based Ubuntu containers. (LP: #1273725)
+  * adt-virt-lxc.1: Drop --gain-root in notes/example. It's unnecessary
+    (adt-run will install fakeroot if missing) and confusing (as it's not
+    related to LXC specifically and otherwise not really used/useful).
 
  -- Martin Pitt <mpitt@debian.org>  Wed, 29 Jan 2014 08:29:38 +0100
 
