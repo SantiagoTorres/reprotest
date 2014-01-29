@@ -58,22 +58,31 @@ specification.
 
 \fBadt-run\fR does not run \fBapt-get update\fR at the start of a package
 build, which can cause a build failure if you are using a development release
-template. You will need to run \fBapt-get update\fR in the template yourself as
-required, and remove the boot artifacts as discussed in \fBREQUIREMENTS\fR
-before trying again.
+template. You will need to run \fBapt-get update\fR in the template yourself
+(e. g. using \fB\-\-setup\-commands\fR).
 
 .SH EXAMPLE
 
-On Ubuntu, download and install a suitable template and call it \fIadt\fR:
+Create a suitable container from a Debian or Ubuntu template and call it
+\fIadt\fR. E. g. a Debian sid one:
 
 .RS
 .EX
-lxc-create -t ubuntu-cloud -n \fIadt\fR -- -r $(distro-info --devel) -d daily
+lxc-create -t debian -n \fIadt\fR -- -r sid
 .EE
 .RE
 
-Run tests against \fIhello_2.8\-4.dsc\fR, using the LXC template \fIadt\fR,
-and with an ephemeral container for speed:
+Or an Ubuntu one based on the cloud images (faster than the "ubuntu" template
+with debootstrap, but much bigger):
+
+.RS
+.EX
+lxc-create -t ubuntu-cloud -n \fIadt\fR -- -r trusty -d daily
+.EE
+.RE
+
+Run tests against \fIhello_2.8\-4.dsc\fR, using the LXC container \fIadt\fR,
+and with an ephemeral overlay for speed:
 
 .RS
 .EX
@@ -83,8 +92,7 @@ adt-run \fIhello_2.8\-4.dsc\fR --- adt-virt-lxc --ephemeral \fIadt\fR
 
 .SH SEE ALSO
 \fBadt\-run\fR(1),
-\fBadt\-virt-null\fR(1),
-\fBadt\-virt-chroot\fR(1),
+\fBadt\-virt-schroot\fR(1),
 \fBeatmydata\fR(1),
 \fBlxc\-create\fR(1),
 \fB/usr/share/doc/autopkgtest/\fR.
