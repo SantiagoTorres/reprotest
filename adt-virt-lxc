@@ -46,6 +46,7 @@ eatmydata = False
 use_sudo = False
 lxc_template = None
 lxc_container_name = None
+normal_user = None
 
 
 def parse_args():
@@ -73,6 +74,7 @@ def parse_args():
     use_sudo = opts.sudo
 
     VirtSubproc.debuglevel = opts.debug
+
 
 def sudoify(command):
     '''Prepend sudo to command with the --sudo option'''
@@ -144,6 +146,24 @@ def wait_booted(lxc_name):
                      'last runlevel "%s"' % (lxc_name, out))
 
 
+def determine_normal_user(lxc_name):
+    '''Check for a normal user to run tests as.'''
+
+    global normal_user
+
+    # get the first UID >= 500
+    out = subprocess.check_output(
+        sudoify(['lxc-attach', '-n', lxc_name,
+                 '--', 'sh', '-c', "getent passwd | sort -t: -nk3 | "
+                 "awk -F: '{if ($3 >= 500) { print $1; exit } }'"]),
+        universal_newlines=True).strip()
+    if out:
+        normal_user = out
+        VirtSubproc.debug('determine_normal_user: got user "%s"' % normal_user)
+    else:
+        VirtSubproc.debug('determine_normal_user: no uid >= 500 available')
+
+
 def hook_open():
     global lxc_container_name
 
@@ -162,6 +182,7 @@ def hook_open():
         VirtSubproc.debug('waiting for lxc guest start')
         wait_booted(lxc_container_name)
         VirtSubproc.debug('lxc guest started')
+        determine_normal_user(lxc_container_name)
         VirtSubproc.down = ['lxc-attach', '-n', lxc_container_name, '--']
         if use_sudo:
             VirtSubproc.down = ['sudo', '-E'] + VirtSubproc.down
@@ -203,8 +224,10 @@ def hook_forked_inchild():
 
 
 def hook_capabilities():
-    return ['revert', 'revert-full-system', 'root-on-testbed',
-            'suggested-normal-user=ubuntu']
+    caps = ['revert', 'revert-full-system', 'root-on-testbed']
+    if normal_user:
+        caps.append('suggested-normal-user=' + normal_user)
+    return caps
 
 
 parse_args()
