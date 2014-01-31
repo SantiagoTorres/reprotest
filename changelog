@@ -18,6 +18,9 @@ autopkgtest (2.7) UNRELEASED; urgency=medium
   * adt-virt-lxc: Add -e shortcut for --ephemeral, as this is an option which
     you pretty much always want.
   * adt-virt-lxc.1: Move more important options to the top.
+  * adt-virt-lxc: Stop hardcoding the "ubuntu" suggested normal user; instead,
+    call "getent passwd" to detect the first user with uid >= 500. Don't
+    advertise suggested-normal-user if none exists.
 
  -- Martin Pitt <mpitt@debian.org>  Wed, 29 Jan 2014 08:29:38 +0100
 
