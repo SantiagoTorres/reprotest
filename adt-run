@@ -1801,12 +1801,15 @@ def build_source(act):
         opts.user_wrap('mkdir -m 1777 -- "$TMPDIR"'),
     ]
 
+    # this also applies unapplied patches for e. g. 3.0 (quilt) sources; we
+    # need the grep check until we drop support for Ubuntu 10.04 LTS
     if act.kind == 'ubtree':
         spec = '%s/real-tree' % work
         create_command = '''
     rm -rf "$spec"
     mkdir "$spec"
     cp -rP --preserve=timestamps,links -- "$origpwd"/. "$spec"/.
+    if grep -q 'before-build' `which dpkg-source`; then dpkg-source --before-build "$spec"; fi
 '''
         # copy unbuilt tree into testbed
         ubtree = TestbedPath(testbed, act.arg,
