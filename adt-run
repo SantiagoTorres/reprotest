@@ -469,6 +469,11 @@ def parse_args():
 
         opts.actions.append(Action(kind, pathstr, arghandling, what))
 
+        # if we have --setup-commands and it points to a file, read its contents
+        if opts.setup_commands and os.path.exists(opts.setup_commands):
+            with open(opts.setup_commands) as f:
+                opts.setup_commands = f.read()
+
 
 def setup_trace():
     global tmp, summary_stream
@@ -544,11 +549,6 @@ def finalise_options():
     elif opts.gnupghome == 'fresh':
         opts.gnupghome = None
 
-    # if we have --setup-commands and it points to a file, read its contents
-    if opts.setup_commands and os.path.exists(opts.setup_commands):
-        with open(opts.setup_commands) as f:
-            opts.setup_commands = f.read()
-
 #---------- testbed management - the Testbed class
 
 
@@ -575,7 +575,6 @@ class Testbed:
                                    stdin=subprocess.PIPE,
                                    stdout=subprocess.PIPE)
         self.expect('ok')
-        self.caps = self.commandr('capabilities')
 
     def stop(self):
         self._debug('stop', 1)
@@ -602,6 +601,8 @@ class Testbed:
         if self.scratch is not None:
             return
         pl = self.commandr('open')
+        self.caps = self.commandr('capabilities')
+        debug('testbed capabilities: %s' % self.caps, 1)
         self._opened(pl)
 
     def _opened(self, pl):
@@ -2006,8 +2007,6 @@ def process_actions():
     def debug_a3(m):
         debug('@@@@@@@@@@ ' + m)
 
-    testbed.open()
-
     binaries = Binaries(testbed)
 
     binaries.reset()
@@ -2082,6 +2081,7 @@ def main():
         setup_trace()
         testbed = Testbed()
         testbed.start()
+        testbed.open()
         finalise_options()
         process_actions()
     except:
