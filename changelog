@@ -1,6 +1,8 @@
 autopkgtest (2.7.1) UNRELEASED; urgency=medium
 
   * VirtSubproc.py, command(): Intercept/retry on EAGAIN.
+  * runner/adt-run: Robustify cleanup of empty "binaries" output directory, it
+    does not always work in __del__().
 
  -- Martin Pitt <mpitt@debian.org>  Wed, 05 Feb 2014 07:39:47 +0100
 
