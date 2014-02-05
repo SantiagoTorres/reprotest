@@ -66,6 +66,8 @@ errorcode = 0		# exit status that we are going to use
 timeouts = {'short': 100, 'copy': 300, 'install': 3000, 'test': 10000, 'build': 100000}
 binaries = None		# Binaries (.debs we have registered)
 build_essential = ['build-essential']
+dpkg_buildpackage = 'dpkg-buildpackage -us -uc -b'
+
 os.putenv('APT_LISTBUGS_FRONTEND', 'none')
           # do not consider using apt-listbugs
 os.putenv('APT_LISTCHANGES_FRONTEND', 'none')
@@ -377,7 +379,7 @@ def parse_args():
 
     parser.add_option('-u', '--user', help='run tests as USER (needs root on testbed)')
     parser.add_option('--gain-root', type='string', dest='gainroot',
-                      help='prefix debian/rules binary with GAINROOT')
+                      help='command to gain root during package build, passed to dpkg-buildpackage -r')
     parser.add_option('-q', '--quiet', action='store_true', dest='quiet', default=False)
     parser.add_option('-d', '--debug', action='count', dest='debuglevel', default=0)
     parser.add_option('--gnupg-home', type='string', dest='gnupghome',
@@ -515,7 +517,7 @@ def setup_trace():
 
 
 def finalise_options():
-    global opts, testbed, build_essential
+    global opts, testbed, build_essential, dpkg_buildpackage
 
     if opts.user is None and 'root-on-testbed' in testbed.caps:
         su = 'suggested-normal-user='
@@ -538,11 +540,12 @@ def finalise_options():
         opts.user_wrap = lambda x: x
 
     if opts.gainroot is None:
-        opts.gainroot = ''
         if (opts.user or
                 'root-on-testbed' not in testbed.caps):
             opts.gainroot = 'fakeroot'
             build_essential += ['fakeroot']
+    if opts.gainroot:
+        dpkg_buildpackage += ' -r' + opts.gainroot
 
     if opts.gnupghome.startswith('~/'):
         opts.gnupghome = os.path.expanduser(opts.gnupghome)
@@ -1797,15 +1800,12 @@ def build_source(act):
         opts.user_wrap('mkdir -m 1777 -- "$TMPDIR"'),
     ]
 
-    # this also applies unapplied patches for e. g. 3.0 (quilt) sources; we
-    # need the grep check until we drop support for Ubuntu 10.04 LTS
     if act.kind == 'ubtree':
         spec = '%s/real-tree' % work
         create_command = '''
     rm -rf "$spec"
     mkdir "$spec"
     cp -rP --preserve=timestamps,links -- "$origpwd"/. "$spec"/.
-    if grep -q 'before-build' `which dpkg-source`; then dpkg-source --before-build "$spec"; fi
 '''
         # copy unbuilt tree into testbed
         ubtree = TestbedPath(testbed, act.arg,
@@ -1918,8 +1918,7 @@ def build_source(act):
 
         script = tmpdir_script + [
             'cd "$2"',
-            'dpkg-checkbuilddeps',
-            opts.user_wrap('debian/rules build'),
+            opts.user_wrap(dpkg_buildpackage),
         ]
         source_rules_command(script, what, 'build',
                              cwd=initcwd, xargs=['x', tmpdir, result_pwd])
@@ -1950,7 +1949,7 @@ def build_source(act):
     if filter != '_':
         script = tmpdir_script + [
             'cd ' + work + '/[a-z0-9]*-*/.',
-            opts.user_wrap(opts.gainroot + ' debian/rules binary'),
+            opts.user_wrap(dpkg_buildpackage),
             'cd ..',
             'echo *.deb >&3',
         ]
