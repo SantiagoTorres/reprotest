@@ -9,6 +9,8 @@ autopkgtest (2.7.1) UNRELEASED; urgency=medium
     such as passing build flags or cleaning the package. This also implies
     dpkg-source --before build to apply patches, so remove the explicit call
     to that again. (Closes: #737632)
+  * adt-run: If all tests get skipped, but there are some tests, don't claim
+    that there are none. (Closes: #737242)
 
  -- Martin Pitt <mpitt@debian.org>  Wed, 05 Feb 2014 07:39:47 +0100
 
