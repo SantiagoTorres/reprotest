@@ -1,3 +1,9 @@
+autopkgtest (2.7.1) UNRELEASED; urgency=medium
+
+  * VirtSubproc.py, command(): Intercept/retry on EAGAIN.
+
+ -- Martin Pitt <mpitt@debian.org>  Wed, 05 Feb 2014 07:39:47 +0100
+
 autopkgtest (2.7) unstable; urgency=medium
 
   * adt-virt-lxc: Drop all the file-based checks for container bootup, and
