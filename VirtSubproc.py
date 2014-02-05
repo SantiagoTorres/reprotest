@@ -30,6 +30,7 @@ import signal
 import subprocess
 import traceback
 import errno
+import time
 import re
 
 from Autopkgtest import shellquote_arg, shellquote_cmdl
@@ -422,7 +423,16 @@ def cmd_copyup(c, ce):
 
 def command():
     sys.stdout.flush()
-    ce = sys.stdin.readline()
+    while True:
+        try:
+            ce = sys.stdin.readline()
+            break
+        except IOError as e:
+            if e.errno == errno.EAGAIN:
+                time.sleep(0.1)
+                continue
+            else:
+                raise
     if not ce:
         bomb('end of file - caller quit?')
     ce = ce.rstrip().split()
