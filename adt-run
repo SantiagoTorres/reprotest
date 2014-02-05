@@ -1501,6 +1501,9 @@ class Binaries:
     def __init__(self, tb):
         self.dir = TempTestbedPath(testbed, 'binaries', is_dir=True, autoclean=False)
         os.mkdir(self.dir.host)
+        # clean up an empty binaries output dir
+        atexit.register(lambda: os.path.exists(self.dir.host) and (
+            os.listdir(self.dir.host) or os.rmdir(self.dir.host)))
         ok = False
 
         if opts.gnupghome is None:
@@ -1522,13 +1525,6 @@ class Binaries:
 
         self.apt_get_cmd = 'apt-get -q -o Debug::pkgProblemResolver=true ' \
             '-o APT::Get::force-yes=true -o APT::Get::Assume-Yes=true'
-
-    def __del__(self):
-        # clean up an empty binaries output dir
-        try:
-            os.rmdir(self.dir.host)
-        except OSError:
-            pass
 
     def _debug(self, s):
         debug('* ' + s, 1)
