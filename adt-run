@@ -1108,8 +1108,10 @@ def run_tests(stanzas, tree):
     for stanza in stanzas:
         tests = stanza[' tests']
         if not tests:
-            report('*', 'SKIP package has metadata but no tests')
-            errorcode |= 8
+            # if we have skipped tests, don't claim that we don't have any
+            if not errorcode & 2:
+                report('*', 'SKIP package has metadata but no tests')
+                errorcode |= 8
         for t in tests:
             t.prepare(tree)
             t.run(tree)
