@@ -3,6 +3,12 @@ autopkgtest (2.7.1) UNRELEASED; urgency=medium
   * VirtSubproc.py, command(): Intercept/retry on EAGAIN.
   * runner/adt-run: Robustify cleanup of empty "binaries" output directory, it
     does not always work in __del__().
+  * adt-run: Replace direct invocation of "debian/rules build" with
+    "dpkg-buildpackage -us -uc -b". dpkg-buildpackage is the de-facto
+    interface these days (also on the buildds), and does additional things now
+    such as passing build flags or cleaning the package. This also implies
+    dpkg-source --before build to apply patches, so remove the explicit call
+    to that again. (Closes: #737632)
 
  -- Martin Pitt <mpitt@debian.org>  Wed, 05 Feb 2014 07:39:47 +0100
 
