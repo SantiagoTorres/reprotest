@@ -13,6 +13,8 @@ autopkgtest (2.7.1) UNRELEASED; urgency=medium
     that there are none. (Closes: #737242)
   * adt-run: When expanding @builddeps@, add "make" as test almost always need
     it to call "make installcheck" or similar.
+  * Print package version as first adt-run message ("@devel@" when running out
+    of source tree).
 
  -- Martin Pitt <mpitt@debian.org>  Wed, 05 Feb 2014 07:39:47 +0100
 

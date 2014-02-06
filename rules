@@ -22,6 +22,8 @@
 # See the file CREDITS for a full list of credits information (often
 # installed as /usr/share/doc/autopkgtest/CREDITS).
 
+VERSION=$(shell dpkg-parsechangelog  | sed -n '/^Version:/ {s/^.*: //; p}')
+
 %:
 	dh "$@"
 
@@ -35,6 +37,9 @@ override_dh_auto_install:
 
 	cd debian/autopkgtest-xenlvm/etc/userv/services.d && \
 		mv -f adt-xenlvm-testbed:dist adt-xenlvm-testbed
+
+	# put our package version into adt-run for logging
+	sed -i 's/@devel@/$(VERSION)/' debian/autopkgtest/usr/bin/adt-run
 
 override_dh_installinit:
 	dh_installinit -p autopkgtest-xenlvm --onlyscripts --name=adtxenlvm -- defaults 19
