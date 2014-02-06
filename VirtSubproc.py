@@ -33,6 +33,7 @@ import errno
 import time
 import re
 import pipes
+import socket
 
 debuglevel = None
 progname = "<VirtSubproc>"
@@ -207,6 +208,36 @@ class timeout:
             bomb(self.exit_msg)
             return True
         return False
+
+
+def get_unix_socket(path):
+    '''Open a connected client socket to given Unix socket with a 5s timeout'''
+
+    s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+    with timeout(5, 'Timed out waiting for %s socket\n' % path):
+        while True:
+            try:
+                s.connect(path)
+                break
+            except socket.error:
+                continue
+    return s
+
+
+def expect(sock, search_str, timeout_sec, description=None):
+    debug('expect: "%s"' % search_str)
+    what = '"%s"' % (description or search_str or 'data')
+    out = b''
+    with timeout(timeout_sec,
+                 description and ('timed out waiting for %s' % what) or None):
+        while True:
+            time.sleep(0.1)
+            block = sock.recv(4096)
+            #debug('expect: got block: %s' % block)
+            out += block
+            if search_str is None or search_str in out:
+                debug('expect: found "%s"' % what)
+                break
 
 
 def cmd_open(c, ce):
