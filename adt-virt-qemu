@@ -1,0 +1,353 @@
+#!/usr/bin/python
+#
+# adt-virt-qemu is part of autopkgtest
+# autopkgtest is a tool for testing Debian binary packages
+#
+# autopkgtest is Copyright (C) 2006-2014 Canonical Ltd.
+#
+# adt-virt-qemu was developed by
+# Martin Pitt <martin.pitt@ubuntu.com>
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+#
+# See the file CREDITS for a full list of credits information (often
+# installed as /usr/share/doc/autopkgtest/CREDITS).
+
+import sys
+import os
+import pwd
+import subprocess
+import tempfile
+import shutil
+import optparse
+import time
+import atexit
+from glob import glob
+
+try:
+    our_base = os.environ['AUTOPKGTEST_BASE']+'/lib'
+except KeyError:
+    our_base = '/usr/share/autopkgtest/python'
+sys.path.insert(1, our_base)
+
+import VirtSubproc
+
+options = None
+images = None
+workdir = None
+p_qemu = None
+
+
+def parse_args():
+    global options, images
+
+    usage = '%prog [<options>] <disk image 0> [<disk image 1> ...]'
+    parser = optparse.OptionParser(usage=usage)
+
+    qemu_cmd_default = 'qemu-system-' + os.uname()[4]
+    user_default = pwd.getpwuid(os.geteuid()).pw_name
+
+    parser.add_option('-q', '--qemu-command', default=qemu_cmd_default,
+                      help='QEMU command to run (default: %s)' % qemu_cmd_default)
+    # FIXME: actually use that
+    parser.add_option('-o', '--overlay-dir', default='/tmp',
+                      help='Directory for temporary overlays (default: /tmp)')
+    parser.add_option('-u', '--user', default=user_default,
+                      help='(Non-root) user to log into the VM (default: %s)' % user_default)
+    parser.add_option('--ram-size', type=int, default=1024,
+                      help='VM RAM size in MiB (default: 1024)')
+    parser.add_option('-d', '--debug', action='store_true')
+
+    (options, images) = parser.parse_args()
+    if len(images) < 1:
+        parser.error('need at least one arg, the QEMU image (will not be modified)')
+
+    VirtSubproc.debuglevel = options.debug
+
+
+def nbd_image(image):
+    '''Find a free NBD device and put image on it
+
+    Return device.
+    '''
+    if not os.path.exists('/dev/nbd0'):
+        VirtSubproc.debug('Loading nbd module...')
+        subprocess.check_call(['modprobe', 'nbd'])
+        time.sleep(1)
+        if not os.path.exists('/dev/nbd0'):
+            VirtSubproc.bomb('Missing /dev/nbd0')
+
+    for dev in glob('/dev/nbd[0-9]'):
+        VirtSubproc.debug('Trying %s' % dev)
+        if subprocess.call(['qemu-nbd', '-c', dev, image]) == 0:
+            VirtSubproc.debug('Successfully mounted image to %s' % dev)
+            return dev
+    else:
+        VirtSubproc.bomb('Did not find a free NBD device')
+    return None  # not reached
+
+
+def prepare_overlay():
+    '''Generate a temporary overlay image and set it up for adt-run'''
+
+    # generate a temporary overlay
+    overlay = os.path.join(workdir, 'overlay.img')
+    VirtSubproc.debug('Creating temporary overlay image in %s' % overlay)
+    subprocess.check_call(['qemu-img', 'create', '-q', '-f', 'qcow2', '-o',
+                           'backing_file=' + images[0], overlay])
+
+    # mount it
+    mnt = os.path.join(workdir, 'mnt')
+    os.mkdir(mnt)
+    nbd_dev = nbd_image(overlay)
+    try:
+        if subprocess.call(['mount', nbd_dev + 'p1', mnt]) != 0:
+            if subprocess.call(['mount', nbd_dev, mnt]) != 0:
+                VirtSubproc.bomb('failed to mount image')
+
+        # create init script which opens a root shell on ttyS1
+        script = os.path.join(mnt, 'etc', 'init.d', 'autopkgtest')
+        with open(script, 'w') as f:
+            f.write('''#!/bin/sh
+set -e
+if [ "$1" = "start" ]; then
+    if [ ! -d /autopkgtest ]; then
+        mkdir /autopkgtest
+        mount -t 9p -o trans=virtio,access=any autopkgtest /autopkgtest
+        chmod 777 /autopkgtest
+    fi
+    (setsid sh </dev/ttyS1 >/dev/ttyS1 2>&1) &
+    touch /autopkgtest/booted
+fi''')
+        os.chmod(script, 0o755)
+        os.symlink('../init.d/autopkgtest',
+                   os.path.join(mnt, 'etc', 'rc2.d', 'S99autopkgtest'))
+    finally:
+        # umount image
+        subprocess.call(['umount', mnt])
+        subprocess.check_call(['qemu-nbd', '-d', nbd_dev],
+                              stdout=subprocess.PIPE)
+
+    VirtSubproc.debug('Temporary overlay image in %s created' % overlay)
+    return overlay
+
+
+def make_auxverb(pty, shared_dir):
+    '''Create auxverb script'''
+
+    auxverb = os.path.join(workdir, 'runcmd')
+    with open(auxverb, 'w') as f:
+        f.write('''#!%(py)s
+import sys, os, tempfile, threading, time, atexit, shutil, fcntl, errno, pipes
+
+pty = '%(pty)s'
+dir_host = '%(dir)s'
+job_host = tempfile.mkdtemp(prefix='job.', dir=dir_host)
+atexit.register(shutil.rmtree, job_host)
+os.chmod(job_host, 0o755)
+job_guest = '/autopkgtest/' + os.path.basename(job_host)
+running = True
+
+def shovel(fin, fout):
+    fcntl.fcntl(fin, fcntl.F_SETFL, fcntl.fcntl(fin, fcntl.F_GETFL) | os.O_NONBLOCK)
+    while running:
+        try:
+            block = fin.read()
+        except IOError as e:
+            if e.errno != errno.EAGAIN:
+                raise
+            block = None
+        if not block:
+            fout.flush()
+            time.sleep(0.01)
+            continue
+        while True:
+            try:
+                fout.write(block)
+                break
+            except IOError as e:
+                if e.errno != errno.EAGAIN:
+                    raise
+                continue
+
+
+# redirect the guest process stdin/out/err files to our stdin/out/err
+fin = os.path.join(job_host, 'stdin')
+fout = os.path.join(job_host, 'stdout')
+ferr = os.path.join(job_host, 'stderr')
+with open(fout, 'w'):
+    pass
+with open(ferr, 'w'):
+    pass
+t_stdin = threading.Thread(None, shovel, 'copy-in', (sys.stdin, open(fin, 'w')))
+t_stdin.start()
+t_stdout = threading.Thread(None, shovel, 'copy-out', (open(fout), sys.stdout))
+t_stdout.start()
+t_stderr = threading.Thread(None, shovel, 'copy-err', (open(ferr), sys.stderr))
+t_stderr.start()
+
+# give the stdin reading some head start
+time.sleep(0.1)
+
+# run command through QEMU shell
+with open(pty, 'w') as f:
+    f.write('%%(c)s < %%(d)s/stdin >> %%(d)s/stdout 2>> %%(d)s/stderr; echo $?  > %%(d)s/exit\\n' %%
+            {'d': job_guest, 'c': ' '.join(map(pipes.quote, sys.argv[1:]))})
+
+# wait until command has exited
+path_exit = os.path.join(job_host, 'exit')
+while not os.path.exists(path_exit):
+    time.sleep(0.2)
+running = False
+
+with open(path_exit) as f:
+    rc = int(f.read().strip())
+
+t_stdin.join()
+t_stdout.join()
+t_stderr.join()
+sys.exit(rc)
+''' % {'py': sys.executable, 'pty': pty, 'dir': shared_dir})
+
+    os.chmod(auxverb, 0o755)
+
+    VirtSubproc.down = [auxverb]
+    VirtSubproc.downkind = 'auxverb'
+
+
+def hook_open():
+    global workdir, p_qemu
+
+    workdir = tempfile.mkdtemp(prefix='adt-virt-qemu')
+    os.chmod(workdir, 0o755)
+
+    shareddir = os.path.join(workdir, 'shared')
+    os.mkdir(shareddir)
+
+    overlay = prepare_overlay()
+
+    # start QEMU
+    argv = [options.qemu_command,
+            '-enable-kvm',  # FIXME
+            '-m', str(options.ram_size),
+            '-localtime',
+            '-no-reboot',
+            '-nographic',
+            '-net', 'user',
+            '-net', 'nic,model=virtio',
+            '-monitor', 'unix:%s/monitor,server,nowait' % workdir,
+            '-serial', 'pty',
+            '-serial', 'pty',
+            '-virtfs',
+            'local,id=autopkgtest,path=%s,security_model=none,mount_tag=autopkgtest' % shareddir,
+            '-drive', 'file=%s,if=virtio,index=0' % overlay,
+           ]
+    for i, image in enumerate(images[1:]):
+        argv.append('-drive')
+        argv.append('file=%s,if=virtio,index=%i,readonly' % (image, i + 1))
+
+    p_qemu = subprocess.Popen(argv)
+
+    time.sleep(1)
+
+    # determine assigned PTYs
+    nc = subprocess.Popen(['nc', '-U', os.path.join(workdir, 'monitor')],
+                          stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                          universal_newlines=True)
+    out = nc.communicate('info chardev\n')[0].strip()
+    sh_pty = None
+    s0_pty = None
+    for l in out.splitlines():
+        if l.startswith('serial1: filename'):
+            sh_pty = l.split(':')[-1]
+            VirtSubproc.debug('shell PTY (serial1) is %s' % sh_pty)
+        elif l.startswith('serial0: filename'):
+            s0_pty = l.split(':')[-1]
+            sys.stderr.write('adt-virt-qemu: guest ttyS0 is on %s\n' % s0_pty)
+    if not sh_pty:
+        VirtSubproc.bomb('Failed to parse serial1 PTY from "info chardev":\n%s\n----' % out)
+
+    # read the shell PTY into a log file; without that, commands never actually
+    # get executed (the shell blocks on writing stdout), and this is nice for
+    # debugging anyway
+    sh_out_cat = subprocess.Popen(['cat', sh_pty],
+                                  stdout=open(os.path.join(workdir, 'guestsh.log'), 'w'),
+                                  stderr=subprocess.PIPE)
+    atexit.register(sh_out_cat.wait)
+    atexit.register(sh_out_cat.terminate)
+
+    # wait until boot is completed
+    VirtSubproc.debug('Waiting until boot is complete')
+    timeout = 180
+    while timeout > 0:
+        time.sleep(1)
+        timeout -= 1
+        if os.path.exists(os.path.join(shareddir, 'booted')):
+            break
+    else:
+        VirtSubproc.bomb('Timed out waiting for complete booting')
+
+    make_auxverb(sh_pty, shareddir)
+
+    try:
+        # verify that we can connect
+        status, out = VirtSubproc.execute_raw('down_check', None, 5, VirtSubproc.down + ['runlevel'],
+                                              stdout=subprocess.PIPE)
+        VirtSubproc.debug('runlevel: exit %i, out "%s"' % (status, out))
+        if status == 0 and out.endswith('2\n'):
+            VirtSubproc.debug('can connect to autopkgtest sh in VM')
+        else:
+            VirtSubproc.bomb('failed to connect to VM')
+    except:
+        # Clean up on failure
+        hook_cleanup()
+        raise
+
+
+def hook_downtmp():
+    downtmp = '/tmp/adt-downtmp'
+    VirtSubproc.execute('mkdir -p %s' % downtmp, downp=True)
+    return downtmp
+
+
+def hook_revert():
+    hook_cleanup()
+    hook_open()
+
+
+def hook_cleanup():
+    global p_qemu, workdir
+
+    if p_qemu:
+        p_qemu.terminate()
+        p_qemu.wait()
+        p_qemu = None
+
+    shutil.rmtree(workdir)
+    workdir = None
+
+def hook_forked_inchild():
+    pass
+
+
+def hook_capabilities():
+    caps = ['revert', 'revert-full-system', 'root-on-testbed']
+    if options.user and options.user != 'root':
+        caps.append('suggested-normal-user=' + options.user)
+    return caps
+
+
+parse_args()
+VirtSubproc.main()
