@@ -1,0 +1,241 @@
+#!/usr/bin/python
+#
+# adt-buildvm-ubuntu-cloud is part of autopkgtest
+# autopkgtest is a tool for testing Debian binary packages
+#
+# autopkgtest is Copyright (C) 2006-2014 Canonical Ltd.
+#
+# Build a suitable autopkgtest VM from the Ubuntu cloud images:
+# http://cloud-images.ubuntu.com/
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+#
+# See the file CREDITS for a full list of credits information (often
+# installed as /usr/share/doc/autopkgtest/CREDITS).
+
+import argparse
+import tempfile
+import sys
+import subprocess
+import shutil
+import atexit
+import urllib
+import os
+import time
+
+try:
+    our_base = os.environ['AUTOPKGTEST_BASE'] + '/lib'
+except KeyError:
+    our_base = '/usr/share/autopkgtest/python'
+sys.path.insert(1, our_base)
+
+import VirtSubproc
+
+workdir = tempfile.mkdtemp(prefix='adt-buildvm-ubuntu-cloud')
+atexit.register(shutil.rmtree, workdir)
+
+
+def get_default_release():
+    try:
+        import distro_info
+        return distro_info.UbuntuDistroInfo().devel()
+    except ImportError:
+        sys.stderr.write('WARNING: python-distro-info not installed, falling '
+                         'back to determining default release from currently '
+                         'installed release\n')
+    if subprocess.call(['which', 'distro-info'], stdout=subprocess.PIPE) == 0:
+        return subprocess.check_output(['lsb_release', '-cs'],
+                                       universal_newlines=True).strip()
+
+
+def parse_args():
+    '''Parse CLI args'''
+
+    parser = argparse.ArgumentParser(fromfile_prefix_chars='@')
+
+    default_arch = subprocess.check_output(['dpkg', '--print-architecture'],
+                                           universal_newlines=True).strip()
+    qemu_default_cmds = {'i386': 'qemu-system-i386',
+                         'amd64': 'qemu-system-x86_64'}
+
+    parser.add_argument('-a', '--arch', default=default_arch,
+                        help='Ubuntu architecture (default: %(default)s)')
+    parser.add_argument('-r', '--release', metavar='CODENAME',
+                        default=get_default_release(),
+                        help='Ubuntu release code name (default: %(default)s)')
+    parser.add_argument('-m', '--mirror', metavar='URL',
+                        default='http://archive.ubuntu.com/ubuntu',
+                        help='Use this mirror for apt (default: %(default)s)')
+    parser.add_argument('-p', '--proxy', metavar='URL',
+                        help='Use a proxy for apt')
+    parser.add_argument('-s', '--disk-size', default='4G',
+                        help='grow image by this size (default: %(default)s)')
+    parser.add_argument('-o', '--output-dir', metavar='DIR', default='.',
+                        help='output directory for generated image (default: '
+                        'current directory)')
+    parser.add_argument('-q', '--qemu-command',
+                        default=qemu_default_cmds[default_arch],
+                        help='qemu command (default: %(default)s)')
+    parser.add_argument('-v', '--verbose', action='store_true', default=False,
+                        help='Show VM guest and cloud-init output')
+    parser.add_argument('--cloud-image-url', metavar='URL',
+                        default='http://cloud-images.ubuntu.com',
+                        help='cloud images URL (default: %(default)s)')
+    parser.add_argument('--no-apt-upgrade', action='store_true',
+                        help='Do not run apt-get dist-upgrade')
+
+    return parser.parse_args()
+
+
+def download_image(cloud_img_url, release, arch):
+    diskname = '%s-server-cloudimg-%s-disk1.img' % (release, arch)
+    image_url = '%s/%s/current/%s' % (cloud_img_url, release, diskname)
+    local_image = os.path.join(workdir, diskname)
+
+    print('Downloading %s...' % image_url)
+
+    is_tty = os.isatty(sys.stdout.fileno())
+    download_image.lastpercent = 0
+
+    def report(numblocks, blocksize, totalsize):
+        cur_bytes = numblocks * blocksize
+        percent = int(cur_bytes * 100. / totalsize + .5)
+        if is_tty:
+            if percent > download_image.lastpercent:
+                download_image.lastpercent = percent
+                sys.stdout.write('\r%.1f/%.1f MB (%i%%)                 ' % (
+                    cur_bytes/1000000.,
+                    totalsize/1000000.,
+                    percent))
+                sys.stdout.flush()
+        else:
+            if percent >= download_image.lastpercent + 10:
+                download_image.lastpercent = percent
+                sys.stdout.write('%i%% ' % percent)
+                sys.stdout.flush()
+
+    headers = urllib.urlretrieve(image_url, local_image, report)[1]
+    if headers['content-type'] not in ('application/octet-stream',
+                                       'text/plain'):
+        sys.stderr.write('\nDownload failed!\n')
+        sys.exit(1)
+    print('\nDownload successful.')
+
+    return local_image
+
+
+def resize_image(image, size):
+    print('Resizing image, adding %s...' % size)
+    subprocess.check_call(['qemu-img', 'resize', image, '+' + size])
+
+
+def build_seed(mirror, proxy, release, no_apt_upgrade):
+    print('Building seed image...')
+    with open(os.path.join(workdir, 'meta-data'), 'w') as f:
+        f.write('instance-id: nocloud\nlocal-hostname: autopkgtest\n')
+
+    upgr = no_apt_upgrade and 'false' or 'true'
+    with open(os.path.join(workdir, 'user-data'), 'w') as f:
+        f.write('''#cloud-config
+locale: en_US.UTF-8
+timezone: Etc/UTC
+
+password: ubuntu
+chpasswd: { expire: False }
+manage_etc_hosts: True
+apt_proxy: %(proxy)s
+apt_mirror: %(mirror)s
+apt_sources:
+ - source: deb %(mirror)s %(rel)s restricted multiverse
+ - source: deb-src %(mirror)s %(rel)s restricted multiverse
+
+apt_upgrade: %(upgr)s
+
+write_files:
+ - path: /etc/init.d/autopkgtest
+   permissions: '0755'
+   content: |
+        #!/bin/sh
+        (setsid sh </dev/ttyS1 >/dev/ttyS1 2>&1) &
+
+runcmd:
+ - [ ln, -s, ../init.d/autopkgtest , /etc/rc2.d/S99autopkgtest ]
+ - [ apt-get, -y, purge, cloud-init ]
+ - [ shutdown, -P, now ]
+''' % {'proxy': proxy or '', 'mirror': mirror, 'rel': release, 'upgr': upgr})
+
+    genisoimage = subprocess.Popen(['genisoimage', '-output', 'adt.seed',
+                                    '-volid', 'cidata', '-joliet', '-rock',
+                                    '-quiet', 'user-data', 'meta-data'],
+                                   cwd=workdir)
+    genisoimage.communicate()
+    if genisoimage.returncode != 0:
+        sys.exit(1)
+
+    return os.path.join(workdir, 'adt.seed')
+
+
+def boot_image(image, seed, qemu_command, verbose):
+    print('Booting image to run cloud-init...')
+
+    tty_sock = os.path.join(workdir, 'ttyS0')
+
+    qemu = subprocess.Popen([qemu_command, '-enable-kvm', '-m', '512',
+                             '-localtime', '-nographic',
+                             '-monitor', 'none',
+                             '-serial', 'unix:%s,server,nowait' % tty_sock,
+                             '-drive', 'file=%s,if=virtio' % image,
+                             '-drive', 'file=%s,if=virtio,readonly' % seed])
+
+    try:
+        if verbose:
+            tty = VirtSubproc.get_unix_socket(tty_sock)
+
+        # wait for cloud-init to finish and VM to shutdown
+        with VirtSubproc.timeout(3600, 'timed out on cloud-init'):
+            while qemu.poll() is None:
+                time.sleep(0.2)
+                if verbose:
+                    block = tty.recv(4096)
+                    sys.stdout.write(block)
+    finally:
+        if qemu.poll() is None:
+            qemu.terminate()
+        if qemu.wait() != 0:
+            sys.stderr.write('qemu failed with status %i\n' % qemu.returncode)
+            #sys.exit(1)
+
+
+def install_image(src, dest):
+    # We want to atomically update dest, and in case multiple instances are
+    # running the last one should win. So we first copy/move it to
+    # dest.<currenttime> (which might take a while for crossing file systems),
+    # then atomically rename to dest.
+    print('Moving image into final destination %s' % dest)
+    desttmp = dest + str(time.time())
+    shutil.move(image, desttmp)
+    os.rename(desttmp, dest)
+
+#
+# main
+#
+
+args = parse_args()
+image = download_image(args.cloud_image_url, args.release, args.arch)
+resize_image(image, args.disk_size)
+seed = build_seed(args.mirror, args.proxy, args.release, args.no_apt_upgrade)
+boot_image(image, seed, args.qemu_command, args.verbose)
+install_image(image, os.path.join(args.output_dir, 'adt-%s-%s-cloud.img' %
+                                  (args.release, args.arch)))
