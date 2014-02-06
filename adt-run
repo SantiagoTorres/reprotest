@@ -572,7 +572,7 @@ class Testbed:
         debug('** ' + m, minlevel)
 
     def start(self):
-        self._debug('start', 1)
+        debug('version @devel@')
         debug_subprocess('vserver', opts.vserver)
         self.sp = subprocess.Popen(opts.vserver,
                                    stdin=subprocess.PIPE,
