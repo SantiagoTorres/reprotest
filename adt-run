@@ -1498,6 +1498,9 @@ def build_deps_from_source(act, tree):
                 dp = d.strip()
                 if dp:
                     deps.append(dp)
+    # we also almost always need make installed to run "make installcheck" or
+    # similar, so provide it
+    deps.append('make')
     return deps
 
 
