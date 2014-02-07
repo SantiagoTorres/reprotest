@@ -65,6 +65,7 @@ def alarm_handler(*a):
 
 
 def timeout_start(to):
+    signal.signal(signal.SIGALRM, alarm_handler)
     signal.alarm(to)
 
 
@@ -186,6 +187,27 @@ def execute(cmd_string, cmd_list=[], downp=False, outp=False, timeout=0):
     if outp and out and out[-1] == '\n':
         out = out[:-1]
     return out
+
+
+class timeout:
+    def __init__(self, secs, exit_msg=None):
+        '''Context manager that times out after given number of seconds.
+
+        If exit_msg is given, the program bomb()s with that message,
+        otherwise it raises a Timeout exception.
+        '''
+        self.secs = secs
+        self.exit_msg = exit_msg
+
+    def __enter__(self):
+        timeout_start(self.secs)
+
+    def __exit__(self, type_, value, traceback):
+        timeout_stop()
+        if type_ is Timeout and self.exit_msg:
+            bomb(self.exit_msg)
+            return True
+        return False
 
 
 def cmd_open(c, ce):
@@ -531,7 +553,6 @@ def mainloop():
 
 
 def main():
-    signal.signal(signal.SIGALRM, alarm_handler)
     ok()
     prepare()
     mainloop()
