@@ -1,4 +1,4 @@
-autopkgtest (2.7.1) UNRELEASED; urgency=medium
+autopkgtest (2.7.1) unstable; urgency=medium
 
   * VirtSubproc.py, command(): Intercept/retry on EAGAIN.
   * runner/adt-run: Robustify cleanup of empty "binaries" output directory, it
@@ -22,7 +22,7 @@ autopkgtest (2.7.1) UNRELEASED; urgency=medium
     timeout_end() and bomb() (if an exit message is given) or a Timeout
     exception (otherwise) together in the right way, for convenience.
 
- -- Martin Pitt <mpitt@debian.org>  Wed, 05 Feb 2014 07:39:47 +0100
+ -- Martin Pitt <mpitt@debian.org>  Fri, 07 Feb 2014 14:52:42 +0100
 
 autopkgtest (2.7) unstable; urgency=medium
 
