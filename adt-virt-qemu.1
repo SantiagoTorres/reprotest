@@ -1,0 +1,164 @@
+.TH adt\-virt-qemu 1 2014 "Linux Programmer's Manual"
+.SH NAME
+adt\-virt\-qemu \- autopkgtest virtualisation server using QEMU
+
+.SH SYNOPSYS
+.B adt\-virt\-qemu
+.RI [ options ]
+.I image \fR[\fIro-image\fR ...]
+
+.SH DESCRIPTION
+.B adt-virt-qemu
+provides an autopkgtest virtualisation server using QEMU.
+
+Normally
+.B adt-virt-qemu
+will be invoked by
+.BR adt-run .
+
+You always need to specify at least one QEMU VM image. If your VM needs
+more disks, you can specify arbitrarily many additional images which will
+be added in order.
+
+.B adt-virt-qemu
+does
+.B not modify
+the given images, but will instead create a temporary overlay for the
+primary image, and add all other images as read-only.
+
+.SH REQUIREMENTS
+.B adt-virt-qemu
+assumes that you have already prepared a suitable Debian based QEMU image.
+autopkgtest provides \fBadt-buildvm-ubuntu-cloud\fR(1) to build a VM based
+on the Ubuntu cloud images, but you can use any VM which satisfies one of:
+
+.IP * 4
+They open a root shell on ttyS1, or
+
+.IP * 4
+They have a serial console on ttyS0 where you can log in (getty or similar)
+with specified user and password. This will then be used to start a root
+shell on ttyS1, to reduce this to the first case and to not assume that
+ttyS0 stays operational throughout the whole test.
+
+.SH OPTIONS
+
+.TP
+.BI -u " user" " | --user=" user
+
+User name for running tests that don't require root privileges.
+
+If the VM is not already prepared to start a root shell on ttyS1 this will be
+also used for logging in on ttyS0. If this is not root, it must be able to run
+sudo without a password to become root for that purpose.
+
+.TP
+.BI -p " password" " | --password=" password
+Password for above user for logging into the VM on ttyS0. This is necessary
+if the VM is not already prepared to start a root shell on ttyS1.
+
+.TP
+.BI -q " command" " | --qemu-command=" command
+QEMU command to run. This defaults to the
+.B qemu-system-*
+that matches your system architecture.
+
+.TP
+.BI -o " dir" " | --overlay-dir=" dir
+Directory where the temporary image overlay for the primary image is
+created. By default this will happen in a work directory in
+.I /tmp
+(or \fI$TMPDIR\fR), but you can use this to e. g. ensure that the overlay
+is placed on a tmpfs if your
+.I /tmp
+directory is not on tmpfs. This will greatly increase the speed.
+
+.TP
+.BI "--ram-size=" MiB
+VM RAM size in MiB. Default is 1024, i. e. 1 GiB.
+
+.TP
+.BR \-d " | " \-\-debug
+Enable debugging output.
+
+.SH CONFIGURATION FILES
+If you use lots of options or images, you can put parts of, or the whole
+command line into a text file, with one line per option. E. g. you can create a
+file
+.I sid-desktop.cfg
+with contents like
+
+.RS
+.EX
+-utestuser
+-ps3kr1t
+--ram-size=4096
+/home/bob/autopkgtest/sid-desktop.img
+.EE
+.RE
+
+and then run
+
+.RS
+.EX
+adt-run [...] --- adt-virt-qemu @sid-desktop.cfg
+.EE
+.RE
+
+The contents of the configuration file will be expanded in-place as if you
+would have given its contents on the command line. Please ensure that you
+.B don't place spaces
+between short options and their values, they would become a part of the
+argument value.
+
+.SH INPUT, OUTPUT AND EXIT STATUS
+The behaviour of
+.B adt-virt-qemu
+is as described by the AutomatedTesting virtualisation regime
+specification.
+
+.SH NOTES
+
+\fBadt-run\fR does not run \fBapt-get update\fR at the start of a package
+build, which can cause a build failure if you are using a development
+series template. You will need to run \fBapt-get update\fR in the template
+yourself (e. g. using \fB\-\-setup\-commands\fR).
+
+.SH EXAMPLE
+
+Create an Ubuntu cloud image for the current development series and the i386
+architecture:
+
+.RS
+.EX
+adt-buildvm-ubuntu-cloud -v -a i386
+.EE
+.RE
+
+This will produce e. g.
+.B adt-trusty-i386-cloud.img\fR.
+Now run the tests of the libpng source package of that release, using that
+image:
+
+.RS
+.EX
+adt-run libpng --- adt-virt-qemu adt-trusty-i386-cloud.img
+.EE
+.RE
+
+.SH SEE ALSO
+\fBadt\-run\fR(1),
+\fBadt\-virt-schroot\fR(1),
+\fBadt\-virt-lxc\fR(1),
+\fBadt-buildvm-ubuntu-cloud\fR(1),
+\fB/usr/share/doc/autopkgtest/\fR.
+
+.SH AUTHORS AND COPYRIGHT
+.B adt-virt-qemu
+was written by Martin Pitt <martin.pitt@ubuntu.com>
+
+This manpage is part of autopkgtest, a tool for testing Debian binary
+packages.  autopkgtest is Copyright (C) 2006-2014 Canonical Ltd and others.
+
+See \fB/usr/share/doc/autopkgtest/CREDITS\fR for the list of
+contributors and full copying conditions.
