@@ -46,6 +46,7 @@ down = None
 downkind = None
 downs = None
 cleaning = False
+in_mainloop = False
 
 
 class Quit:
@@ -84,7 +85,12 @@ def debug(m):
 
 
 def bomb(m):
-    raise Quit(12, progname + ": failure: %s" % m)
+    if in_mainloop:
+        raise Quit(12, progname + ": failure: %s" % m)
+    else:
+        sys.stderr.write(m)
+        sys.stderr.write('\n')
+        sys.exit(1)
 
 
 def ok():
@@ -504,6 +510,9 @@ def prepare():
 
 
 def mainloop():
+    global in_mainloop
+    in_mainloop = True
+
     try:
         while True:
             command()
@@ -517,6 +526,8 @@ def mainloop():
         print >> sys.stderr, "Unexpected error:"
         traceback.print_exc()
         sys.exit(16)
+    finally:
+        in_mainloop = False
 
 
 def main():
