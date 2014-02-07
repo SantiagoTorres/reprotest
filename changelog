@@ -18,6 +18,9 @@ autopkgtest (2.7.1) UNRELEASED; urgency=medium
   * Turn VirtSubproc.Timeout into a proper exception class (RuntimeError).
   * Make VirtSubproc.bomb() useful outside the mainloop, so that we can
     use it in utility functions that are used outside of runners.
+  * VirtSubproc: Add a "timeout" context manager which plumbs timeout_start(),
+    timeout_end() and bomb() (if an exit message is given) or a Timeout
+    exception (otherwise) together in the right way, for convenience.
 
  -- Martin Pitt <mpitt@debian.org>  Wed, 05 Feb 2014 07:39:47 +0100
 
