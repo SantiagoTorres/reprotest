@@ -55,7 +55,7 @@ class Quit:
         self.m = m
 
 
-class Timeout:
+class Timeout(RuntimeError):
     pass
 
 
