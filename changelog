@@ -16,6 +16,8 @@ autopkgtest (2.7.1) UNRELEASED; urgency=medium
   * Print package version as first adt-run message ("@devel@" when running out
     of source tree).
   * Turn VirtSubproc.Timeout into a proper exception class (RuntimeError).
+  * Make VirtSubproc.bomb() useful outside the mainloop, so that we can
+    use it in utility functions that are used outside of runners.
 
  -- Martin Pitt <mpitt@debian.org>  Wed, 05 Feb 2014 07:39:47 +0100
 
