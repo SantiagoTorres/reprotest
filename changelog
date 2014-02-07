@@ -15,6 +15,7 @@ autopkgtest (2.7.1) UNRELEASED; urgency=medium
     it to call "make installcheck" or similar.
   * Print package version as first adt-run message ("@devel@" when running out
     of source tree).
+  * Turn VirtSubproc.Timeout into a proper exception class (RuntimeError).
 
  -- Martin Pitt <mpitt@debian.org>  Wed, 05 Feb 2014 07:39:47 +0100
 
