@@ -1,6 +1,7 @@
 autopkgtest (2.7.2) UNRELEASED; urgency=medium
 
   * debian/copyright, CREDITS: Bump copyright year.
+  * Eliminate lib/Autopkgtest.py, use pipes.quote() instead of shellquote_*().
 
  -- Martin Pitt <mpitt@debian.org>  Fri, 07 Feb 2014 14:55:46 +0100
 
