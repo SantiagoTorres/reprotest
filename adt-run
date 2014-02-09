@@ -38,6 +38,7 @@ import shutil
 import copy
 import time
 import atexit
+import pipes
 
 try:
     from debian import deb822, debian_support
@@ -54,8 +55,6 @@ try:
 except KeyError:
     our_base = '/usr/share/autopkgtest/python'
 sys.path.insert(1, our_base)
-
-from Autopkgtest import shellquote_cmdl
 
 #---------- global variables
 
@@ -622,6 +621,9 @@ class Testbed:
 
         self._debug('cmdl = %s' % str(cmdl), 1)
 
+        # turn cmdl into a shell-qouted string
+        cmdl_str = ' '.join(map(pipes.quote, cmdl))
+
         self.ec_auxverbscript = os.path.join(tmp, 'satdep-auxverb')
         with open(self.ec_auxverbscript, 'w') as f:
             f.write('''#!/bin/sh
@@ -632,7 +634,7 @@ if [ $# = 2 ] && [ "x$1" = xdpkg-architecture ] && [ "x$2" = x-qDEB_HOST_ARCH ];
     set -- dpkg --print-architecture
 fi
 export DEBIAN_FRONTEND=noninteractive
-exec ''' + shellquote_cmdl(cmdl) + ' "$@"\n')
+exec ''' + cmdl_str + ' "$@"\n')
         os.chmod(self.ec_auxverbscript, 0755)
 
     def mungeing_apt(self):
