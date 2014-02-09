@@ -8,6 +8,10 @@ autopkgtest (2.7.2) UNRELEASED; urgency=medium
     adt-virt-schroot.1 to point to mk-sbuild(1) instead.
   * CREDITS: Remove license information, it does not belong there and we don't
     need that any more as debian/copyright file.
+  * adt-testreport-*, adt-openbugs-*: Add warning that these scripts are
+    unmaintained and deprecated in favour of http://ci.debian.net, debci,
+    and/or jenkins. If you still use them, please mail
+    autopkgtest-devel@lists.alioth.debian.org!
 
  -- Martin Pitt <mpitt@debian.org>  Fri, 07 Feb 2014 14:55:46 +0100
 
