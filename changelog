@@ -2,6 +2,10 @@ autopkgtest (2.7.2) UNRELEASED; urgency=medium
 
   * debian/copyright, CREDITS: Bump copyright year.
   * Eliminate lib/Autopkgtest.py, use pipes.quote() instead of shellquote_*().
+  * Drop doc/README.schroot-setup. Using LVM for schroot overlays is not
+    recommended as it is too slow and also too hard to set up. You should
+    rather use overlays or unpacked tarballs on tmpfs. Adjust
+    adt-virt-schroot.1 to point to mk-sbuild(1) instead.
 
  -- Martin Pitt <mpitt@debian.org>  Fri, 07 Feb 2014 14:55:46 +0100
 
