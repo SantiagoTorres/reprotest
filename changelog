@@ -14,6 +14,8 @@ autopkgtest (2.7.2) UNRELEASED; urgency=medium
     autopkgtest-devel@lists.alioth.debian.org!
   * README.package-tests: Document that @builddeps@ also installs make.
     (Closes: #738129)
+  * Add Suggests: for schroot and lxc, and explain those in the package
+    description.
 
  -- Martin Pitt <mpitt@debian.org>  Fri, 07 Feb 2014 14:55:46 +0100
 

@@ -19,7 +19,7 @@ Depends: python (>= 2.6),
  apt-utils,
  pbuilder,
  ${misc:Depends}
-Suggests: autopkgtest-xenlvm
+Suggests: autopkgtest-xenlvm, schroot, lxc
 Description: automatic as-installed testing for Debian packages
  autopkgtest runs tests on binary packages.  The tests are run on the
  package as installed on a testbed system (which may be found via a
@@ -27,8 +27,8 @@ Description: automatic as-installed testing for Debian packages
  supplied in the corresponding Debian source package.
  .
  See adt-run(1) and /usr/share/doc/autopkgtest.
- Most modes of use require apt-ftparchive from the apt-utils package.
- Use of adt-virt-xenlvm requires the autopkgtest-xenlvm package too;
+ Depending on which virtualization server you want to use, you need to
+ install additional packages (schroot, lxc, or autopkgtest-xenlvm).
 
 Package: autopkgtest-xenlvm
 Architecture: all
@@ -37,7 +37,7 @@ Recommends: lvm2, debootstrap, curl
 Suggests: autopkgtest
 Replaces: autopkgtest (<< 2.5.3~)
 Breaks: autopkgtest (<< 2.5.3~)
-Description: Xen/LVM2 based testbed snapshot system
+Description: autopkgtest Xen/LVM2 based testbed snapshot system
  Machinery for setting up a Xen domain which can be resumed over and
  over again, discarding changes made each time.  This can be useful
  for automated testing and other advanced techniques; autopkgtest is
