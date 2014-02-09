@@ -1,4 +1,4 @@
-autopkgtest (2.7.2) UNRELEASED; urgency=medium
+autopkgtest (2.7.2) unstable; urgency=medium
 
   * debian/copyright, CREDITS: Bump copyright year.
   * Eliminate lib/Autopkgtest.py, use pipes.quote() instead of shellquote_*().
@@ -20,7 +20,7 @@ autopkgtest (2.7.2) UNRELEASED; urgency=medium
     3 to 20 s, to cope with the bit of overhead that dpkg-buildpackage
     introduced.
 
- -- Martin Pitt <mpitt@debian.org>  Fri, 07 Feb 2014 14:55:46 +0100
+ -- Martin Pitt <mpitt@debian.org>  Sun, 09 Feb 2014 19:31:34 +0100
 
 autopkgtest (2.7.1) unstable; urgency=medium
 
