@@ -32,8 +32,7 @@ import traceback
 import errno
 import time
 import re
-
-from Autopkgtest import shellquote_arg, shellquote_cmdl
+import pipes
 
 debuglevel = None
 progname = "<VirtSubproc>"
@@ -319,7 +318,7 @@ def cmd_execute(c, ce):
 
     for ioe in range(3):
         rune += " %d%s%s" % (ioe, '<>'[ioe > 0],
-                             shellquote_arg(ce[ioe + 2]))
+                             pipes.quote(ce[ioe + 2]))
     if debug_g:
         (tfd, hfd) = m.groups()
         tfd = int(tfd)
@@ -328,13 +327,14 @@ def cmd_execute(c, ce):
 
     rune += '; '
 
-    rune += 'cd %s; ' % shellquote_arg(ce[5])
+    rune += 'cd %s; ' % pipes.quote(ce[5])
 
     for e in envs:
         (en, ev) = map(urllib.unquote, e)
-        rune += "%s=%s " % (en, shellquote_arg(ev))
+        rune += "%s=%s " % (en, pipes.quote(ev))
 
-    rune += 'exec ' + shellquote_cmdl(map(urllib.unquote, ce[1].split(',')))
+    cmdl = map(urllib.unquote, ce[1].split(','))
+    rune += 'exec ' + ' '.join(map(pipes.quote, cmdl))
 
     cmdl = downs['shstring'] + [rune]
 
@@ -377,7 +377,7 @@ def copyupdown(c, ce, upp):
              " (presence or absence of trailing /)" % wh)
     deststdout = devnull_read
     srcstdin = devnull_read
-    remfileq = shellquote_arg(sd[iremote])
+    remfileq = pipes.quote(sd[iremote])
     if not dirsp:
         rune = 'cat %s%s' % ('><'[upp], remfileq)
         if upp:
