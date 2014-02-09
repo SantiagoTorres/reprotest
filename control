@@ -19,7 +19,7 @@ Depends: python (>= 2.6),
  apt-utils,
  pbuilder,
  ${misc:Depends}
-Suggests: autopkgtest-xenlvm, schroot, lxc
+Suggests: autopkgtest-xenlvm, schroot, lxc, qemu-system, qemu-utils
 Description: automatic as-installed testing for Debian packages
  autopkgtest runs tests on binary packages.  The tests are run on the
  package as installed on a testbed system (which may be found via a
@@ -28,7 +28,8 @@ Description: automatic as-installed testing for Debian packages
  .
  See adt-run(1) and /usr/share/doc/autopkgtest.
  Depending on which virtualization server you want to use, you need to
- install additional packages (schroot, lxc, or autopkgtest-xenlvm).
+ install additional packages (schroot, lxc, qemu-system, or
+ autopkgtest-xenlvm).
 
 Package: autopkgtest-xenlvm
 Architecture: all
