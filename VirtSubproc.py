@@ -34,6 +34,7 @@ import time
 import re
 import pipes
 import socket
+import shutil
 
 debuglevel = None
 progname = "<VirtSubproc>"
@@ -390,6 +391,92 @@ def cmd_execute(c, ce):
     return [str(status)]
 
 
+def get_downtmp_host():
+    '''Return host directory of the testbed's downtmp dir, if supported'''
+
+    for cap in caller.hook_capabilities():
+        if cap.startswith('downtmp-host='):
+            return cap.split('=', 1)[1]
+    return None
+
+
+def copyup_shareddir(tb, host, is_dir, downtmp_host):
+    debug('copyup_shareddir: tb %s, host %s, is_dir %s, downtmp_host %s' % (
+        tb, host, is_dir, downtmp_host))
+
+    timeout_start(copy_timeout)
+    try:
+        tb_tmp = None
+        if tb.startswith(downtmp):
+            # translate into host path
+            tb = downtmp_host + tb[len(downtmp):]
+        else:
+            tb_tmp = os.path.join(downtmp, os.path.basename(host))
+            debug('copyup_shareddir: tb path %s is not already in downtmp, '
+                  'copying to %s' % (tb, tb_tmp))
+            cp = subprocess.Popen(downs['auxverb'] + ['cp', '-a', tb, tb_tmp],
+                                  preexec_fn=preexecfn)
+            cp.communicate()
+            if cp.returncode != 0:
+                bomb('copyup_shareddir: cp -a exited with code %i' %
+                     cp.returncode)
+            # translate into host path
+            tb = os.path.join(downtmp_host, os.path.basename(host))
+
+        if tb == host:
+            tb_tmp = None
+        else:
+            debug('copyup_shareddir: tb(host) %s is not already at '
+                  'destination %s, copying' % (tb, host))
+            if is_dir:
+                shutil.copytree(tb, host, symlinks=True)
+            else:
+                shutil.copy(tb, host)
+
+        if tb_tmp:
+            (is_dir and shutil.rmtree or os.unlink)(tb_tmp)
+    finally:
+        timeout_stop()
+
+
+def copydown_shareddir(host, tb, is_dir, downtmp_host):
+    debug('copydown_shareddir: host %s, tb %s, is_dir %s, downtmp_host %s' % (
+        host, tb, is_dir, downtmp_host))
+
+    host = os.path.normpath(host)
+    tb = os.path.normpath(tb)
+
+    timeout_start(copy_timeout)
+    try:
+        host_tmp = None
+        if host.startswith(downtmp_host):
+            # translate into tb path
+            host = downtmp + host[len(downtmp_host):]
+        else:
+            host_tmp = os.path.join(downtmp_host, os.path.basename(tb))
+            if is_dir:
+                shutil.copytree(host, host_tmp, symlinks=True)
+            else:
+                shutil.copy(host, host_tmp)
+            # translate into tb path
+            host = os.path.join(downtmp, os.path.basename(tb))
+
+        if host == tb:
+            host_tmp = None
+        else:
+            cp = subprocess.Popen(downs['auxverb'] + ['cp', '-a', host, tb],
+                                  preexec_fn=preexecfn)
+            cp.communicate()
+            if cp.returncode != 0:
+                bomb('copydown_shareddir: cp -a exited with code %i' %
+                     cp.returncode)
+
+        if host_tmp:
+            (is_dir and shutil.rmtree or os.unlink)(host_tmp)
+    finally:
+        timeout_stop()
+
+
 def copyupdown(c, ce, upp):
     cmdnumargs(c, ce, 2)
     if not downtmp:
@@ -406,6 +493,17 @@ def copyupdown(c, ce, upp):
     if dirsp != (sd[1][-1] == '/'):
         bomb("% paths must agree about directoryness"
              " (presence or absence of trailing /)" % wh)
+
+    # if we have a shared directory, we just need to copy it from/to there; in
+    # most cases, it's testbed end is already in the downtmp dir
+    downtmp_host = get_downtmp_host()
+    if downtmp_host:
+        if upp:
+            copyup_shareddir(sd[0], sd[1], dirsp, downtmp_host)
+        else:
+            copydown_shareddir(sd[0], sd[1], dirsp, downtmp_host)
+        return
+
     deststdout = devnull_read
     srcstdin = devnull_read
     remfileq = pipes.quote(sd[iremote])
