@@ -315,12 +315,13 @@ def hook_open():
 
 
 def hook_downtmp():
-    downtmp = '/tmp/adt-downtmp'
-    VirtSubproc.execute('mkdir -p %s' % downtmp, downp=True)
+    downtmp = '/autopkgtest/tmp'
+    VirtSubproc.execute('mkdir %s' % downtmp, downp=True)
     return downtmp
 
 
 def hook_revert():
+    VirtSubproc.downtmp_remove()
     hook_cleanup()
     hook_open()
 
@@ -342,7 +343,8 @@ def hook_forked_inchild():
 
 
 def hook_capabilities():
-    caps = ['revert', 'revert-full-system', 'root-on-testbed']
+    caps = ['revert', 'revert-full-system', 'root-on-testbed',
+            'downtmp-host=%s' % os.path.join(workdir, 'shared', 'tmp')]
     if args.user and args.user != 'root':
         caps.append('suggested-normal-user=' + args.user)
     return caps
