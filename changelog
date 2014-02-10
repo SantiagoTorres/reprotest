@@ -1,3 +1,11 @@
+autopkgtest (2.7.3) UNRELEASED; urgency=medium
+
+  * adt-run: Stop using a $TMPDIR for package builds. It's unnecessary
+    overhead, and causes problems with dpkg-deb if it is on e. g. a 9p file
+    system.
+
+ -- Martin Pitt <mpitt@debian.org>  Mon, 10 Feb 2014 16:54:06 +0100
+
 autopkgtest (2.7.2) unstable; urgency=medium
 
   * debian/copyright, CREDITS: Bump copyright year.
