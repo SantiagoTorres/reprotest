@@ -1799,14 +1799,6 @@ def build_source(act):
     # we only use the testbed path from this
     work = os.path.join(testbed.scratch, what + '-build')
 
-    tmpdir = work + '/tmpdir'
-    tmpdir_script = [
-        'TMPDIR="$1"',
-        'rm -rf -- "$TMPDIR"',
-        'export TMPDIR',
-        opts.user_wrap('mkdir -m 1777 -- "$TMPDIR"'),
-    ]
-
     if act.kind == 'ubtree':
         spec = '%s/real-tree' % work
         create_command = '''
@@ -1839,12 +1831,10 @@ def build_source(act):
 
     if opts.user:
         script += (['chown ' + opts.user + ' . ..'] +
-                   tmpdir_script +
                    ['spec="$spec" origpwd="$origpwd" '
                     + opts.user_wrap(create_command)])
     else:
-        script += (tmpdir_script +
-                   [create_command])
+        script += [create_command]
 
     script += [
         'cd [a-z0-9]*-*/.',
@@ -1853,7 +1843,7 @@ def build_source(act):
     ]
     (result_pwd, control_test_rc) = source_rules_command(
         script, what, 'extract',
-        cwd=None, results_lines=2, xargs=['x', tmpdir, spec])
+        cwd=None, results_lines=2, xargs=['x', work, spec])
 
     filter = act.ah['dsc_filter']
 
@@ -1923,12 +1913,12 @@ def build_source(act):
                                             'install build-essential')
         testbed.satisfy_dependencies_dsc(dsc, 'build dependencies')
 
-        script = tmpdir_script + [
+        script = [
             'cd "$2"',
             opts.user_wrap(dpkg_buildpackage),
         ]
         source_rules_command(script, what, 'build',
-                             cwd=initcwd, xargs=['x', tmpdir, result_pwd])
+                             cwd=initcwd, xargs=['x', work, result_pwd])
 
         if os.path.dirname(result_pwd) != work:
             badpkg("results dir `%s' is not in expected parent"
@@ -1954,7 +1944,7 @@ def build_source(act):
 
     debug_b('filter=%s' % filter)
     if filter != '_':
-        script = tmpdir_script + [
+        script = [
             'cd ' + work + '/[a-z0-9]*-*/.',
             opts.user_wrap(dpkg_buildpackage),
             'cd ..',
@@ -1963,7 +1953,7 @@ def build_source(act):
         result_debs = source_rules_command(script, what,
                                            'binary', work,
                                            results_lines=1,
-                                           xargs=['x', tmpdir])
+                                           xargs=['x'])
         if result_debs == '*.deb':
             debs = []
         else:
