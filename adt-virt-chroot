@@ -33,10 +33,13 @@ except KeyError:
 sys.path.insert(1, our_base)
 
 import VirtSubproc
-capabilities = []
+capabilities = ['downtmp-shared-fifo']
+chroot_dir = None
 
 
 def parse_args():
+    global chroot_dir
+
     usage = "%prog [<options>] =<dchroot>|/path/to/chroot"
     parser = OptionParser(usage=usage)
 
@@ -65,7 +68,9 @@ def parse_args():
 
     if down[0] == 'chroot':
         VirtSubproc.downkind = 'auxverb'
+        chroot_dir = chroot_arg
     elif down[0] == 'dchroot':
+        # FIXME: figure out chroot_dir
         VirtSubproc.downkind = 'shstring'
     else:
         print >> sys.stderr, 'down[0]=%s' % str(down[0])
@@ -85,11 +90,17 @@ def hook_open():
 
 
 def hook_downtmp():
-    return VirtSubproc.downtmp_mktemp()
+    global capabilities
+    d = VirtSubproc.downtmp_mktemp()
+    if chroot_dir:
+        capabilities.append('downtmp-host=%s/%s' % (chroot_dir, d))
+    return d
 
 
 def hook_cleanup():
+    global capabilities
     VirtSubproc.downtmp_remove()
+    capabilities = [c for c in capabilities if not c.startswith('downtmp-host')]
 
 
 def hook_forked_inchild():
