@@ -1,5 +1,11 @@
-autopkgtest (2.7.3) UNRELEASED; urgency=medium
+autopkgtest (2.8) UNRELEASED; urgency=medium
 
+  * Add adt-virt-qemu: Virtualization server using QEMU. This provides even
+    more isolation than containers and thus is able to run tests which
+    interact with the kernel. See the manpage for the requirements that VMs
+    need to satisfy, and how to use it. (Closes: #719215)
+  * Add adt-buildvm-ubuntu-cloud: This tool downloads an Ubuntu cloud image
+    and configures it for autopkgtest. See its manpage for how to use it.
   * adt-run: Stop using a $TMPDIR for package builds. It's unnecessary
     overhead, and causes problems with dpkg-deb if it is on e. g. a 9p file
     system.
