@@ -254,7 +254,7 @@ def cmd_open(c, ce):
 
 def downtmp_mktemp():
     d = execute('mktemp -d /tmp/adt-run.XXXXXX', [], downp=True, outp=True)
-    execute('chmod 755', [d], downp=True)
+    execute('chmod 1777', [d], downp=True)
     return d
 
 
