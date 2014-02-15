@@ -414,6 +414,9 @@ def parse_args():
     (opts, args) = parser.parse_args()
     if not hasattr(opts, 'vserver'):
         parser.error('you must specifiy --- <virt-server>...')
+    if not opts.vserver[0].startswith('adt-virt-'):
+        opts.vserver[0] = 'adt-virt-' + opts.vserver[0]
+
     if n_non_actions >= len(parser.largs):
         parser.error('nothing to do specified')
 

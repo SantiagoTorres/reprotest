@@ -206,12 +206,6 @@ option does not affect the copy sent to \fIlogfile\fR or
 \fIoutput-dir\fR.  Note that without the trace
 logstream it can be very hard to diagnose problems.
 .TP
-\fB---\fR \fIvirt-server virt-server-arg\fR...
-Specifies the virtualisation regime server, as a command and arguments
-to invoke.  All the remaining arguments and options after
-.B ---
-are passed to the virtualisation server program.
-.TP
 .BI --set-lang= langval
 When running commands on the testbed, sets the \fBLANG\fR environment
 variable to \fIlangval\fR.  The default in \fBadt-run\fR is to set it
@@ -233,6 +227,27 @@ If
 .I commands
 is an existing file name, the commands are read from that; otherwise it
 is a string with the actual commands that gets run as-is.
+
+.SH VIRTUALIZATION SERVER
+
+.TP
+\fB---\fR \fIvirt-server virt-server-arg\fR...
+Specifies the virtualisation regime server, as a command and arguments
+to invoke.
+.I virt-server
+must be an existing autopkgtest virtualization server such as
+.B adt-virt-schroot
+or
+.BR adt-virt-qemu .
+You can leave out the
+.B adt-virt-
+prefix and just specify the last part, e. g.
+.BR schroot .
+
+All the remaining arguments and options after
+.B ---
+are passed to the virtualisation server program. See the manpages of the
+individual servers for how to use them.
 
 .SH OUTPUT FORMAT
 During a normal test run, one line is printed for each test.  This
