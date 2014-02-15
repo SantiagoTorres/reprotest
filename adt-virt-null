@@ -33,7 +33,7 @@ except KeyError:
 sys.path.insert(1, our_base)
 
 import VirtSubproc
-capabilities = []
+capabilities = ['downtmp-shared-fifo']
 
 
 def parse_args():
@@ -60,11 +60,18 @@ def hook_open():
 
 
 def hook_downtmp():
-    return VirtSubproc.downtmp_mktemp()
+    global capabilities
+
+    d = VirtSubproc.downtmp_mktemp()
+    capabilities.append('downtmp-host=' + d)
+    return d
 
 
 def hook_cleanup():
+    global capabilities
+
     VirtSubproc.downtmp_remove()
+    capabilities = [c for c in capabilities if not c.startswith('downtmp-host')]
 
 
 def hook_forked_inchild():
