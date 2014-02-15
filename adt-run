@@ -60,6 +60,7 @@ sys.path.insert(1, our_base)
 
 tmp = None		# pathstring on host
 testbed = None		# Testbed
+shared_downtmp = None	# testbed's downtmp on the host, if supported
 opts = None             # optparse options
 errorcode = 0		# exit status that we are going to use
 timeouts = {'short': 100, 'copy': 300, 'install': 3000, 'test': 10000, 'build': 100000}
@@ -615,13 +616,18 @@ class Testbed:
         if self.scratch is not None:
             return
         pl = self.commandr('open')
-        self.caps = self.commandr('capabilities')
-        debug('testbed capabilities: %s' % self.caps, 1)
         self._opened(pl)
 
     def _opened(self, pl):
+        global shared_downtmp
+
         self.scratch = pl[0]
         self.deps_processed = []
+        self.caps = self.commandr('capabilities')
+        debug('testbed capabilities: %s' % self.caps, 1)
+        for c in self.caps:
+            if c.startswith('downtmp-host='):
+                shared_downtmp = c.split('=', 1)[1]
         self._auxverbscript_make()
         self.run_setup_commands()
 
@@ -673,6 +679,8 @@ exec ''' + cmdl_str + ' "$@"\n')
                   'made to testbed apt configuration, exit code %d' % rc)
 
     def close(self):
+        global shared_downtmp
+
         self._debug('close, scratch=%s' % self.scratch, 1)
         if self.ec_auxverbscript:
             os.unlink(self.ec_auxverbscript)
@@ -683,6 +691,7 @@ exec ''' + cmdl_str + ' "$@"\n')
         if self.sp is None:
             return
         self.command('close')
+        shared_downtmp = None
 
     def run_setup_commands(self):
         if not opts.setup_commands and not opts.apt_pocket:
@@ -946,8 +955,10 @@ class TestbedPath:
 
 
 class TempTestbedPath(TestbedPath):
-    '''Represent a file in the hosts'/testbed's temporary directories'''
+    '''Represent a file in the hosts'/testbed's temporary directories
 
+    These are only guaranteed to exit within one testbed run.
+    '''
     def __init__(self, testbed, name, is_dir=False, autoclean=True):
         '''Create a temporary TestbedPath object.
 
@@ -964,7 +975,13 @@ class TempTestbedPath(TestbedPath):
                 --output-dir which are useful for reporting results, like test
                 stdout/err, log files, and binaries.
         '''
-        TestbedPath.__init__(self, testbed, os.path.join(tmp, name),
+        # if the testbed supports a shared downtmp, use that to avoid
+        # unnecessary copying, unless we want to permanently keep the file
+        if shared_downtmp and (not opts.output_dir or autoclean):
+            host = shared_downtmp
+        else:
+            host = tmp
+        TestbedPath.__init__(self, testbed, os.path.join(host, name),
                              os.path.join(testbed.scratch, name),
                              is_dir)
         self.autoclean = autoclean
@@ -1538,7 +1555,12 @@ def build_deps_from_source(act, tree):
 class Binaries:
 
     def __init__(self, tb):
-        self.dir = TempTestbedPath(testbed, 'binaries', is_dir=True, autoclean=False)
+        # the binary dir must exist across tb reopenings, so don't use a
+        # TempTestbedPath
+        self.dir = TestbedPath(tb,
+                               os.path.join(tmp, 'binaries'),
+                               os.path.join(tb.scratch, 'binaries'),
+                               is_dir=True)
         os.mkdir(self.dir.host)
         # clean up an empty binaries output dir
         atexit.register(lambda: os.path.exists(self.dir.host) and (
@@ -1668,7 +1690,10 @@ Pin-Priority: 1002
         if rc:
             bomb('apt-ftparchive or signature failed, code %d' % rc)
 
-        # copy binaries directory to testbed
+        # copy binaries directory to testbed; self.dir.tb might have changed
+        # since last time due to a reset, so update it
+        self.dir.tb = os.path.join(testbed.scratch, 'binaries')
+        testbed.execute('clean-binaries', ['rm', '-rf', self.dir.tb])
         self.dir.copydown()
 
         aptkey_out = TempTestbedPath(testbed, 'apt-key.out')
