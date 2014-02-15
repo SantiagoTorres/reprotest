@@ -9,6 +9,10 @@ autopkgtest (2.8) UNRELEASED; urgency=medium
   * adt-run: Stop using a $TMPDIR for package builds. It's unnecessary
     overhead, and causes problems with dpkg-deb if it is on e. g. a 9p file
     system.
+  * Allow the virt-server argument to be given without the common "adt-virt-"
+    prefix, for brevity. Update the manpage accordingly, and also move
+    virt-server into its own heading instead of burying it in the middle of
+    "other options".
 
  -- Martin Pitt <mpitt@debian.org>  Mon, 10 Feb 2014 16:54:06 +0100
 
