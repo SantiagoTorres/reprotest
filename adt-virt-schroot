@@ -36,10 +36,11 @@ except KeyError:
 sys.path.insert(1, our_base)
 
 import VirtSubproc
-capabilities = []
+capabilities = ['downtmp-shared-fifo']
 
 schroot = None
 sessid = None
+rootdir = None
 
 
 def pw_uid(exp_name):
@@ -117,7 +118,23 @@ def hook_open():
 
 
 def hook_downtmp():
-    return VirtSubproc.downtmp_mktemp()
+    global capabilities
+
+    d = VirtSubproc.downtmp_mktemp()
+
+    # determine mount location
+    # FIXME: "schroot --location -c sessid" really ought to work, but fails; so
+    # grep from --all-sessions until this gets fixed
+    location = VirtSubproc.execute('schroot --location --all-sessions | grep',
+                                   [sessid], downp=False, outp=True).strip()
+    VirtSubproc.debug('location of schroot session: %s' % location)
+    downtmp_host = '%s/%s' % (location, d)
+    if os.access(downtmp_host, os.W_OK):
+        VirtSubproc.debug('%s is writable, registering as downtmp_host' % downtmp_host)
+        capabilities.append('downtmp-host=' + downtmp_host)
+    else:
+        VirtSubproc.debug('%s is not writable, downtmp_host not supported' % downtmp_host)
+    return d
 
 
 def hook_revert():
@@ -126,9 +143,10 @@ def hook_revert():
 
 
 def hook_cleanup():
-    global schroot, sessid
+    global schroot, sessid, capabilities
     VirtSubproc.downtmp_remove()
     VirtSubproc.execute('schroot -e -c', [sessid], downp=False)
+    capabilities = [c for c in capabilities if not c.startswith('downtmp-host')]
 
 
 def hook_forked_inchild():
