@@ -60,7 +60,7 @@ sys.path.insert(1, our_base)
 
 tmp = None		# pathstring on host
 testbed = None		# Testbed
-shared_downtmp = None	# testbed's downtmp on the host, if supported
+shared_downtmp = None   # testbed's downtmp on the host, if supported
 opts = None             # optparse options
 errorcode = 0		# exit status that we are going to use
 timeouts = {'short': 100, 'copy': 300, 'install': 3000, 'test': 10000, 'build': 100000}
@@ -1211,8 +1211,6 @@ class Test:
         testbed.prepare(dn)
 
     def run(self, tree):
-        self._debug('[----------------------------------------')
-
         # ensure our tests are in the testbed
         tree.copydown()
 
@@ -1263,24 +1261,28 @@ class Test:
             bomb("could not create test tmp dirs in `%s', exit code %d"
                  % (testtmp, rc))
 
-        # With the NULL runner the test and the controller both run on the same
-        # file system and can route stdout/stderr through a common FIFO to
-        # watch them in realtime. FIXME: Make this work for schroot/lxc/etc. if
-        # they use a bind-mounted /tmp.
+        # If we have a shared downtmp and can create a FIFO in it,
+        # route stdout/stderr through a common FIFO to watch them in realtime.
         # Note that we can't use the coreutils tee with pipes, as it aborts on
         # the first read error.
-        #show_realtime = os.path.isdir(testtmp) and os.access(testtmp, os.W_OK)
-        show_realtime = opts.vserver[0].endswith('-null')
+        show_realtime = False
+        if shared_downtmp and 'downtmp-shared-fifo' in testbed.caps:
+            fifo_out = TempTestbedPath(testbed, 'test_stdout')
+            fifo_err = TempTestbedPath(testbed, 'test_stderr')
+            os.mkfifo(fifo_out.host)
+            os.mkfifo(fifo_err.host)
+            show_realtime = True
+            debug('shared downtmp with FIFO supported, showing test output in realtime', 1)
+        else:
+            debug('shared_downtmp with FIFO not supported', 1)
+
         if show_realtime:
-            fifo_out = os.path.join(testtmp, 'test_stdout')
-            fifo_err = os.path.join(testtmp, 'test_stderr')
-            os.mkfifo(fifo_out)
-            os.mkfifo(fifo_err)
-            debug('teeing to stdout: %s, stderr: %s' % (fifo_out, fifo_err), 2)
+            self._debug('[----------------------------------------')
+            debug('teeing to stdout: %s, stderr: %s' % (fifo_out.host, fifo_err.host), 2)
             tee_out = os.fork()
             if tee_out == 0:
-                fd_in = os.open(fifo_out, os.O_RDONLY)
-                fd_out = os.open(so.tb, os.O_CREAT | os.O_WRONLY)
+                fd_in = os.open(fifo_out.host, os.O_RDONLY)
+                fd_out = os.open(so.host, os.O_CREAT | os.O_WRONLY)
 
                 while True:
                     block = os.read(fd_in, 1024)
@@ -1292,8 +1294,8 @@ class Test:
 
             tee_err = os.fork()
             if tee_err == 0:
-                fd_in = os.open(fifo_err, os.O_RDONLY)
-                fd_out = os.open(se.tb, os.O_CREAT | os.O_WRONLY)
+                fd_in = os.open(fifo_err.host, os.O_RDONLY)
+                fd_out = os.open(se.host, os.O_CREAT | os.O_WRONLY)
 
                 while True:
                     block = os.read(fd_in, 1024)
@@ -1305,7 +1307,8 @@ class Test:
 
             try:
                 rc = testbed.execute('test-' + self.what, test_argv,
-                                     so=fifo_out, se=fifo_err, cwd=tree.tb,
+                                     so=fifo_out.tb, se=fifo_err.tb,
+                                     cwd=tree.tb,
                                      xenv=xenv, kind='test')
                 debug('testbed executing test finished with exit status %i' % rc, 1)
             finally:
@@ -1315,23 +1318,21 @@ class Test:
                 os.kill(tee_err, signal.SIGTERM)
                 os.waitpid(tee_out, 0)
                 os.waitpid(tee_err, 0)
+            self._debug('----------------------------------------]')
 
-            os.unlink(fifo_out)
-            os.unlink(fifo_err)
-
-        # if testtmp is not accessible, we cannot show realtime output and need
+        # without a shared downtmp we cannot show realtime output and need
         # to show stdout afterwards
         else:
+            self._debug('running...')
             rc = testbed.execute('test-' + self.what, test_argv,
                                  so=so.tb, se=se.tb, cwd=tree.tb,
                                  xenv=xenv, kind='test')
             debug('testbed executing test finished with exit status %i' % rc, 1)
 
-        self._debug('----------------------------------------]')
+            # copy stdout/err files to host
+            so.copyup()
+            se.copyup()
 
-        # copy stdout/err files to host
-        so.copyup()
-        se.copyup()
         se_size = os.path.getsize(se.host)
 
         # avoid mixing up stdout (from report) and stderr (from _debug) in output
