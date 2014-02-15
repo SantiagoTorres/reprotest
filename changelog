@@ -9,6 +9,9 @@ autopkgtest (2.9) UNRELEASED; urgency=medium
     that testbed and the host can use a FIFO in the shared downtmp for
     communication. Use this to generalize live test output to all runners
     which declare that, not just -null.
+  * Convert null, chroot, schroot, lxc, and qemu runners to use a shared
+    downtmp dir. Note that qemu does not support FIFO (through the 9p file
+    system), so that one does not get live test output.
 
   Bug fixes:
   * tests: Copy tests/home/ into a temporary dir and set $HOME to that, to
