@@ -5,6 +5,10 @@ autopkgtest (2.9) UNRELEASED; urgency=medium
     a shared directory between host and testbed. This is used by copyupdown to
     more efficiently copy files back and forth, and in many/most cases, don't
     explicitly copy anything at all.
+  * Introduce a new testbed capability "downtmp-shared-fifo" that declares
+    that testbed and the host can use a FIFO in the shared downtmp for
+    communication. Use this to generalize live test output to all runners
+    which declare that, not just -null.
 
   Bug fixes:
   * tests: Copy tests/home/ into a temporary dir and set $HOME to that, to
