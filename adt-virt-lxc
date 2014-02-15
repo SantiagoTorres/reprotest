@@ -32,6 +32,8 @@ from optparse import OptionParser
 import random
 import subprocess
 import time
+import tempfile
+import shutil
 
 try:
     our_base = os.environ['AUTOPKGTEST_BASE'] + '/lib'
@@ -41,12 +43,16 @@ sys.path.insert(1, our_base)
 
 import VirtSubproc
 
+capabilities = ['revert', 'revert-full-system', 'root-on-testbed',
+                'downtmp-shared-fifo']
+
 ephemeral = False
 eatmydata = False
 use_sudo = False
 lxc_template = None
 lxc_container_name = None
 normal_user = None
+shared_dir = None
 
 
 def parse_args():
@@ -149,7 +155,7 @@ def wait_booted(lxc_name):
 def determine_normal_user(lxc_name):
     '''Check for a normal user to run tests as.'''
 
-    global normal_user
+    global capabilities, normal_user
 
     # get the first UID >= 500
     out = subprocess.check_output(
@@ -159,19 +165,22 @@ def determine_normal_user(lxc_name):
         universal_newlines=True).strip()
     if out:
         normal_user = out
+        capabilities.append('suggested-normal-user=' + normal_user)
         VirtSubproc.debug('determine_normal_user: got user "%s"' % normal_user)
     else:
         VirtSubproc.debug('determine_normal_user: no uid >= 500 available')
 
 
 def hook_open():
-    global lxc_container_name
+    global lxc_container_name, shared_dir
 
     lxc_container_name = get_available_lxc_container_name()
     VirtSubproc.debug('using container name %s' % lxc_container_name)
     if ephemeral:
-        VirtSubproc.execute(sudoify('lxc-start-ephemeral -n %s -k -d -o')
-                            % lxc_container_name, [lxc_template],
+        shared_dir = tempfile.mkdtemp(prefix='adt-virt-lxc.shared.')
+        os.chmod(shared_dir, 0o755)
+        VirtSubproc.execute(sudoify('lxc-start-ephemeral -n %s -k -d --bdir %s -o')
+                            % (lxc_container_name, shared_dir), [lxc_template],
                             downp=False, outp=True)
     else:
         VirtSubproc.execute(sudoify('lxc-clone -n %s -o' % lxc_container_name),
@@ -200,19 +209,33 @@ def hook_open():
 
 
 def hook_downtmp():
-    downtmp = '/tmp/adt-downtmp'
-    VirtSubproc.execute('mkdir %s' % downtmp, downp=True)
-    return downtmp
+    global capabilities, shared_dir
+
+    if shared_dir:
+        d = os.path.join(shared_dir, 'downtmp')
+        # these permissions are ugly, but otherwise we can't clean up files
+        # written by the testbed when running as user
+        VirtSubproc.execute('mkdir -m 777 %s' % d, downp=True)
+        capabilities.append('downtmp-host=' + d)
+    else:
+        d = VirtSubproc.downtmp_mktemp()
+    return d
 
 
 def hook_revert():
-    VirtSubproc.downtmp_remove()
     hook_cleanup()
     hook_open()
 
 
 def hook_cleanup():
+    global capabilities, shared_dir
+
     VirtSubproc.downtmp_remove()
+    capabilities = [c for c in capabilities if not c.startswith('downtmp-host')]
+    if shared_dir:
+        shutil.rmtree(shared_dir)
+        shared_dir = None
+
     VirtSubproc.execute(sudoify('lxc-stop -n'), [lxc_container_name],
                         downp=False, outp=True)
     VirtSubproc.execute(sudoify('lxc-destroy -n'), [lxc_container_name],
@@ -224,10 +247,7 @@ def hook_forked_inchild():
 
 
 def hook_capabilities():
-    caps = ['revert', 'revert-full-system', 'root-on-testbed']
-    if normal_user:
-        caps.append('suggested-normal-user=' + normal_user)
-    return caps
+    return capabilities
 
 
 parse_args()
