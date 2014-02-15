@@ -13,6 +13,7 @@ autopkgtest (2.8) UNRELEASED; urgency=medium
     prefix, for brevity. Update the manpage accordingly, and also move
     virt-server into its own heading instead of burying it in the middle of
     "other options".
+  * tests: Show stderr output if adt-run unexpectedly fails.
 
  -- Martin Pitt <mpitt@debian.org>  Mon, 10 Feb 2014 16:54:06 +0100
 
