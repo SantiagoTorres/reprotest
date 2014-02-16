@@ -647,6 +647,7 @@ exec ''' + cmdl_str + ' "$@"\n')
     def reset_apt(self):
         if not self._need_reset_apt:
             return
+        self._need_reset_apt = False
         what = 'aptget-update-reset'
         cmdl = ['sh', '-c', 'apt-get -qy update 2>&1']
         rc = self.execute(what, cmdl, kind='install')
@@ -661,7 +662,6 @@ exec ''' + cmdl_str + ' "$@"\n')
         if rc:
             error('\nwarning: failed to reset changes '
                   'made to testbed apt configuration, exit code %d' % rc)
-        self._need_reset_apt = False
 
     def close(self):
         self._debug('close, scratch=%s' % self.scratch, 1)
