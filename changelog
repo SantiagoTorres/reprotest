@@ -15,6 +15,8 @@ autopkgtest (2.8) UNRELEASED; urgency=medium
     "other options".
   * tests: Show stderr output if adt-run unexpectedly fails.
   * Fix endless recursion when an error happens during resetting apt.
+  * tests: Fix skip message if no container is given; it does not need to be
+    an Ubuntu cloud container any more.
 
  -- Martin Pitt <mpitt@debian.org>  Mon, 10 Feb 2014 16:54:06 +0100
 
