@@ -121,7 +121,6 @@ def hook_downtmp():
 
 
 def hook_revert():
-    VirtSubproc.downtmp_remove()
     hook_cleanup()
     hook_open()
 
