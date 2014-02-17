@@ -1,0 +1,48 @@
+#!/bin/sh
+# adt-build-lxc is part of autopkgtest
+# autopkgtest is a tool for testing Debian binary packages
+#
+# autopkgtest is Copyright (C) 2006-2014 Canonical Ltd.
+#
+# Build or update a container with the debian or ubuntu LXC template
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+#
+# See the file CREDITS for a full list of credits information (often
+# installed as /usr/share/doc/autopkgtest/CREDITS).
+set -e
+
+DISTRO="$1"
+RELEASE="$2"
+if [ -z "$1" ] || [ -z "$2" ]; then
+    echo "Usage: $0 debian|ubuntu <release>" >&2
+    exit 1
+fi
+
+NAME="adt-${RELEASE}"
+
+# fall back for older LXC option name
+LXCDIR=`lxc-config lxc.lxcpath` || LXCDIR=`lxc-config lxcpath`
+
+if [ ! -e $LXCDIR/$NAME ]; then
+    # first-time run: just create the container
+    APT_PROXY=apt lxc-create -n $NAME -t $DISTRO -- -r $RELEASE
+else
+    # create a new rootfs in a temp container
+    APT_PROXY=apt lxc-create -n ${NAME}.new -t $DISTRO -- -r $RELEASE -F
+    # replace the original rootfs
+    rsync -aHAXS --numeric-ids --delete $LXCDIR/${NAME}.new $LXCDIR/${NAME}
+    lxc-destroy -n ${NAME}.new
+fi
