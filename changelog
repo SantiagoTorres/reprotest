@@ -23,6 +23,8 @@ autopkgtest (2.8) UNRELEASED; urgency=medium
   * Allow --setup-commands to be given multiple times.
   * Add -U/--apt-upgrade option to run apt-get update/dist-upgrade before
     running the test.
+  * Add --apt-pocket <pocket> option to create an additional apt source for
+    release-pocket.
 
  -- Martin Pitt <mpitt@debian.org>  Mon, 10 Feb 2014 16:54:06 +0100
 
