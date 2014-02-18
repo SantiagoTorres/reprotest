@@ -387,6 +387,7 @@ def parse_args():
                       ' signing private apt archive);'
                       ' "fresh" means generate new key each time.')
     parser.add_option('--setup-commands', metavar='COMMANDS_OR_PATH',
+                      action='append', default=[],
                       help='Run these commands after opening the testbed '
                       '(e. g. "apt-get update" or adding apt sources); can be '
                       'a string with the commands, or a file containing the '
@@ -474,9 +475,10 @@ def parse_args():
         opts.actions.append(Action(kind, pathstr, arghandling, what))
 
         # if we have --setup-commands and it points to a file, read its contents
-        if opts.setup_commands and os.path.exists(opts.setup_commands):
-            with open(opts.setup_commands) as f:
-                opts.setup_commands = f.read()
+        for i, c in enumerate(opts.setup_commands):
+            if os.path.exists(c):
+                with open(c) as f:
+                    opts.setup_commands[i] = f.read()
 
 
 def setup_trace():
@@ -680,12 +682,13 @@ exec ''' + cmdl_str + ' "$@"\n')
             return
 
         debug('@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ test bed setup')
-        rc = testbed.execute('setup-commands',
-                             ['sh', '-ec', opts.setup_commands],
-                             script=opts.setup_commands,
-                             so='/dev/stdout')
-        if rc:
-            bomb('testbed setup commands failed with status %i' % rc)
+        for c in opts.setup_commands:
+            rc = testbed.execute('setup-commands',
+                                 ['sh', '-ec', c],
+                                 script=c,
+                                 so='/dev/stdout')
+            if rc:
+                bomb('testbed setup commands failed with status %i' % rc)
 
     def prepare1(self, deps_new):
         self._debug('prepare1, modified=%s, deps_processed=%s, deps_new=%s' %
