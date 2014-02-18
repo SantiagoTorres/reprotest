@@ -1,4 +1,4 @@
-autopkgtest (2.8) UNRELEASED; urgency=medium
+autopkgtest (2.8) unstable; urgency=medium
 
   * Add adt-virt-qemu: Virtualization server using QEMU. This provides even
     more isolation than containers and thus is able to run tests which
@@ -26,7 +26,7 @@ autopkgtest (2.8) UNRELEASED; urgency=medium
   * Add --apt-pocket <pocket> option to create an additional apt source for
     release-pocket.
 
- -- Martin Pitt <mpitt@debian.org>  Mon, 10 Feb 2014 16:54:06 +0100
+ -- Martin Pitt <mpitt@debian.org>  Mon, 17 Feb 2014 21:00:58 -0800
 
 autopkgtest (2.7.2) unstable; urgency=medium
 
