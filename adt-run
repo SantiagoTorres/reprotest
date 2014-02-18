@@ -396,7 +396,9 @@ def parse_args():
                       action='append_const',
                       const='apt-get update && apt-get dist-upgrade -y',
                       help='Run apt update/dist-upgrade before the tests')
-
+    parser.add_option('--apt-pocket', metavar='POCKETNAME', action='append',
+                      default=[],
+                      help='Enable additional apt source for POCKETNAME')
 
     #----------
     # actual meat:
@@ -683,10 +685,18 @@ exec ''' + cmdl_str + ' "$@"\n')
         self.command('close')
 
     def run_setup_commands(self):
-        if not opts.setup_commands:
+        if not opts.setup_commands and not opts.apt_pocket:
             return
 
         debug('@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ test bed setup')
+        for p in opts.apt_pocket:
+            script = '''awk '/^deb / { if ($3 !~ /-/) { ''' \
+                '''$3 = $3"-%s"; print; $1="deb-src"; print; exit}}' ''' \
+                '''/etc/apt/sources.list > /etc/apt/sources.list.d/%s.list''' % (p, p)
+
+            rc = testbed.execute('apt-pocket-' + p, ['sh', '-ec', script],
+                                 script=script)
+
         for c in opts.setup_commands:
             rc = testbed.execute('setup-commands',
                                  ['sh', '-ec', c],

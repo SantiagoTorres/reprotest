@@ -238,6 +238,18 @@ and
 .B apt\-get dist-upgrade -y
 in the testbed before running the tests.
 
+.TP
+.BI \-\-apt\-pocket= pocket
+Add apt sources for \fIrelease\fR-\fIpocket\fR. This finds the first
+.B deb
+line in
+.B /etc/apt/sources.list
+which does not already specify a pocket and adds a deb and deb-src line with
+that pocket to
+.B /etc/apt/sources.list.d/\fIpocket\fB.list\fR.
+Note that this does not imply calling
+.B apt-get update\fR.
+
 .SH VIRTUALIZATION SERVER
 
 .TP
