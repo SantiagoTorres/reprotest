@@ -701,7 +701,8 @@ exec ''' + cmdl_str + ' "$@"\n')
             rc = testbed.execute('setup-commands',
                                  ['sh', '-ec', c],
                                  script=c,
-                                 so='/dev/stdout')
+                                 so='/dev/stdout',
+                                 kind='install')
             if rc:
                 bomb('testbed setup commands failed with status %i' % rc)
 
