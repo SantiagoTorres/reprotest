@@ -1,3 +1,10 @@
+autopkgtest (2.8.1) UNRELEASED; urgency=medium
+
+  * Use the install timeout instead of the short one for
+    --setup-commands/--apt-upgrade.
+
+ -- Martin Pitt <mpitt@debian.org>  Thu, 20 Feb 2014 11:47:53 -0800
+
 autopkgtest (2.8) unstable; urgency=medium
 
   * Add adt-virt-qemu: Virtualization server using QEMU. This provides even
