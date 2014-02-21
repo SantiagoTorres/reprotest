@@ -394,7 +394,7 @@ def parse_args():
                       'commands')
     parser.add_option('-U', '--apt-upgrade', dest='setup_commands',
                       action='append_const',
-                      const='apt-get update && apt-get dist-upgrade -y',
+                      const='apt-get update && apt-get dist-upgrade -y -o Dpkg::Options::="--force-confnew"',
                       help='Run apt update/dist-upgrade before the tests')
     parser.add_option('--apt-pocket', metavar='POCKETNAME', action='append',
                       default=[],
