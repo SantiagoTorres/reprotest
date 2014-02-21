@@ -2,6 +2,7 @@ autopkgtest (2.8.1) UNRELEASED; urgency=medium
 
   * Use the install timeout instead of the short one for
     --setup-commands/--apt-upgrade.
+  * Fix --apt-upgrade to not hang on dpkg conffile prompts.
 
  -- Martin Pitt <mpitt@debian.org>  Thu, 20 Feb 2014 11:47:53 -0800
 
