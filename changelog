@@ -5,6 +5,8 @@ autopkgtest (2.8.1) UNRELEASED; urgency=medium
   * Fix --apt-upgrade to not hang on dpkg conffile prompts.
   * Use ./tests/home/ as $HOME during tests, and add a gpg key to it so that
     we don't have to generate one (which often hangs due to lack of entropy).
+  * Make the test suite run as user, skip tests which require root (all
+    ChrootRunner and most NullRunner tests).
 
  -- Martin Pitt <mpitt@debian.org>  Thu, 20 Feb 2014 11:47:53 -0800
 
