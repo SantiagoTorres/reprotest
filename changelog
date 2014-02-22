@@ -1,4 +1,4 @@
-autopkgtest (2.8.1) UNRELEASED; urgency=medium
+autopkgtest (2.8.1) unstable; urgency=medium
 
   * Use the install timeout instead of the short one for
     --setup-commands/--apt-upgrade.
@@ -8,7 +8,7 @@ autopkgtest (2.8.1) UNRELEASED; urgency=medium
   * Make the test suite run as user, skip tests which require root (all
     ChrootRunner and most NullRunner tests).
 
- -- Martin Pitt <mpitt@debian.org>  Thu, 20 Feb 2014 11:47:53 -0800
+ -- Martin Pitt <mpitt@debian.org>  Fri, 21 Feb 2014 17:15:41 -0800
 
 autopkgtest (2.8) unstable; urgency=medium
 
