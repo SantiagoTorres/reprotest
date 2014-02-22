@@ -1338,14 +1338,21 @@ class Test:
         sys.stderr.flush()
         time.sleep(0.1)
 
-        if os.path.getsize(so.host) != 0 and not show_realtime:
-            self._debug(' - - - - - - - - - - stdout - - - - - - - - - -')
-            log_file(so.host)
+        if os.path.getsize(so.host) != 0:
+            if not show_realtime:
+                self._debug(' - - - - - - - - - - stdout - - - - - - - - - -')
+                log_file(so.host)
+        else:
+            # don't produce empty -stdout files in --output-dir
+            os.unlink(so.host)
 
-        if se_size != 0 and (not show_realtime or 'allow-stderr'
-                             not in self.restriction_names):
-            self._debug(' - - - - - - - - - - stderr - - - - - - - - - -')
-            log_file(se.host)
+        if se_size != 0:
+            if not show_realtime or 'allow-stderr' not in self.restriction_names:
+                self._debug(' - - - - - - - - - - stderr - - - - - - - - - -')
+                log_file(se.host)
+        else:
+            # don't produce empty -stderr files in --output-dir
+            os.unlink(se.host)
 
         # copy artifacts to host, if we have --output-dir
         if opts.output_dir:
