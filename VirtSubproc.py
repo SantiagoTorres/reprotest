@@ -455,6 +455,7 @@ def copydown_shareddir(host, tb, is_dir, downtmp_host):
         else:
             host_tmp = os.path.join(downtmp_host, os.path.basename(tb))
             if is_dir:
+                shutil.rmtree(host_tmp, ignore_errors=True)
                 shutil.copytree(host, host_tmp, symlinks=True)
             else:
                 shutil.copy(host, host_tmp)
