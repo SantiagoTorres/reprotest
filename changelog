@@ -3,6 +3,8 @@ autopkgtest (2.8.2) UNRELEASED; urgency=medium
   * tests: Copy tests/home/ into a temporary dir and set $HOME to that, to
     avoid cluttering the source dir.
   * Don't produce empty stderr/stdout files with --output-dir. (LP: #1282866)
+  * adt-buildvm-ubuntu-cloud: Install linux-generic, to get the full kernel
+    (needed for e. g. udisks2 to get scsi_debug).
 
  -- Martin Pitt <mpitt@debian.org>  Sat, 22 Feb 2014 13:43:15 +0100
 
