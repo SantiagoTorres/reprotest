@@ -18,6 +18,13 @@ autopkgtest (2.9) UNRELEASED; urgency=medium
     default system behaviour of just using /tmp. The documentation already was
     changed a long time ago to only document $ADTTMP as a scratch directory
     for tests.
+  * Add test restrictions "isolation-container" and "isolation-machine", and
+    corresponding testbed capabilities. Tests can use that to declare that
+    they want to start services or open ports (i. e. a simple chroot/schroot
+    is insufficient) or access hardware, reboot,  and interact the kernel
+    (where even a container is insufficient), and will be skipped instead of
+    failing when they run in a virtualization server which does not provide
+    enough isolation.
 
   Bug fixes:
   * tests: Copy tests/home/ into a temporary dir and set $HOME to that, to
