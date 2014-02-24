@@ -29,6 +29,7 @@ autopkgtest (2.9) UNRELEASED; urgency=medium
     around gets along with those.
   * adt-run: Always use fakeroot with adt-virt-qemu, to work around chown
     failing on 9p.
+  * xen/initscript: Always source /lib/lsb/init-functions. (Thanks lintian)
 
  -- Martin Pitt <mpitt@debian.org>  Sat, 22 Feb 2014 13:43:15 +0100
 
