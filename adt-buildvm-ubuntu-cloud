@@ -163,6 +163,9 @@ apt_sources:
 
 apt_upgrade: %(upgr)s
 
+packages:
+ - linux-generic
+
 write_files:
  - path: /etc/init.d/autopkgtest
    permissions: '0755'
