@@ -21,6 +21,8 @@ autopkgtest (2.9) UNRELEASED; urgency=medium
     (needed for e. g. udisks2 to get scsi_debug).
   * tests: Add a broken symlink to testpkg, to ensure that copying trees
     around gets along with those.
+  * adt-run: Always use fakeroot with adt-virt-qemu, to work around chown
+    failing on 9p.
 
  -- Martin Pitt <mpitt@debian.org>  Sat, 22 Feb 2014 13:43:15 +0100
 
