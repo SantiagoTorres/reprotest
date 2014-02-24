@@ -344,6 +344,7 @@ def hook_forked_inchild():
 
 def hook_capabilities():
     caps = ['revert', 'revert-full-system', 'root-on-testbed',
+            'isolation-machine',
             'downtmp-host=%s' % os.path.join(workdir, 'shared', 'tmp')]
     if args.user and args.user != 'root':
         caps.append('suggested-normal-user=' + args.user)
