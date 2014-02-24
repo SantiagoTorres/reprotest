@@ -553,6 +553,8 @@ def finalise_options():
 
     if opts.gainroot is None:
         if (opts.user or
+                # FIXME: work around chown root not working in qemu's 9p mount
+                'qemu' in opts.vserver[0] or
                 'root-on-testbed' not in testbed.caps):
             opts.gainroot = 'fakeroot'
             build_essential += ['fakeroot']
