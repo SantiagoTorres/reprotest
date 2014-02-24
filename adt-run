@@ -1244,10 +1244,6 @@ class Test:
         else:
             test_argv = [tb_test_path]
 
-        test_tmpdir = testtmp + '/tmpdir'
-        xenv.append('TMPDIR=%s' % test_tmpdir)
-        script += 'chmod 1777 "%s"\n' % test_tmpdir
-
         test_adttmp = testtmp + '/adttmp'
         xenv.append('ADTTMP=%s' % test_adttmp)
 
@@ -1257,7 +1253,7 @@ class Test:
 
         rc = testbed.execute('mktmpdir-' + self.what,
                              ['sh', '-ec', script, 'x', tree.tb,
-                              testtmp, test_tmpdir, test_adttmp,
+                              testtmp, test_adttmp,
                               ])
         if rc:
             bomb("could not create test tmp dirs in `%s', exit code %d"
