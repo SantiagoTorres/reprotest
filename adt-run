@@ -1047,6 +1047,20 @@ class Restriction_allow_stderr(Restriction):
     pass
 
 
+class Restriction_isolation_container(Restriction):
+
+    def __init__(self, rname, base):
+        if 'isolation-container' not in testbed.caps and 'isolation-machine' not in testbed.caps:
+            raise Unsupported(-1, 'Test requires container-level isolation but testbed does not provide that')
+
+
+class Restriction_isolation_machine(Restriction):
+
+    def __init__(self, rname, base):
+        if 'isolation-machine' not in testbed.caps:
+            raise Unsupported(-1, 'Test requires machine-level isolation but testbed does not provide that')
+
+
 class Restriction_breaks_testbed(Restriction):
 
     def __init__(self, rname, base):
