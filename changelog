@@ -25,6 +25,7 @@ autopkgtest (2.9) UNRELEASED; urgency=medium
     (where even a container is insufficient), and will be skipped instead of
     failing when they run in a virtualization server which does not provide
     enough isolation.
+  * Add manpage for adt-build-lxc script.
 
   Bug fixes:
   * tests: Copy tests/home/ into a temporary dir and set $HOME to that, to
