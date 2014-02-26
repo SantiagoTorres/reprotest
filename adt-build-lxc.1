@@ -1,0 +1,64 @@
+.TH adt-build-lxc 2014 "Linux Programmer's Manual"
+.SH NAME
+adt-build-lxc \- Create or update autopkgtest container for adt\-virt-lxc
+
+.SH SYNOPSYS
+.B adt-build-lxc
+.I distribution release
+
+.SH DESCRIPTION
+.B adt-build-lxc
+creates or updates an LXC container \fBadt-\fIrelease\fR which is suitable for
+autopkgtest's LXC runner \fBadt-virt-lxc\fR(1).
+
+It calls
+.B lxc-create
+with the
+.I distribution
+template (which can currently be
+.B debian
+or
+.B ubuntu) and
+.BI -r release
+to build a debootstrap-like container, then enables
+.B deb-src
+apt sources, and runs
+.B apt-get update\fR.
+
+If the container already exists, it updates it as unintrusively as possible by
+first creating a new temporary container \fBadt-\fIrelease\fB.new\fR, and then
+rsyncing its root file system back to the existing \fBadt-\fIrelease\fR. Note
+that this could cause some side-effects and breakage if you have running
+containers with ephemeral overlays (i. e. using the
+.B --ephemeral
+option), but it does work in general. This update process does not interfere at
+all if you use
+.B adt-virt-lxc
+with cloning.
+
+Note that you need to call this as root, unless you set up LXC to allow
+per-user containers. But user containers will not work with many or even most
+autopkgtests.
+
+.SH EXAMPLES
+
+# adt-build-lxc debian sid
+
+.PP
+$ sudo adt-build-lxc ubuntu trusty
+
+.SH SEE ALSO
+\fBadt\-virt-lxc\fR(1),
+\fBadt\-run\fR(1),
+\fBlxc-create\fR(1),
+\fB/usr/share/doc/autopkgtest/\fR.
+
+.SH AUTHORS AND COPYRIGHT
+.B adt-build-lxc
+was written by Martin Pitt <martin.pitt@ubuntu.com>
+
+This manpage is part of autopkgtest, a tool for testing Debian binary
+packages.  autopkgtest is Copyright (C) 2006-2014 Canonical Ltd and others.
+
+See \fB/usr/share/doc/autopkgtest/CREDITS\fR for the list of
+contributors and full copying conditions.
