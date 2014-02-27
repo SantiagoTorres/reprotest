@@ -36,7 +36,7 @@ NAME="adt-${RELEASE}"
 # fall back for older LXC option name
 LXCDIR=`lxc-config lxc.lxcpath` || LXCDIR=`lxc-config lxcpath`
 
-LXC_ARGS="-t $DISTRO -- -r $RELEASE -F"
+LXC_ARGS="-t $DISTRO -- -r $RELEASE"
 
 setup() {
     # add deb-src
@@ -61,7 +61,7 @@ if [ ! -e $LXCDIR/$NAME ]; then
     setup $NAME
 else
     # create a new rootfs in a temp container
-    APT_PROXY=apt lxc-create -n ${NAME}.new $LXC_ARGS
+    APT_PROXY=apt lxc-create -n ${NAME}.new $LXC_ARGS -F
     setup ${NAME}.new
     # replace the original rootfs
     rsync -aHAXS --numeric-ids --delete $LXCDIR/${NAME}.new/rootfs $LXCDIR/${NAME}/rootfs
