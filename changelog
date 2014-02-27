@@ -43,6 +43,7 @@ autopkgtest (2.9) UNRELEASED; urgency=medium
     avoid failure on slow architectures.
   * adt-build-lxc: Properly wait for finished container boot instead of a
     static 10 second sleep.
+  * adt-build-lxc: Only flush the cache when updating an existing container.
 
  -- Martin Pitt <mpitt@debian.org>  Sat, 22 Feb 2014 13:43:15 +0100
 
