@@ -1,4 +1,4 @@
-autopkgtest (2.9) UNRELEASED; urgency=medium
+autopkgtest (2.9) unstable; urgency=low
 
   New features:
   * Add "downtmp-host=<path>" testbed capability, for runners which can set up
@@ -51,7 +51,7 @@ autopkgtest (2.9) UNRELEASED; urgency=medium
     static 10 second sleep.
   * adt-build-lxc: Only flush the cache when updating an existing container.
 
- -- Martin Pitt <mpitt@debian.org>  Sat, 22 Feb 2014 13:43:15 +0100
+ -- Martin Pitt <mpitt@debian.org>  Thu, 27 Feb 2014 11:23:32 +0100
 
 autopkgtest (2.8.1) unstable; urgency=medium
 
