@@ -49,7 +49,7 @@ setup() {
         timeout=$((timeout - 1))
         sleep 1
         O=`lxc-attach -n $1 runlevel 2>/dev/null` || continue
-        [ "$O" = "${O%[0-9]}" || break
+        [ "$O" = "${O%[0-9]}" ] || break
     done
     [ $timeout -ge 0 ] || {
         echo "Timed out waiting for container to boot" >&2
