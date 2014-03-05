@@ -1,3 +1,10 @@
+autopkgtest (2.10) UNRELEASED; urgency=medium
+
+  * doc/README.package-tests: Clarify syntax of test Depends:, and point to
+    the relevant Debian Policy specification.
+
+ -- Martin Pitt <mpitt@debian.org>  Wed, 05 Mar 2014 11:33:21 +0100
+
 autopkgtest (2.9) unstable; urgency=low
 
   New features:
