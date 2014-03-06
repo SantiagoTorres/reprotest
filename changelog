@@ -1,7 +1,12 @@
 autopkgtest (2.10) UNRELEASED; urgency=medium
 
+  [ Martin Pitt ]
   * doc/README.package-tests: Clarify syntax of test Depends:, and point to
     the relevant Debian Policy specification.
+
+  [ Steve Langasek ]
+  * Fix adt-virt-schroot to correctly return root-on-testbed when we're
+    running adt-run as root. (Closes: #740868)
 
  -- Martin Pitt <mpitt@debian.org>  Wed, 05 Mar 2014 11:33:21 +0100
 
