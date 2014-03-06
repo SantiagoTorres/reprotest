@@ -28,10 +28,9 @@ VERSION=$(shell dpkg-parsechangelog  | sed -n '/^Version:/ {s/^.*: //; p}')
 	dh "$@"
 
 override_dh_auto_install:
-	$(MAKE) install-here DESTDIR=$(CURDIR)/debian/autopkgtest prefix=/usr
+	$(MAKE) install-here DESTDIR=$(CURDIR)/debian/autopkgtest
 	$(MAKE) -C xen install \
 		DESTDIR=$(CURDIR)/debian/autopkgtest-xenlvm \
-		prefix=/usr \
 		pkgname=autopkgtest-xenlvm \
 		cfg_suffix=''
 

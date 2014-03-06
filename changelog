@@ -10,6 +10,8 @@ autopkgtest (2.10) UNRELEASED; urgency=medium
     with overwriting existing files and writing into subdirs.
   * VirtSubproc: Fix copyup_shareddir() to get along with existing
     directories. (LP: #1288668)
+  * settings.make: Switch default prefix to /usr, as our scripts hardcode that
+    for finding VirtSubproc.py and this is a native package. (LP: #1287264)
 
   [ Steve Langasek ]
   * Fix adt-virt-schroot to correctly return root-on-testbed when we're
