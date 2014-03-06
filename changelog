@@ -3,6 +3,9 @@ autopkgtest (2.10) UNRELEASED; urgency=medium
   [ Martin Pitt ]
   * doc/README.package-tests: Clarify syntax of test Depends:, and point to
     the relevant Debian Policy specification.
+  * adt-build-lxc: Fall back to assuming /var/lib/lxc/ as container directory
+    if lxc-config does not exist. It was introduced in 1.0, but Debian
+    unstable still has 0.9. (Closes: #740437)
 
   [ Steve Langasek ]
   * Fix adt-virt-schroot to correctly return root-on-testbed when we're
