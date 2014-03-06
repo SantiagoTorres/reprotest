@@ -1,4 +1,4 @@
-autopkgtest (2.10) UNRELEASED; urgency=medium
+autopkgtest (2.9.1) unstable; urgency=medium
 
   [ Martin Pitt ]
   * doc/README.package-tests: Clarify syntax of test Depends:, and point to
@@ -17,7 +17,7 @@ autopkgtest (2.10) UNRELEASED; urgency=medium
   * Fix adt-virt-schroot to correctly return root-on-testbed when we're
     running adt-run as root. (Closes: #740868)
 
- -- Martin Pitt <mpitt@debian.org>  Wed, 05 Mar 2014 11:33:21 +0100
+ -- Martin Pitt <mpitt@debian.org>  Thu, 06 Mar 2014 13:44:07 +0100
 
 autopkgtest (2.9) unstable; urgency=low
 
