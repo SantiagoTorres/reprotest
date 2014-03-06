@@ -97,7 +97,8 @@ def parse_args():
         capabilities.append('revert')
 
     if (match(cfg['root-users'], [os.getuid()], pw_uid) or
-            match(cfg['root-groups'], [os.getgid()] + os.getgroups(), gr_gid)):
+            match(cfg['root-groups'], [os.getgid()] + os.getgroups(), gr_gid) or
+            os.getuid() == 0):
         VirtSubproc.debug('have "root-on-testbed" capability')
         capabilities.append('root-on-testbed')
 
