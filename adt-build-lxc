@@ -34,7 +34,7 @@ fi
 NAME="adt-${RELEASE}"
 
 # fall back for older LXC option name
-LXCDIR=`lxc-config lxc.lxcpath` || LXCDIR=`lxc-config lxcpath`
+LXCDIR=`lxc-config lxc.lxcpath` || LXCDIR=`lxc-config lxcpath` || LXCDIR=/var/lib/lxc
 
 LXC_ARGS="-t $DISTRO -- -r $RELEASE"
 
