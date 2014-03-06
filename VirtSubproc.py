@@ -400,6 +400,18 @@ def get_downtmp_host():
     return None
 
 
+def copytree(src, dst):
+    '''Like shutils.copytree(), but merges with existing dst'''
+
+    if not os.path.exists(dst):
+        shutil.copytree(src, dst, symlinks=True)
+        return
+
+    for f in os.listdir(src):
+        fsrc = os.path.join(src, f)
+        subprocess.check_call(['cp', '-at', dst, fsrc])
+
+
 def copyup_shareddir(tb, host, is_dir, downtmp_host):
     debug('copyup_shareddir: tb %s, host %s, is_dir %s, downtmp_host %s' % (
         tb, host, is_dir, downtmp_host))
@@ -429,7 +441,7 @@ def copyup_shareddir(tb, host, is_dir, downtmp_host):
             debug('copyup_shareddir: tb(host) %s is not already at '
                   'destination %s, copying' % (tb, host))
             if is_dir:
-                shutil.copytree(tb, host, symlinks=True)
+                copytree(tb, host)
             else:
                 shutil.copy(tb, host)
 
