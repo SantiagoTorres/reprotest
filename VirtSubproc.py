@@ -457,6 +457,7 @@ def copydown_shareddir(host, tb, is_dir, downtmp_host):
 
     host = os.path.normpath(host)
     tb = os.path.normpath(tb)
+    downtmp_host = os.path.normpath(downtmp_host)
 
     timeout_start(copy_timeout)
     try:
