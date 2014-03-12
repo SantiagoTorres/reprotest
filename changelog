@@ -4,6 +4,9 @@ autopkgtest (2.9.2) UNRELEASED; urgency=medium
     error when file is already in the shared downtmp.
   * VirtSubproc.py, copydown_shareddir(): Remove already existing target
     directory to avoid copying an updated directory into the old one.
+  * adt-run: Show timestamps at the beginning, start of preparation (i. e.
+    mostly installing dependencies), and start and end of tests.
+    (LP: #1290760)
 
  -- Martin Pitt <mpitt@debian.org>  Fri, 07 Mar 2014 11:34:14 +0100
 
