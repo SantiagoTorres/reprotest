@@ -7,6 +7,8 @@ autopkgtest (2.9.2) UNRELEASED; urgency=medium
   * adt-run: Show timestamps at the beginning, start of preparation (i. e.
     mostly installing dependencies), and start and end of tests.
     (LP: #1290760)
+  * Run NullRunnerNoRoot tests during package build. Add python-debian build
+    dependency for that.
 
  -- Martin Pitt <mpitt@debian.org>  Fri, 07 Mar 2014 11:34:14 +0100
 

@@ -5,6 +5,7 @@ Section: devel
 Priority: optional
 Standards-Version: 3.9.5
 Build-Depends: debhelper (>= 8),
+ python-debian,
  pyflakes,
  pep8
 Vcs-Git: git://git.debian.org/git/autopkgtest/autopkgtest.git
