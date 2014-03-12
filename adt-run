@@ -87,7 +87,7 @@ def error(message):
     print >> sys.stderr, message
 
 
-def debug(message, minlevel=0):
+def debug(message, minlevel=0, timestamp=False):
     '''Write a debug message to stderr according to --quiet'''
 
     if opts.debuglevel < minlevel:
@@ -96,6 +96,8 @@ def debug(message, minlevel=0):
     p = 'adt-run'
     if minlevel:
         p += str(minlevel)
+    if timestamp:
+        p += ' [%s]' % time.strftime('%Y-%m-%d %H:%M:%S')
     p += ': '
     log_msg(message, p)
 
@@ -586,7 +588,7 @@ class Testbed:
         debug('** ' + m, minlevel)
 
     def start(self):
-        debug('version @devel@')
+        debug('version @devel@', timestamp=True)
         debug_subprocess('vserver', opts.vserver)
         self.sp = subprocess.Popen(opts.vserver,
                                    stdin=subprocess.PIPE,
@@ -1195,8 +1197,8 @@ class Test:
         debug('constructed; path=%s' % self.path, 1)
         debug(' .depends=%s' % self.depends, 1)
 
-    def _debug(self, m):
-        debug('& %s: %s' % (self.what, m))
+    def _debug(self, m, timestamp=False):
+        debug('& %s: %s' % (self.what, m), timestamp=timestamp)
 
     def report(self, m):
         report(self.what, m)
@@ -1207,7 +1209,7 @@ class Test:
         report(self.what, 'FAIL ' + m)
 
     def prepare(self, tree):
-        self._debug('preparing')
+        self._debug('preparing', True)
         dn = []
         for d in self.depends:
             self._debug(' processing dependency ' + d)
@@ -1289,7 +1291,7 @@ class Test:
             debug('shared_downtmp with FIFO not supported', 1)
 
         if show_realtime:
-            self._debug('[----------------------------------------')
+            self._debug('[-----------------------', True)
             debug('teeing to stdout: %s, stderr: %s' % (fifo_out.host, fifo_err.host), 2)
             tee_out = os.fork()
             if tee_out == 0:
@@ -1330,15 +1332,16 @@ class Test:
                 os.kill(tee_err, signal.SIGTERM)
                 os.waitpid(tee_out, 0)
                 os.waitpid(tee_err, 0)
-            self._debug('----------------------------------------]')
+            self._debug('-----------------------]', True)
 
         # without a shared downtmp we cannot show realtime output and need
         # to show stdout afterwards
         else:
-            self._debug('running...')
+            self._debug('running...', True)
             rc = testbed.execute('test-' + self.what, test_argv,
                                  so=so.tb, se=se.tb, cwd=tree.tb,
                                  xenv=xenv, kind='test')
+            self._debug('finished', True)
             debug('testbed executing test finished with exit status %i' % rc, 1)
 
             # copy stdout/err files to host
