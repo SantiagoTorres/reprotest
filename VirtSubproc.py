@@ -478,7 +478,8 @@ def copydown_shareddir(host, tb, is_dir, downtmp_host):
         if host == tb:
             host_tmp = None
         else:
-            subprocess.call(downs['auxverb'] + ['rm', '-rf', tb], preexec_fn=preexecfn)
+            subprocess.call(downs['auxverb'] + ['rm', '-rf', tb],
+                            preexec_fn=preexecfn)
             cp = subprocess.Popen(downs['auxverb'] + ['cp', '-a', host, tb],
                                   preexec_fn=preexecfn)
             cp.communicate()
