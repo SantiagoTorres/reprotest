@@ -2,6 +2,8 @@ autopkgtest (2.9.2) UNRELEASED; urgency=medium
 
   * VirtSubproc.py, copydown_shareddir(): Fix "src and dest are the same file"
     error when file is already in the shared downtmp.
+  * VirtSubproc.py, copydown_shareddir(): Remove already existing target
+    directory to avoid copying an updated directory into the old one.
 
  -- Martin Pitt <mpitt@debian.org>  Fri, 07 Mar 2014 11:34:14 +0100
 
