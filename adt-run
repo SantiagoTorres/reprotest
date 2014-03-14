@@ -1161,6 +1161,21 @@ class Field_Tests_directory(FieldBase):
 
 def run_tests(stanzas, tree):
     global errorcode, testbed
+
+    # record tested package version
+    with open(os.path.join(tree.host, 'debian', 'changelog')) as f:
+        m = re.match('^([^ ]+) \(([^ ]+)\) ', f.readline())
+        if m:
+            debug('testing package %s version %s' % (m.group(1), m.group(2)))
+            if opts.output_dir:
+                with open(os.path.join(tmp, 'testpkg-version'), 'w') as f:
+                    f.write(m.group(1))
+                    f.write(' ')
+                    f.write(m.group(2))
+                    f.write('\n')
+        else:
+            error('debian/changelog is invalid, cannot parse version')
+
     if stanzas == ():
         report('*', 'SKIP no tests in this package')
         errorcode |= 8
