@@ -1,3 +1,10 @@
+autopkgtest (2.10) UNRELEASED; urgency=medium
+
+  * Record name and version of tested package in log and in
+    output-dir/testpkg-version. (first part of LP #1292431)
+
+ -- Martin Pitt <mpitt@debian.org>  Fri, 14 Mar 2014 11:01:18 +0100
+
 autopkgtest (2.9.2) unstable; urgency=medium
 
   * VirtSubproc.py, copydown_shareddir(): Fix "src and dest are the same file"
