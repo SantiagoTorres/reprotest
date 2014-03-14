@@ -1244,6 +1244,16 @@ class Test:
         testbed.prepare(dn)
 
     def run(self, tree):
+        # record installed package versions
+        if opts.output_dir:
+            pkglist = TempTestbedPath(testbed, self.what + '-packages', autoclean=False)
+            rc = testbed.execute(
+                'record-pkgversions-' + self.what,
+                ['sh', '-ec', "dpkg-query --show -f '${Package}\\t${Version}\\n' > %s" % pkglist.tb])
+            if rc:
+                bomb('failed to get package list')
+            pkglist.copyup()
+
         # ensure our tests are in the testbed
         tree.copydown()
 
