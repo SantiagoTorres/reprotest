@@ -4,6 +4,9 @@ autopkgtest (2.10) UNRELEASED; urgency=medium
     output-dir/testpkg-version. (first part of LP #1292431)
   * Record installed packages and their versions for each test, in
     <output-dir>/<test>-packages. (second half of LP: #1292431)
+  * Drop adt-testreport-*, adt-openbugs-*: These have been marked deprecated
+    for a while, haven't been used or maintained in many years, and are
+    superseded by jenkins/debci. (Closes: #695974)
 
  -- Martin Pitt <mpitt@debian.org>  Fri, 14 Mar 2014 11:01:18 +0100
 

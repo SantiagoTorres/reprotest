@@ -35,7 +35,7 @@ Description: automatic as-installed testing for Debian packages
 Package: autopkgtest-xenlvm
 Architecture: all
 Depends: libadns1-bin, chiark-utils-bin, iproute, dmsetup, ${misc:Depends}
-Recommends: lvm2, debootstrap, curl
+Recommends: lvm2, debootstrap
 Suggests: autopkgtest
 Replaces: autopkgtest (<< 2.5.3~)
 Breaks: autopkgtest (<< 2.5.3~)
@@ -48,5 +48,3 @@ Description: autopkgtest Xen/LVM2 based testbed snapshot system
  You will need a working Xen setup to make use of this software.  Your
  network administrator will need to provide support for the testbeds'
  networking requirements.  See the README for documentation.
- .
- Use of the pre-cooked adt-testreport-onepackage script requires curl.
