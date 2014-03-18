@@ -1,4 +1,4 @@
-autopkgtest (2.10) UNRELEASED; urgency=medium
+autopkgtest (2.10) unstable; urgency=medium
 
   * Record name and version of tested package in log and in
     output-dir/testpkg-version. (first part of LP #1292431)
@@ -8,7 +8,7 @@ autopkgtest (2.10) UNRELEASED; urgency=medium
     for a while, haven't been used or maintained in many years, and are
     superseded by jenkins/debci. (Closes: #695974)
 
- -- Martin Pitt <mpitt@debian.org>  Fri, 14 Mar 2014 11:01:18 +0100
+ -- Martin Pitt <mpitt@debian.org>  Tue, 18 Mar 2014 16:12:24 +0100
 
 autopkgtest (2.9.2) unstable; urgency=medium
 
