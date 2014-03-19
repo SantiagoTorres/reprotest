@@ -28,9 +28,9 @@ primary image, and add all other images as read-only.
 
 .SH REQUIREMENTS
 .B adt-virt-qemu
-assumes that you have already prepared a suitable Debian based QEMU image.
-autopkgtest provides \fBadt-buildvm-ubuntu-cloud\fR(1) to build a VM based
-on the Ubuntu cloud images, but you can use any VM which satisfies one of:
+assumes that you have already prepared a suitable Debian based QEMU image (see
+.B BUILDING IMAGES
+below for how to create them). but you can use any VM which satisfies one of:
 
 .IP * 4
 They open a root shell on ttyS1, or
@@ -124,10 +124,47 @@ build, which can cause a build failure if you are using a development
 series template. You will need to run \fBapt-get update\fR in the template
 yourself (e. g. using \fB\-\-setup\-commands\fR).
 
-.SH EXAMPLE
+.SH BUILDING IMAGES
 
-Create an Ubuntu cloud image for the current development series and the i386
-architecture:
+.SS Debian
+
+For Debian you can use
+.BR vmdebootstrap(8)
+to build a suitable image. E. g. for unstable:
+
+.RS
+.EX
+vmdebootstrap --verbose --serial-console --distribution=sid \\
+.br
+   --customize=/usr/share/autopkgtest/adt-setup-vm \\
+.br
+   --user=adt/adt --size=10000000000 --image=adt-sid.raw
+.br
+qemu-img convert -O qcow2 adt-sid.raw  adt-sid.img
+.br
+rm adt-sid.raw
+.EE
+.RE
+
+.B vmdebootstrap
+can only create a raw format image; it is recommended to convert it to qcow2 as
+that is much smaller (in the order of 700 MB for qcow2 vs. the 10 GB as
+specified above) and also supports additional features such as snapshots or
+compression. You can run that command with setting the environment variable
+.B ADT_APT_PROXY
+to a proxy. E. g. if you have apt-cacher-ng installed on the host, you can run
+
+.RS
+.EX
+ADT_APT_PROXY=http://10.0.2.2:3142 vmdebootstrap [...]
+.EE
+.RE
+
+.SS Ubuntu
+
+For Ubuntu, autopkgtest provides \fBadt-buildvm-ubuntu-cloud\fR(1) to build a
+VM based on the Ubuntu cloud images. To create an image for the current
+development series and the i386 architecture:
 
 .RS
 .EX
@@ -137,8 +174,10 @@ adt-buildvm-ubuntu-cloud -v -a i386
 
 This will produce e. g.
 .B adt-trusty-i386-cloud.img\fR.
-Now run the tests of the libpng source package of that release, using that
-image:
+
+.SH EXAMPLE
+
+Run the tests of the libpng source package, using an Ubuntu cloud image:
 
 .RS
 .EX
@@ -151,6 +190,7 @@ adt-run libpng --- adt-virt-qemu adt-trusty-i386-cloud.img
 \fBadt\-virt-schroot\fR(1),
 \fBadt\-virt-lxc\fR(1),
 \fBadt-buildvm-ubuntu-cloud\fR(1),
+\fBvmdebootstrap\fR(8),
 \fB/usr/share/doc/autopkgtest/\fR.
 
 .SH AUTHORS AND COPYRIGHT
