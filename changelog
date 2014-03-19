@@ -1,3 +1,13 @@
+autopkgtest (2.11) UNRELEASED; urgency=medium
+
+  * Add tools/adt-setup-vm: Setup script for vmdebootstrap (and potentially
+    others) to start a root shell on tty1, set up networking for eth0, and
+    enable deb-src apt sources.
+  * adt-virt-qemu.1: Describe how to create a suitable Debian VM with
+    vmdebootstrap.
+
+ -- Martin Pitt <mpitt@debian.org>  Wed, 19 Mar 2014 11:00:59 +0100
+
 autopkgtest (2.10) unstable; urgency=medium
 
   * Record name and version of tested package in log and in
