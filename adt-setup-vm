@@ -1,0 +1,52 @@
+#!/bin/sh
+# adt-setup-vm is part of autopkgtest
+# autopkgtest is a tool for testing Debian binary packages
+#
+# autopkgtest is Copyright (C) 2006-2014 Canonical Ltd.
+#
+# Setup script for e. g. vmdebootstrap to start a root serial console on ttyS1,
+# set up networking for eth0, and enable deb-src apt sources. See
+# adt-virt-qemu(1) for details.
+#
+# You can set $ADT_APT_PROXY; if set, it will be configured in apt in
+# /etc/apt/apt.conf.d/01proxy.
+
+set -e
+
+[ -d "$1" ] || {
+    echo "ERROR: This needs to be called with the root directory as argument" >&2
+    exit 1
+}
+
+cat <<EOF > "$1/etc/init.d/autopkgtest"
+### BEGIN INIT INFO
+# Provides:          autopkgtest
+# Required-Start:    mountkernfs \$local_fs
+# Required-Stop:
+# X-Start-Before:    \$network
+# Default-Start:     2 3 4 5
+# Default-Stop:
+### END INIT INFO
+
+if [ "\$1" = start ]; then
+    echo "Starting root shell on ttyS1 for autopkgtest"
+    (setsid sh </dev/ttyS1 >/dev/ttyS1 2>&1) &
+fi
+EOF
+
+chmod 755 "$1/etc/init.d/autopkgtest"
+chroot "$1" update-rc.d autopkgtest defaults
+
+# enable deb-src apt sources
+sed -i '/^deb / s/deb \(.*\)$/deb \1\ndeb-src \1/' "$1/etc/apt/sources.list"
+
+# set up networking
+/bin/echo -e '\nauto eth0\niface eth0 inet dhcp' >> "$1"/etc/network/interfaces
+
+chroot "$1" apt-get update
+
+# set up apt proxy, if given (this might be an IP which only works in the VM,
+# so don't run the previous apt-get update with that already)
+if [ -n "$ADT_APT_PROXY" ]; then
+    echo "Acquire::http { Proxy \"$ADT_APT_PROXY\"; };" > "$1"/etc/apt/apt.conf.d/01proxy
+fi
