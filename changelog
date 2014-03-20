@@ -5,6 +5,8 @@ autopkgtest (2.11) UNRELEASED; urgency=medium
     enable deb-src apt sources.
   * adt-virt-qemu.1: Describe how to create a suitable Debian VM with
     vmdebootstrap.
+  * doc/README.package-tests: Point out to use "build-needed" with
+    consideration.
 
  -- Martin Pitt <mpitt@debian.org>  Wed, 19 Mar 2014 11:00:59 +0100
 
