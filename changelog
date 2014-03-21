@@ -7,6 +7,11 @@ autopkgtest (2.11) UNRELEASED; urgency=medium
     vmdebootstrap.
   * doc/README.package-tests: Point out to use "build-needed" with
     consideration.
+  * Make installation of packages/dependencies print a warning instead of
+    failing immediately when root is not available on the testbed. This allows
+    tests to be run with the "null" runner locally as user with some
+    restrictions. Check if dpkg-source is available before installing
+    dpkg-dev, to avoid the warning in that simple case. (Closes: #742242)
 
  -- Martin Pitt <mpitt@debian.org>  Wed, 19 Mar 2014 11:00:59 +0100
 
