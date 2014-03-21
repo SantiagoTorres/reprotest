@@ -1952,6 +1952,7 @@ def build_source(act):
 
     if control_test_rc == '1':
         act.missing_tests_control = True
+        return
 
     # For optional builds:
     #
@@ -2127,6 +2128,12 @@ def process_actions():
             pass
 
     debug_a1('builds done.')
+
+    if act.missing_tests_control:
+        report('*', 'SKIP no tests in this package')
+        global errorcode
+        errorcode |= 8
+        return
 
     binaries.reset()
 
