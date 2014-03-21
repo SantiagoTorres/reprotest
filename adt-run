@@ -890,6 +890,11 @@ exec ''' + cmdl_str + ' "$@"\n')
         os.unlink(dsc)
 
     def satisfy_dependencies_dsc(self, dsc, what):
+        if 'root-on-testbed' not in self.caps:
+            error('WARNING: virtualisation system does not offer root on '
+                  'testbed, cannot install any packages; failure likely')
+            return
+
         # Must have called Binaries.configure_apt
         cmdl = ['/usr/lib/pbuilder/pbuilder-satisfydepends-classic',
                 '--binary-all',  # --check-key
@@ -1888,8 +1893,11 @@ def build_source(act):
 
     if act.kind in ['dsc', 'apt']:
         testbed.prepare2([])
-        testbed.satisfy_dependencies_string('dpkg-dev',
-                                            'install dpkg-dev')
+        if testbed.execute('dpkg-source_check', ['which', 'dpkg-source']) != 0:
+            debug('dpkg-source not available in testbed, installing dpkg-dev', 1)
+            # Install dpkg-source for unpacking .dsc
+            testbed.satisfy_dependencies_string('dpkg-dev',
+                                                'install dpkg-dev')
 
     # we only use the testbed path from this
     work = os.path.join(testbed.scratch, what + '-build')
