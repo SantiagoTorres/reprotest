@@ -351,5 +351,22 @@ def hook_capabilities():
     return caps
 
 
+def hook_shell(stdin, stdout, stderr, dir):
+    with open(stdout, 'w') as f:
+        f.write('''You can now log into the VM through the serial terminal.
+Depending on which terminal program you have installed, you can use one of
+
+    minicom -D unix#%(tty0)s
+    nc -U %(tty0)s
+    socat - UNIX-CONNECT:%(tty0)s
+
+The tested source package is in %(dir)s
+
+Press Enter to resume adt-run.
+''' % {'tty0': os.path.join(workdir, 'ttyS0'), 'dir': dir})
+    with open(stdin, 'r') as f:
+        f.readline()
+
+
 parse_args()
 VirtSubproc.main()

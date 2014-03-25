@@ -27,6 +27,7 @@ import os
 import re
 import grp
 import pwd
+import subprocess
 from optparse import OptionParser
 
 try:
@@ -156,6 +157,17 @@ def hook_forked_inchild():
 
 def hook_capabilities():
     return capabilities
+
+
+def hook_shell(stdin, stdout, stderr, dir):
+    argv = ['schroot', '-r', '-d', dir, '-c', sessid]
+    if 'root-on-testbed' in capabilities:
+        argv += ['-u', 'root']
+    with open(stdin, 'rb') as sin:
+        with open(stdout, 'wb') as sout:
+            with open(stderr, 'wb') as serr:
+                subprocess.call(argv, stdin=sin, stdout=sout, stderr=serr)
+
 
 parse_args()
 VirtSubproc.main()
