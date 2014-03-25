@@ -1,5 +1,15 @@
 autopkgtest (2.12) UNRELEASED; urgency=medium
 
+  New features:
+  * Add new options -s/--shell-fail for running a shell in the testbed after
+    every failed test, and --shell for running a shell in the testbed after
+    every test. This should make debugging tests or regressions quite a bit
+    simpler. This actually spawns a shell for the null, chroot, schroot, and
+    lxc runners, and shows how to login to the VM for qemu (this will
+    hopefully be improved in the future, but at least makes debugging possible
+    for now).
+
+  Bug fixes:
   * adt-build-lxc: Fix apt proxy setting for ubuntu template; use $HTTP_PROXY,
     not $APT_PROXY.
   * Make PEP-8 failures non-fatal during package build. They often fail in
