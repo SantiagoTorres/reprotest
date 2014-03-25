@@ -2,6 +2,9 @@ autopkgtest (2.12) UNRELEASED; urgency=medium
 
   * adt-build-lxc: Fix apt proxy setting for ubuntu template; use $HTTP_PROXY,
     not $APT_PROXY.
+  * Make PEP-8 failures non-fatal during package build. They often fail in
+    backports to old releases, and running them before releasing a new package
+    is sufficient.
 
  -- Martin Pitt <mpitt@debian.org>  Mon, 24 Mar 2014 08:20:28 +0100
 
