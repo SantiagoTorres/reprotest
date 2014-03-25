@@ -116,8 +116,8 @@ def download_image(cloud_img_url, release, arch):
             if percent > download_image.lastpercent:
                 download_image.lastpercent = percent
                 sys.stdout.write('\r%.1f/%.1f MB (%i%%)                 ' % (
-                    cur_bytes/1000000.,
-                    totalsize/1000000.,
+                    cur_bytes / 1000000.,
+                    totalsize / 1000000.,
                     percent))
                 sys.stdout.flush()
         else:
