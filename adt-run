@@ -384,6 +384,10 @@ def parse_args():
                       help='command to gain root during package build, passed to dpkg-buildpackage -r')
     parser.add_option('-q', '--quiet', action='store_true', dest='quiet', default=False)
     parser.add_option('-d', '--debug', action='count', dest='debuglevel', default=0)
+    parser.add_option('-s', '--shell-fail', action='store_true',
+                      help='run a shell in the testbed after every failed test')
+    parser.add_option('--shell', action='store_true',
+                      help='run a shell in the testbed after every test')
     parser.add_option('--gnupg-home', type='string', dest='gnupghome',
                       default='~/.autopkgtest/gpg',
                       help='use GNUPGHOME rather than ~/.autopkgtest (for'
@@ -1387,6 +1391,7 @@ class Test:
 
         self._debug(' - - - - - - - - - - results - - - - - - - - - -')
 
+        passed = False
         if rc != 0:
             self.reportfail('non-zero exit status %d' % rc)
         elif se_size != 0 and 'allow-stderr' not in self.restriction_names:
@@ -1395,6 +1400,7 @@ class Test:
             self.reportfail('status: %d, stderr: %s' % (rc, stderr_top))
         else:
             self.report('PASS')
+            passed = True
 
         # avoid mixing up stdout (from report) and stderr (from _debug) in output
         sys.stdout.flush()
@@ -1426,6 +1432,13 @@ class Test:
             # don't keep an empty artifacts dir around
             if not os.listdir(ap.host):
                 os.rmdir(ap.host)
+
+        if opts.shell or (opts.shell_fail and not passed):
+            self._debug(' - - - - - - - - - - running shell - - - - - - - - - -')
+            testbed.command('shell', (os.path.realpath('/dev/stdin'),
+                                      os.path.realpath('/dev/stdout'),
+                                      os.path.realpath('/dev/stderr'),
+                                      tree.tb))
 
 
 def read_stanzas(path):
