@@ -594,6 +594,16 @@ def cmd_copyup(c, ce):
     copyupdown(c, ce, True)
 
 
+def cmd_shell(c, ce):
+    cmdnumargs(c, ce, 4)
+    if not downtmp:
+        bomb("`shell' when not open")
+    try:
+        caller.hook_shell(c[1], c[2], c[3], c[4])
+    except AttributeError:
+        raise FailedCmd(['not supported by virt server'])
+
+
 def command():
     sys.stdout.flush()
     while True:
