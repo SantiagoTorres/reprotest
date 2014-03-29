@@ -1,5 +1,6 @@
 autopkgtest (2.12) UNRELEASED; urgency=medium
 
+  [ Martin Pitt ]
   New features:
   * Add new options -s/--shell-fail for running a shell in the testbed after
     every failed test, and --shell for running a shell in the testbed after
@@ -15,6 +16,12 @@ autopkgtest (2.12) UNRELEASED; urgency=medium
   * Make PEP-8 failures non-fatal during package build. They often fail in
     backports to old releases, and running them before releasing a new package
     is sufficient.
+
+  [ Antonio Terceiro ]
+  * adt-virt-schroot: Add new option -s/--session-id for specifying a custom
+    schroot session id. This is useful for debugging test suites that go crazy
+    on ci.debian.net, so you can `schroot --list --all-sessions` and see which
+    sessions are still open.
 
  -- Martin Pitt <mpitt@debian.org>  Mon, 24 Mar 2014 08:20:28 +0100
 
