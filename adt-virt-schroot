@@ -66,17 +66,21 @@ def match(exp_names, ids, extract_id):
 
 
 def parse_args():
-    global schroot
+    global schroot, sessid
 
     usage = "%prog [<options>] <schroot>"
     parser = OptionParser(usage=usage)
 
     parser.add_option('-d', '--debug', action='store_true')
+    parser.add_option('-s', '--session-id',
+                      help='custom schroot session ID for easy identification '
+                      'in "schroot --list --all-sessions"')
 
     (opts, args) = parser.parse_args()
     if len(args) != 1:
         parser.error("need exactly one arg, schroot name")
 
+    sessid = opts.session_id
     schroot = args[0]
 
     info = VirtSubproc.execute('schroot --config -c', [schroot],
@@ -111,7 +115,8 @@ def parse_args():
 def hook_open():
     global schroot, sessid
     sessid = VirtSubproc.execute(
-        'schroot -b -c', [schroot], downp=False, outp=True)
+        'schroot -b -c', [schroot] + (sessid and ['-n', sessid] or []),
+        downp=False, outp=True)
     VirtSubproc.down = ['schroot', '-r', '-d', '/', '-c', sessid]
     if 'root-on-testbed' in capabilities:
         VirtSubproc.down += ['-u', 'root']
