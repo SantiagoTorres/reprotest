@@ -1455,9 +1455,12 @@ def read_stanzas(path):
     # (http://bugs.debian.org/743174)
     lines = []
     for l in control:
-        l = l.split('#', 1)[0].rstrip()
-        if l:
-            lines.append(l)
+        # completely ignore ^# as that breaks continuation lines
+        if l.startswith('#'):
+            continue
+        # filter out comments which don't start on first column
+        l = l.split('#', 1)[0]
+        lines.append(l)
     control.close()
 
     lno = 0
