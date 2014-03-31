@@ -1451,13 +1451,22 @@ def read_stanzas(path):
             raise
         return []
 
+    # filter out comments, python-debian doesn't do that
+    # (http://bugs.debian.org/743174)
+    lines = []
+    for l in control:
+        l = l.split('#', 1)[0].rstrip()
+        if l:
+            lines.append(l)
+    control.close()
+
     lno = 0
     stz = {}  # stz[field_name][index] = (lno, value)
                 # special field names:
                 # stz[' lno'] = number
                 # stz[' tests'] = list of Test objects
                 # empty dictionary means we're between stanzas
-    for paragraph in deb822.Deb822.iter_paragraphs(control):
+    for paragraph in deb822.Deb822.iter_paragraphs(lines):
         lno += 1
         stz = {' lno': lno, ' tests': []}
         for field, value in paragraph.iteritems():
