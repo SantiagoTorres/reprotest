@@ -16,6 +16,9 @@ autopkgtest (2.12) UNRELEASED; urgency=medium
   * Make PEP-8 failures non-fatal during package build. They often fail in
     backports to old releases, and running them before releasing a new package
     is sufficient.
+  * Filter out comment lines from control lines, as python-debian doesn't
+    properly do that (Debian #743174). Fixes lintian autopkgtest.
+    (LP: #1300031)
 
   [ Antonio Terceiro ]
   * adt-virt-schroot: Add new option -s/--session-id for specifying a custom
