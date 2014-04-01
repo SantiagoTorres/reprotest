@@ -1185,6 +1185,16 @@ def run_tests(stanzas, tree):
         else:
             error('debian/changelog is invalid, cannot parse version')
 
+    # record package versions of pristine testbed
+    if opts.output_dir:
+        pkglist = TempTestbedPath(testbed, 'testbed-packages', autoclean=False)
+        rc = testbed.execute(
+            'record-pkgversions-testbed',
+            ['sh', '-ec', "dpkg-query --show -f '${Package}\\t${Version}\\n' > %s" % pkglist.tb])
+        if rc:
+            bomb('failed to get package list')
+        pkglist.copyup()
+
     if stanzas == ():
         report('*', 'SKIP no tests in this package')
         errorcode |= 8
@@ -1255,13 +1265,22 @@ class Test:
     def run(self, tree):
         # record installed package versions
         if opts.output_dir:
-            pkglist = TempTestbedPath(testbed, self.what + '-packages', autoclean=False)
+            pkglist = TempTestbedPath(testbed, self.what + '-packages.all', autoclean=False)
             rc = testbed.execute(
                 'record-pkgversions-' + self.what,
                 ['sh', '-ec', "dpkg-query --show -f '${Package}\\t${Version}\\n' > %s" % pkglist.tb])
             if rc:
                 bomb('failed to get package list')
             pkglist.copyup()
+
+            # filter out packages from the base system
+            with open(pkglist.host[:-4], 'w') as out:
+                rc = script_out(['join', '-v2', '-t\t',
+                                 os.path.join(opts.output_dir, 'testbed-packages'),
+                                 pkglist.host], stdout=out, env={})[0]
+            if rc:
+                badpkg('failed to call join for test specific package list, code %d' % rc)
+            os.unlink(pkglist.host)
 
         # ensure our tests are in the testbed
         tree.copydown()
