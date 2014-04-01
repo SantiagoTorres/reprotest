@@ -1,4 +1,4 @@
-autopkgtest (2.13) UNRELEASED; urgency=medium
+autopkgtest (2.13) unstable; urgency=medium
 
   * Split package/version list that got introduced in 2.10: Introduce a new
     output file "testbed-packages" with the packages and versions of the
@@ -6,7 +6,7 @@ autopkgtest (2.13) UNRELEASED; urgency=medium
     the latter only contains the packages and versions that are specific to
     that test. This is generally more useful, and how debci does/wants it.
 
- -- Martin Pitt <mpitt@debian.org>  Tue, 01 Apr 2014 12:00:44 +0100
+ -- Martin Pitt <mpitt@debian.org>  Tue, 01 Apr 2014 14:43:12 +0100
 
 autopkgtest (2.12) unstable; urgency=medium
 
