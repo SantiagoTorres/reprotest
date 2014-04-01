@@ -34,7 +34,7 @@ autopkgtest (2.12) unstable; urgency=medium
   * adt-virt-schroot: Add new option -s/--session-id for specifying a custom
     schroot session id. This is useful for debugging test suites that go crazy
     on ci.debian.net, so you can `schroot --list --all-sessions` and see which
-    sessions are still open.
+    sessions are still open. (Closes: #742969)
 
  -- Martin Pitt <mpitt@debian.org>  Mon, 31 Mar 2014 11:45:13 +0200
 
