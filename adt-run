@@ -476,7 +476,7 @@ def parse_args():
             kind = 'apt'
         else:
             parser.error("do not know how to handle filename `%s';"
-                         " specify --source, --binary, --build-tree, or --apt-source" %
+                         " specify --source, --binary, --built-tree, --unbuilt-tree, or --apt-source" %
                          kindpath)
 
         what = '%s%s' % (kind, ix)
