@@ -194,7 +194,7 @@ def hook_open():
             subprocess.check_call(sudoify(
                 ['sh', '-c', 'mkdir %(r)s/%(n)s/rootfs/%(d)s && '
                  'echo "lxc.mount.entry = %(d)s %(drel)s none bind 0 0" >> %(r)s/%(n)s/config' %
-                 {'r': lxc_dir,'n': lxc_container_name, 'd': shared_dir, 'drel': shared_dir[1:]}]))
+                 {'r': lxc_dir, 'n': lxc_container_name, 'd': shared_dir, 'drel': shared_dir[1:]}]))
         except subprocess.CalledProcessError as e:
             VirtSubproc.debug('unable to determine lxc path or set up bind mount, disabling shared downtmp: %s' % e)
             shutil.rmtree(shared_dir)
