@@ -185,23 +185,9 @@ def hook_open():
     else:
         VirtSubproc.execute(sudoify('lxc-clone -n %s -o' % lxc_container_name),
                             [lxc_template], downp=False, outp=True)
-
-        # determine container path and create bind mount for our tmp dir in the
-        # clone
-        try:
-            lxc_dir = subprocess.check_output(sudoify(['lxc-config', 'lxc.lxcpath']),
-                                              universal_newlines=True).strip()
-            subprocess.check_call(sudoify(
-                ['sh', '-c', 'mkdir %(r)s/%(n)s/rootfs/%(d)s && '
-                 'echo "lxc.mount.entry = %(d)s %(drel)s none bind 0 0" >> %(r)s/%(n)s/config' %
-                 {'r': lxc_dir, 'n': lxc_container_name, 'd': shared_dir, 'drel': shared_dir[1:]}]))
-        except subprocess.CalledProcessError as e:
-            VirtSubproc.debug('unable to determine lxc path or set up bind mount, disabling shared downtmp: %s' % e)
-            shutil.rmtree(shared_dir)
-            shared_dir = None
-
-        VirtSubproc.execute(sudoify('lxc-start -n %s -d' % lxc_container_name),
-                            [], downp=False, outp=True)
+        subprocess.check_call(sudoify([
+            'lxc-start', '-n', lxc_container_name, '-d',
+            '-s', 'lxc.mount.entry=%s %s none bind,create=dir 0 0' % (shared_dir, shared_dir[1:])]))
     try:
         VirtSubproc.debug('waiting for lxc guest start')
         wait_booted(lxc_container_name)
