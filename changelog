@@ -2,6 +2,7 @@ autopkgtest (2.13.1) UNRELEASED; urgency=medium
 
   * Fix "--build-tree" typo in error message, and also add the missing
     --unbuilt-tree. (Closes: #743427)
+  * lxc: Enable live output in clone mode.
 
  -- Martin Pitt <mpitt@debian.org>  Wed, 02 Apr 2014 20:58:05 +0100
 
