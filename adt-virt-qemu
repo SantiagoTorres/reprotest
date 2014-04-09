@@ -326,7 +326,7 @@ def hook_open():
         argv.append('file=%s,if=virtio,index=%i,readonly' % (image, i + 1))
 
     # find free port to forward VM port 22 (for SSH access)
-    #ssh_port = find_free_port(10022)
+    ssh_port = find_free_port(10022)
     if ssh_port:
         VirtSubproc.debug('Forwarding local port %i to VM ssh port 22' % ssh_port)
         argv.append('-redir')
