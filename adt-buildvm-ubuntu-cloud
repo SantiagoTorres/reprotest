@@ -154,6 +154,7 @@ timezone: Etc/UTC
 
 password: ubuntu
 chpasswd: { expire: False }
+ssh_pwauth: True
 manage_etc_hosts: True
 apt_proxy: %(proxy)s
 apt_mirror: %(mirror)s
