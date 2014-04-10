@@ -7,6 +7,7 @@ Standards-Version: 3.9.5
 Build-Depends: debhelper (>= 8),
  python-debian,
  pyflakes,
+ python3,
  pep8
 Vcs-Git: git://git.debian.org/git/autopkgtest/autopkgtest.git
 Vcs-Browser: http://anonscm.debian.org/gitweb/?p=autopkgtest/autopkgtest.git
