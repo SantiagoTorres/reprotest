@@ -1966,7 +1966,7 @@ def build_source(act):
 
     if act.kind == 'apt':
         spec = act.arg
-        create_command = 'apt-get source $spec\n'
+        create_command = 'apt-get source --only-source $spec\n'
         initcwd = work
 
     script = [
