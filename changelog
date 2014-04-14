@@ -4,6 +4,8 @@ autopkgtest (2.14.2) UNRELEASED; urgency=medium
     "--only-source" option, to actually get what we asked for.
   * Add missing python3 build dependency for tests/adt-run. Fixes FTBFS of
     backports.
+  * adt-buildvm-ubuntu-cloud: Add options to pass custom metadata/userdata.
+    Thanks Diogo Matsubara.
 
  -- Martin Pitt <mpitt@debian.org>  Thu, 10 Apr 2014 08:45:33 +0200
 
