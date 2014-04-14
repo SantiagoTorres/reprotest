@@ -95,6 +95,10 @@ def parse_args():
                         help='cloud images URL (default: %(default)s)')
     parser.add_argument('--no-apt-upgrade', action='store_true',
                         help='Do not run apt-get dist-upgrade')
+    parser.add_argument('--metadata', metavar='METADATA_FILE',
+                        help='Custom metadata file for cloud-init.')
+    parser.add_argument('--userdata', metavar='USERDATA_FILE',
+                        help='Custom userdata file for cloud-init.')
 
     return parser.parse_args()
 
@@ -141,14 +145,11 @@ def resize_image(image, size):
     subprocess.check_call(['qemu-img', 'resize', image, '+' + size])
 
 
-def build_seed(mirror, proxy, release, no_apt_upgrade):
-    print('Building seed image...')
-    with open(os.path.join(workdir, 'meta-data'), 'w') as f:
-        f.write('instance-id: nocloud\nlocal-hostname: autopkgtest\n')
+DEFAULT_METADATA = 'instance-id: nocloud\nlocal-hostname: autopkgtest\n'
 
-    upgr = no_apt_upgrade and 'false' or 'true'
-    with open(os.path.join(workdir, 'user-data'), 'w') as f:
-        f.write('''#cloud-config
+
+DEFAULT_USERDATA = """
+#cloud-config
 locale: en_US.UTF-8
 timezone: Etc/UTC
 
@@ -178,7 +179,27 @@ runcmd:
  - [ ln, -s, ../init.d/autopkgtest , /etc/rc2.d/S99autopkgtest ]
  - [ apt-get, -y, purge, cloud-init ]
  - [ shutdown, -P, now ]
-''' % {'proxy': proxy or '', 'mirror': mirror, 'rel': release, 'upgr': upgr})
+"""
+
+
+def build_seed(mirror, proxy, release, no_apt_upgrade, metadata_file=None,
+               userdata_file=None):
+    print('Building seed image...')
+    if metadata_file:
+        metadata = open(metadata_file).read()
+    else:
+        metadata = DEFAULT_METADATA
+    with open(os.path.join(workdir, 'meta-data'), 'w') as f:
+        f.write(metadata)
+
+    upgr = no_apt_upgrade and 'false' or 'true'
+    if userdata_file:
+        userdata = open(userdata_file).read()
+    else:
+        userdata = DEFAULT_USERDATA % {'proxy': proxy or '', 'mirror': mirror,
+                                       'rel': release, 'upgr': upgr}
+    with open(os.path.join(workdir, 'user-data'), 'w') as f:
+        f.write(userdata)
 
     genisoimage = subprocess.Popen(['genisoimage', '-output', 'adt.seed',
                                     '-volid', 'cidata', '-joliet', '-rock',
@@ -239,7 +260,8 @@ def install_image(src, dest):
 args = parse_args()
 image = download_image(args.cloud_image_url, args.release, args.arch)
 resize_image(image, args.disk_size)
-seed = build_seed(args.mirror, args.proxy, args.release, args.no_apt_upgrade)
+seed = build_seed(args.mirror, args.proxy, args.release, args.no_apt_upgrade,
+                  args.metadata, args.userdata)
 boot_image(image, seed, args.qemu_command, args.verbose)
 install_image(image, os.path.join(args.output_dir, 'adt-%s-%s-cloud.img' %
                                   (args.release, args.arch)))

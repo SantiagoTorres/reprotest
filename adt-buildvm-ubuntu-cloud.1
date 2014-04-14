@@ -81,6 +81,14 @@ Show VM guest and cloud-init output.
 .B --no-apt-upgrade
 Do not run apt-get dist-upgrade during initialization.
 
+.TP
+.BI "--metadata=" METADATA_FILE
+Use a custom cloud-init metadata file to initialize the cloud image VM.
+
+.TP
+.BI "--userdata=" USERDATA_FILE
+Use a custom cloud-init userdata file to initialize the cloud image VM.
+
 .SH CONFIGURATION FILES
 If you use lots of options, you can put parts of, or the whole
 command line into a text file, with one line per option. E. g. you can create a
