@@ -1,4 +1,4 @@
-autopkgtest (2.14.2) UNRELEASED; urgency=medium
+autopkgtest (2.15) UNRELEASED; urgency=medium
 
   * Fix --apt-source mode to download the source with apt-get's
     "--only-source" option, to actually get what we asked for.
@@ -6,6 +6,11 @@ autopkgtest (2.14.2) UNRELEASED; urgency=medium
     backports.
   * adt-buildvm-ubuntu-cloud: Add options to pass custom metadata/userdata.
     Thanks Diogo Matsubara.
+  * Replace pbuilder-satisfydepends-classic with parsing and satisfying build
+    and test dependencies with libdpkg-perl and "apt-get -f install". This
+    gets rid of the pbuilder dependency and some nasty hacks like the
+    --internal-chrootexec script, and allows us to be more flexible such as
+    also supporting Recommends: installation.  (LP: #1205110)
 
  -- Martin Pitt <mpitt@debian.org>  Thu, 10 Apr 2014 08:45:33 +0200
 
