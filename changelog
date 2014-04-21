@@ -11,6 +11,8 @@ autopkgtest (2.15) UNRELEASED; urgency=medium
     gets rid of the pbuilder dependency and some nasty hacks like the
     --internal-chrootexec script, and allows us to be more flexible such as
     also supporting Recommends: installation.  (LP: #1205110)
+  * Fix "specifiy" typo in error message. Thanks Jelmer Vernooij.
+    (Closes: #745413)
 
  -- Martin Pitt <mpitt@debian.org>  Thu, 10 Apr 2014 08:45:33 +0200
 
