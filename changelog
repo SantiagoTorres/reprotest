@@ -18,6 +18,9 @@ autopkgtest (2.15) UNRELEASED; urgency=medium
     (Closes: #745415)
   * adt-buildvm-ubuntu-cloud: Fall back to latest stable if there is no
     development series.
+  * Add "needs-recommends" restriction for installation of recommended
+    packages for the test dependencies. This does not affect build
+    dependencies. (Closes: #708963)
 
  -- Martin Pitt <mpitt@debian.org>  Thu, 10 Apr 2014 08:45:33 +0200
 
