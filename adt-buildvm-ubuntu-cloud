@@ -50,7 +50,14 @@ atexit.register(shutil.rmtree, workdir)
 def get_default_release():
     try:
         import distro_info
-        return distro_info.UbuntuDistroInfo().devel()
+        try:
+            return distro_info.UbuntuDistroInfo().devel()
+        except distro_info.DistroDataOutdated as e:
+            # right after a release there is no devel series, fall back to
+            # stable
+            sys.stderr.write('WARNING: cannot determine development release, '
+                             'falling back to latest stable\n')
+            return distro_info.UbuntuDistroInfo().stable()
     except ImportError:
         sys.stderr.write('WARNING: python-distro-info not installed, falling '
                          'back to determining default release from currently '
