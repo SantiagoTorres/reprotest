@@ -13,6 +13,9 @@ autopkgtest (2.15) UNRELEASED; urgency=medium
     also supporting Recommends: installation.  (LP: #1205110)
   * Fix "specifiy" typo in error message. Thanks Jelmer Vernooij.
     (Closes: #745413)
+  * adt-build-lxc: Stop using the -F template option to flush the cache as it
+    is not available in the debian template. Remove caches manually instead.
+    (Closes: #745415)
 
  -- Martin Pitt <mpitt@debian.org>  Thu, 10 Apr 2014 08:45:33 +0200
 
