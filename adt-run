@@ -38,7 +38,6 @@ import shutil
 import copy
 import time
 import atexit
-import pipes
 
 try:
     from debian import deb822, debian_support
@@ -646,7 +645,7 @@ class Testbed:
         out.copyup()
         with open(out.host) as f:
             self.dpkg_arch = f.read().strip()
-        debug('testbed dpkg architecture: ' +  self.dpkg_arch)
+        debug('testbed dpkg architecture: ' + self.dpkg_arch)
 
     def mungeing_apt(self):
         if not 'revert' in self.caps:
@@ -917,7 +916,6 @@ Description: satisfy autopkgtest test dependencies
         rc = self.execute('install-satdep-check', ['dpkg', '-s', 'adt-satdep'], se='/dev/null')
         if rc != 0:
             bomb('test dependencies are unsatisfiable')
-
 
     def satisfy_dependencies_dsc(self, dsc, what):
         '''Install build deps from a dsc into the testbed'''
