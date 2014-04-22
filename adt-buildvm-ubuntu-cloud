@@ -52,7 +52,7 @@ def get_default_release():
         import distro_info
         try:
             return distro_info.UbuntuDistroInfo().devel()
-        except distro_info.DistroDataOutdated as e:
+        except distro_info.DistroDataOutdated:
             # right after a release there is no devel series, fall back to
             # stable
             sys.stderr.write('WARNING: cannot determine development release, '
