@@ -714,21 +714,22 @@ class Testbed:
             self._opened(pl)
         self.modified = False
 
-    def prepare2(self, deps_new):
-        self._debug('prepare2, deps_new=%s' % deps_new, 1)
+    def prepare2(self, deps_new, recommends):
+        self._debug('prepare2, deps_new=%s, recommends=%s' %
+                    (deps_new, recommends), 1)
         binaries.publish()
-        self._install_deps(deps_new)
+        self._install_deps(deps_new, recommends)
 
-    def prepare(self, deps_new):
+    def prepare(self, deps_new, recommends):
         self.prepare1(deps_new)
-        self.prepare2(deps_new)
+        self.prepare2(deps_new, recommends)
 
-    def _install_deps(self, deps_new):
+    def _install_deps(self, deps_new, recommends):
         self._debug(' installing dependencies ' + str(deps_new), 1)
         self.deps_processed = deps_new
         if not deps_new:
             return
-        self.satisfy_dependencies_string(', '.join(deps_new), 'install-deps')
+        self.satisfy_dependencies_string(', '.join(deps_new), 'install-deps', recommends)
 
     def needs_reset(self):
         # show what caused a reset
@@ -863,7 +864,7 @@ class Testbed:
 
         return rc
 
-    def satisfy_dependencies_string(self, deps, what):
+    def satisfy_dependencies_string(self, deps, what, recommends=False):
         '''Install dependencies from a string into the testbed'''
 
         debug('%s: satisfying %s' % (what, deps), 1)
@@ -908,7 +909,8 @@ Description: satisfy autopkgtest test dependencies
         if rc != 0:
             bomb('failed to unpack adt-satdep.deb')
         rc = self.execute('install-satdep',
-                          ['apt-get', 'install', '-q', '-y', '-f', '--no-install-recommends',
+                          ['apt-get', 'install', '-q', '-y', '-f',
+                           '-o', 'APT::Install-Recommends=%s' % recommends,
                            '-o', 'Debug::pkgProblemResolver=true'],
                           so='/dev/stdout', kind='install')
         if rc != 0:
@@ -917,7 +919,7 @@ Description: satisfy autopkgtest test dependencies
         if rc != 0:
             bomb('test dependencies are unsatisfiable')
 
-    def satisfy_dependencies_dsc(self, dsc, what):
+    def satisfy_dependencies_dsc(self, dsc, what, recommends=False):
         '''Install build deps from a dsc into the testbed'''
 
         if 'root-on-testbed' not in self.caps:
@@ -929,7 +931,7 @@ Description: satisfy autopkgtest test dependencies
             d = deb822.Deb822(sequence=f)
             bd = d.get('Build-Depends', '')
             bdi = d.get('Build-Depends-Indep', '')
-        self.satisfy_dependencies_string(bd + ', ' + bdi, what)
+        self.satisfy_dependencies_string(bd + ', ' + bdi, what, recommends)
 
 
 class TestbedPath:
@@ -1107,6 +1109,10 @@ class Restriction_needs_root(Restriction):
                               'Test needs root on testbed which is not available')
 
 
+class Restriction_needs_recommends(Restriction):
+    pass
+
+
 class Field_Restrictions(FieldBase):
 
     def parse(self):
@@ -1279,7 +1285,7 @@ class Test:
             else:
                 self._debug('  literal dependency ' + d)
                 dn.append(d)
-        testbed.prepare(dn)
+        testbed.prepare(dn, 'needs-recommends' in self.restriction_names)
 
     def run(self, tree):
         # record installed package versions
@@ -1955,7 +1961,7 @@ def build_source(act):
         atexit.register(lambda f: os.path.exists(f) and os.unlink(f), dsc)
 
     if act.kind in ['dsc', 'apt']:
-        testbed.prepare2([])
+        testbed.prepare2([], False)
         if testbed.execute('dpkg-source_check', ['which', 'dpkg-source']) != 0:
             debug('dpkg-source not available in testbed, installing dpkg-dev', 1)
             # Install dpkg-source for unpacking .dsc
@@ -2056,7 +2062,7 @@ def build_source(act):
         testbed.needs_reset()
 
         if act.kind not in ['dsc', 'apt']:
-            testbed.prepare2([])
+            testbed.prepare2([], False)
 
         if act.kind == 'apt':
             # we need to get the downloaded debian/control from the testbed, so
@@ -2231,7 +2237,7 @@ def process_actions():
                                    os.path.join(testbed.scratch, act.what + '-tree'))
                 run_tests(stanzas, tree)
         if act.kind == 'instantiate':
-            testbed.prepare([])
+            testbed.prepare([], False)
         testbed.needs_reset()
     debug_a1('tests done.')
 
