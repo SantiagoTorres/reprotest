@@ -1,4 +1,4 @@
-autopkgtest (2.15) UNRELEASED; urgency=medium
+autopkgtest (2.15) unstable; urgency=medium
 
   * Fix --apt-source mode to download the source with apt-get's
     "--only-source" option, to actually get what we asked for.
@@ -22,7 +22,7 @@ autopkgtest (2.15) UNRELEASED; urgency=medium
     packages for the test dependencies. This does not affect build
     dependencies. (Closes: #708963)
 
- -- Martin Pitt <mpitt@debian.org>  Thu, 10 Apr 2014 08:45:33 +0200
+ -- Martin Pitt <mpitt@debian.org>  Tue, 22 Apr 2014 09:10:40 +0200
 
 autopkgtest (2.14.1) unstable; urgency=medium
 
