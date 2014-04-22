@@ -67,8 +67,10 @@ if [ ! -e $LXCDIR/$NAME ]; then
     lxc-create -n $NAME $LXC_ARGS
     setup $NAME
 else
+    # remove LXC rootfs caches
+    rm -rf /var/cache/lxc/$RELEASE /var/cache/lxc/$DISTRO/rootfs-$RELEASE/*
     # create a new rootfs in a temp container
-    lxc-create -n ${NAME}.new $LXC_ARGS -F
+    lxc-create -n ${NAME}.new $LXC_ARGS
     setup ${NAME}.new
     # replace the original rootfs
     rsync -aHAXS --numeric-ids --delete $LXCDIR/${NAME}.new/rootfs $LXCDIR/${NAME}/rootfs
