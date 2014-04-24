@@ -50,3 +50,5 @@ chroot "$1" apt-get update
 if [ -n "$ADT_APT_PROXY" ]; then
     echo "Acquire::http { Proxy \"$ADT_APT_PROXY\"; };" > "$1"/etc/apt/apt.conf.d/01proxy
 fi
+
+echo "Acquire::Languages \"none\";" > "$1"/etc/apt/apt.conf.d/90nolanguages
