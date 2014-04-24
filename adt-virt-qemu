@@ -246,7 +246,7 @@ s.close()
 
 # wait until command has exited
 path_exit = os.path.join(job_host, 'exit')
-while not os.path.exists(path_exit):
+while not os.path.exists(path_exit) or os.path.getsize(path_exit) == 0:
     time.sleep(0.2)
 running = False
 
