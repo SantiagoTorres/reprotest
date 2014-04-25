@@ -456,10 +456,10 @@ def hook_capabilities():
 
 
 def hook_shell(stdin, stdout, stderr, dir):
-    global ssh_port
+    global ssh_port, normal_user
 
     if ssh_port:
-        user = args.user or '<user>'
+        user = normal_user or '<user>'
         ssh = '    ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -p %i %s@localhost\n' % (
             ssh_port, user)
     else:
