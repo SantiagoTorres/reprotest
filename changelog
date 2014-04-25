@@ -8,6 +8,8 @@ autopkgtest (2.15.1) UNRELEASED; urgency=medium
     some bandwidth. Thanks Jean-Baptiste Lallement.
   * adt-virt-qemu: Fix race condition that caused a ValueError when the exit
     code file was not written yet.
+  * adt-virt-qemu: Automatically detect a normal user to run tests as, unless
+    -u is given. This works similarly to -lxc.
 
  -- Martin Pitt <mpitt@debian.org>  Thu, 24 Apr 2014 10:23:08 +0200
 
