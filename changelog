@@ -21,6 +21,8 @@ autopkgtest (2.15.1) UNRELEASED; urgency=medium
     and make use of our existing arch tag resolution. (LP: #1312276)
   * adt-virt-qemu: Copy host's timezone into VM to avoid time zone skew when
     copying files.
+  * adt-virt-qemu: Show determined normal user instead of <user> in ssh
+    message, to get a fully copy&pasteable command.
 
  -- Martin Pitt <mpitt@debian.org>  Thu, 24 Apr 2014 10:23:08 +0200
 
