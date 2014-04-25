@@ -181,6 +181,30 @@ touch /autopkgtest/done_shared
             time.sleep(0.2)
 
 
+def setup_config(shared_dir):
+    '''Set up configuration files'''
+
+    term = VirtSubproc.get_unix_socket(os.path.join(workdir, 'ttyS1'))
+
+    # copy our timezone, to avoid time skews with the host
+    if os.path.exists('/etc/timezone'):
+        tz = None
+        with open('/etc/timezone', 'rb') as f:
+            for l in f:
+                if l.startswith('#'):
+                    continue
+                l = l.strip()
+                if l:
+                    tz = l
+                    break
+
+        if tz:
+            VirtSubproc.debug('Copying host timezone %s to VM' % tz.decode())
+            term.send(b'echo %s > /etc/timezone\n' % tz)
+        else:
+            VirtSubproc.debug('Could not determine host timezone')
+
+
 def make_auxverb(shared_dir):
     '''Create auxverb script'''
 
@@ -383,6 +407,7 @@ def hook_open():
         wait_boot()
         setup_shell()
         setup_shared(shareddir)
+        setup_config(shareddir)
         make_auxverb(shareddir)
         determine_normal_user(shareddir)
     except:
