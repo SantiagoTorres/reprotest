@@ -48,6 +48,7 @@ args = None
 workdir = None
 p_qemu = None
 ssh_port = None
+normal_user = None
 
 
 def parse_args():
@@ -91,7 +92,7 @@ def prepare_overlay():
     VirtSubproc.debug('Creating temporary overlay image in %s' % overlay)
     subprocess.check_call(['qemu-img', 'create', '-f', 'qcow2', '-b',
                            os.path.abspath(args.image[0]), overlay],
-                           stdout=subprocess.PIPE)
+                          stdout=subprocess.PIPE)
     return overlay
 
 
@@ -296,6 +297,33 @@ def find_free_port(start):
     return None
 
 
+def determine_normal_user(shared_dir):
+    '''Check for a normal user to run tests as.'''
+
+    global normal_user
+
+    if args.user and args.user != 'root':
+        normal_user = args.user
+        return
+
+    # get the first UID >= 500
+    term = VirtSubproc.get_unix_socket(os.path.join(workdir, 'ttyS1'))
+    term.send(b"getent passwd | sort -t: -nk3 | "
+              b"awk -F: '{if ($3 >= 500) { print $1; exit } }'"
+              b"> /autopkgtest/normal_user\n")
+    with VirtSubproc.timeout(5, 'timed out on determining normal user'):
+        outfile = os.path.join(shared_dir, 'normal_user')
+        while not os.path.exists(outfile):
+            time.sleep(0.2)
+    with open(outfile) as f:
+        out = f.read()
+        if out:
+            normal_user = out.strip()
+            VirtSubproc.debug('determine_normal_user: got user "%s"' % normal_user)
+        else:
+            VirtSubproc.debug('determine_normal_user: no uid >= 500 available')
+
+
 def hook_open():
     global workdir, p_qemu, ssh_port
 
@@ -340,6 +368,7 @@ def hook_open():
         setup_shell()
         setup_shared(shareddir)
         make_auxverb(shareddir)
+        determine_normal_user(shareddir)
     except:
         # Clean up on failure
         hook_cleanup()
@@ -375,11 +404,12 @@ def hook_forked_inchild():
 
 
 def hook_capabilities():
+    global normal_user
     caps = ['revert', 'revert-full-system', 'root-on-testbed',
             'isolation-machine',
             'downtmp-host=%s' % os.path.join(workdir, 'shared', 'tmp')]
-    if args.user and args.user != 'root':
-        caps.append('suggested-normal-user=' + args.user)
+    if normal_user:
+        caps.append('suggested-normal-user=' + normal_user)
     return caps
 
 
