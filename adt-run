@@ -1275,9 +1275,8 @@ class Test:
             if d == '@':
                 # expand to all binaries from that source
                 for pkg in packages_from_source(self.act, tree):
-                    dp = d.replace('@', pkg)
-                    self._debug('  synthesised dependency ' + dp)
-                    dn.append(dp)
+                    self._debug('  synthesised dependency ' + pkg)
+                    dn.append(pkg)
             elif d == '@builddeps@':
                 for dp in build_deps_from_source(self.act, tree):
                     self._debug('  synthesised dependency ' + dp)
@@ -1627,23 +1626,20 @@ def determine_package(act):
 
 
 def packages_from_source(act, tree):
-    (rc, output) = script_out(['dh_listpackages'], stdout=subprocess.PIPE, cwd=tree.host)
-    if rc:
-        badpkg('failed to parse packages built from source, code %d' % rc)
+    packages = []
 
-    # filter out empty lines
-    packages = [p for p in output.split() if p]
-
-    # filter out udebs
     for st in read_stanzas(os.path.join(tree.host, 'debian/control')):
         if 'Package' not in st:
-                    # source stanza
+            # source stanza
             continue
         if 'Xc-package-type' in st:
-            try:
-                packages.remove(st['Package'][0][1])
-            except ValueError:
-                pass
+            # filter out udebs
+            pass
+        arch = st['Architecture'][0][1]
+        if arch in ('all', 'any'):
+            packages.append(st['Package'][0][1])
+        else:
+            packages.append('%s [%s]' % (st['Package'][0][1], arch))
 
     return packages
 
