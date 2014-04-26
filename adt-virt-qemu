@@ -186,6 +186,9 @@ def setup_config(shared_dir):
 
     term = VirtSubproc.get_unix_socket(os.path.join(workdir, 'ttyS1'))
 
+    # ensure that root has $HOME set
+    term.send(b'[ -n "$HOME" ] || export HOME=`getent passwd root|cut -f6 -d:`\n')
+
     # copy our timezone, to avoid time skews with the host
     if os.path.exists('/etc/timezone'):
         tz = None
