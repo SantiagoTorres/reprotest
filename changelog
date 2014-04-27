@@ -26,6 +26,8 @@ autopkgtest (2.15.1) UNRELEASED; urgency=medium
   * adt-virt-qemu: Ensure tests which run as root have $HOME set.
   * Fix --proposed option to also apply to sources.list.d/* lists and to
     multiple sources. (LP: #1313278)
+  * adt-buildvm-ubuntu-cloud: Install haveged, to avoid failing tests due to
+    running out of entropy.
 
  -- Martin Pitt <mpitt@debian.org>  Thu, 24 Apr 2014 10:23:08 +0200
 
