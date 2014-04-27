@@ -73,6 +73,8 @@ def parse_args():
                         help='VM RAM size in MiB (default: 1024)')
     parser.add_argument('-d', '--debug', action='store_true',
                         help='Enable debugging output')
+    parser.add_argument('--qemu-options',
+                        help='Pass through arguments to QEMU command.')
     parser.add_argument('image', nargs='+',
                         help='disk image to add to the VM (in order)')
 
@@ -396,6 +398,10 @@ def hook_open():
     for i, image in enumerate(args.image[1:]):
         argv.append('-drive')
         argv.append('file=%s,if=virtio,index=%i,readonly' % (image, i + 1))
+
+    # pass through option to qemu
+    if args.qemu_options:
+        argv.extend(args.qemu_options.split())
 
     # find free port to forward VM port 22 (for SSH access)
     ssh_port = find_free_port(10022)

@@ -81,6 +81,10 @@ VM RAM size in MiB. Default is 1024, i. e. 1 GiB.
 .BR \-d " | " \-\-debug
 Enable debugging output.
 
+.TP
+.BI "--qemu-options=" arguments
+Pass through arguments to QEMU command; e. g. --qemu-options='-readconfig qemu.cfg'
+
 .SH CONFIGURATION FILES
 If you use lots of options or images, you can put parts of, or the whole
 command line into a text file, with one line per option. E. g. you can create a
