@@ -1,4 +1,4 @@
-autopkgtest (2.16) UNRELEASED; urgency=medium
+autopkgtest (2.16) unstable; urgency=medium
 
   * adt-buildvm-ubuntu-cloud: Use "-monitor null" instead of "-monitor none",
     as the latter does not work with older Qemu versions.
@@ -31,7 +31,7 @@ autopkgtest (2.16) UNRELEASED; urgency=medium
   * adt-virt-qemu: Add --qemu-options for passing additional options to QEMU.
     Thanks Diogo Matsubara!
 
- -- Martin Pitt <mpitt@debian.org>  Thu, 24 Apr 2014 10:23:08 +0200
+ -- Martin Pitt <mpitt@debian.org>  Sun, 27 Apr 2014 22:37:15 +0200
 
 autopkgtest (2.15) unstable; urgency=medium
 
