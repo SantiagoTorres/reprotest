@@ -688,9 +688,9 @@ class Testbed:
 
         debug('@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ test bed setup')
         for p in opts.apt_pocket:
-            script = '''awk '/^deb / { if ($3 !~ /-/) { ''' \
-                '''$3 = $3"-%s"; print; $1="deb-src"; print; exit}}' ''' \
-                '''/etc/apt/sources.list > /etc/apt/sources.list.d/%s.list''' % (p, p)
+            script = '''awk '/^deb(-src)? / { if ($3 !~ /-/) { $3 = $3"-%s"; print }}' ''' \
+                '''/etc/apt/sources.list `ls /etc/apt/sources.list.d/*.list || true` ''' \
+                ''' > /etc/apt/sources.list.d/%s.list''' % (p, p)
 
             rc = testbed.execute('apt-pocket-' + p, ['sh', '-ec', script],
                                  script=script)
