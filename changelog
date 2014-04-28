@@ -3,6 +3,8 @@ autopkgtest (2.16.1) UNRELEASED; urgency=medium
   * adt-buildvm-ubuntu-cloud: Configure vmalloc=512M on i386 for the udisks2
     autopkgtest.
   * adt-buildvm-ubuntu-cloud: Disable downloading of package translations.
+  * Create testpkg-version and testbed-packages before starting the builds, to
+    also have them when builds fail.
 
  -- Martin Pitt <mpitt@debian.org>  Mon, 28 Apr 2014 09:31:52 +0200
 
