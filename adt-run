@@ -1997,8 +1997,8 @@ def build_source(act):
         'set +e; test -f debian/tests/control; echo $? >&3'
     ]
     (result_pwd, testpkg_name, testpkg_version, control_test_rc) = \
-            source_rules_command(script, what, 'extract', cwd=None,
-                                 results_lines=4, xargs=['x', work, spec])
+        source_rules_command(script, what, 'extract', cwd=None,
+                             results_lines=4, xargs=['x', work, spec])
 
     # record tested package version
     debug('testing package %s version %s' % (testpkg_name, testpkg_version))
