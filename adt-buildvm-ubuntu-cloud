@@ -183,6 +183,10 @@ write_files:
         #!/bin/sh
         (setsid sh </dev/ttyS1 >/dev/ttyS1 2>&1) &
 
+ - path: /etc/apt/apt.conf.d/90nolanguages
+   permissions: '0644'
+   content: Acquire::Languages "none";
+
 runcmd:
  - [ ln, -s, ../init.d/autopkgtest , /etc/rc2.d/S99autopkgtest ]
  - [ apt-get, -y, purge, cloud-init ]
