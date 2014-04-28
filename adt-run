@@ -647,6 +647,16 @@ class Testbed:
             self.dpkg_arch = f.read().strip()
         debug('testbed dpkg architecture: ' + self.dpkg_arch)
 
+        # record package versions of pristine testbed
+        if opts.output_dir:
+            pkglist = TempTestbedPath(testbed, 'testbed-packages', autoclean=False)
+            rc = testbed.execute(
+                'record-pkgversions-testbed',
+                ['sh', '-ec', "dpkg-query --show -f '${Package}\\t${Version}\\n' > %s" % pkglist.tb])
+            if rc:
+                bomb('failed to get package list')
+            pkglist.copyup()
+
     def mungeing_apt(self):
         if not 'revert' in self.caps:
             self._need_reset_apt = True
@@ -1195,30 +1205,6 @@ class Field_Tests_directory(FieldBase):
 
 def run_tests(stanzas, tree):
     global errorcode, testbed
-
-    # record tested package version
-    with open(os.path.join(tree.host, 'debian', 'changelog')) as f:
-        m = re.match('^([^ ]+) \(([^ ]+)\) ', f.readline())
-        if m:
-            debug('testing package %s version %s' % (m.group(1), m.group(2)))
-            if opts.output_dir:
-                with open(os.path.join(tmp, 'testpkg-version'), 'w') as f:
-                    f.write(m.group(1))
-                    f.write(' ')
-                    f.write(m.group(2))
-                    f.write('\n')
-        else:
-            error('debian/changelog is invalid, cannot parse version')
-
-    # record package versions of pristine testbed
-    if opts.output_dir:
-        pkglist = TempTestbedPath(testbed, 'testbed-packages', autoclean=False)
-        rc = testbed.execute(
-            'record-pkgversions-testbed',
-            ['sh', '-ec', "dpkg-query --show -f '${Package}\\t${Version}\\n' > %s" % pkglist.tb])
-        if rc:
-            bomb('failed to get package list')
-        pkglist.copyup()
 
     if stanzas == ():
         report('*', 'SKIP no tests in this package')
@@ -1956,13 +1942,12 @@ def build_source(act):
             f_dsc.write('Binary: none-so-this-is-not-a-package-name\n')
         atexit.register(lambda f: os.path.exists(f) and os.unlink(f), dsc)
 
-    if act.kind in ['dsc', 'apt']:
-        testbed.prepare2([], False)
-        if testbed.execute('dpkg-source_check', ['which', 'dpkg-source']) != 0:
-            debug('dpkg-source not available in testbed, installing dpkg-dev', 1)
-            # Install dpkg-source for unpacking .dsc
-            testbed.satisfy_dependencies_string('dpkg-dev',
-                                                'install dpkg-dev')
+    # we need dpkg-dev for dpkg-source and dpkg-parsechangelog
+    if testbed.execute('dpkg-source_check', ['which', 'dpkg-source']) != 0:
+        debug('dpkg-source not available in testbed, installing dpkg-dev', 1)
+        # Install dpkg-source for unpacking .dsc
+        testbed.satisfy_dependencies_string('dpkg-dev',
+                                            'install dpkg-dev')
 
     # we only use the testbed path from this
     work = os.path.join(testbed.scratch, what + '-build')
@@ -2007,11 +1992,19 @@ def build_source(act):
     script += [
         'cd [a-z0-9]*-*/.',
         'pwd >&3',
+        'dpkg-parsechangelog -SSource >&3',
+        'dpkg-parsechangelog -SVersion >&3',
         'set +e; test -f debian/tests/control; echo $? >&3'
     ]
-    (result_pwd, control_test_rc) = source_rules_command(
-        script, what, 'extract',
-        cwd=None, results_lines=2, xargs=['x', work, spec])
+    (result_pwd, testpkg_name, testpkg_version, control_test_rc) = \
+            source_rules_command(script, what, 'extract', cwd=None,
+                                 results_lines=4, xargs=['x', work, spec])
+
+    # record tested package version
+    debug('testing package %s version %s' % (testpkg_name, testpkg_version))
+    if opts.output_dir:
+        with open(os.path.join(tmp, 'testpkg-version'), 'w') as f:
+            f.write('%s %s\n' % (testpkg_name, testpkg_version))
 
     filter = act.ah['dsc_filter']
 
