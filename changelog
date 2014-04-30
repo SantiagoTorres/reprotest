@@ -5,6 +5,8 @@ autopkgtest (2.16.1) UNRELEASED; urgency=medium
   * adt-buildvm-ubuntu-cloud: Disable downloading of package translations.
   * Create testpkg-version and testbed-packages before starting the builds, to
     also have them when builds fail.
+  * Fix VirtSubproc.copyup_shareddir() for testbed paths which are not already
+    in the shared downtmp.
 
  -- Martin Pitt <mpitt@debian.org>  Mon, 28 Apr 2014 09:31:52 +0200
 
