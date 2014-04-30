@@ -416,6 +416,10 @@ def copyup_shareddir(tb, host, is_dir, downtmp_host):
     debug('copyup_shareddir: tb %s, host %s, is_dir %s, downtmp_host %s' % (
         tb, host, is_dir, downtmp_host))
 
+    host = os.path.normpath(host)
+    tb = os.path.normpath(tb)
+    downtmp_host = os.path.normpath(downtmp_host)
+
     timeout_start(copy_timeout)
     try:
         tb_tmp = None
@@ -446,7 +450,9 @@ def copyup_shareddir(tb, host, is_dir, downtmp_host):
                 shutil.copy(tb, host)
 
         if tb_tmp:
-            (is_dir and shutil.rmtree or os.unlink)(tb_tmp)
+            debug('copyup_shareddir: cleaning intermediate copy: %s' % tb)
+            subprocess.call(downs['auxverb'] + ['rm', '-rf', tb_tmp],
+                            preexec_fn=preexecfn)
     finally:
         timeout_stop()
 
