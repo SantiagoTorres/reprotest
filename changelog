@@ -14,6 +14,8 @@ autopkgtest (2.16.1) UNRELEASED; urgency=medium
     with QEMU's 9p file system. Fall back to chmod'ing to world-writable files
     as with 9p there is no other way to implement this.
   * Simplify source tree/package extraction logic.
+  * adt-run: Don't extract/build source packages in shared downtmp, to avoid
+    permission/ownership problems with limited implementations like 9p.
 
  -- Martin Pitt <mpitt@debian.org>  Mon, 28 Apr 2014 09:31:52 +0200
 
