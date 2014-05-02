@@ -1033,7 +1033,14 @@ class TempTestbedPath(TestbedPath):
     def __del__(self):
         if self.autoclean:
             if os.path.exists(self.host):
-                os.unlink(self.host)
+                try:
+                    os.unlink(self.host)
+                except OSError as e:
+                    if e.errno == errno.EPERM:
+                        testbed.execute('cleanup-temppath',
+                                        ['rm', '-rf', self.tb], se='/dev/null')
+                    else:
+                        raise
 
 #---------- representation of test control files: Field*, Test, etc.
 
