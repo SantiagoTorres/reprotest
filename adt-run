@@ -1974,9 +1974,10 @@ def build_source(act):
     else:
         bomb('unknown action kind for build_source: ' + act.kind)
 
+    # don't extract/run in shared dir (testbed.scratch) to avoid
+    # owner/permission errors with 9p
     script = [
-        'builddir="%s/%s-build"' % (testbed.scratch, what),
-        'mkdir -p $builddir',
+        'builddir=`mktemp -t -d %s-build.XXXXXX`' % what,
         'cd $builddir',
         create_command,
         'cd [a-z0-9]*-*/.',
@@ -2077,10 +2078,17 @@ def build_source(act):
         result_pwd,
         is_dir=True)
     act.tests_tree.copyup()
+    # when copying back down, use the shared downtmp
+    act.tests_tree.tb = os.path.join(testbed.scratch, what + '-build', os.path.basename(result_pwd))
     atexit.register(rmtree, 'tests-tree', act.tests_tree.host)
+
+    def _clean_build_dir():
+        testbed.execute('clean-builddir',
+                        ['sh', '-ec', 'rm -r "`readlink -f %s/..`"' % result_pwd])
 
     if not built:
         act.blamed = []
+        _clean_build_dir()
         return
 
     act.blamed = copy.copy(testbed.blamed)
@@ -2129,6 +2137,8 @@ def build_source(act):
                 act.binaries.append((pkg, deb_path.host))
                 break
         debug_b('all done.')
+
+    _clean_build_dir()
 
 #---------- main processing loop and main program
 
