@@ -171,9 +171,9 @@ def setup_shared(shared_dir):
 
     term = VirtSubproc.get_unix_socket(os.path.join(workdir, 'ttyS1'))
 
-    term.send(b'''mkdir /autopkgtest
+    term.send(b'''mkdir -m 1777 /autopkgtest
 mount -t 9p -o trans=virtio,access=any autopkgtest /autopkgtest
-chmod 777 /autopkgtest
+chmod 1777 /autopkgtest
 touch /autopkgtest/done_shared
 ''')
 
@@ -426,9 +426,8 @@ def hook_open():
 
 
 def hook_downtmp():
-    downtmp = VirtSubproc.downtmp_mktemp()
-    #downtmp = '/autopkgtest/tmp'
-    #VirtSubproc.execute('mkdir %s' % downtmp, downp=True)
+    downtmp = '/autopkgtest/tmp'
+    VirtSubproc.execute('mkdir -m 1777 %s' % downtmp, downp=True)
     return downtmp
 
 
@@ -458,7 +457,7 @@ def hook_capabilities():
     global normal_user
     caps = ['revert', 'revert-full-system', 'root-on-testbed',
             'isolation-machine']
-    #caps.append('downtmp-host=%s' % os.path.join(workdir, 'shared', 'tmp')
+    caps.append('downtmp-host=%s' % os.path.join(workdir, 'shared', 'tmp'))
     if normal_user:
         caps.append('suggested-normal-user=' + normal_user)
     return caps
