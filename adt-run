@@ -557,10 +557,7 @@ def finalise_options():
         opts.user_wrap = lambda x: x
 
     if opts.gainroot is None:
-        if (opts.user or
-                # FIXME: work around chown root not working in qemu's 9p mount
-                'qemu' in opts.vserver[0] or
-                'root-on-testbed' not in testbed.caps):
+        if opts.user or 'root-on-testbed' not in testbed.caps:
             opts.gainroot = 'fakeroot'
             build_essential += ['fakeroot']
     if opts.gainroot:
@@ -983,9 +980,15 @@ class TestbedPath:
         # we usually want our files be readable for the non-root user
         if opts.user:
             rc = testbed.execute('copydown-chown-' + os.path.basename(self.host),
-                                 ['chown', '-R', opts.user, '--', self.tb])
+                                 ['chown', '-R', opts.user, '--', self.tb],
+                                 se='/dev/null')
             if rc:
-                bomb('failed to chown %s' % self.tb)
+                # chowning doesn't work on all shared downtmps, try to chmod
+                # instead
+                rc = testbed.execute('copydown-chmod-' + os.path.basename(self.host),
+                                     ['chmod', '-R', 'go+rwX', '--', self.tb])
+                if rc:
+                    bomb('failed to chown or chmod %s' % self.tb)
 
     def copyup(self):
         '''Copy file from the testbed to the host'''
@@ -1323,9 +1326,9 @@ class Test:
                 bomb('cannot change to user %s without root-on-testbed' % opts.user)
             test_argv = ['su', '-s', '/bin/sh', opts.user, '-c', tb_test_path]
             if opts.user:
-                script += 'chown %s "$@"\n' % opts.user
+                script += 'chown %s "$@" 2>/dev/null || chmod go+rwX "$@"\n' % opts.user
                 if 'rw-build-tree' in self.restriction_names:
-                    script += ('chown -R %s "$buildtree"\n'
+                    script += ('chown -R %s "$buildtree" 2>/dev/null || chmod go+rwX "$buildtree"\n'
                                % opts.user)
         else:
             test_argv = [tb_test_path]
@@ -1990,7 +1993,7 @@ def build_source(act):
     ]
 
     if opts.user:
-        script += (['chown ' + opts.user + ' . ..'] +
+        script += (['chown ' + opts.user + ' . .. 2>/dev/null || chmod -R go+rwX ..'] +
                    ['spec="$spec" origpwd="$origpwd" '
                     + opts.user_wrap(create_command)])
     else:
