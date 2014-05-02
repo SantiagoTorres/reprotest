@@ -1870,7 +1870,7 @@ def source_rules_command(script, what, which, cwd,
         script = ['exec 3>&1 >&2', 'set -x'] + script
     else:
         script = ['exec 3>&1 >&2'] + script
-    script = '\n'.join(script)
+    script = opts.user_wrap('\n'.join(script))
     so = TempTestbedPath(testbed, '%s-%s-results' % (what, which))
     rc = testbed.execute('%s-%s' % (what, which),
                          ['sh', '-ec', script] + xargs, script=script,
@@ -1960,55 +1960,34 @@ def build_source(act):
             testbed.satisfy_dependencies_string('dpkg-dev',
                                                 'install dpkg-dev')
 
-    # we only use the testbed path from this
-    work = os.path.join(testbed.scratch, what + '-build')
-
     if act.kind == 'ubtree':
-        spec = '%s/real-tree' % work
-        create_command = '''
-    rm -rf "$spec"
-    mkdir "$spec"
-    cp -rP --preserve=timestamps,links -- "$origpwd"/. "$spec"/.
-'''
         # copy unbuilt tree into testbed
         ubtree = TestbedPath(testbed, act.arg,
                              os.path.join(testbed.scratch, act.what + '-ubtree'))
         ubtree.copydown()
-        initcwd = ubtree.tb
+        create_command = 'cp -rd --preserve=timestamps -- "%s" real-tree' % ubtree.tb
 
-    if act.kind == 'dsc':
-        spec = dsc_tb
-        create_command = 'dpkg-source -x $spec\n'
-        initcwd = work
-
-    if act.kind == 'apt':
-        spec = act.arg
-        create_command = 'apt-get source --only-source $spec\n'
-        initcwd = work
+    elif act.kind == 'dsc':
+        create_command = 'dpkg-source -x "%s"' % dsc_tb
+    elif act.kind == 'apt':
+        create_command = 'apt-get source --only-source ' + act.arg
+    else:
+        bomb('unknown action kind for build_source: ' + act.kind)
 
     script = [
-        'spec="$2"',
-        'origpwd=' + initcwd,
-        'mkdir -p ' + work,
-        'cd ' + work
-    ]
-
-    if opts.user:
-        script += (['chown ' + opts.user + ' . .. 2>/dev/null || chmod -R go+rwX ..'] +
-                   ['spec="$spec" origpwd="$origpwd" '
-                    + opts.user_wrap(create_command)])
-    else:
-        script += [create_command]
-
-    script += [
+        'builddir="%s/%s-build"' % (testbed.scratch, what),
+        'mkdir -p $builddir',
+        'cd $builddir',
+        create_command,
         'cd [a-z0-9]*-*/.',
         'pwd >&3',
         'sed -n "1 {s/).*//; s/ (/\\n/; p}" debian/changelog >&3',
         'set +e; test -f debian/tests/control; echo $? >&3'
     ]
+
     (result_pwd, testpkg_name, testpkg_version, control_test_rc) = \
         source_rules_command(script, what, 'extract', cwd=None,
-                             results_lines=4, xargs=['x', work, spec])
+                             results_lines=4)
 
     # record tested package version
     debug('testing package %s version %s' % (testpkg_name, testpkg_version))
@@ -2085,26 +2064,18 @@ def build_source(act):
                                             'install build-essential')
         testbed.satisfy_dependencies_dsc(dsc, 'build dependencies')
 
-        script = [
-            'cd "$2"',
-            opts.user_wrap(dpkg_buildpackage),
-        ]
-        source_rules_command(script, what, 'build',
-                             cwd=initcwd, xargs=['x', work, result_pwd])
-
-        if os.path.dirname(result_pwd) != work:
-            badpkg("results dir `%s' is not in expected parent"
-                   " dir `%s'" % (result_pwd, work))
-
+        source_rules_command([dpkg_buildpackage], what, 'build',
+                             cwd=result_pwd)
         built = True
 
+    # copy tests from testbed to hosts, we need that for parsing control files
+    # and for "build-needed" tests
+    # FIXME: avoid copying whole tree for tests without build-needed
     act.tests_tree = TestbedPath(
         testbed,
         os.path.join(tmp, what + '-tests-tree'),
-        os.path.join(work, os.path.basename(result_pwd)),
+        result_pwd,
         is_dir=True)
-    # copy tests from testbed to hosts, we need that for parsing control files
-    # and some runners like LXC run a fresh testbed after build for the tests
     act.tests_tree.copyup()
     atexit.register(rmtree, 'tests-tree', act.tests_tree.host)
 
@@ -2117,13 +2088,13 @@ def build_source(act):
     debug_b('filter=%s' % filter)
     if filter != '_':
         script = [
-            'cd ' + work + '/[a-z0-9]*-*/.',
-            opts.user_wrap(dpkg_buildpackage),
+            # FIXME: why do we need this?
+            dpkg_buildpackage,
             'cd ..',
             'echo *.deb >&3',
         ]
         result_debs = source_rules_command(script, what,
-                                           'binary', work,
+                                           'binary', cwd=result_pwd,
                                            results_lines=1,
                                            xargs=['x'])
         if result_debs == '*.deb':
@@ -2148,7 +2119,7 @@ def build_source(act):
                 deb_what = pkg + '_' + what + '.deb'
                 deb_path = TestbedPath(testbed,
                                        os.path.join(tmp, deb_what),
-                                       os.path.join(work, deb),
+                                       os.path.join(result_pwd, '..', deb),
                                        False)
                 debug_b('  deb_what=%s, deb_path=%s' %
                         (deb_what, str(deb_path)))
