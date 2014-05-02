@@ -1952,12 +1952,13 @@ def build_source(act):
             f_dsc.write('Binary: none-so-this-is-not-a-package-name\n')
         atexit.register(lambda f: os.path.exists(f) and os.unlink(f), dsc)
 
-    # we need dpkg-dev for dpkg-source and dpkg-parsechangelog
-    if testbed.execute('dpkg-source_check', ['which', 'dpkg-source']) != 0:
-        debug('dpkg-source not available in testbed, installing dpkg-dev', 1)
-        # Install dpkg-source for unpacking .dsc
-        testbed.satisfy_dependencies_string('dpkg-dev',
-                                            'install dpkg-dev')
+    if act.kind in ['dsc', 'apt']:
+        testbed.prepare2([], False)
+        if testbed.execute('dpkg-source_check', ['which', 'dpkg-source']) != 0:
+            debug('dpkg-source not available in testbed, installing dpkg-dev', 1)
+            # Install dpkg-source for unpacking .dsc
+            testbed.satisfy_dependencies_string('dpkg-dev',
+                                                'install dpkg-dev')
 
     # we only use the testbed path from this
     work = os.path.join(testbed.scratch, what + '-build')
@@ -2002,8 +2003,7 @@ def build_source(act):
     script += [
         'cd [a-z0-9]*-*/.',
         'pwd >&3',
-        'dpkg-parsechangelog -SSource >&3',
-        'dpkg-parsechangelog -SVersion >&3',
+        'sed -n "1 {s/).*//; s/ (/\\n/; p}" debian/changelog >&3',
         'set +e; test -f debian/tests/control; echo $? >&3'
     ]
     (result_pwd, testpkg_name, testpkg_version, control_test_rc) = \
