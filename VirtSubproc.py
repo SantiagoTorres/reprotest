@@ -409,7 +409,8 @@ def copytree(src, dst):
 
     for f in os.listdir(src):
         fsrc = os.path.join(src, f)
-        subprocess.check_call(['cp', '-at', dst, fsrc])
+        subprocess.check_call(['cp', '-r', '--preserve=timestamps,links', '-t',
+                               dst, fsrc])
 
 
 def copyup_shareddir(tb, host, is_dir, downtmp_host):
@@ -430,11 +431,12 @@ def copyup_shareddir(tb, host, is_dir, downtmp_host):
             tb_tmp = os.path.join(downtmp, os.path.basename(host))
             debug('copyup_shareddir: tb path %s is not already in downtmp, '
                   'copying to %s' % (tb, tb_tmp))
-            cp = subprocess.Popen(downs['auxverb'] + ['cp', '-a', tb, tb_tmp],
-                                  preexec_fn=preexecfn)
+            cp = subprocess.Popen(
+                downs['auxverb'] + ['cp', '-r', '--preserve=timestamps,links',
+                                    tb, tb_tmp], preexec_fn=preexecfn)
             cp.communicate()
             if cp.returncode != 0:
-                bomb('copyup_shareddir: cp -a exited with code %i' %
+                bomb('copyup_shareddir: cp exited with code %i' %
                      cp.returncode)
             # translate into host path
             tb = os.path.join(downtmp_host, os.path.basename(host))
@@ -486,11 +488,12 @@ def copydown_shareddir(host, tb, is_dir, downtmp_host):
         else:
             subprocess.call(downs['auxverb'] + ['rm', '-rf', tb],
                             preexec_fn=preexecfn)
-            cp = subprocess.Popen(downs['auxverb'] + ['cp', '-a', host, tb],
-                                  preexec_fn=preexecfn)
+            cp = subprocess.Popen(
+                downs['auxverb'] + ['cp', '-r', '--preserve=timestamps,links',
+                                    host, tb], preexec_fn=preexecfn)
             cp.communicate()
             if cp.returncode != 0:
-                bomb('copydown_shareddir: cp -a exited with code %i' %
+                bomb('copydown_shareddir: cp exited with code %i' %
                      cp.returncode)
 
         if host_tmp:
