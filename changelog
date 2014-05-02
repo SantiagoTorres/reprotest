@@ -7,6 +7,9 @@ autopkgtest (2.16.1) UNRELEASED; urgency=medium
     also have them when builds fail.
   * Fix VirtSubproc.copyup_shareddir() for testbed paths which are not already
     in the shared downtmp.
+  * When cleaning up a temporary testbed path fails with a permission error,
+    clean it in the testbed (where we usually have root privileges). This
+    avoids lots of "ignored OSError" spam with the schroot runner.
 
  -- Martin Pitt <mpitt@debian.org>  Mon, 28 Apr 2014 09:31:52 +0200
 
