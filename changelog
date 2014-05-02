@@ -13,6 +13,7 @@ autopkgtest (2.16.1) UNRELEASED; urgency=medium
   * Stop assuming that we can chown files in the shared downtmp, it's not true
     with QEMU's 9p file system. Fall back to chmod'ing to world-writable files
     as with 9p there is no other way to implement this.
+  * Simplify source tree/package extraction logic.
 
  -- Martin Pitt <mpitt@debian.org>  Mon, 28 Apr 2014 09:31:52 +0200
 
