@@ -1316,37 +1316,32 @@ class Test:
         if rc:
             bomb('failed to chmod +x %s' % tb_test_path)
 
-        testtmp = '%s/%s-testtmp' % (testbed.scratch, self.what)
+        # set up temporary dirs and build tree
+        test_adttmp = '/tmp/%s-adttmp' % self.what
+        test_artifacts = '%s/%s-artifacts' % (testbed.scratch, self.what)
+        xenv.append('ADTTMP=%s' % test_adttmp)
+        xenv.append('ADT_ARTIFACTS=%s' % test_artifacts)
 
         script = 'buildtree="$1"; shift\n'
-        script += 'rm -rf -- "$@"; mkdir -m 755 -- "$@"\n'
+        script += 'rm -rf -- "$@"; mkdir -m 1777 -- "$@"\n'
 
         if 'needs-root' not in self.restriction_names and opts.user is not None:
             if 'root-on-testbed' not in testbed.caps:
                 bomb('cannot change to user %s without root-on-testbed' % opts.user)
             test_argv = ['su', '-s', '/bin/sh', opts.user, '-c', tb_test_path]
             if opts.user:
-                script += 'chown %s "$@" 2>/dev/null || chmod go+rwX "$@"\n' % opts.user
                 if 'rw-build-tree' in self.restriction_names:
                     script += ('chown -R %s "$buildtree" 2>/dev/null || chmod go+rwX "$buildtree"\n'
                                % opts.user)
         else:
             test_argv = [tb_test_path]
 
-        test_adttmp = testtmp + '/adttmp'
-        xenv.append('ADTTMP=%s' % test_adttmp)
-
-        test_artifacts = testtmp + '/artifacts'
-        script += 'mkdir -m 1777 "%s"\n' % test_artifacts
-        xenv.append('ADT_ARTIFACTS=%s' % test_artifacts)
-
         rc = testbed.execute('mktmpdir-' + self.what,
                              ['sh', '-ec', script, 'x', tree.tb,
-                              testtmp, test_adttmp,
+                              test_adttmp, test_artifacts
                               ])
         if rc:
-            bomb("could not create test tmp dirs in `%s', exit code %d"
-                 % (testtmp, rc))
+            bomb("could not create test tmp dirs, exit code %d" % rc)
 
         # If we have a shared downtmp and can create a FIFO in it,
         # route stdout/stderr through a common FIFO to watch them in realtime.
@@ -1471,6 +1466,10 @@ class Test:
             # don't keep an empty artifacts dir around
             if not os.listdir(ap.host):
                 os.rmdir(ap.host)
+
+        # clean up temporary dirs
+        testbed.execute('cleanup-tmp-' + self.what,
+                        ['rm', '-rf', test_adttmp, test_artifacts])
 
         if opts.shell or (opts.shell_fail and not passed):
             self._debug(' - - - - - - - - - - running shell - - - - - - - - - -')
