@@ -102,7 +102,7 @@ def prepare_overlay():
 
 def wait_boot():
     term = VirtSubproc.get_unix_socket(os.path.join(workdir, 'ttyS0'))
-    VirtSubproc.expect(term, b' login: ', 120, 'login prompt on ttyS0')
+    VirtSubproc.expect(term, b' login: ', 300, 'login prompt on ttyS0')
 
 
 def check_ttyS1_shell():
