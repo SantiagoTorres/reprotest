@@ -32,7 +32,6 @@ import tempfile
 import shutil
 import argparse
 import time
-import atexit
 import socket
 import errno
 import fcntl
@@ -90,7 +89,6 @@ def prepare_overlay():
     if args.overlay_dir:
         overlay = os.path.join(args.overlay_dir, os.path.basename(
             args.image[0]) + '.overlay-%s' % time.time())
-        atexit.register(os.remove, overlay)
     else:
         overlay = os.path.join(workdir, 'overlay.img')
     VirtSubproc.debug('Creating temporary overlay image in %s' % overlay)
@@ -413,7 +411,12 @@ def hook_open():
     p_qemu = subprocess.Popen(argv)
 
     try:
-        wait_boot()
+        try:
+            wait_boot()
+        finally:
+            # remove overlay as early as possible, to avoid leaking large
+            # files; let QEMU run with the deleted inode
+            os.unlink(overlay)
         setup_shell()
         setup_shared(shareddir)
         setup_config(shareddir)
