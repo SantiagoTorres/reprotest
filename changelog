@@ -24,6 +24,8 @@ autopkgtest (2.16.1) UNRELEASED; urgency=medium
   * adt-virt-qemu: Increase timeout for login prompt from 2 to 5 minutes, for
     slow VMs or machines under heavy load.
   * Improve error handling on copy timeouts.
+  * adt-virt-qemu: Remove overlay file as early as possible, to avoid leaking
+    large files in error conditions. Let QEMU run with the deleted inode.
 
  -- Martin Pitt <mpitt@debian.org>  Mon, 28 Apr 2014 09:31:52 +0200
 
