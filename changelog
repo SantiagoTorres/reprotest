@@ -21,6 +21,8 @@ autopkgtest (2.16.1) UNRELEASED; urgency=medium
   * Don't create $ADTTMP in shared downtmp to avoid permission/ownership
     problems with limited implementations like 9p.
   * adt-virt-qemu: Fix exception if workdir is not currently set.
+  * adt-virt-qemu: Increase timeout for login prompt from 2 to 5 minutes, for
+    slow VMs or machines under heavy load.
 
  -- Martin Pitt <mpitt@debian.org>  Mon, 28 Apr 2014 09:31:52 +0200
 
