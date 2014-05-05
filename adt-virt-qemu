@@ -445,8 +445,9 @@ def hook_cleanup():
         p_qemu.wait()
         p_qemu = None
 
-    shutil.rmtree(workdir)
-    workdir = None
+    if workdir:
+        shutil.rmtree(workdir)
+        workdir = None
 
 
 def hook_forked_inchild():
