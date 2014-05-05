@@ -523,10 +523,13 @@ def copyupdown(c, ce, upp):
     # most cases, it's testbed end is already in the downtmp dir
     downtmp_host = get_downtmp_host()
     if downtmp_host:
-        if upp:
-            copyup_shareddir(sd[0], sd[1], dirsp, downtmp_host)
-        else:
-            copydown_shareddir(sd[0], sd[1], dirsp, downtmp_host)
+        try:
+            if upp:
+                copyup_shareddir(sd[0], sd[1], dirsp, downtmp_host)
+            else:
+                copydown_shareddir(sd[0], sd[1], dirsp, downtmp_host)
+        except Timeout:
+            raise FailedCmd(['timeout'])
         return
 
     deststdout = devnull_read
@@ -584,15 +587,18 @@ def copyupdown(c, ce, upp):
                                    stdout=deststdout,
                                    preexec_fn=preexecfn)
     subprocs[0].stdout.close()
-    timeout_start(copy_timeout)
-    for sdn in [1, 0]:
-        debug(" +" + "<>"[sdn] + "?")
-        status = subprocs[sdn].wait()
-        if not (status == 0 or (sdn == 0 and status == -13)):
-            timeout_stop()
-            bomb("%s %s failed, status %d" %
-                (wh, ['source', 'destination'][sdn], status))
-    timeout_stop()
+    try:
+        timeout_start(copy_timeout)
+        for sdn in [1, 0]:
+            debug(" +" + "<>"[sdn] + "?")
+            status = subprocs[sdn].wait()
+            if not (status == 0 or (sdn == 0 and status == -13)):
+                timeout_stop()
+                bomb("%s %s failed, status %d" %
+                    (wh, ['source', 'destination'][sdn], status))
+        timeout_stop()
+    except Timeout:
+        raise FailedCmd(['timeout'])
 
 
 def cmd_copydown(c, ce):
