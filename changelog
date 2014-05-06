@@ -1,4 +1,4 @@
-autopkgtest (2.16.1) UNRELEASED; urgency=medium
+autopkgtest (2.16.1) unstable; urgency=medium
 
   * adt-buildvm-ubuntu-cloud: Configure vmalloc=512M on i386 for the udisks2
     autopkgtest.
@@ -32,7 +32,7 @@ autopkgtest (2.16.1) UNRELEASED; urgency=medium
     puts the apt-get output back to stdout as it used to be before 2.15.
     (Closes: #747041)
 
- -- Martin Pitt <mpitt@debian.org>  Mon, 28 Apr 2014 09:31:52 +0200
+ -- Martin Pitt <mpitt@debian.org>  Tue, 06 May 2014 13:25:21 +0200
 
 autopkgtest (2.16) unstable; urgency=medium
 
