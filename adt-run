@@ -54,6 +54,7 @@ try:
 except KeyError:
     our_base = '/usr/share/autopkgtest/python'
 sys.path.insert(1, our_base)
+import VirtSubproc
 
 #---------- global variables
 
@@ -703,11 +704,8 @@ class Testbed:
                                  script=script)
 
         for c in opts.setup_commands:
-            rc = testbed.execute('setup-commands',
-                                 ['sh', '-ec', c],
-                                 script=c,
-                                 so='/dev/stdout',
-                                 kind='install')
+            rc = testbed.execute_raw('setup-commands', ['sh', '-ec', c],
+                                     kind='install')
             if rc:
                 bomb('testbed setup commands failed with status %i' % rc)
 
@@ -871,6 +869,26 @@ class Testbed:
 
         return rc
 
+    def execute_raw(self, what, cmdl, kind='short'):
+        '''Run command in testbed without redirection.
+
+        I. e. the commands stdout/err will be piped directly to adt-run and its
+        log files, etc.
+
+        Return exit code.
+        '''
+        auxverb = map(urllib.unquote, self.commandr('print-auxverb-command')[0].split(','))
+        timeout = timeouts[kind]
+
+        VirtSubproc.timeout_start(timeout)
+        try:
+            rc = subprocess.call(auxverb + cmdl)
+            VirtSubproc.timeout_stop()
+        except VirtSubproc.Timeout:
+            bomb('timed out on command "%s" (kind: %s)' % (' '.join(cmdl), kind))
+
+        return rc
+
     def satisfy_dependencies_string(self, deps, what, recommends=False):
         '''Install dependencies from a string into the testbed'''
 
@@ -915,11 +933,12 @@ Description: satisfy autopkgtest test dependencies
         rc = self.execute('install-satdep-dummy', ['dpkg', '--unpack', deb.tb])
         if rc != 0:
             bomb('failed to unpack adt-satdep.deb')
-        rc = self.execute('install-satdep',
-                          ['apt-get', 'install', '-q', '-y', '-f',
-                           '-o', 'APT::Install-Recommends=%s' % recommends,
-                           '-o', 'Debug::pkgProblemResolver=true'],
-                          so='/dev/stdout', kind='install')
+        rc = self.execute_raw('install-satdep',
+                              ['env', 'DEBIAN_FRONTEND=noninteractive',
+                               'apt-get', 'install', '-q', '-y', '-f',
+                               '-o', 'APT::Install-Recommends=%s' % recommends,
+                               '-o', 'Debug::pkgProblemResolver=true'],
+                              kind='install')
         if rc != 0:
             bomb('failed to run apt-get to satisfy adt-satdep.deb dependencies')
         rc = self.execute('install-satdep-check', ['dpkg', '-s', 'adt-satdep'], se='/dev/null')
