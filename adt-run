@@ -894,19 +894,19 @@ class Testbed:
 
         debug('%s: satisfying %s' % (what, deps), 1)
 
-        # resolve arch specific dependencies
-        perl = subprocess.Popen(['perl', '-'], stdin=subprocess.PIPE,
-                                stdout=subprocess.PIPE,
-                                universal_newlines=True)
-        deps = perl.communicate('''use Dpkg::Deps;
-                                $dep = deps_parse('%s', reduce_arch => 1, build_dep => 1, host_arch => '%s');
-                                print $dep->output(), "\\n";
-                                ''' % (deps, self.dpkg_arch))[0].strip()
         # ignore ":native" tags, apt cannot parse them and deps_parse() does
         # not seem to have an option to get rid of them; we always test on the
         # native platform
         deps = deps.replace(':native', '')
 
+        # resolve arch specific dependencies
+        perl = subprocess.Popen(['perl', '-'], stdin=subprocess.PIPE,
+                                stdout=subprocess.PIPE,
+                                universal_newlines=True)
+        deps = perl.communicate('''use Dpkg::Deps;
+                                $dep = deps_parse('%s', reduce_arch => 1, host_arch => '%s');
+                                print $dep->output(), "\\n";
+                                ''' % (deps, self.dpkg_arch))[0].strip()
         if perl.returncode != 0:
             bomb('failed to run perl for parsing dependencies')
         debug('%s: architecture resolved: %s' % (what, deps), 1)
