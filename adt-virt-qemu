@@ -429,8 +429,11 @@ def hook_open():
 
 
 def hook_downtmp():
-    downtmp = '/autopkgtest/tmp'
-    VirtSubproc.execute('mkdir -m 1777 %s' % downtmp, downp=True)
+    # we would like to do this, but 9p is currently way too slow for big source
+    # trees
+    #downtmp = '/autopkgtest/tmp'
+    #VirtSubproc.execute('mkdir -m 1777 %s' % downtmp, downp=True)
+    downtmp = VirtSubproc.downtmp_mktemp()
     return downtmp
 
 
@@ -461,7 +464,8 @@ def hook_capabilities():
     global normal_user
     caps = ['revert', 'revert-full-system', 'root-on-testbed',
             'isolation-machine']
-    caps.append('downtmp-host=%s' % os.path.join(workdir, 'shared', 'tmp'))
+    # disabled, see hook_downtmp()
+    #caps.append('downtmp-host=%s' % os.path.join(workdir, 'shared', 'tmp'))
     if normal_user:
         caps.append('suggested-normal-user=' + normal_user)
     return caps
