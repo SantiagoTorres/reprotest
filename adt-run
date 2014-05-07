@@ -47,8 +47,6 @@ except ImportError:
 
 from optparse import OptionParser
 
-signal.signal(signal.SIGINT, signal.SIG_DFL)  # undo stupid Python SIGINT thing
-
 try:
     our_base = os.environ['AUTOPKGTEST_BASE'] + '/lib'
 except KeyError:
@@ -1623,6 +1621,18 @@ def cleanup():
                         '\nadt-run: error cleaning up:\n')
         sys.exit(20)
 
+
+def signal_handler(signum, frame):
+    error('Received signal %i, cleaning up...' % signum)
+    signal.signal(signum, signal.SIG_DFL)
+    try:
+        # don't call cleanup() here, resetting apt takes too long
+        if testbed:
+            testbed.stop()
+    finally:
+        os.kill(os.getpid(), signum)
+
+
 #---------- registration, installation etc. of .deb's: Binaries
 
 
@@ -2243,6 +2253,10 @@ def main():
         # optparser exits with error 2 by default, but we have a different
         # meaning for that already
         sys.exit(20)
+
+    # ensure proper cleanup on signals
+    signal.signal(signal.SIGTERM, signal_handler)
+    signal.signal(signal.SIGQUIT, signal_handler)
 
     try:
         setup_trace()
