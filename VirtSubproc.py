@@ -152,7 +152,12 @@ def execute_raw(what, instr, timeout, *popenargs, **popenargsk):
     if instr is None:
         popenargsk['stdin'] = devnull_read
     timeout_start(timeout)
-    (out, err) = sp.communicate(instr)
+    try:
+        (out, err) = sp.communicate(instr)
+    except Timeout:
+        sp.kill()
+        sp.wait()
+        raise
     timeout_stop()
     if err:
         bomb("%s unexpectedly produced stderr output `%s'" %
@@ -608,6 +613,9 @@ def copyupdown(c, ce, upp):
                     (wh, ['source', 'destination'][sdn], status))
         timeout_stop()
     except Timeout:
+        for sdn in [1, 0]:
+            subprocs[sdn].kill()
+            subprocs[sdn].wait()
         raise FailedCmd(['timeout'])
 
 
