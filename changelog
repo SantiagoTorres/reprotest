@@ -5,6 +5,9 @@ autopkgtest (2.16.2) UNRELEASED; urgency=medium
   * Add QEMU runner test case for performance and integrity of copying (1000
     files with 100 kB each).
   * copyup/down: Clean up cp process on timeout, to fix eternal hang.
+  * adt-virt-qemu: Disable shared downtmp. For bigger source trees 9p in
+    current QEMU is way too slow (in the magnitude of 2 MB/s, and max'ing out
+    CPU usage), so we can't use it directly as a normal file system.
 
  -- Martin Pitt <mpitt@debian.org>  Tue, 06 May 2014 15:04:53 +0200
 
