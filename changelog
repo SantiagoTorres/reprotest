@@ -12,6 +12,8 @@ autopkgtest (2.16.2) UNRELEASED; urgency=medium
     above change. This stops penalizing other runners with extra source tree
     copies.
   * VirtSubproc: Clean up auxverb processes on timeout.
+  * adt-run: Stop testbed on TERM and QUIT signals, to avoid leaving stale
+    schroot/qemu/LXC processes around when e. g. stopping a job from Jenkins.
 
  -- Martin Pitt <mpitt@debian.org>  Tue, 06 May 2014 15:04:53 +0200
 
