@@ -2,6 +2,8 @@ autopkgtest (2.16.2) UNRELEASED; urgency=medium
 
   * Support ":native" dependencies.
   * Add LXC runner test case for running as different user.
+  * Add QEMU runner test case for performance and integrity of copying (1000
+    files with 100 kB each).
 
  -- Martin Pitt <mpitt@debian.org>  Tue, 06 May 2014 15:04:53 +0200
 
