@@ -422,6 +422,7 @@ def copyup_shareddir(tb, host, is_dir, downtmp_host):
     downtmp_host = os.path.normpath(downtmp_host)
 
     timeout_start(copy_timeout)
+    cp = None
     try:
         tb_tmp = None
         if tb.startswith(downtmp):
@@ -438,6 +439,7 @@ def copyup_shareddir(tb, host, is_dir, downtmp_host):
             if cp.returncode != 0:
                 bomb('copyup_shareddir: cp exited with code %i' %
                      cp.returncode)
+            cp = None
             # translate into host path
             tb = os.path.join(downtmp_host, os.path.basename(host))
 
@@ -456,6 +458,9 @@ def copyup_shareddir(tb, host, is_dir, downtmp_host):
             subprocess.call(downs['auxverb'] + ['rm', '-rf', tb_tmp],
                             preexec_fn=preexecfn)
     finally:
+        if cp:
+            cp.kill()
+            cp.wait()
         timeout_stop()
 
 
@@ -468,6 +473,7 @@ def copydown_shareddir(host, tb, is_dir, downtmp_host):
     downtmp_host = os.path.normpath(downtmp_host)
 
     timeout_start(copy_timeout)
+    cp = None
     try:
         host_tmp = None
         if host.startswith(downtmp_host):
@@ -495,10 +501,14 @@ def copydown_shareddir(host, tb, is_dir, downtmp_host):
             if cp.returncode != 0:
                 bomb('copydown_shareddir: cp exited with code %i' %
                      cp.returncode)
+            cp = None
 
         if host_tmp:
             (is_dir and shutil.rmtree or os.unlink)(host_tmp)
     finally:
+        if cp:
+            cp.kill()
+            cp.wait()
         timeout_stop()
 
 
