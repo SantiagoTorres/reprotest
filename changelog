@@ -11,6 +11,7 @@ autopkgtest (2.16.2) UNRELEASED; urgency=medium
   * Revert "Don't extract/build source packages in shared downtmp", due to
     above change. This stops penalizing other runners with extra source tree
     copies.
+  * VirtSubproc: Clean up auxverb processes on timeout.
 
  -- Martin Pitt <mpitt@debian.org>  Tue, 06 May 2014 15:04:53 +0200
 
