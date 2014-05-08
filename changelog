@@ -14,6 +14,10 @@ autopkgtest (2.16.2) UNRELEASED; urgency=medium
   * VirtSubproc: Clean up auxverb processes on timeout.
   * adt-run: Stop testbed on TERM and QUIT signals, to avoid leaving stale
     schroot/qemu/LXC processes around when e. g. stopping a job from Jenkins.
+  * adt-virt-qemu: Fix runcmd to make the command's stdin actually look and
+    behave like a pipe, instead of reading directly from the "stdin" file. The
+    latter leads to commands exiting prematurely when hitting the file's EOF.
+    (LP: #1317358)
 
  -- Martin Pitt <mpitt@debian.org>  Tue, 06 May 2014 15:04:53 +0200
 
