@@ -211,6 +211,42 @@ def setup_config(shared_dir):
 def make_auxverb(shared_dir):
     '''Create auxverb script'''
 
+    # helper for runcmd: cat data from its stdin (from a file) to stdout
+    # eternally (like tail -f), but stop once either an "EOF" file exists and
+    # we copied at least as many bytes as given in that EOF file (the first
+    # arg), or an "exit flag" file exists.
+    eofcat = os.path.join(shared_dir, 'eofcat')
+    with open(eofcat, 'w') as f:
+        f.write('''#!%s
+import sys, os, fcntl, time, errno
+(feof, fexit) = sys.argv[1:]
+count = 0
+limit = None
+fcntl.fcntl(0, fcntl.F_SETFL, fcntl.fcntl(0, fcntl.F_GETFL) | os.O_NONBLOCK)
+while not os.path.exists(fexit):
+    try:
+        block = os.read(0, 1000000)
+        if block:
+            os.write(1, block)
+            count += len(block)
+            continue
+    except OSError as e:
+        if e.errno != errno.EAGAIN:
+            raise
+
+    time.sleep(0.05)
+    if limit is None:
+        try:
+            with open(feof, 'r') as f:
+                limit = int(f.read())
+        except (IOError, ValueError):
+            pass
+
+    if limit is not None and count >= limit:
+        break
+''' % sys.executable)
+    os.chmod(eofcat, 0o755)
+
     auxverb = os.path.join(workdir, 'runcmd')
     with open(auxverb, 'w') as f:
         f.write('''#!%(py)s
@@ -224,12 +260,21 @@ os.chmod(job_host, 0o755)
 job_guest = '/autopkgtest/' + os.path.basename(job_host)
 running = True
 
-def shovel(fin, fout):
+def shovel(fin, fout, flagfile_on_eof=None):
     fcntl.fcntl(fin, fcntl.F_SETFL,
                 fcntl.fcntl(fin, fcntl.F_GETFL) | os.O_NONBLOCK)
+    count = 0
     while running:
         try:
             block = fin.read()
+            if flagfile_on_eof and not block:
+                fout.flush()
+                os.fsync(fout.fileno())
+                fout.close()
+                with open(flagfile_on_eof, 'w') as f:
+                    f.write('%%i' %% count)
+                return
+            count += len(block)
         except IOError as e:
             if e.errno != errno.EAGAIN:
                 raise
@@ -250,26 +295,27 @@ def shovel(fin, fout):
 
 # redirect the guest process stdin/out/err files to our stdin/out/err
 fin = os.path.join(job_host, 'stdin')
+stdin_eof = os.path.join(job_host, 'stdin_eof')
 fout = os.path.join(job_host, 'stdout')
 ferr = os.path.join(job_host, 'stderr')
 with open(fout, 'w'):
     pass
 with open(ferr, 'w'):
     pass
-t_stdin = threading.Thread(None, shovel, 'copyin', (sys.stdin, open(fin, 'w')))
+t_stdin = threading.Thread(None, shovel, 'copyin', (sys.stdin, open(fin, 'wb'), stdin_eof))
 t_stdin.start()
-t_stdout = threading.Thread(None, shovel, 'copyout', (open(fout), sys.stdout))
+t_stdout = threading.Thread(None, shovel, 'copyout', (open(fout, 'rb'), sys.stdout))
 t_stdout.start()
-t_stderr = threading.Thread(None, shovel, 'copyerr', (open(ferr), sys.stderr))
+t_stderr = threading.Thread(None, shovel, 'copyerr', (open(ferr, 'rb'), sys.stderr))
 t_stderr.start()
 
-# give the stdin reading some head start
-time.sleep(0.1)
-
-# run command through QEMU shell
+# Run command through QEMU shell. We can't directly feed the stdin file into
+# the process as we'd hit EOF too soon; so funnel it through eofcat to get a
+# "real" stdin behaviour.
 s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
 s.connect('%(tty)s')
-cmd = '%%(c)s < %%(d)s/stdin >> %%(d)s/stdout 2>> %%(d)s/stderr; echo $?  > %%(d)s/exit\\n' %% \\
+cmd = '/autopkgtest/eofcat %%(d)s/stdin_eof %%(d)s/exit < %%(d)s/stdin | ' \\
+      '(%%(c)s >> %%(d)s/stdout 2>> %%(d)s/stderr; echo $? > %%(d)s/exit)\\n' %% \\
        {'d': job_guest, 'c': ' '.join(map(pipes.quote, sys.argv[1:]))}
 s.send(cmd.encode())
 s.close()
