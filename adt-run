@@ -383,7 +383,7 @@ def parse_args():
     parser.add_option('-q', '--quiet', action='store_true', dest='quiet', default=False)
     parser.add_option('-d', '--debug', action='count', dest='debuglevel', default=0)
     parser.add_option('-s', '--shell-fail', action='store_true',
-                      help='run a shell in the testbed after every failed test')
+                      help='run a shell in the testbed after any failed build or test')
     parser.add_option('--shell', action='store_true',
                       help='run a shell in the testbed after every test')
     parser.add_option('--gnupg-home', type='string', dest='gnupghome',
@@ -962,6 +962,15 @@ Description: satisfy autopkgtest test dependencies
             bdi = d.get('Build-Depends-Indep', '')
         self.satisfy_dependencies_string(bd + ', ' + bdi, what, recommends)
 
+    def run_shell(self, cwd=None):
+        '''Run shell in testbed for debugging tests'''
+
+        debug(' - - - - - - - - - - running shell - - - - - - - - - -')
+        self.command('shell', (os.path.realpath('/dev/stdin'),
+                               os.path.realpath('/dev/stdout'),
+                               os.path.realpath('/dev/stderr'),
+                               cwd or '/'))
+
 
 class TestbedPath:
     '''Represent a file/dir with a host and a testbed path'''
@@ -1494,11 +1503,7 @@ class Test:
                         ['rm', '-rf', test_adttmp, test_artifacts])
 
         if opts.shell or (opts.shell_fail and not passed):
-            self._debug(' - - - - - - - - - - running shell - - - - - - - - - -')
-            testbed.command('shell', (os.path.realpath('/dev/stdin'),
-                                      os.path.realpath('/dev/stdout'),
-                                      os.path.realpath('/dev/stderr'),
-                                      tree.tb))
+            testbed.run_shell(tree.tb)
 
 
 def read_stanzas(path):
@@ -1915,6 +1920,8 @@ def source_rules_command(script, what, which, cwd,
     else:
         results = []
     if rc:
+        if opts.shell_fail:
+            testbed.run_shell(cwd)
         badpkg('rules %s failed with exit code %d' % (which, rc))
     if results_lines is not None and len(results) != results_lines:
         badpkg('got %d lines of results from %s where %d expected'
