@@ -21,6 +21,9 @@ autopkgtest (2.16.2) UNRELEASED; urgency=medium
   * Convert one of the QEMU tests from source tree to dsc, to cover that case
     as well.
   * Add test case for QEMU with --apt-source (using libpng).
+  * adt-virt-qemu: Create eofcat in /bin instead of the shared /autopkgtest
+    mount, as running it from the latter again triggers the "invalid numerical
+    value" bug with 9p from older QEMU versions.
 
  -- Martin Pitt <mpitt@debian.org>  Tue, 06 May 2014 15:04:53 +0200
 
