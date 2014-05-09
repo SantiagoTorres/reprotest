@@ -314,8 +314,9 @@ t_stderr.start()
 # "real" stdin behaviour.
 s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
 s.connect('%(tty)s')
-cmd = '/autopkgtest/eofcat %%(d)s/stdin_eof %%(d)s/exit < %%(d)s/stdin | ' \\
-      '(%%(c)s >> %%(d)s/stdout 2>> %%(d)s/stderr; echo $? > %%(d)s/exit)\\n' %% \\
+cmd = '/autopkgtest/eofcat %%(d)s/stdin_eof %%(d)s/exit.tmp < %%(d)s/stdin | ' \\
+      '(%%(c)s >> %%(d)s/stdout 2>> %%(d)s/stderr; echo $? > %%(d)s/exit.tmp);' \\
+      'mv %%(d)s/exit.tmp %%(d)s/exit\\n' %% \\
        {'d': job_guest, 'c': ' '.join(map(pipes.quote, sys.argv[1:]))}
 s.send(cmd.encode())
 s.close()
