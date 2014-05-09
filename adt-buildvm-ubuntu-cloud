@@ -190,6 +190,10 @@ write_files:
 runcmd:
  - [ ln, -s, ../init.d/autopkgtest , /etc/rc2.d/S99autopkgtest ]
  - [ apt-get, -y, purge, cloud-init ]
+ - for p in accountsservice apt-xapian-index cryptsetup landscape-client
+     landscape-common pollinate open-vm-tools; do
+     apt-get --auto-remove -y purge $p || true;
+   done
  - if [ "$(dpkg --print-architecture)" = "i386" ]; then
      sed -i 's/GRUB_CMDLINE_LINUX_DEFAULT="[^"]*/& vmalloc=512M/' \
      /etc/default/grub.d/50-cloudimg-settings.cfg; update-grub;
