@@ -207,17 +207,14 @@ def setup_config(shared_dir):
         else:
             VirtSubproc.debug('Could not determine host timezone')
 
-
-def make_auxverb(shared_dir):
-    '''Create auxverb script'''
-
-    # helper for runcmd: cat data from its stdin (from a file) to stdout
+    # create helper for runcmd: cat data from its stdin (from a file) to stdout
     # eternally (like tail -f), but stop once either an "EOF" file exists and
     # we copied at least as many bytes as given in that EOF file (the first
     # arg), or an "exit flag" file exists.
-    eofcat = os.path.join(shared_dir, 'eofcat')
-    with open(eofcat, 'w') as f:
-        f.write('''#!%s
+    # We don't run that from /autopkgtest/ as 9p from older QEMU versions is
+    # buggy and causes "invalid numeric result" errors on that.
+    term.send(b'''cat <<EOF > /bin/eofcat; chmod 755 /bin/eofcat
+#!/usr/bin/python
 import sys, os, fcntl, time, errno
 (feof, fexit) = sys.argv[1:]
 count = 0
@@ -244,8 +241,12 @@ while not os.path.exists(fexit):
 
     if limit is not None and count >= limit:
         break
-''' % sys.executable)
-    os.chmod(eofcat, 0o755)
+EOF
+''')
+
+
+def make_auxverb(shared_dir):
+    '''Create auxverb script'''
 
     auxverb = os.path.join(workdir, 'runcmd')
     with open(auxverb, 'w') as f:
@@ -314,7 +315,7 @@ t_stderr.start()
 # "real" stdin behaviour.
 s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
 s.connect('%(tty)s')
-cmd = '/autopkgtest/eofcat %%(d)s/stdin_eof %%(d)s/exit.tmp < %%(d)s/stdin | ' \\
+cmd = '/bin/eofcat %%(d)s/stdin_eof %%(d)s/exit.tmp < %%(d)s/stdin | ' \\
       '(%%(c)s >> %%(d)s/stdout 2>> %%(d)s/stderr; echo $? > %%(d)s/exit.tmp);' \\
       'mv %%(d)s/exit.tmp %%(d)s/exit\\n' %% \\
        {'d': job_guest, 'c': ' '.join(map(pipes.quote, sys.argv[1:]))}
