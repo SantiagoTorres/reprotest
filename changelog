@@ -1,4 +1,4 @@
-autopkgtest (2.16.2) UNRELEASED; urgency=medium
+autopkgtest (2.16.2) unstable; urgency=medium
 
   * Support ":native" dependencies.
   * Add LXC runner test case for running as different user.
@@ -30,7 +30,7 @@ autopkgtest (2.16.2) UNRELEASED; urgency=medium
   * Make -s/--shell-fail start a shell on failed builds as well.
     (LP: #1317055)
 
- -- Martin Pitt <mpitt@debian.org>  Tue, 06 May 2014 15:04:53 +0200
+ -- Martin Pitt <mpitt@debian.org>  Fri, 09 May 2014 10:32:27 +0200
 
 autopkgtest (2.16.1) unstable; urgency=medium
 
