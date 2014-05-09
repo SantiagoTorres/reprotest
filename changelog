@@ -18,6 +18,8 @@ autopkgtest (2.16.2) UNRELEASED; urgency=medium
     behave like a pipe, instead of reading directly from the "stdin" file. The
     latter leads to commands exiting prematurely when hitting the file's EOF.
     (LP: #1317358)
+  * Convert one of the QEMU tests from source tree to dsc, to cover that case
+    as well.
 
  -- Martin Pitt <mpitt@debian.org>  Tue, 06 May 2014 15:04:53 +0200
 
