@@ -240,6 +240,8 @@ def boot_image(image, seed, qemu_command, verbose):
     qemu = subprocess.Popen([qemu_command, '-enable-kvm', '-m', '512',
                              '-localtime', '-nographic',
                              '-monitor', 'null',
+                             '-net', 'user',
+                             '-net', 'nic,model=virtio',
                              '-serial', 'unix:%s,server,nowait' % tty_sock,
                              '-drive', 'file=%s,if=virtio' % image,
                              '-drive', 'file=%s,if=virtio,readonly' % seed])
