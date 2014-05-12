@@ -68,8 +68,10 @@ def parse_args():
                         'to sudo if not "root")')
     parser.add_argument('-p', '--password',
                         help='password for user to log into the VM on ttyS0')
+    parser.add_argument('-c', '--cpus', type=int, default=1,
+                        help='Number of (virtual) CPUs in the VM (default: %(default)s)')
     parser.add_argument('--ram-size', type=int, default=1024,
-                        help='VM RAM size in MiB (default: 1024)')
+                        help='VM RAM size in MiB (default: %(default)s)')
     parser.add_argument('-d', '--debug', action='store_true',
                         help='Enable debugging output')
     parser.add_argument('--qemu-options',
@@ -430,6 +432,7 @@ def hook_open():
     argv = [args.qemu_command,
             '-enable-kvm',
             '-m', str(args.ram_size),
+            '-smp', str(args.cpus),
             '-localtime',
             '-no-reboot',
             '-nographic',
