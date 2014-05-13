@@ -3,6 +3,7 @@ autopkgtest (2.16.3) UNRELEASED; urgency=medium
   * adt-buildvm-ubuntu-cloud: Explicitly use virtio ethernet device, as the
     default one is horribly slow with older QEMU versions.
   * adt-virt-qemu: Add -c/--cpus option for running VMs with multiple CPUs.
+  * adt-run: Retry writing to stderr a few times on EAGAIN.
 
  -- Martin Pitt <mpitt@debian.org>  Sat, 10 May 2014 15:52:16 +0200
 
