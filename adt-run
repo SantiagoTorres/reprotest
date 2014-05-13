@@ -82,7 +82,18 @@ summary_stream = None
 def error(message):
     '''Write an error message to stderr'''
 
-    print >> sys.stderr, message
+    # we sometimes hit EAGAIN here, try a few times
+    retries = 10
+    while retries >= 0:
+        try:
+            print >> sys.stderr, message
+            return
+        except IOError as e:
+            if e.errno == errno.EAGAIN:
+                retries -= 1
+                time.sleep(0.05)
+            else:
+                raise
 
 
 def debug(message, minlevel=0, timestamp=False):
@@ -108,7 +119,7 @@ def log_msg(message, prefix=''):
     for line in message.rstrip('\n').splitlines():
         s = prefix + line
         if not opts.quiet:
-            print >> sys.stderr, s
+            error(s)
 
 
 def log_file(path, minlevel=0):
