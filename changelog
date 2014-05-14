@@ -4,6 +4,9 @@ autopkgtest (2.16.3) UNRELEASED; urgency=medium
     default one is horribly slow with older QEMU versions.
   * adt-virt-qemu: Add -c/--cpus option for running VMs with multiple CPUs.
   * adt-run: Retry writing to stderr a few times on EAGAIN.
+  * adt-run: If apt-get update fails, retry after 15 seconds. This should
+    work around the frequent "hash sum mismatch" race condition.
+    (LP: #1319416)
 
  -- Martin Pitt <mpitt@debian.org>  Sat, 10 May 2014 15:52:16 +0200
 
