@@ -410,7 +410,7 @@ def parse_args():
                       'commands')
     parser.add_option('-U', '--apt-upgrade', dest='setup_commands',
                       action='append_const',
-                      const='apt-get update && apt-get dist-upgrade -y -o Dpkg::Options::="--force-confnew"',
+                      const='(apt-get update || (sleep 15; apt-get update)) && apt-get dist-upgrade -y -o Dpkg::Options::="--force-confnew"',
                       help='Run apt update/dist-upgrade before the tests')
     parser.add_option('--apt-pocket', metavar='POCKETNAME', action='append',
                       default=[],
@@ -673,7 +673,7 @@ class Testbed:
             return
         self._need_reset_apt = False
         what = 'aptget-update-reset'
-        cmdl = ['sh', '-c', 'apt-get -qy update 2>&1']
+        cmdl = ['sh', '-c', '(apt-get -qy update || (sleep 15; apt-get -qy update)) 2>&1']
         rc = self.execute(what, cmdl, kind='install')
         if rc:
             error('\nwarning: failed to restore testbed apt cache, '
