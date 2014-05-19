@@ -878,7 +878,7 @@ class Testbed:
 
         return rc
 
-    def execute_raw(self, what, cmdl, kind='short'):
+    def execute_raw(self, what, cmdl, xenv=[], kind='short'):
         '''Run command in testbed without redirection.
 
         I. e. the commands stdout/err will be piped directly to adt-run and its
@@ -888,6 +888,15 @@ class Testbed:
         '''
         auxverb = map(urllib.unquote, self.commandr('print-auxverb-command')[0].split(','))
         timeout = timeouts[kind]
+
+        env = list(xenv)  # copy
+        if kind == 'install':
+            env.append('DEBIAN_FRONTEND=noninteractive')
+        if opts.set_lang is not False:
+            env.append('LANG=%s' % opts.set_lang)
+
+        if env:
+            cmdl = ['env'] + env + cmdl
 
         VirtSubproc.timeout_start(timeout)
         try:
@@ -948,8 +957,7 @@ Description: satisfy autopkgtest test dependencies
         if rc != 0:
             bomb('failed to unpack adt-satdep.deb')
         rc = self.execute_raw('install-satdep',
-                              ['env', 'DEBIAN_FRONTEND=noninteractive',
-                               'apt-get', 'install', '-q', '-y', '-f',
+                              ['apt-get', 'install', '-q', '-y', '-f',
                                '-o', 'APT::Install-Recommends=%s' % recommends,
                                '-o', 'Debug::pkgProblemResolver=true'],
                               kind='install')
