@@ -1425,14 +1425,14 @@ class Test:
 
         if os.path.getsize(so.host) == 0:
             # don't produce empty -stdout files in --output-dir
-            os.unlink(so.host)
+            so.autoclean = True
 
         if se_size != 0 and 'allow-stderr' not in self.restriction_names:
                 self._debug(' - - - - - - - - - - stderr - - - - - - - - - -')
                 log_file(se.host)
         else:
             # don't produce empty -stderr files in --output-dir
-            os.unlink(se.host)
+            se.autoclean = True
 
         # copy artifacts to host, if we have --output-dir
         if opts.output_dir:
