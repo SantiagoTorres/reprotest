@@ -1375,7 +1375,7 @@ class Test:
                     ''' % {'t': tree.tb, 'a': test_artifacts}
 
         if opts.user and 'rw-build-tree' in self.restriction_names:
-            script += 'chown -R %s "$buildtree\n' % opts.user
+            script += 'chown -R %s "$buildtree"\n' % opts.user
 
         script += '''chmod +x %(t)s
                      touch %(o)s %(e)s
