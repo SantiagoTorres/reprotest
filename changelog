@@ -12,6 +12,8 @@ autopkgtest (2.16.3) UNRELEASED; urgency=medium
   * Simplify the pipelining of test stdout/err, and stop using explicit pipes
     and the "downtmp-shared-fifo" capability. This provides live output for
     all runners, including qemu. (LP: #1320194)
+  * Fix "Operation not permitted" errors on cleaning up empty stdout/err
+    result files with shared downtmp runners.
 
  -- Martin Pitt <mpitt@debian.org>  Sat, 10 May 2014 15:52:16 +0200
 
