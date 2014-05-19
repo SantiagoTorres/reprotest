@@ -9,6 +9,9 @@ autopkgtest (2.16.3) UNRELEASED; urgency=medium
     (LP: #1319416)
   * adt-buildvm-ubuntu-cloud: Configure dpkg to use unsafe io, to speed up
     tests which run on hard disk backed overlays.
+  * Simplify the pipelining of test stdout/err, and stop using explicit pipes
+    and the "downtmp-shared-fifo" capability. This provides live output for
+    all runners, including qemu. (LP: #1320194)
 
  -- Martin Pitt <mpitt@debian.org>  Sat, 10 May 2014 15:52:16 +0200
 
