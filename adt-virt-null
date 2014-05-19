@@ -34,7 +34,7 @@ except KeyError:
 sys.path.insert(1, our_base)
 
 import VirtSubproc
-capabilities = ['downtmp-shared-fifo', 'isolation-machine']
+capabilities = ['isolation-machine']
 
 
 def parse_args():

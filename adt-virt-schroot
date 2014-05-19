@@ -37,7 +37,7 @@ except KeyError:
 sys.path.insert(1, our_base)
 
 import VirtSubproc
-capabilities = ['downtmp-shared-fifo']
+capabilities = []
 
 schroot = None
 sessid = None

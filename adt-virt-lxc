@@ -44,7 +44,7 @@ sys.path.insert(1, our_base)
 import VirtSubproc
 
 capabilities = ['revert', 'revert-full-system', 'root-on-testbed',
-                'downtmp-shared-fifo', 'isolation-container']
+                'isolation-container']
 
 ephemeral = False
 eatmydata = False
