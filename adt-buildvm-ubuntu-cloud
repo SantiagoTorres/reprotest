@@ -187,6 +187,10 @@ write_files:
    permissions: '0644'
    content: Acquire::Languages "none";
 
+ - path: /etc/dpkg/dpkg.cfg.d/autopkgtest
+   permisisons: '0644'
+   content: force-unsafe-io
+
 runcmd:
  - [ ln, -s, ../init.d/autopkgtest , /etc/rc2.d/S99autopkgtest ]
  - [ apt-get, -y, purge, cloud-init ]
