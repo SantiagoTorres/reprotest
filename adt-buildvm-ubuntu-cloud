@@ -181,7 +181,9 @@ write_files:
    permissions: '0755'
    content: |
         #!/bin/sh
-        (setsid sh </dev/ttyS1 >/dev/ttyS1 2>&1) &
+        if [ "$1" = start ]; then
+            (setsid sh </dev/ttyS1 >/dev/ttyS1 2>&1) &
+        fi
 
  - path: /etc/apt/apt.conf.d/90nolanguages
    permissions: '0644'
