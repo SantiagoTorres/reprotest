@@ -15,6 +15,8 @@ autopkgtest (2.16.3) UNRELEASED; urgency=medium
   * Drop obsolete downtmp-shared-fifo capability from all runners.
   * Fix "Operation not permitted" errors on cleaning up empty stdout/err
     result files with shared downtmp runners.
+  * adt-buildvm-ubuntu-cloud: Refine init.d script to only launch a shell on
+    "start".
 
  -- Martin Pitt <mpitt@debian.org>  Sat, 10 May 2014 15:52:16 +0200
 
