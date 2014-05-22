@@ -1,4 +1,4 @@
-autopkgtest (2.16.3) UNRELEASED; urgency=medium
+autopkgtest (2.16.3) unstable; urgency=medium
 
   * adt-buildvm-ubuntu-cloud: Explicitly use virtio ethernet device, as the
     default one is horribly slow with older QEMU versions.
@@ -20,7 +20,7 @@ autopkgtest (2.16.3) UNRELEASED; urgency=medium
   * adt-build-lxc: Add optional third argument for specifying a non-native
     architecture.
 
- -- Martin Pitt <mpitt@debian.org>  Sat, 10 May 2014 15:52:16 +0200
+ -- Martin Pitt <mpitt@debian.org>  Thu, 22 May 2014 15:52:36 +0200
 
 autopkgtest (2.16.2) unstable; urgency=medium
 
