@@ -77,7 +77,7 @@ if [ ! -e $LXCDIR/$NAME ]; then
     setup $NAME
 else
     # remove LXC rootfs caches
-    rm -rf /var/cache/lxc/$RELEASE /var/cache/lxc/$DISTRO/rootfs-$RELEASE/*
+    rm -rf /var/cache/lxc/$RELEASE /var/cache/lxc/$DISTRO/rootfs-$RELEASE*
     # create a new rootfs in a temp container
     lxc-create -n ${NAME}.new $LXC_ARGS
     setup ${NAME}.new
