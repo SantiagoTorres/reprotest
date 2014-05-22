@@ -27,16 +27,17 @@ set -e
 DISTRO="$1"
 RELEASE="$2"
 if [ -z "$1" ] || [ -z "$2" ]; then
-    echo "Usage: $0 debian|ubuntu <release>" >&2
+    echo "Usage: $0 debian|ubuntu <release> [arch]" >&2
     exit 1
 fi
 
-NAME="adt-${RELEASE}"
+ARCH=${3:-}
+NAME="adt-${RELEASE}${ARCH:+-$ARCH}"
 
 # fall back for older LXC option name
 LXCDIR=`lxc-config lxc.lxcpath` || LXCDIR=`lxc-config lxcpath` || LXCDIR=/var/lib/lxc
 
-LXC_ARGS="-t $DISTRO -- -r $RELEASE"
+LXC_ARGS="-t $DISTRO -- -r $RELEASE ${ARCH:+-a $ARCH}"
 export HTTP_PROXY=${HTTP_PROXY:=apt}
 
 setup() {

@@ -5,6 +5,7 @@ adt-build-lxc \- Create or update autopkgtest container for adt\-virt-lxc
 .SH SYNOPSYS
 .B adt-build-lxc
 .I distribution release
+.RI [ architecture ]
 
 .SH DESCRIPTION
 .B adt-build-lxc
@@ -24,6 +25,9 @@ to build a debootstrap-like container, then enables
 .B deb-src
 apt sources, and runs
 .B apt-get update\fR.
+
+It defaults to the native architecture, but you can specify a different one as
+third parameter.
 
 If the container already exists, it updates it as unintrusively as possible by
 first creating a new temporary container \fBadt-\fIrelease\fB.new\fR, and then
@@ -45,7 +49,7 @@ autopkgtests.
 # adt-build-lxc debian sid
 
 .PP
-$ sudo adt-build-lxc ubuntu trusty
+$ sudo adt-build-lxc ubuntu trusty i386
 
 .SH SEE ALSO
 \fBadt\-virt-lxc\fR(1),
