@@ -17,6 +17,8 @@ autopkgtest (2.16.3) UNRELEASED; urgency=medium
     result files with shared downtmp runners.
   * adt-buildvm-ubuntu-cloud: Refine init.d script to only launch a shell on
     "start".
+  * adt-build-lxc: Add optional third argument for specifying a non-native
+    architecture.
 
  -- Martin Pitt <mpitt@debian.org>  Sat, 10 May 2014 15:52:16 +0200
 
