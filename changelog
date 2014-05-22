@@ -2,6 +2,7 @@ autopkgtest (2.16.4) UNRELEASED; urgency=medium
 
   * adt-build-lxc: Unset $http[s]_proxy for the post-creation apt-get update
     if it refers to localhost.
+  * adt-build-lxc: Fix cache cleaning for upgrades.
 
  -- Martin Pitt <mpitt@debian.org>  Thu, 22 May 2014 17:48:41 +0200
 
