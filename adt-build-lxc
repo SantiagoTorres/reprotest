@@ -59,6 +59,14 @@ setup() {
         lxc-destroy -n $1 || true
         exit 1
     }
+
+    # a host's http_proxy for localhost does not work in the guest, apt proxy
+    # needs to be set up separately there
+    if [ "$http_proxy" != "${http_proxy#*localhost*}" ] || \
+       [ "$http_proxy" != "${http_proxy#*127.0.0.*}" ]; then
+       unset http_proxy
+       unset https_proxy
+    fi
     lxc-attach -n $1 apt-get update
     lxc-stop -n $1
 }
