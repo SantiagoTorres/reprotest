@@ -142,6 +142,7 @@ to build a suitable image. E. g. for unstable:
 
 .RS
 .EX
+truncate -s 10000000000 adt-sid.raw
 vmdebootstrap --verbose --serial-console --distribution=sid \\
 .br
    --customize=/usr/share/autopkgtest/adt-setup-vm \\
