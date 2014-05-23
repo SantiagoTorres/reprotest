@@ -1,3 +1,10 @@
+autopkgtest (2.16.5) UNRELEASED; urgency=medium
+
+  * adt-virt-qemu.1: Add missing creation of raw image file in vmdebootstrap
+    example.
+
+ -- Martin Pitt <mpitt@debian.org>  Fri, 23 May 2014 07:35:48 +0200
+
 autopkgtest (2.16.4) unstable; urgency=medium
 
   * adt-build-lxc: Unset $http[s]_proxy for the post-creation apt-get update
