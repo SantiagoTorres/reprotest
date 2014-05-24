@@ -1,3 +1,10 @@
+autopkgtest (2.16.5) UNRELEASED; urgency=medium
+
+  * adt-buildvm-ubuntu-cloud: If apt-cacher-ng is running locally, use that as
+    a default for --proxy.
+
+ -- Martin Pitt <mpitt@debian.org>  Sat, 24 May 2014 09:34:38 +0200
+
 autopkgtest (2.16.4) unstable; urgency=medium
 
   * adt-build-lxc: Unset $http[s]_proxy for the post-creation apt-get update
