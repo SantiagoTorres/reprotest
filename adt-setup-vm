@@ -43,6 +43,8 @@ sed -i '/^deb / s/deb \(.*\)$/deb \1\ndeb-src \1/' "$1/etc/apt/sources.list"
 # set up networking
 /bin/echo -e '\nauto eth0\niface eth0 inet dhcp' >> "$1"/etc/network/interfaces
 
+echo "Acquire::Languages \"none\";" > "$1"/etc/apt/apt.conf.d/90nolanguages
+
 chroot "$1" apt-get update
 
 # set up apt proxy, if given (this might be an IP which only works in the VM,
@@ -50,5 +52,3 @@ chroot "$1" apt-get update
 if [ -n "$ADT_APT_PROXY" ]; then
     echo "Acquire::http { Proxy \"$ADT_APT_PROXY\"; };" > "$1"/etc/apt/apt.conf.d/01proxy
 fi
-
-echo "Acquire::Languages \"none\";" > "$1"/etc/apt/apt.conf.d/90nolanguages
