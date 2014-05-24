@@ -1,7 +1,7 @@
 autopkgtest (2.16.5) UNRELEASED; urgency=medium
 
-  * adt-buildvm-ubuntu-cloud: If apt-cacher-ng is running locally, use that as
-    a default for --proxy.
+  * adt-buildvm-ubuntu-cloud, adt-setup-vm: If apt-cacher-ng is running
+    locally, use that as a default for --proxy/ADT_APT_PROXY.
   * adt-setup-vm: Run the initial apt-get update without fetching
     translations.
 
