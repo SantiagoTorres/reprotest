@@ -9,7 +9,8 @@
 # adt-virt-qemu(1) for details.
 #
 # You can set $ADT_APT_PROXY; if set, it will be configured in apt in
-# /etc/apt/apt.conf.d/01proxy.
+# /etc/apt/apt.conf.d/01proxy. If apt-cacher-ng is running on localhost, this
+# will be used automatically, unless $ADT_APT_PROXY is set.
 
 set -e
 
@@ -44,6 +45,16 @@ sed -i '/^deb / s/deb \(.*\)$/deb \1\ndeb-src \1/' "$1/etc/apt/sources.list"
 /bin/echo -e '\nauto eth0\niface eth0 inet dhcp' >> "$1"/etc/network/interfaces
 
 echo "Acquire::Languages \"none\";" > "$1"/etc/apt/apt.conf.d/90nolanguages
+
+# auto-detect apt-cacher-ng
+if [ -z "$ADT_APT_PROXY" ]; then
+    proxy=$(apt-config dump | awk '/^Acquire::http::Proxy/ {print $2}')
+    if echo "$proxy" | egrep -q '(localhost|127\.0\.0\.[0-9]*):3142'; then
+        ADT_APT_PROXY="http://10.0.2.2:3142"
+        # set http_proxy for the initial apt-get update
+        export http_proxy="$proxy"
+    fi
+fi
 
 chroot "$1" apt-get update
 
