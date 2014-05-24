@@ -51,7 +51,11 @@ Mirror for apt (default:
 
 .TP
 .BI -p " URL" " | --proxy=" URL
-Proxy for apt (no default).
+Proxy for apt. If apt-cacher-ng is running on the local host, the VM will
+automatically use this (i. e. use
+.BR http://10.0.2.2:3142 )
+otherwise there is no default.
+
 
 .TP
 .BI --cloud-image-url= URL

@@ -70,6 +70,11 @@ def get_default_release():
 def parse_args():
     '''Parse CLI args'''
 
+    if os.path.exists('/var/run/apt-cacher-ng/pid'):
+        default_proxy = 'http://10.0.2.2:3142'
+    else:
+        default_proxy = ''
+
     parser = argparse.ArgumentParser(fromfile_prefix_chars='@')
 
     default_arch = subprocess.check_output(['dpkg', '--print-architecture'],
@@ -85,8 +90,10 @@ def parse_args():
     parser.add_argument('-m', '--mirror', metavar='URL',
                         default='http://archive.ubuntu.com/ubuntu',
                         help='Use this mirror for apt (default: %(default)s)')
-    parser.add_argument('-p', '--proxy', metavar='URL',
-                        help='Use a proxy for apt')
+    parser.add_argument('-p', '--proxy', metavar='URL', default=default_proxy,
+                        help='Use a proxy for apt; a local apt-cacher-ng '
+                        'gets used automatically (default: %s)' % (
+                            default_proxy or 'none'))
     parser.add_argument('-s', '--disk-size', default='4G',
                         help='grow image by this size (default: %(default)s)')
     parser.add_argument('-o', '--output-dir', metavar='DIR', default='.',
