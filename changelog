@@ -4,6 +4,9 @@ autopkgtest (2.16.5) UNRELEASED; urgency=medium
     locally, use that as a default for --proxy/ADT_APT_PROXY.
   * adt-setup-vm: Run the initial apt-get update without fetching
     translations.
+  * Stop shipping the LXC runner and associated tools on Debian. It does not
+    work out of the box until Debian's LXC containers get proper networking by
+    default (see Debian #747914).
 
  -- Martin Pitt <mpitt@debian.org>  Sat, 24 May 2014 09:34:38 +0200
 

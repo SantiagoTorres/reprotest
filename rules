@@ -37,6 +37,11 @@ override_dh_auto_install:
 	cd debian/autopkgtest-xenlvm/etc/userv/services.d && \
 		mv -f adt-xenlvm-testbed:dist adt-xenlvm-testbed
 
+	# LXC runner is useless on Debian due to http://bugs.debian.org/747914
+	if dpkg-vendor --is debian; then \
+	  rm debian/autopkgtest/usr/bin/*lxc debian/autopkgtest/usr/share/man/man*/*lxc*; \
+	fi
+
 	# put our package version into adt-run for logging
 	sed -i 's/@devel@/$(VERSION)/' debian/autopkgtest/usr/bin/adt-run
 
