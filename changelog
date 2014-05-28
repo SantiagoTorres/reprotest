@@ -7,6 +7,8 @@ autopkgtest (2.16.5) UNRELEASED; urgency=medium
   * Stop shipping the LXC runner and associated tools on Debian. It does not
     work out of the box until Debian's LXC containers get proper networking by
     default (see Debian #747914).
+  * adt-buildvm-ubuntu-cloud: Add LSB header to generated SysV init script to
+    avoid a warning from insserv.
 
  -- Martin Pitt <mpitt@debian.org>  Sat, 24 May 2014 09:34:38 +0200
 
