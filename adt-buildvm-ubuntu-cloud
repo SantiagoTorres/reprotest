@@ -191,6 +191,14 @@ write_files:
    permissions: '0755'
    content: |
         #!/bin/sh
+        ### BEGIN INIT INFO
+        # Provides:          autopkgtest
+        # Required-Start:    $remote_fs $syslog
+        # Required-Stop:     $remote_fs $syslog
+        # Default-Start:     2 3 4 5
+        # Default-Stop:
+        # Short-Description: Start root shell on ttyS1 for autopkgtest control
+        ### END INIT INFO
         if [ "$1" = start ]; then
             (setsid sh </dev/ttyS1 >/dev/ttyS1 2>&1) &
         fi
