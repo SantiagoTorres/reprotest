@@ -9,6 +9,7 @@ autopkgtest (2.16.5) UNRELEASED; urgency=medium
     default (see Debian #747914).
   * adt-buildvm-ubuntu-cloud: Add LSB header to generated SysV init script to
     avoid a warning from insserv.
+  * VirtSubproc: Fix generation of auxverb from shstring.
 
  -- Martin Pitt <mpitt@debian.org>  Sat, 24 May 2014 09:34:38 +0200
 
