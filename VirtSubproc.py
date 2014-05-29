@@ -288,7 +288,6 @@ def opened1():
         downs = {'shstring': down,
                  'auxverb': ['perl', '-e', '''
                 @cmd=(''' + (','.join(map(perl_quote, down))) + ''');
-                my $shstring = pop @ARGV;
                 s/'/'\\\\''/g foreach @ARGV;
                 push @cmd, "'$_'" foreach @ARGV;
                 my $argv0=$cmd[0];
