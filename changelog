@@ -17,6 +17,7 @@ autopkgtest (2.17) UNRELEASED; urgency=medium
   * adt-buildvm-ubuntu-cloud: Add LSB header to generated SysV init script to
     avoid a warning from insserv.
   * VirtSubproc: Fix generation of auxverb from shstring.
+  * Drop debhelper dependency, not necessary any more since 2.16.
 
  -- Martin Pitt <mpitt@debian.org>  Sat, 24 May 2014 09:34:38 +0200
 

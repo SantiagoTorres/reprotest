@@ -16,7 +16,6 @@ XS-Testsuite: autopkgtest
 Package: autopkgtest
 Architecture: all
 Depends: python (>= 2.6),
- debhelper,
  python-debian,
  apt-utils,
  libdpkg-perl,
