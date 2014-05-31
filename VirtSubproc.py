@@ -315,6 +315,19 @@ def cmd_revert(c, ce):
     return opened2()
 
 
+def cmd_reboot(c, ce):
+    global downtmp
+    cmdnumargs(c, ce)
+    if not downtmp:
+        bomb("`reboot' when not open")
+    if not 'reboot' in caller.hook_capabilities():
+        bomb("`reboot' when `reboot' not advertised")
+    caller.hook_reboot()
+    opened1()
+    downtmp = caller.hook_downtmp()
+    return opened2()
+
+
 def cmd_execute(c, ce):
     cmdnumargs(c, ce, 5, None)
     if not downtmp:
