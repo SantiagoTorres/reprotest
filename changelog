@@ -1,7 +1,14 @@
-autopkgtest (2.16.5) UNRELEASED; urgency=medium
+autopkgtest (2.17) UNRELEASED; urgency=medium
 
+  New features:
   * adt-buildvm-ubuntu-cloud, adt-setup-vm: If apt-cacher-ng is running
     locally, use that as a default for --proxy/ADT_APT_PROXY.
+  * Add "reboot" testbed capability and implement it for QEMU (most other
+    runners don't support it conceptually). Reboot the testbed if the setup
+    commands affected boot relevant directories (/boot, /etc/init.d,
+    /etc/init/, or /{etc,lib}/systemd/system). (LP: #1324435)
+
+  Bug fixes:
   * adt-setup-vm: Run the initial apt-get update without fetching
     translations.
   * Stop shipping the LXC runner and associated tools on Debian. It does not
