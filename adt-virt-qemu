@@ -434,7 +434,6 @@ def hook_open():
             '-m', str(args.ram_size),
             '-smp', str(args.cpus),
             '-localtime',
-            '-no-reboot',
             '-nographic',
             '-net', 'user',
             '-net', 'nic,model=virtio',
@@ -507,6 +506,14 @@ def hook_cleanup():
         workdir = None
 
 
+def hook_reboot():
+    global workdir
+    VirtSubproc.execute_raw('reboot', None, 5, VirtSubproc.down + ['reboot'])
+    wait_boot()
+    shareddir = os.path.join(workdir, 'shared')
+    setup_shared(shareddir)
+
+
 def hook_forked_inchild():
     pass
 
@@ -514,7 +521,7 @@ def hook_forked_inchild():
 def hook_capabilities():
     global normal_user
     caps = ['revert', 'revert-full-system', 'root-on-testbed',
-            'isolation-machine']
+            'isolation-machine', 'reboot']
     # disabled, see hook_downtmp()
     #caps.append('downtmp-host=%s' % os.path.join(workdir, 'shared', 'tmp'))
     if normal_user:
