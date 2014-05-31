@@ -712,11 +712,28 @@ class Testbed:
             rc = testbed.execute('apt-pocket-' + p, ['sh', '-ec', script],
                                  script=script)
 
+        # record the mtimes of dirs affecting the boot
+        boot_dirs = '/boot /etc/init /etc/init.d /etc/systemd/system /lib/systemd/system'
+        rc = testbed.execute_raw('boot-dir-record', [
+            'bash', '-ec', 'for d in %s; do [ -d $d ] && touch -r $d %s/${d//\//_}.stamp; done' % (
+                boot_dirs, self.scratch)])
+        if rc:
+            bomb('boot dir time stamping failed with status %i' % rc)
+
         for c in opts.setup_commands:
             rc = testbed.execute_raw('setup-commands', ['sh', '-ec', c],
                                      kind='install')
             if rc:
                 bomb('testbed setup commands failed with status %i' % rc)
+
+        if opts.setup_commands and 'reboot' in self.caps:
+            boot_affected = testbed.execute_raw('boot-dir-check', [
+                'bash', '-ec', 'for d in %s; do s=%s/${d//\//_}.stamp; '
+                '   [ ! -d $d ] || [ `stat -c %%Y $d` = `stat -c %%Y $s` ]; done' % (
+                    boot_dirs, self.scratch)])
+            if boot_affected:
+                debug('rebooting testbed after setup commands that affected boot')
+                self.scratch = self.commandr('reboot')[0]
 
     def prepare1(self, deps_new):
         self._debug('prepare1, modified=%s, deps_processed=%s, deps_new=%s' %
