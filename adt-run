@@ -715,7 +715,7 @@ class Testbed:
         # record the mtimes of dirs affecting the boot
         boot_dirs = '/boot /etc/init /etc/init.d /etc/systemd/system /lib/systemd/system'
         rc = testbed.execute_raw('boot-dir-record', [
-            'bash', '-ec', 'for d in %s; do [ -d $d ] && touch -r $d %s/${d//\//_}.stamp; done' % (
+            'bash', '-ec', 'for d in %s; do [ ! -d $d ] || touch -r $d %s/${d//\//_}.stamp; done' % (
                 boot_dirs, self.scratch)])
         if rc:
             bomb('boot dir time stamping failed with status %i' % rc)
