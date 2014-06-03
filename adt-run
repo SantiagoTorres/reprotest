@@ -1388,6 +1388,7 @@ class Test:
                     export ADT_ARTIFACTS="%(a)s"
                     export ADTTMP=$(mktemp -d --tmpdir adttmp.XXXXXX)
                     trap "rm -rf $ADTTMP" EXIT INT QUIT PIPE
+                    chmod 755 $ADTTMP
                     cd "$buildtree"
                     ''' % {'t': tree.tb, 'a': test_artifacts}
 
