@@ -1,4 +1,4 @@
-autopkgtest (2.17) UNRELEASED; urgency=medium
+autopkgtest (2.17) unstable; urgency=medium
 
   New features:
   * adt-buildvm-ubuntu-cloud, adt-setup-vm: If apt-cacher-ng is running
@@ -19,7 +19,7 @@ autopkgtest (2.17) UNRELEASED; urgency=medium
   * VirtSubproc: Fix generation of auxverb from shstring.
   * Drop debhelper dependency, not necessary any more since 2.16.
 
- -- Martin Pitt <mpitt@debian.org>  Sat, 24 May 2014 09:34:38 +0200
+ -- Martin Pitt <mpitt@debian.org>  Tue, 03 Jun 2014 11:49:32 +0200
 
 autopkgtest (2.16.4) unstable; urgency=medium
 
