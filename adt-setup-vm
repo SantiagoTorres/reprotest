@@ -48,7 +48,8 @@ echo "Acquire::Languages \"none\";" > "$1"/etc/apt/apt.conf.d/90nolanguages
 
 # auto-detect apt-cacher-ng
 if [ -z "$ADT_APT_PROXY" ]; then
-    proxy=$(apt-config dump | awk '/^Acquire::http::Proxy/ {print $2}')
+    RES=`apt-config shell proxy Acquire::http::Proxy`
+    eval $RES
     if echo "$proxy" | egrep -q '(localhost|127\.0\.0\.[0-9]*):3142'; then
         ADT_APT_PROXY="http://10.0.2.2:3142"
         # set http_proxy for the initial apt-get update
