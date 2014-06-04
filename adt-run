@@ -1410,6 +1410,10 @@ class Test:
         # run test script
         self._debug('[-----------------------', True)
         rc = testbed.execute_raw('test-' + self.what, test_argv, kind='test')
+        # give the setup_trace() cats some time to catch up
+        sys.stdout.flush()
+        sys.stderr.flush()
+        time.sleep(0.3)
         self._debug('-----------------------]', True)
         debug('testbed executing test finished with exit status %i' % rc, 1)
 
