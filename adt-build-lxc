@@ -31,6 +31,15 @@ if [ -z "$1" ] || [ -z "$2" ]; then
     exit 1
 fi
 
+# check that LXC config has networking
+if grep -q 'lxc.network.type *= *empty' /etc/lxc/default.conf; then
+    cat <<EOF >&2
+ERROR: autopkgtest containers need networking; please set it up and adjust
+lxc.network.type in /etc/lxc/default.conf
+EOF
+    exit 1
+fi
+
 ARCH=${3:-}
 NAME="adt-${RELEASE}${ARCH:+-$ARCH}"
 
