@@ -1,4 +1,4 @@
-autopkgtest (2.17.1) UNRELEASED; urgency=medium
+autopkgtest (2.17.1) unstable; urgency=medium
 
   * Make $ADTTMP readable and accessible to other users, for tests which use
     other users through "su" and similar.
@@ -20,7 +20,7 @@ autopkgtest (2.17.1) UNRELEASED; urgency=medium
   * adt-build-lxc: Support specifying $ADT_APT_PROXY. If apt-cacher-ng is
     running locally, use that as a default.
 
- -- Martin Pitt <mpitt@debian.org>  Tue, 03 Jun 2014 12:23:03 +0200
+ -- Martin Pitt <mpitt@debian.org>  Wed, 04 Jun 2014 15:03:30 +0200
 
 autopkgtest (2.17) unstable; urgency=medium
 
