@@ -13,6 +13,10 @@ autopkgtest (2.17.1) UNRELEASED; urgency=medium
     copying up the tests tree fails. (Closes: #749655)
   * Put back the LXC runner on Debian, so that folks with manual LXC container
     setups can still use it.
+  * adt-build-lxc: Check for default networking in /etc/lxc/default.conf. If
+    it's "empty", abort with an error message that container networking needs
+    to be set up first. Until LXC gets fixed in Debian (#747914) you need to
+    manually set up a bridge, dnsmasq, and the default config.
 
  -- Martin Pitt <mpitt@debian.org>  Tue, 03 Jun 2014 12:23:03 +0200
 
