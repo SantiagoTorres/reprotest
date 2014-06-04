@@ -2083,8 +2083,8 @@ def build_source(act):
         os.path.join(tmp, what + '-tests-tree'),
         result_pwd,
         is_dir=True)
-    act.tests_tree.copyup()
     atexit.register(rmtree, 'tests-tree', act.tests_tree.host)
+    act.tests_tree.copyup()
 
     if not built:
         act.blamed = []
