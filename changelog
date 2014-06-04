@@ -3,6 +3,8 @@ autopkgtest (2.17.1) UNRELEASED; urgency=medium
   * Make $ADTTMP readable and accessible to other users, for tests which use
     other users through "su" and similar.
   * adt-virt-qemu: Set $HOME for root also after rebooting.
+  * tests/adt-run: Force stdout to UTF-8 to see proper failures even in
+    non-UTF-8 environments, instead of crashing with UnicodeEncodeError.
 
  -- Martin Pitt <mpitt@debian.org>  Tue, 03 Jun 2014 12:23:03 +0200
 
