@@ -11,6 +11,8 @@ autopkgtest (2.17.1) UNRELEASED; urgency=medium
   * Add missing build-essential and debhelper test dependencies.
   * adt-run: Ensure the cleanup handler for the tests tree runs also if
     copying up the tests tree fails. (Closes: #749655)
+  * Put back the LXC runner on Debian, so that folks with manual LXC container
+    setups can still use it.
 
  -- Martin Pitt <mpitt@debian.org>  Tue, 03 Jun 2014 12:23:03 +0200
 
