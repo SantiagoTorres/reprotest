@@ -1,5 +1,5 @@
 Tests: adt-run
-Depends: autopkgtest, python3
+Depends: autopkgtest, python3, build-essential, debhelper (>= 7)
 Restrictions: needs-root
 Tests-Directory: tests
 

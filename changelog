@@ -8,6 +8,7 @@ autopkgtest (2.17.1) UNRELEASED; urgency=medium
   * adt-run: Flush input to the stdout/err cat processes and give them some
     time to catch up after the end of the test, to avoid losing the last bits
     of output. (Closes: #750343)
+  * Add missing build-essential and debhelper test dependencies.
 
  -- Martin Pitt <mpitt@debian.org>  Tue, 03 Jun 2014 12:23:03 +0200
 
