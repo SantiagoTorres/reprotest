@@ -903,7 +903,7 @@ class Testbed:
 
         Return exit code.
         '''
-        auxverb = map(urllib.unquote, self.commandr('print-auxverb-command')[0].split(','))
+        cmde = map(urllib.unquote, self.commandr('print-execute-command')[0].split(','))
         timeout = timeouts[kind]
 
         env = list(xenv)  # copy
@@ -917,7 +917,7 @@ class Testbed:
 
         VirtSubproc.timeout_start(timeout)
         try:
-            proc = subprocess.Popen(auxverb + cmdl)
+            proc = subprocess.Popen(cmde + cmdl)
             proc.communicate()
             VirtSubproc.timeout_stop()
         except VirtSubproc.Timeout:
@@ -1352,6 +1352,7 @@ class Test:
         testbed.prepare(dn, 'needs-recommends' in self.restriction_names)
 
     def run(self, tree):
+        global testbed
         # record installed package versions
         if opts.output_dir:
             pkglist = TempTestbedPath(testbed, self.what + '-packages.all', autoclean=False)
@@ -1400,12 +1401,13 @@ class Test:
                      %(t)s 2> >(tee %(e)s >&2) > >(tee %(o)s)
                   ''' % {'t': tb_test_path, 'o': so.tb, 'e': se.tb}
 
+        quoted = testbed.commandr('quote-shstring', [script])[0]
         if 'needs-root' not in self.restriction_names and opts.user is not None:
             if 'root-on-testbed' not in testbed.caps:
                 bomb('cannot change to user %s without root-on-testbed' % opts.user)
-            test_argv = ['su', '-s', '/bin/bash', opts.user, '-c', script]
+            test_argv = ['su', '-s', '/bin/bash', opts.user, '-c', quoted]
         else:
-            test_argv = ['bash', '-c', script]
+            test_argv = ['bash', '-c', quoted]
 
         # run test script
         self._debug('[-----------------------', True)
