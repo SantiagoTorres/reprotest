@@ -9,6 +9,8 @@ autopkgtest (2.17.1) UNRELEASED; urgency=medium
     time to catch up after the end of the test, to avoid losing the last bits
     of output. (Closes: #750343)
   * Add missing build-essential and debhelper test dependencies.
+  * adt-run: Ensure the cleanup handler for the tests tree runs also if
+    copying up the tests tree fails. (Closes: #749655)
 
  -- Martin Pitt <mpitt@debian.org>  Tue, 03 Jun 2014 12:23:03 +0200
 
