@@ -17,6 +17,8 @@ autopkgtest (2.17.1) UNRELEASED; urgency=medium
     it's "empty", abort with an error message that container networking needs
     to be set up first. Until LXC gets fixed in Debian (#747914) you need to
     manually set up a bridge, dnsmasq, and the default config.
+  * adt-build-lxc: Support specifying $ADT_APT_PROXY. If apt-cacher-ng is
+    running locally, use that as a default.
 
  -- Martin Pitt <mpitt@debian.org>  Tue, 03 Jun 2014 12:23:03 +0200
 
