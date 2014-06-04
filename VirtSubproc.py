@@ -34,6 +34,7 @@ import time
 import re
 import pipes
 import socket
+import shlex
 import shutil
 
 debuglevel = None
@@ -123,12 +124,12 @@ def cmd_close(c, ce):
     cleanup()
 
 
-def cmd_print_auxverb_command(c, ce):
-    return print_command('auxverb', c, ce)
-
-
-def cmd_print_shstring_command(c, ce):
-    return print_command('shstring', c, ce)
+def cmd_print_execute_command(c, ce):
+    global downkind
+    if downkind == 'shstring':
+        return print_command('shstring', c, ce)
+    else:
+        return print_command('auxverb', c, ce)
 
 
 def print_command(which, c, ce):
@@ -167,7 +168,7 @@ def execute_raw(what, instr, timeout, *popenargs, **popenargsk):
 
 
 def execute(cmd_string, cmd_list=[], downp=False, outp=False, timeout=0):
-    cmdl = cmd_string.split()
+    cmdl = shlex.split(cmd_string)
 
     if downp:
         perhaps_down = downs['auxverb']
@@ -267,16 +268,6 @@ def downtmp_remove():
     global downtmp
     execute('rm -rf --', [downtmp], downp=True)
 
-perl_quote_re = re.compile('[^-+=_.,;:() 0-9a-zA-Z]')
-
-
-def perl_quote_1chargroup(m):
-    return '\\x%02x' % ord(m.group(0))
-
-
-def perl_quote(s):
-    return '"' + perl_quote_re.sub(perl_quote_1chargroup, s) + '"'
-
 
 def opened1():
     global down, downkind, downs
@@ -286,13 +277,7 @@ def opened1():
                  'shstring': down + ['sh', '-c']}
     elif downkind == 'shstring':
         downs = {'shstring': down,
-                 'auxverb': ['perl', '-e', '''
-                @cmd=(''' + (','.join(map(perl_quote, down))) + ''');
-                s/'/'\\\\''/g foreach @ARGV;
-                push @cmd, "'$_'" foreach @ARGV;
-                my $argv0=$cmd[0];
-                exec $argv0 @cmd;
-                die "$argv0: $!"''']}
+                 'auxverb': down }
     debug("downs = %s" % str(downs))
 
 
@@ -647,6 +632,16 @@ def cmd_shell(c, ce):
         caller.hook_shell(c[1], c[2], c[3], c[4])
     except AttributeError:
         raise FailedCmd(['not supported by virt server'])
+
+
+def cmd_quote_shstring(c, ce):
+    '''Return a shell escaped version of c if downkind is shstring'''
+
+    global downkind
+    if downkind == 'shstring':
+        return [urllib.quote(pipes.quote(c[1]))]
+    else:
+        return [ce[1]]
 
 
 def command():
