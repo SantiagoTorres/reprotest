@@ -168,7 +168,11 @@ def execute_raw(what, instr, timeout, *popenargs, **popenargsk):
 
 
 def execute(cmd_string, cmd_list=[], downp=False, outp=False, timeout=0):
+    global downkind
+
     cmdl = shlex.split(cmd_string)
+    if downkind == "shstring":
+        cmdl = [pipes.quote(s) for s in cmdl]
 
     if downp:
         perhaps_down = downs['auxverb']
