@@ -3,6 +3,9 @@ autopkgtest (2.17.2) UNRELEASED; urgency=medium
   [ Jean-Baptiste Lallement ]
   * Fix handling of shstring. (Closes: #750544)
 
+  [ Martin Pitt ]
+  * VirtSubproc: Document and cleanup execute*() functions.
+
  -- Martin Pitt <mpitt@debian.org>  Wed, 04 Jun 2014 16:05:46 +0200
 
 autopkgtest (2.17.1) unstable; urgency=medium
