@@ -34,7 +34,6 @@ import time
 import re
 import pipes
 import socket
-import shlex
 import shutil
 
 debuglevel = None
@@ -147,7 +146,13 @@ def preexecfn():
     caller.hook_forked_inchild()
 
 
-def execute_raw(what, instr, timeout, *popenargs, **popenargsk):
+def execute_timeout(what, instr, timeout, *popenargs, **popenargsk):
+    '''Popen wrapper with timeout supervision
+
+    If instr is given, it is fed into stdin, otherwise stdin will be /dev/null.
+
+    Return (status, stdout, stderr)
+    '''
     debug(" ++ %s" % string.join(popenargs[0]))
     sp = subprocess.Popen(preexec_fn=preexecfn, *popenargs, **popenargsk)
     if instr is None:
@@ -160,40 +165,39 @@ def execute_raw(what, instr, timeout, *popenargs, **popenargsk):
         sp.wait()
         raise
     timeout_stop()
-    if err:
-        bomb("%s unexpectedly produced stderr output `%s'" %
-            (what, err))
     status = sp.wait()
-    return (status, out)
+    return (status, out, err)
 
 
-def execute(cmd_string, cmd_list=[], downp=False, outp=False, timeout=0):
-    global downkind
+def check_exec(argv, downp=False, outp=False, timeout=0):
+    '''Run successful command (argv list)
 
-    cmdl = shlex.split(cmd_string)
-    if downkind == "shstring":
-        cmdl = [pipes.quote(s) for s in cmdl]
+    Command must succeed (exit code 0) and not produce any stderr. If downp is
+    True, command is run in testbed. If outp is True, stdout will be captured
+    and returned. stdin is set to /dev/null.
+
+    Returns stdout (or None if outp is False).
+    '''
+    global downs
 
     if downp:
-        perhaps_down = downs['auxverb']
+        real_argv = downs['auxverb'] + argv
     else:
-        perhaps_down = []
-
+        real_argv = argv
     if outp:
         stdout = subprocess.PIPE
     else:
         stdout = None
 
-    cmd = cmdl + cmd_list
-    if len(perhaps_down):
-        cmd = perhaps_down + cmd
-
-    (status, out) = execute_raw(cmdl[0], None, timeout,
-                                cmd, stdout=stdout)
+    (status, out, err) = execute_timeout(argv[0], None, timeout, real_argv,
+                                         stdout=stdout)
 
     if status:
         bomb("%s%s failed (exit status %d)" %
-            ((downp and "(down) " or ""), cmdl[0], status))
+            ((downp and "(down) " or ""), argv, status))
+    if err:
+        bomb("%s unexpectedly produced stderr output `%s'" %
+            (argv, err))
 
     if outp and out and out[-1] == '\n':
         out = out[:-1]
@@ -263,14 +267,15 @@ def cmd_open(c, ce):
 
 
 def downtmp_mktemp():
-    d = execute('mktemp -d /tmp/adt-run.XXXXXX', [], downp=True, outp=True)
-    execute('chmod 1777', [d], downp=True)
+    d = check_exec(['mktemp', '-d', '/tmp/adt-run.XXXXXX'],
+                   downp=True, outp=True)
+    check_exec(['chmod', '1777', d], downp=True)
     return d
 
 
 def downtmp_remove():
     global downtmp
-    execute('rm -rf --', [downtmp], downp=True)
+    check_exec(['rm', '-rf', '--', downtmp], downp=True)
 
 
 def opened1():
@@ -281,7 +286,7 @@ def opened1():
                  'shstring': down + ['sh', '-c']}
     elif downkind == 'shstring':
         downs = {'shstring': down,
-                 'auxverb': down }
+                 'auxverb': down}
     debug("downs = %s" % str(downs))
 
 
@@ -381,10 +386,9 @@ def cmd_execute(c, ce):
         if isinstance(stdout, int):
             stdout_copy = os.dup(stdout)
         try:
-            (status, out) = execute_raw('target-cmd', None,
-                                        timeout, cmdl, stdout=stdout_copy,
-                                        stdin=devnull_read,
-                                        stderr=subprocess.PIPE)
+            (status, out, err) = execute_timeout('target-cmd', None,
+                                                 timeout, cmdl,
+                                                 stdout=stdout_copy)
         except Timeout:
             raise FailedCmd(['timeout'])
     finally:
@@ -392,8 +396,9 @@ def cmd_execute(c, ce):
             os.close(stdout_copy)
 
     if out:
-        bomb("target command unexpected produced stdout"
-             " visible to us `%s'" % out)
+        bomb("command unexpectedly produced stdout: `%s'" % out)
+    if err:
+        bomb("command unexpectedly produced stderr output `%s'" % err)
     return [str(status)]
 
 
