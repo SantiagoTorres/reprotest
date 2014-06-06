@@ -5,6 +5,8 @@ autopkgtest (2.17.2) UNRELEASED; urgency=medium
 
   [ Martin Pitt ]
   * VirtSubproc: Document and cleanup execute*() functions.
+  * Some test robustifications, to avoid making too many assumptions about
+    debug output.
 
  -- Martin Pitt <mpitt@debian.org>  Wed, 04 Jun 2014 16:05:46 +0200
 
