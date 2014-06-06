@@ -86,10 +86,7 @@ def sudoify(command):
     '''Prepend sudo to command with the --sudo option'''
 
     if use_sudo:
-        if isinstance(command, list):
-            return ['sudo'] + command
-        else:
-            return 'sudo ' + command
+        return ['sudo'] + command
     else:
         return command
 
@@ -179,15 +176,15 @@ def hook_open():
     shared_dir = tempfile.mkdtemp(prefix='adt-virt-lxc.shared.')
     os.chmod(shared_dir, 0o755)
     if ephemeral:
-        VirtSubproc.execute(sudoify('lxc-start-ephemeral -n %s -k -d --bdir %s -o')
-                            % (lxc_container_name, shared_dir), [lxc_template],
-                            downp=False, outp=True)
+        VirtSubproc.check_exec(sudoify(
+            ['lxc-start-ephemeral', '-n', lxc_container_name, '-k', '-d',
+             '--bdir', shared_dir, '-o', lxc_template]), outp=True)
     else:
-        VirtSubproc.execute(sudoify('lxc-clone -n %s -o' % lxc_container_name),
-                            [lxc_template], downp=False, outp=True)
-        subprocess.check_call(sudoify([
-            'lxc-start', '-n', lxc_container_name, '-d',
-            '-s', 'lxc.mount.entry=%s %s none bind,create=dir 0 0' % (shared_dir, shared_dir[1:])]))
+        VirtSubproc.check_exec(sudoify(
+            ['lxc-clone', '-n', lxc_container_name, '-o', lxc_template]), outp=True)
+        VirtSubproc.check_exec(sudoify(
+            ['lxc-start', '-n', lxc_container_name, '-d',
+             '-s', 'lxc.mount.entry=%s %s none bind,create=dir 0 0' % (shared_dir, shared_dir[1:])]))
     try:
         VirtSubproc.debug('waiting for lxc guest start')
         wait_booted(lxc_container_name)
@@ -202,10 +199,8 @@ def hook_open():
         VirtSubproc.downkind = 'auxverb'
     except:
         # Clean up on failure
-        VirtSubproc.execute(sudoify('lxc-stop -n'), [lxc_container_name],
-                            downp=False, outp=True)
-        VirtSubproc.execute(sudoify('lxc-destroy -n'), [lxc_container_name],
-                            downp=False, outp=True)
+        VirtSubproc.check_exec(sudoify(['lxc-stop', '-n', lxc_container_name]))
+        VirtSubproc.check_exec(sudoify(['lxc-destroy', '-n', lxc_container_name]))
         raise
 
 
@@ -216,7 +211,7 @@ def hook_downtmp():
         d = os.path.join(shared_dir, 'downtmp')
         # these permissions are ugly, but otherwise we can't clean up files
         # written by the testbed when running as user
-        VirtSubproc.execute('mkdir -m 777 %s' % d, downp=True)
+        VirtSubproc.check_exec(['mkdir', '-m', '777', d], downp=True)
         capabilities.append('downtmp-host=' + d)
     else:
         d = VirtSubproc.downtmp_mktemp()
@@ -237,10 +232,8 @@ def hook_cleanup():
         shutil.rmtree(shared_dir)
         shared_dir = None
 
-    VirtSubproc.execute(sudoify('lxc-stop -n'), [lxc_container_name],
-                        downp=False, outp=True)
-    VirtSubproc.execute(sudoify('lxc-destroy -n'), [lxc_container_name],
-                        downp=False, outp=True)
+    VirtSubproc.check_exec(sudoify(['lxc-stop', '-n', lxc_container_name]))
+    VirtSubproc.check_exec(sudoify(['lxc-destroy', '-n', lxc_container_name]))
 
 
 def hook_forked_inchild():

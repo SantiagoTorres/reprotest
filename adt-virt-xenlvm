@@ -161,7 +161,7 @@ def hook_open():
 
 
 def hook_downtmp():
-    VirtSubproc.execute('mkdir %s' % downtmp, downp=True)
+    VirtSubproc.check_exec(['mkdir', downtmp], downp=True)
     return downtmp
 
 

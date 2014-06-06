@@ -345,10 +345,10 @@ sys.exit(rc)
     VirtSubproc.downkind = 'auxverb'
 
     # verify that we can connect
-    status, out = VirtSubproc.execute_raw('down_check', None, 5,
-                                          VirtSubproc.down + ['runlevel'],
-                                          stdout=subprocess.PIPE)
-    VirtSubproc.debug('runlevel: exit %i, out "%s"' % (status, out))
+    status, out, err = VirtSubproc.execute_timeout(
+        'down_check', None, 5, VirtSubproc.down + ['runlevel'],
+        stdout=subprocess.PIPE)
+    VirtSubproc.debug('runlevel: exit %i, out "%s", err "%s"' % (status, out, err))
     if status == 0 and out.endswith('2\n'):
         VirtSubproc.debug('can connect to autopkgtest sh in VM')
     else:
@@ -482,7 +482,7 @@ def hook_downtmp():
     # we would like to do this, but 9p is currently way too slow for big source
     # trees
     #downtmp = '/autopkgtest/tmp'
-    #VirtSubproc.execute('mkdir -m 1777 %s' % downtmp, downp=True)
+    #VirtSubproc.check_exec(['mkdir', '-m', '1777', downtmp], downp=True)
     downtmp = VirtSubproc.downtmp_mktemp()
     return downtmp
 
@@ -508,7 +508,7 @@ def hook_cleanup():
 
 def hook_reboot():
     global workdir
-    VirtSubproc.execute_raw('reboot', None, 5, VirtSubproc.down + ['reboot'])
+    VirtSubproc.check_exec(['reboot'], downp=True, timeout=5)
     wait_boot()
     shareddir = os.path.join(workdir, 'shared')
     setup_shared(shareddir)
