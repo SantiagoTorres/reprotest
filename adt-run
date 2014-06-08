@@ -812,67 +812,6 @@ class Testbed:
     def command(self, cmd, args=()):
         self.commandr(cmd, args, 0)
 
-    def commandr1(self, cmd, args=()):
-        rl = self.commandr(cmd, args, 1)
-        return rl[0]
-
-    def execute(self, what, cmdl,
-                si='/dev/null', so='/dev/null', se=None, cwd=None,
-                script=False, xenv=[], kind='short'):
-        # Options for script:
-        #   False - do not call debug_subprocess, no synch. reporting required
-        #   None or string - call debug_subprocess with that value,
-        #			plumb stderr through synchronously if possible
-        # Options for se:
-        #   None - usual logging (output is of kind 2c)
-        #   string - path on testbed (output is of kind 2d)
-
-        timeout = timeouts[kind]
-
-        if script is not False:
-            debug_subprocess(what, cmdl, script=script)
-        if cwd is None:
-            cwd = self.scratch
-
-        xdump = None
-        if se is None:
-            se_catch = TempTestbedPath(testbed, what + '-xerr')
-            se_use = se_catch.tb
-            if not opts.quiet:
-                xdump = 'debug=2-2'
-        else:
-            se_catch = None
-            se_use = se
-
-        cmdl = [None,
-                ','.join(map(urllib.quote, cmdl)),
-                si, so, se_use, cwd]
-
-        if timeout is not None and timeout > 0:
-            cmdl.append('timeout=%d' % timeout)
-
-        if xdump is not None and 'execute-debug' in self.caps:
-            cmdl += [xdump]
-        for e in xenv:
-            cmdl.append('env=%s' % e)
-        if kind == 'install':
-            cmdl.append('env=DEBIAN_FRONTEND=noninteractive')
-        if opts.set_lang is not False:
-            cmdl.append('env=LANG=%s' % opts.set_lang)
-
-        rc = self.commandr1('execute', cmdl)
-        try:
-            rc = int(rc)
-        except ValueError:
-            bomb("execute for %s gave invalid response `%s'"
-                 % (what, rc))
-
-        if se_catch is not None:
-            se_catch.copyup()
-            log_file(se_catch.host)
-
-        return rc
-
     def execute_raw(self, argv, xenv=[], stdout=None, stderr=None, kind='short'):
         '''Run command in testbed.
 
