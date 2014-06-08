@@ -13,6 +13,7 @@ autopkgtest (2.17.2) UNRELEASED; urgency=medium
   * adt-run: Unify Testbed.command() and commandr() methods and make them
     stricter.
   * Add prefixes to all temporary directories.
+  * tests: Fix race in cleaning up ChrootRunner mounts.
 
  -- Martin Pitt <mpitt@debian.org>  Wed, 04 Jun 2014 16:05:46 +0200
 
