@@ -604,7 +604,7 @@ class Testbed:
         self.sp = subprocess.Popen(opts.vserver,
                                    stdin=subprocess.PIPE,
                                    stdout=subprocess.PIPE)
-        self.expect('ok')
+        self.expect('ok', 0)
 
     def stop(self):
         self._debug('stop', 1)
@@ -630,7 +630,7 @@ class Testbed:
         self._debug('open, scratch=%s' % self.scratch, 1)
         if self.scratch is not None:
             return
-        pl = self.commandr('open')
+        pl = self.command('open', (), 1)
         self._opened(pl)
 
     def _opened(self, pl):
@@ -638,8 +638,8 @@ class Testbed:
 
         self.scratch = pl[0]
         self.deps_processed = []
-        self.exec_cmd = map(urllib.unquote, self.commandr('print-execute-command')[0].split(','))
-        self.caps = self.commandr('capabilities')
+        self.exec_cmd = map(urllib.unquote, self.command('print-execute-command', (), 1)[0].split(','))
+        self.caps = self.command('capabilities', (), None)
         debug('testbed capabilities: %s' % self.caps, 1)
         for c in self.caps:
             if c.startswith('downtmp-host='):
@@ -711,7 +711,7 @@ class Testbed:
                      boot_dirs, self.scratch)])[0]
             if boot_affected:
                 debug('rebooting testbed after setup commands that affected boot')
-                self.scratch = self.commandr('reboot')[0]
+                self.scratch = self.command('reboot', (), 1)[0]
 
     def prepare1(self, deps_new):
         self._debug('prepare1, modified=%s, deps_processed=%s, deps_new=%s' %
@@ -719,7 +719,7 @@ class Testbed:
         if 'revert' in self.caps and (
                 self.modified or [d for d in self.deps_processed if d not in deps_new]):
             self._debug('reset **', 1)
-            pl = self.commandr('revert')
+            pl = self.command('revert', (), 1)
             self._opened(pl)
         self.modified = False
 
@@ -769,7 +769,7 @@ class Testbed:
             self.bomb('cannot send to testbed: %s' % traceback.
                       format_exception_only(type, value))
 
-    def expect(self, keyword, nresults=None):
+    def expect(self, keyword, nresults):
         l = self.sp.stdout.readline()
         if not l:
             self.bomb('unexpected eof from the testbed')
@@ -794,7 +794,7 @@ class Testbed:
                       (self.lastsend, l, len(ll), nresults))
         return ll
 
-    def commandr(self, cmd, args=(), nresults=None, unquote=True):
+    def command(self, cmd, args=(), nresults=0, unquote=True):
         # pass args=[None,...] or =(None,...) to avoid more url quoting
         if type(cmd) is str:
             cmd = [cmd]
@@ -808,9 +808,6 @@ class Testbed:
         if unquote:
             ll = map(urllib.unquote, ll)
         return ll
-
-    def command(self, cmd, args=()):
-        self.commandr(cmd, args, 0)
 
     def execute_raw(self, argv, xenv=[], stdout=None, stderr=None, kind='short'):
         '''Run command in testbed.
@@ -1329,7 +1326,7 @@ class Test:
                      %(t)s 2> >(tee %(e)s >&2) > >(tee %(o)s)
                   ''' % {'t': tb_test_path, 'o': so.tb, 'e': se.tb}
 
-        quoted = testbed.commandr('quote-shstring', [script])[0]
+        quoted = testbed.command('quote-shstring', [script], 1)[0]
         if 'needs-root' not in self.restriction_names and opts.user is not None:
             if 'root-on-testbed' not in testbed.caps:
                 bomb('cannot change to user %s without root-on-testbed' % opts.user)
