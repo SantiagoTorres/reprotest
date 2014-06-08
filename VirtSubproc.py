@@ -31,7 +31,6 @@ import subprocess
 import traceback
 import errno
 import time
-import re
 import pipes
 import socket
 import shutil
@@ -108,7 +107,7 @@ def cmdnumargs(c, ce, nargs=0, noptargs=0):
 
 def cmd_capabilities(c, ce):
     cmdnumargs(c, ce)
-    return caller.hook_capabilities() + ['execute-debug']
+    return caller.hook_capabilities()
 
 
 def cmd_quit(c, ce):
@@ -320,86 +319,6 @@ def cmd_reboot(c, ce):
     opened1()
     downtmp = caller.hook_downtmp()
     return opened2()
-
-
-def cmd_execute(c, ce):
-    cmdnumargs(c, ce, 5, None)
-    if not downtmp:
-        bomb("`execute' when not open")
-    debug_re = re.compile('debug=(\d+)\-(\d+)$')
-    debug_g = None
-    timeout = 0
-    envs = []
-    for kw in ce[6:]:
-        if kw.startswith('debug='):
-            if debug_g:
-                bomb("multiple debug= in execute")
-            m = debug_re.match(kw)
-            if not m:
-                bomb("invalid execute debug arg `%s'" % kw)
-            debug_g = m.groups()
-        elif kw.startswith('timeout='):
-            try:
-                timeout = int(kw[8:], 0)
-            except ValueError:
-                bomb("invalid timeout arg `%s'" % kw)
-        elif kw.startswith('env='):
-            es = kw[4:]
-            eq = es.find('=')
-            if eq <= 0:
-                bomb("invalid env arg `%s'" % kw)
-            envs.append((es[:eq], es[eq + 1:]))
-        else:
-            bomb("invalid execute kw arg `%s'" % kw)
-
-    rune = 'set -e; exec '
-
-    stdout = None
-    tfd = None
-    if debug_g:
-        rune += " 3>&1"
-
-    for ioe in range(3):
-        rune += " %d%s%s" % (ioe, '<>'[ioe > 0],
-                             pipes.quote(ce[ioe + 2]))
-    if debug_g:
-        (tfd, hfd) = m.groups()
-        tfd = int(tfd)
-        rune += " %d>&3 3>&-" % tfd
-        stdout = int(hfd)
-
-    rune += '; '
-
-    rune += 'cd %s; ' % pipes.quote(ce[5])
-
-    for e in envs:
-        (en, ev) = map(urllib.unquote, e)
-        rune += "%s=%s " % (en, pipes.quote(ev))
-
-    cmdl = map(urllib.unquote, ce[1].split(','))
-    rune += 'exec ' + ' '.join(map(pipes.quote, cmdl))
-
-    cmdl = downs['shstring'] + [rune]
-
-    stdout_copy = None
-    try:
-        if isinstance(stdout, int):
-            stdout_copy = os.dup(stdout)
-        try:
-            (status, out, err) = execute_timeout('target-cmd', None,
-                                                 timeout, cmdl,
-                                                 stdout=stdout_copy)
-        except Timeout:
-            raise FailedCmd(['timeout'])
-    finally:
-        if stdout_copy is not None:
-            os.close(stdout_copy)
-
-    if out:
-        bomb("command unexpectedly produced stdout: `%s'" % out)
-    if err:
-        bomb("command unexpectedly produced stderr output `%s'" % err)
-    return [str(status)]
 
 
 def get_downtmp_host():
