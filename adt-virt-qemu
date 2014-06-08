@@ -420,7 +420,7 @@ def determine_normal_user(shared_dir):
 def hook_open():
     global workdir, p_qemu, ssh_port
 
-    workdir = tempfile.mkdtemp(prefix='adt-virt-qemu')
+    workdir = tempfile.mkdtemp(prefix='adt-virt-qemu.')
     os.chmod(workdir, 0o755)
 
     shareddir = os.path.join(workdir, 'shared')
