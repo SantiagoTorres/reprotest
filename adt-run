@@ -513,7 +513,7 @@ def setup_trace():
         tmp = opts.output_dir
     else:
         assert(tmp is None)
-        tmp = tempfile.mkdtemp()
+        tmp = tempfile.mkdtemp(prefix='adt-run.output.')
         os.chmod(tmp, 0755)
 
     if opts.logfile is None and opts.output_dir is not None:
@@ -887,7 +887,7 @@ class Testbed:
         debug('%s: architecture resolved: %s' % (what, deps), 1)
 
         # create a dummy deb with the deps
-        pkgdir = tempfile.mkdtemp()
+        pkgdir = tempfile.mkdtemp(prefix='adt-satdep.')
         debdir = os.path.join(pkgdir, 'DEBIAN')
         os.chmod(pkgdir, 0o755)
         os.mkdir(debdir)
