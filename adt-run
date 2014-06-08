@@ -1743,7 +1743,7 @@ Pin-Priority: 1002
   if [ "x`ls /var/lib/dpkg/updates`" != x ]; then
     echo >&2 "/var/lib/dpkg/updates contains some files, aargh"; exit 1
   fi
-  apt-get -q update
+  apt-get -q update || (sleep 15; apt-get update)
   cp /var/lib/dpkg/status %(o)s
   ''' % {'d': self.dir.tb, 'o': aptkey_out.tb}
         testbed.mungeing_apt()
