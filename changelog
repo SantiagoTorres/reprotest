@@ -18,6 +18,7 @@ autopkgtest (2.18) UNRELEASED; urgency=medium
     15 seconds.
   * Remove autopkgtest-xenlvm. It has been orphaned since ~ 2008, few to no
     current users, and no maintainer. (Closes: #508660, #680122)
+  * Simplify build system.
 
  -- Martin Pitt <mpitt@debian.org>  Wed, 04 Jun 2014 16:05:46 +0200
 
