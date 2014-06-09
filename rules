@@ -28,20 +28,10 @@ VERSION=$(shell dpkg-parsechangelog  | sed -n '/^Version:/ {s/^.*: //; p}')
 	dh "$@"
 
 override_dh_auto_install:
-	$(MAKE) install-here DESTDIR=$(CURDIR)/debian/autopkgtest
-	$(MAKE) -C xen install \
-		DESTDIR=$(CURDIR)/debian/autopkgtest-xenlvm \
-		pkgname=autopkgtest-xenlvm \
-		cfg_suffix=''
-
-	cd debian/autopkgtest-xenlvm/etc/userv/services.d && \
-		mv -f adt-xenlvm-testbed:dist adt-xenlvm-testbed
+	dh_auto_install
 
 	# put our package version into adt-run for logging
 	sed -i 's/@devel@/$(VERSION)/' debian/autopkgtest/usr/bin/adt-run
-
-override_dh_installinit:
-	dh_installinit -p autopkgtest-xenlvm --onlyscripts --name=adtxenlvm -- defaults 19
 
 override_dh_auto_test:
 	tests/pyflakes

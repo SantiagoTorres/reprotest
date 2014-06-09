@@ -20,7 +20,7 @@ Depends: python (>= 2.6),
  apt-utils,
  libdpkg-perl,
  ${misc:Depends}
-Suggests: autopkgtest-xenlvm, schroot, lxc, qemu-system, qemu-utils
+Suggests: schroot, lxc, qemu-system, qemu-utils
 Description: automatic as-installed testing for Debian packages
  autopkgtest runs tests on binary packages.  The tests are run on the
  package as installed on a testbed system (which may be found via a
@@ -29,22 +29,4 @@ Description: automatic as-installed testing for Debian packages
  .
  See adt-run(1) and /usr/share/doc/autopkgtest.
  Depending on which virtualization server you want to use, you need to
- install additional packages (schroot, lxc, qemu-system, or
- autopkgtest-xenlvm).
-
-Package: autopkgtest-xenlvm
-Architecture: all
-Depends: libadns1-bin, chiark-utils-bin, iproute, dmsetup, ${misc:Depends}
-Recommends: lvm2, debootstrap
-Suggests: autopkgtest
-Replaces: autopkgtest (<< 2.5.3~)
-Breaks: autopkgtest (<< 2.5.3~)
-Description: autopkgtest Xen/LVM2 based testbed snapshot system
- Machinery for setting up a Xen domain which can be resumed over and
- over again, discarding changes made each time.  This can be useful
- for automated testing and other advanced techniques; autopkgtest is
- able to make use of this machinery for its virtualisation needs.
- .
- You will need a working Xen setup to make use of this software.  Your
- network administrator will need to provide support for the testbeds'
- networking requirements.  See the README for documentation.
+ install additional packages (schroot, lxc, or qemu-system)
