@@ -58,24 +58,15 @@ def parse_args():
         parser.error("chroot specification may not be empty")
     if chroot_arg == '=':
         down = ['dchroot', '-q', '--']
-    elif chroot_arg == '=':
-        down = ['dchroot', '-q', '--']
+        # FIXME: figure out chroot_dir
     elif chroot_arg[0] == '=':
         down = ['dchroot', '-q', '-c', chroot_arg[1:], '--']
+        # FIXME: figure out chroot_dir
     elif chroot_arg[0] == '/':
         down = ['chroot', chroot_arg]
+        chroot_dir = chroot_arg
     else:
         parser.error("chroot spec must be =[DCHROOT] or /PATH/TO/CHROOT")
-
-    if down[0] == 'chroot':
-        VirtSubproc.downkind = 'auxverb'
-        chroot_dir = chroot_arg
-    elif down[0] == 'dchroot':
-        # FIXME: figure out chroot_dir
-        VirtSubproc.downkind = 'shstring'
-    else:
-        print >> sys.stderr, 'down[0]=%s' % str(down[0])
-        assert(False)
 
     if opts.gain_root:
         down = opts.gain_root.split() + down
@@ -83,7 +74,7 @@ def parse_args():
     if opts.gain_root or os.getuid() == 0:
         capabilities.append('root-on-testbed')
 
-    VirtSubproc.down = down
+    VirtSubproc.auxverb = down
 
 
 def hook_open():

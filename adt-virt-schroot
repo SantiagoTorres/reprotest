@@ -117,11 +117,10 @@ def hook_open():
     sessid = VirtSubproc.check_exec(['schroot', '-b', '-c', schroot] +
                                     (sessid and ['-n', sessid] or []),
                                     outp=True)
-    VirtSubproc.down = ['schroot', '-r', '-d', '/', '-c', sessid]
+    VirtSubproc.auxverb = ['schroot', '-r', '-d', '/', '-c', sessid]
     if 'root-on-testbed' in capabilities:
-        VirtSubproc.down += ['-u', 'root']
-    VirtSubproc.down += ['--']
-    VirtSubproc.downkind = 'auxverb'
+        VirtSubproc.auxverb += ['-u', 'root']
+    VirtSubproc.auxverb += ['--']
 
 
 def hook_downtmp():

@@ -52,12 +52,9 @@ def parse_args():
     if os.getuid() == 0:
         capabilities.append('root-on-testbed')
 
-    VirtSubproc.down = []
-    VirtSubproc.downkind = 'auxverb'
-
 
 def hook_open():
-    pass
+    VirtSubproc.auxverb = ['env']  # no-op, but must not be empty
 
 
 def hook_downtmp():

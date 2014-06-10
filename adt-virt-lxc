@@ -190,13 +190,12 @@ def hook_open():
         wait_booted(lxc_container_name)
         VirtSubproc.debug('lxc guest started')
         determine_normal_user(lxc_container_name)
-        VirtSubproc.down = ['lxc-attach', '-n', lxc_container_name, '--']
+        VirtSubproc.auxverb = ['lxc-attach', '-n', lxc_container_name, '--']
         if use_sudo:
-            VirtSubproc.down = ['sudo', '-E'] + VirtSubproc.down
+            VirtSubproc.auxverb = ['sudo', '-E'] + VirtSubproc.auxverb
         if eatmydata:
             check_for_eatmydata(lxc_container_name, lxc_template)
-            VirtSubproc.down.extend(['eatmydata', '--'])
-        VirtSubproc.downkind = 'auxverb'
+            VirtSubproc.auxverb.extend(['eatmydata', '--'])
     except:
         # Clean up on failure
         VirtSubproc.check_exec(sudoify(['lxc-stop', '-n', lxc_container_name]))
