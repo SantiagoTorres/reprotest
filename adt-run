@@ -599,7 +599,16 @@ class Testbed:
         debug('** ' + m, minlevel)
 
     def start(self):
-        debug('version @devel@', timestamp=True)
+        # are we running from a checkout?
+        root_dir = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+        if os.path.exists(os.path.join(root_dir, '.git')):
+            try:
+                head = subprocess.check_output(['git', 'show', '-s', '--oneline'], cwd=root_dir)
+            except subprocess.CalledProcessError:
+                head = 'cannot determine curret HEAD'
+            debug('git checkout: %s' % head, timestamp=True)
+        else:
+            debug('version @version@', timestamp=True)
         debug_subprocess('vserver', opts.vserver)
         self.sp = subprocess.Popen(opts.vserver,
                                    stdin=subprocess.PIPE,
