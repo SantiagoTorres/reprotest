@@ -1326,13 +1326,12 @@ class Test:
                      %(t)s 2> >(tee %(e)s >&2) > >(tee %(o)s)
                   ''' % {'t': tb_test_path, 'o': so.tb, 'e': se.tb}
 
-        quoted = testbed.command('quote-shstring', [script], 1)[0]
         if 'needs-root' not in self.restriction_names and opts.user is not None:
             if 'root-on-testbed' not in testbed.caps:
                 bomb('cannot change to user %s without root-on-testbed' % opts.user)
-            test_argv = ['su', '-s', '/bin/bash', opts.user, '-c', quoted]
+            test_argv = ['su', '-s', '/bin/bash', opts.user, '-c', script]
         else:
-            test_argv = ['bash', '-c', quoted]
+            test_argv = ['bash', '-c', script]
 
         # run test script
         self._debug('[-----------------------', True)
