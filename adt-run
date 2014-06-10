@@ -647,13 +647,13 @@ class Testbed:
         self.run_setup_commands()
 
         # determine testbed architecture
-        self.dpkg_arch = self.check_call(['dpkg', '--print-architecture'], True).strip()
+        self.dpkg_arch = self.check_exec(['dpkg', '--print-architecture'], True).strip()
         debug('testbed dpkg architecture: ' + self.dpkg_arch)
 
         # record package versions of pristine testbed
         if opts.output_dir:
             pkglist = TempTestbedPath(testbed, 'testbed-packages', autoclean=False)
-            self.check_call(['sh', '-ec', "dpkg-query --show -f '${Package}\\t${Version}\\n' > %s" % pkglist.tb])
+            self.check_exec(['sh', '-ec', "dpkg-query --show -f '${Package}\\t${Version}\\n' > %s" % pkglist.tb])
             pkglist.copyup()
 
     def mungeing_apt(self):
@@ -664,9 +664,9 @@ class Testbed:
         if not self._need_reset_apt:
             return
         self._need_reset_apt = False
-        self.check_call(['sh', '-ec', '(apt-get -qy update || (sleep 15; apt-get -qy update)) 2>&1'],
+        self.check_exec(['sh', '-ec', '(apt-get -qy update || (sleep 15; apt-get -qy update)) 2>&1'],
                         kind='install')
-        self.check_call(['rm', '-f', '/etc/apt/apt.conf.d/90autopkgtest',
+        self.check_exec(['rm', '-f', '/etc/apt/apt.conf.d/90autopkgtest',
                          '/etc/apt/sources.list.d/autopkgtest.list',
                          '/etc/apt/preferences.d/90autopkgtest'])
 
@@ -691,21 +691,21 @@ class Testbed:
             script = '''awk '/^deb(-src)? / { if ($3 !~ /-/) { $3 = $3"-%s"; print }}' ''' \
                 '''/etc/apt/sources.list `ls /etc/apt/sources.list.d/*.list 2>/dev/null|| true` ''' \
                 ''' > /etc/apt/sources.list.d/%s.list''' % (p, p)
-            self.check_call(['sh', '-ec', script])
+            self.check_exec(['sh', '-ec', script])
 
         # record the mtimes of dirs affecting the boot
         boot_dirs = '/boot /etc/init /etc/init.d /etc/systemd/system /lib/systemd/system'
-        self.check_call(['bash', '-ec',
+        self.check_exec(['bash', '-ec',
                          'for d in %s; do [ ! -d $d ] || touch -r $d %s/${d//\//_}.stamp; done' % (
                              boot_dirs, self.scratch)])
 
         for c in opts.setup_commands:
-            rc = self.execute_raw(['sh', '-ec', c], kind='install')[0]
+            rc = self.execute(['sh', '-ec', c], kind='install')[0]
             if rc:
                 bomb('testbed setup commands failed with status %i' % rc)
 
         if opts.setup_commands and 'reboot' in self.caps:
-            boot_affected = self.execute_raw(
+            boot_affected = self.execute(
                 ['bash', '-ec', 'for d in %s; do s=%s/${d//\//_}.stamp;'
                  '  [ ! -d $d ] || [ `stat -c %%Y $d` = `stat -c %%Y $s` ]; done' % (
                      boot_dirs, self.scratch)])[0]
@@ -809,7 +809,7 @@ class Testbed:
             ll = map(urllib.unquote, ll)
         return ll
 
-    def execute_raw(self, argv, xenv=[], stdout=None, stderr=None, kind='short'):
+    def execute(self, argv, xenv=[], stdout=None, stderr=None, kind='short'):
         '''Run command in testbed.
 
         The commands stdout/err will be piped directly to adt-run and its log
@@ -847,7 +847,7 @@ class Testbed:
 
         return (proc.returncode, out, err)
 
-    def check_call(self, argv, stdout=False, kind='short'):
+    def check_exec(self, argv, stdout=False, kind='short'):
         '''Run argv in testbed.
 
         If stdout is True, capture stdout and return it. Otherwise, don't
@@ -855,9 +855,9 @@ class Testbed:
 
         argv must succeed and not print any stderr.
         '''
-        (code, out, err) = self.execute_raw(argv,
-                                            stdout=(stdout and subprocess.PIPE or None),
-                                            stderr=subprocess.PIPE, kind=kind)
+        (code, out, err) = self.execute(argv,
+                                        stdout=(stdout and subprocess.PIPE or None),
+                                        stderr=subprocess.PIPE, kind=kind)
         if err:
             bomb('"%s" failed with stderr "%s"' % (' '.join(argv), err))
         if code != 0:
@@ -910,16 +910,16 @@ Description: satisfy autopkgtest test dependencies
         deb.copydown()
 
         # install it and its dependencies in the tb
-        self.check_call(['dpkg', '--unpack', deb.tb])
-        rc = self.execute_raw(['apt-get', 'install', '-q', '-y', '-f',
-                               '-o', 'APT::Install-Recommends=%s' % recommends,
-                               '-o', 'Debug::pkgProblemResolver=true'],
-                              kind='install')[0]
+        self.check_exec(['dpkg', '--unpack', deb.tb])
+        rc = self.execute(['apt-get', 'install', '-q', '-y', '-f',
+                           '-o', 'APT::Install-Recommends=%s' % recommends,
+                           '-o', 'Debug::pkgProblemResolver=true'],
+                          kind='install')[0]
         if rc != 0:
             bomb('failed to run apt-get to satisfy adt-satdep.deb dependencies')
-        rc = self.execute_raw(['dpkg', '-s', 'adt-satdep'],
-                              stdout=subprocess.PIPE,
-                              stderr=subprocess.PIPE)[0]
+        rc = self.execute(['dpkg', '-s', 'adt-satdep'],
+                          stdout=subprocess.PIPE,
+                          stderr=subprocess.PIPE)[0]
         if rc != 0:
             bomb('test dependencies are unsatisfiable')
 
@@ -971,7 +971,7 @@ class TestbedPath:
         '''Copy file from the host to the testbed'''
 
         # create directory on testbed
-        testbed.check_call(['mkdir', '-p', os.path.dirname(self.tb)])
+        testbed.check_exec(['mkdir', '-p', os.path.dirname(self.tb)])
 
         if os.path.isdir(self.host):
             # directories need explicit '/' appended for VirtSubproc
@@ -981,12 +981,12 @@ class TestbedPath:
 
         # we usually want our files be readable for the non-root user
         if opts.user:
-            rc = testbed.execute_raw(['chown', '-R', opts.user, '--', self.tb],
-                                     stderr=subprocess.PIPE)[0]
+            rc = testbed.execute(['chown', '-R', opts.user, '--', self.tb],
+                                 stderr=subprocess.PIPE)[0]
             if rc != 0:
                 # chowning doesn't work on all shared downtmps, try to chmod
                 # instead
-                testbed.check_call(['chmod', '-R', 'go+rwX', '--', self.tb])
+                testbed.check_exec(['chmod', '-R', 'go+rwX', '--', self.tb])
 
     def copyup(self):
         '''Copy file from the testbed to the host'''
@@ -1038,7 +1038,7 @@ class TempTestbedPath(TestbedPath):
                     os.unlink(self.host)
                 except OSError as e:
                     if e.errno == errno.EPERM:
-                        testbed.check_call(['rm', '-rf', self.tb])
+                        testbed.check_exec(['rm', '-rf', self.tb])
                     else:
                         raise
 
@@ -1284,7 +1284,7 @@ class Test:
         # record installed package versions
         if opts.output_dir:
             pkglist = TempTestbedPath(testbed, self.what + '-packages.all', autoclean=False)
-            testbed.check_call([
+            testbed.check_exec([
                 'sh', '-ec', "dpkg-query --show -f '${Package}\\t${Version}\\n' > %s" % pkglist.tb])
             pkglist.copyup()
 
@@ -1335,7 +1335,7 @@ class Test:
 
         # run test script
         self._debug('[-----------------------', True)
-        rc = testbed.execute_raw(test_argv, kind='test')[0]
+        rc = testbed.execute(test_argv, kind='test')[0]
         # give the setup_trace() cats some time to catch up
         sys.stdout.flush()
         sys.stderr.flush()
@@ -1393,7 +1393,7 @@ class Test:
                 os.rmdir(ap.host)
 
         # clean up artifacts dirs
-        testbed.check_call(['rm', '-rf', test_artifacts])
+        testbed.check_exec(['rm', '-rf', test_artifacts])
 
         if opts.shell or (opts.shell_fail and not passed):
             testbed.run_shell(tree.tb)
@@ -1732,7 +1732,7 @@ Pin-Priority: 1002
         # copy binaries directory to testbed; self.dir.tb might have changed
         # since last time due to a reset, so update it
         self.dir.tb = os.path.join(testbed.scratch, 'binaries')
-        testbed.check_call(['rm', '-rf', self.dir.tb])
+        testbed.check_exec(['rm', '-rf', self.dir.tb])
         self.dir.copydown()
 
         aptkey_out = TempTestbedPath(testbed, 'apt-key.out')
@@ -1746,7 +1746,7 @@ Pin-Priority: 1002
   cp /var/lib/dpkg/status %(o)s
   ''' % {'d': self.dir.tb, 'o': aptkey_out.tb}
         testbed.mungeing_apt()
-        testbed.check_call(['sh', '-ec', script], kind='install')
+        testbed.check_exec(['sh', '-ec', script], kind='install')
         testbed.blamed += self.blamed
 
         aptkey_out.copyup()
@@ -1765,7 +1765,7 @@ Pin-Priority: 1002
         if pkgs_reinstall:
             for pkg in pkgs_reinstall:
                 testbed.blame(pkg)
-            rc = testbed.execute_raw(
+            rc = testbed.execute(
                 self.apt_get_cmd + ['--reinstall', 'install'] + list(pkgs_reinstall),
                 kind='install')[0]
             if rc:
@@ -1774,7 +1774,7 @@ Pin-Priority: 1002
         self._debug('publish install...')
         for pkg in self.install:
             testbed.blame(pkg)
-            rc = testbed.execute_raw(self.apt_get_cmd + ['install'] + pkg, kind='install')
+            rc = testbed.execute(self.apt_get_cmd + ['install'] + pkg, kind='install')
             if rc:
                 badpkg('installation of %s failed, exit code %d'
                        % (pkg, rc))
@@ -1792,9 +1792,9 @@ def source_rules_command(script, which, cwd=None, results_lines=0):
     else:
         script = ['exec 3>&1 >&2', 'cd ' + cwd] + script
     script = opts.user_wrap('\n'.join(script))
-    (rc, out, _) = testbed.execute_raw(['sh', '-ec', script],
-                                       stdout=subprocess.PIPE,
-                                       kind='build')
+    (rc, out, _) = testbed.execute(['sh', '-ec', script],
+                                   stdout=subprocess.PIPE,
+                                   kind='build')
     results = out.rstrip('\n').splitlines()
     if rc:
         if opts.shell_fail:
@@ -1870,9 +1870,9 @@ def build_source(act):
 
     if act.kind in ['dsc', 'apt']:
         testbed.prepare2([], False)
-        if testbed.execute_raw(['which', 'dpkg-source'],
-                               stdout=subprocess.PIPE,
-                               stderr=subprocess.PIPE) != 0:
+        if testbed.execute(['which', 'dpkg-source'],
+                           stdout=subprocess.PIPE,
+                           stderr=subprocess.PIPE) != 0:
             debug('dpkg-source not available in testbed, installing dpkg-dev', 1)
             # Install dpkg-source for unpacking .dsc
             testbed.satisfy_dependencies_string('dpkg-dev',
