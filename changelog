@@ -24,6 +24,8 @@ autopkgtest (2.18) UNRELEASED; urgency=medium
     can only deal with shell commands. This avoids having to tell apart these
     two cases in adt-run, clarifies the documentation, and greatly simplifies
     the code.
+  * VirtSubproc.cleanup(): Avoid recursion if something in hook_cleanup()
+    bombs.
 
  -- Martin Pitt <mpitt@debian.org>  Wed, 04 Jun 2014 16:05:46 +0200
 
