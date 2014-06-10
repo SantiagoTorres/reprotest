@@ -42,9 +42,7 @@ caller = __main__
 copy_timeout = int(os.getenv('ADT_VIRT_COPY_TIMEOUT', '300'))
 
 downtmp = None
-down = None
-downkind = None
-downs = None
+auxverb = None  # prefix to run command argv in testbed
 cleaning = False
 in_mainloop = False
 
@@ -123,22 +121,12 @@ def cmd_close(c, ce):
 
 
 def cmd_print_execute_command(c, ce):
-    global downkind
-    if downkind == 'shstring':
-        return print_command('shstring', c, ce)
-    else:
-        return print_command('auxverb', c, ce)
+    global auxverb
 
-
-def print_command(which, c, ce):
-    global downs
     cmdnumargs(c, ce)
     if not downtmp:
-        bomb("`print-%s-command' when not open" % which)
-    cl = downs[which]
-    if not len(cl):
-        cl = ['sh', '-c', 'exec "$@"', 'x'] + cl
-    return [','.join(map(urllib.quote, cl))]
+        bomb("`print-execute-command' when not open")
+    return [','.join(map(urllib.quote, auxverb))]
 
 
 def preexecfn():
@@ -177,10 +165,10 @@ def check_exec(argv, downp=False, outp=False, timeout=0):
 
     Returns stdout (or None if outp is False).
     '''
-    global downs
+    global auxverb
 
     if downp:
-        real_argv = downs['auxverb'] + argv
+        real_argv = auxverb + argv
     else:
         real_argv = argv
     if outp:
@@ -255,14 +243,14 @@ def expect(sock, search_str, timeout_sec, description=None):
 
 
 def cmd_open(c, ce):
-    global downtmp
+    global auxverb, downtmp
     cmdnumargs(c, ce)
     if downtmp:
         bomb("`open' when already open")
     caller.hook_open()
-    opened1()
+    debug("auxverb = %s, downtmp = %s" % (str(auxverb), downtmp))
     downtmp = caller.hook_downtmp()
-    return opened2()
+    return [downtmp]
 
 
 def downtmp_mktemp():
@@ -277,35 +265,17 @@ def downtmp_remove():
     check_exec(['rm', '-rf', '--', downtmp], downp=True)
 
 
-def opened1():
-    global down, downkind, downs
-    debug("downkind = %s, down = %s" % (downkind, str(down)))
-    if downkind == 'auxverb':
-        downs = {'auxverb': down,
-                 'shstring': down + ['sh', '-c']}
-    elif downkind == 'shstring':
-        downs = {'shstring': down,
-                 'auxverb': down}
-    debug("downs = %s" % str(downs))
-
-
-def opened2():
-    global downtmp, downs
-    debug("downtmp = %s" % (downtmp))
-    return [downtmp]
-
-
 def cmd_revert(c, ce):
-    global downtmp
+    global auxverb, downtmp
     cmdnumargs(c, ce)
     if not downtmp:
         bomb("`revert' when not open")
     if not 'revert' in caller.hook_capabilities():
         bomb("`revert' when `revert' not advertised")
     caller.hook_revert()
-    opened1()
     downtmp = caller.hook_downtmp()
-    return opened2()
+    debug("auxverb = %s, downtmp = %s" % (str(auxverb), downtmp))
+    return [downtmp]
 
 
 def cmd_reboot(c, ce):
@@ -316,9 +286,9 @@ def cmd_reboot(c, ce):
     if not 'reboot' in caller.hook_capabilities():
         bomb("`reboot' when `reboot' not advertised")
     caller.hook_reboot()
-    opened1()
     downtmp = caller.hook_downtmp()
-    return opened2()
+    debug("auxverb = %s, downtmp = %s" % (str(auxverb), downtmp))
+    return [downtmp]
 
 
 def get_downtmp_host():
@@ -352,7 +322,6 @@ def copyup_shareddir(tb, host, is_dir, downtmp_host):
     downtmp_host = os.path.normpath(downtmp_host)
 
     timeout_start(copy_timeout)
-    cp = None
     try:
         tb_tmp = None
         if tb.startswith(downtmp):
@@ -362,14 +331,8 @@ def copyup_shareddir(tb, host, is_dir, downtmp_host):
             tb_tmp = os.path.join(downtmp, os.path.basename(host))
             debug('copyup_shareddir: tb path %s is not already in downtmp, '
                   'copying to %s' % (tb, tb_tmp))
-            cp = subprocess.Popen(
-                downs['auxverb'] + ['cp', '-r', '--preserve=timestamps,links',
-                                    tb, tb_tmp], preexec_fn=preexecfn)
-            cp.communicate()
-            if cp.returncode != 0:
-                bomb('copyup_shareddir: cp exited with code %i' %
-                     cp.returncode)
-            cp = None
+            check_exec(['cp', '-r', '--preserve=timestamps,links', tb, tb_tmp],
+                       downp=True)
             # translate into host path
             tb = os.path.join(downtmp_host, os.path.basename(host))
 
@@ -385,12 +348,8 @@ def copyup_shareddir(tb, host, is_dir, downtmp_host):
 
         if tb_tmp:
             debug('copyup_shareddir: cleaning intermediate copy: %s' % tb)
-            subprocess.call(downs['auxverb'] + ['rm', '-rf', tb_tmp],
-                            preexec_fn=preexecfn)
+            check_exec(['rm', '-rf', tb_tmp], downp=True)
     finally:
-        if cp:
-            cp.kill()
-            cp.wait()
         timeout_stop()
 
 
@@ -403,7 +362,6 @@ def copydown_shareddir(host, tb, is_dir, downtmp_host):
     downtmp_host = os.path.normpath(downtmp_host)
 
     timeout_start(copy_timeout)
-    cp = None
     try:
         host_tmp = None
         if host.startswith(downtmp_host):
@@ -422,23 +380,12 @@ def copydown_shareddir(host, tb, is_dir, downtmp_host):
         if host == tb:
             host_tmp = None
         else:
-            subprocess.call(downs['auxverb'] + ['rm', '-rf', tb],
-                            preexec_fn=preexecfn)
-            cp = subprocess.Popen(
-                downs['auxverb'] + ['cp', '-r', '--preserve=timestamps,links',
-                                    host, tb], preexec_fn=preexecfn)
-            cp.communicate()
-            if cp.returncode != 0:
-                bomb('copydown_shareddir: cp exited with code %i' %
-                     cp.returncode)
-            cp = None
-
+            check_exec(['rm', '-rf', tb], downp=True)
+            check_exec(['cp', '-r', '--preserve=timestamps,links', host, tb],
+                       downp=True)
         if host_tmp:
             (is_dir and shutil.rmtree or os.unlink)(host_tmp)
     finally:
-        if cp:
-            cp.kill()
-            cp.wait()
         timeout_stop()
 
 
@@ -505,8 +452,7 @@ def copyupdown(c, ce, upp):
         localcmdl = ['tar', '-C', sd[ilocal]] + (
             ('%s -f -' % taropts[ilocal]).split()
         )
-    rune = 'set -e; ' + rune
-    downcmdl = downs['shstring'] + [rune]
+    downcmdl = auxverb + ['sh', '-ec', rune]
 
     if upp:
         cmdls = (downcmdl, localcmdl)
@@ -560,16 +506,6 @@ def cmd_shell(c, ce):
         caller.hook_shell(c[1], c[2], c[3], c[4])
     except AttributeError:
         raise FailedCmd(['not supported by virt server'])
-
-
-def cmd_quote_shstring(c, ce):
-    '''Return a shell escaped version of c if downkind is shstring'''
-
-    global downkind
-    if downkind == 'shstring':
-        return [urllib.quote(pipes.quote(c[1]))]
-    else:
-        return [ce[1]]
 
 
 def command():
