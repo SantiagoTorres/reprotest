@@ -26,6 +26,8 @@ autopkgtest (2.18) UNRELEASED; urgency=medium
     the code.
   * VirtSubproc.cleanup(): Avoid recursion if something in hook_cleanup()
     bombs.
+  * adt-run: When running from git, show the current SHA and commit summary of
+    HEAD.
 
  -- Martin Pitt <mpitt@debian.org>  Wed, 04 Jun 2014 16:05:46 +0200
 
