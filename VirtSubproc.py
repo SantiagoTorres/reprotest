@@ -554,11 +554,13 @@ def cleanup():
     global downtmp, cleaning
     debug("cleanup...")
     sethandlers(signal.SIG_DFL)
-    cleaning = True
-    if downtmp:
-        caller.hook_cleanup()
-    cleaning = False
-    downtmp = False
+    # avoid recursion if something bomb()s in hook_cleanup()
+    if not cleaning:
+        cleaning = True
+        if downtmp:
+            caller.hook_cleanup()
+        cleaning = False
+        downtmp = False
 
 
 def error_cleanup():
