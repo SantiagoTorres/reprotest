@@ -19,6 +19,11 @@ autopkgtest (2.18) UNRELEASED; urgency=medium
   * Remove autopkgtest-xenlvm. It has been orphaned since ~ 2008, few to no
     current users, and no maintainer. (Closes: #508660, #680122)
   * Simplify build system.
+  * Drop concept of "shstring". All runners must provide an auxverb now,
+    possibly with a wrapper and quoting by themselves if their implementation
+    can only deal with shell commands. This avoids having to tell apart these
+    two cases in adt-run, clarifies the documentation, and greatly simplifies
+    the code.
 
  -- Martin Pitt <mpitt@debian.org>  Wed, 04 Jun 2014 16:05:46 +0200
 
