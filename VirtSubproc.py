@@ -146,7 +146,10 @@ def execute_timeout(what, instr, timeout, *popenargs, **popenargsk):
     Return (status, stdout, stderr)
     '''
     debug(" ++ %s" % ' '.join(popenargs[0]))
-    sp = subprocess.Popen(preexec_fn=preexecfn, *popenargs, **popenargsk)
+    sp = subprocess.Popen(*popenargs,
+                          preexec_fn=preexecfn,
+                          universal_newlines=True,
+                          **popenargsk)
     if instr is None:
         popenargsk['stdin'] = devnull_read
     timeout_start(timeout)
