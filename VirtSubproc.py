@@ -24,8 +24,13 @@ import __main__
 
 import sys
 import os
-import string
-import urllib
+try:
+    from urllib.parse import quote as url_quote
+    from urllib.parse import unquote as url_unquote
+except ImportError:
+    # python 2
+    from urllib import quote as url_quote
+    from urllib import unquote as url_unquote
 import signal
 import subprocess
 import traceback
@@ -37,7 +42,7 @@ import shutil
 
 debuglevel = None
 progname = "<VirtSubproc>"
-devnull_read = file('/dev/null', 'r')
+devnull_read = open('/dev/null', 'r')
 caller = __main__
 copy_timeout = int(os.getenv('ADT_VIRT_COPY_TIMEOUT', '300'))
 
@@ -47,7 +52,7 @@ cleaning = False
 in_mainloop = False
 
 
-class Quit:
+class Quit(RuntimeError):
 
     def __init__(self, ec, m):
         self.ec = ec
@@ -71,7 +76,7 @@ def timeout_stop():
     signal.alarm(0)
 
 
-class FailedCmd:
+class FailedCmd(RuntimeError):
 
     def __init__(self, e):
         self.e = e
@@ -80,7 +85,7 @@ class FailedCmd:
 def debug(m):
     if not debuglevel:
         return
-    print >> sys.stderr, progname + ": debug:", m
+    sys.stderr.write('%s: debug: %s\n' % (progname, m))
 
 
 def bomb(m):
@@ -93,7 +98,7 @@ def bomb(m):
 
 
 def ok():
-    print 'ok'
+    print('ok')
 
 
 def cmdnumargs(c, ce, nargs=0, noptargs=0):
@@ -126,7 +131,7 @@ def cmd_print_execute_command(c, ce):
     cmdnumargs(c, ce)
     if not downtmp:
         bomb("`print-execute-command' when not open")
-    return [','.join(map(urllib.quote, auxverb))]
+    return [','.join(map(url_quote, auxverb))]
 
 
 def preexecfn():
@@ -140,7 +145,7 @@ def execute_timeout(what, instr, timeout, *popenargs, **popenargsk):
 
     Return (status, stdout, stderr)
     '''
-    debug(" ++ %s" % string.join(popenargs[0]))
+    debug(" ++ %s" % ' '.join(popenargs[0]))
     sp = subprocess.Popen(preexec_fn=preexecfn, *popenargs, **popenargsk)
     if instr is None:
         popenargsk['stdin'] = devnull_read
@@ -425,11 +430,11 @@ def copyupdown(c, ce, upp):
     if not dirsp:
         rune = 'cat %s%s' % ('><'[upp], remfileq)
         if upp:
-            deststdout = file(sd[idst], 'w')
+            deststdout = open(sd[idst], 'w')
         else:
-            srcstdin = file(sd[isrc], 'r')
+            srcstdin = open(sd[isrc], 'r')
             status = os.fstat(srcstdin.fileno())
-            if status.st_mode & 0111:
+            if status.st_mode & 0o111:
                 rune += '; chmod +x -- %s' % (remfileq)
         localcmdl = ['cat']
     else:
@@ -441,7 +446,7 @@ def copyupdown(c, ce, upp):
         if upp:
             try:
                 os.mkdir(sd[ilocal])
-            except (IOError, OSError), oe:
+            except (IOError, OSError) as oe:
                 if oe.errno != errno.EEXIST:
                     raise
         else:
@@ -464,11 +469,11 @@ def copyupdown(c, ce, upp):
           str(deststdout), "devnull_read", devnull_read]))
 
     subprocs = [None, None]
-    debug(" +< %s" % string.join(cmdls[0]))
+    debug(" +< %s" % ' '.join(cmdls[0]))
     subprocs[0] = subprocess.Popen(cmdls[0], stdin=srcstdin,
                                    stdout=subprocess.PIPE,
                                    preexec_fn=preexecfn)
-    debug(" +> %s" % string.join(cmdls[1]))
+    debug(" +> %s" % ' '.join(cmdls[1]))
     subprocs[1] = subprocess.Popen(cmdls[1], stdin=subprocs[0].stdout,
                                    stdout=deststdout,
                                    preexec_fn=preexecfn)
@@ -523,10 +528,10 @@ def command():
     if not ce:
         bomb('end of file - caller quit?')
     ce = ce.rstrip().split()
-    c = map(urllib.unquote, ce)
+    c = list(map(url_unquote, ce))
     if not c:
         bomb('empty commands are not permitted')
-    debug('executing ' + string.join(ce))
+    debug('executing ' + ' '.join(ce))
     c_lookup = c[0].replace('-', '_')
     try:
         f = globals()['cmd_' + c_lookup]
@@ -537,9 +542,9 @@ def command():
         if not r:
             r = []
         r.insert(0, 'ok')
-    except FailedCmd, fc:
+    except FailedCmd as fc:
         r = fc.e
-    print string.join(r)
+    print(' '.join(r))
 
 signal_list = [	signal.SIGHUP, signal.SIGTERM,
                 signal.SIGINT, signal.SIGPIPE]
@@ -569,15 +574,15 @@ def error_cleanup():
         try:
             cleanup()
             ok = True
-        except Quit, q:
-            print >> sys.stderr, q.m
+        except Quit as q:
+            sys.stderr.write(q.m)
+            sys.stderr.write('\n')
         except:
-            print >> sys.stderr, "Unexpected cleanup error:"
+            sys.stderr.write('Unexpected cleanup error:\n')
             traceback.print_exc()
-            print >> sys.stderr, ''
+            sys.stderr.write('\n')
         if not ok:
-            print >> sys.stderr, ("while cleaning up"
-                                  " because of another error:")
+            sys.stderr.write('while cleaning up because of another error:\n')
     except:
         pass
 
@@ -599,14 +604,15 @@ def mainloop():
     try:
         while True:
             command()
-    except Quit, q:
+    except Quit as q:
         error_cleanup()
         if q.m:
-            print >> sys.stderr, q.m
+            sys.stderr.write(q.m)
+            sys.stderr.write('\n')
         sys.exit(q.ec)
     except:
         error_cleanup()
-        print >> sys.stderr, "Unexpected error:"
+        sys.stderr.write('Unexpected error:\n')
         traceback.print_exc()
         sys.exit(16)
     finally:
