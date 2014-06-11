@@ -5,6 +5,7 @@ Section: devel
 Priority: optional
 Standards-Version: 3.9.5
 Build-Depends: debhelper (>= 8),
+ python (>= 2.7),
  python-debian,
  pyflakes,
  python3,
@@ -15,7 +16,7 @@ XS-Testsuite: autopkgtest
 
 Package: autopkgtest
 Architecture: all
-Depends: python (>= 2.6),
+Depends: python (>= 2.7),
  python-debian,
  apt-utils,
  libdpkg-perl,

@@ -28,6 +28,7 @@ autopkgtest (2.18) UNRELEASED; urgency=medium
     bombs.
   * adt-run: When running from git, show the current SHA and commit summary of
     HEAD.
+  * Adjust syntax to be Python 3 friendly. Bump Python dependency to 2.7.
 
  -- Martin Pitt <mpitt@debian.org>  Wed, 04 Jun 2014 16:05:46 +0200
 
