@@ -94,15 +94,15 @@ def error(message):
     retries = 10
     while retries >= 0:
         try:
-            sys.stderr.write(message)
-            sys.stderr.write('\n')
-            return
+            sys.stderr.write(message + '\n')
+            break
         except IOError as e:
             if e.errno == errno.EAGAIN:
                 retries -= 1
                 time.sleep(0.05)
             else:
                 raise
+    sys.stderr.flush()
 
 
 def debug(message, minlevel=0, timestamp=False):
