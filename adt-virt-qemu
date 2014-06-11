@@ -269,28 +269,26 @@ def shovel(fin, fout, flagfile_on_eof=None):
     count = 0
     while running:
         try:
-            block = fin.read()
+            block = os.read(fin, 1000000)
             if flagfile_on_eof and not block:
-                fout.flush()
-                os.fsync(fout.fileno())
-                fout.close()
+                os.fsync(fout)
+                os.close(fout)
                 with open(flagfile_on_eof, 'w') as f:
                     f.write('%%i' %% count)
                 return
             count += len(block)
-        except IOError as e:
+        except OSError as e:
             if e.errno != errno.EAGAIN:
                 raise
             block = None
         if not block:
-            fout.flush()
             time.sleep(0.01)
             continue
         while True:
             try:
-                fout.write(block)
+                os.write(fout, block)
                 break
-            except IOError as e:
+            except OSError as e:
                 if e.errno != errno.EAGAIN:
                     raise
                 continue
@@ -305,11 +303,11 @@ with open(fout, 'w'):
     pass
 with open(ferr, 'w'):
     pass
-t_stdin = threading.Thread(None, shovel, 'copyin', (sys.stdin, open(fin, 'wb'), stdin_eof))
+t_stdin = threading.Thread(None, shovel, 'copyin', (sys.stdin.fileno(), os.open(fin, os.O_CREAT|os.O_WRONLY), stdin_eof))
 t_stdin.start()
-t_stdout = threading.Thread(None, shovel, 'copyout', (open(fout, 'rb'), sys.stdout))
+t_stdout = threading.Thread(None, shovel, 'copyout', (os.open(fout, os.O_RDONLY), sys.stdout.fileno()))
 t_stdout.start()
-t_stderr = threading.Thread(None, shovel, 'copyerr', (open(ferr, 'rb'), sys.stderr))
+t_stderr = threading.Thread(None, shovel, 'copyerr', (os.open(ferr, os.O_RDONLY), sys.stderr.fileno()))
 t_stderr.start()
 
 # Run command through QEMU shell. We can't directly feed the stdin file into
