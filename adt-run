@@ -28,7 +28,6 @@ import tempfile
 import sys
 import subprocess
 import traceback
-import urllib
 import string
 import re
 import os
@@ -38,6 +37,15 @@ import shutil
 import copy
 import time
 import atexit
+import functools
+
+try:
+    from urllib.parse import quote as url_quote
+    from urllib.parse import unquote as url_unquote
+except ImportError:
+    # python 2
+    from urllib import quote as url_quote
+    from urllib import unquote as url_unquote
 
 try:
     from debian import deb822, debian_support
@@ -86,7 +94,8 @@ def error(message):
     retries = 10
     while retries >= 0:
         try:
-            print >> sys.stderr, message
+            sys.stderr.write(message)
+            sys.stderr.write('\n')
             return
         except IOError as e:
             if e.errno == errno.EAGAIN:
@@ -186,7 +195,7 @@ def report(tname, result):
 #---------- errors we define
 
 
-class Quit:
+class Quit(RuntimeError):
 
     def __init__(self, ec, m):
         self.ec = ec
@@ -219,10 +228,10 @@ class Unsupported(Exception):
 #---------- convenience function
 
 
-def mkdir_okexist(pathname, mode=02755):
+def mkdir_okexist(pathname, mode=0o2755):
     try:
         os.mkdir(pathname, mode)
-    except (IOError, OSError), oe:
+    except (IOError, OSError) as oe:
         if oe.errno != errno.EEXIST:
             raise
 
@@ -231,13 +240,13 @@ def rmtree(what, pathname):
     debug('/ %s rmtree %s' % (what, pathname), 2)
     try:
         shutil.rmtree(pathname)
-    except (IOError, OSError), oe:
+    except (IOError, OSError) as oe:
         if oe.errno not in (errno.EEXIST, errno.ENOENT):
             raise
 
 
 def flatten(l):
-    return reduce((lambda a, b: a + b), l, [])
+    return functools.reduce((lambda a, b: a + b), l, [])
 
 #---------- parsing and representation of the arguments
 
@@ -509,12 +518,12 @@ def setup_trace():
 
     if opts.output_dir is not None:
         rmtree('tmp(specified)', opts.output_dir)
-        mkdir_okexist(opts.output_dir, 0755)
+        mkdir_okexist(opts.output_dir, 0o755)
         tmp = opts.output_dir
     else:
         assert(tmp is None)
         tmp = tempfile.mkdtemp(prefix='adt-run.output.')
-        os.chmod(tmp, 0755)
+        os.chmod(tmp, 0o755)
 
     if opts.logfile is None and opts.output_dir is not None:
         opts.logfile = opts.output_dir + '/log'
@@ -647,7 +656,7 @@ class Testbed:
 
         self.scratch = pl[0]
         self.deps_processed = []
-        self.exec_cmd = map(urllib.unquote, self.command('print-execute-command', (), 1)[0].split(','))
+        self.exec_cmd = list(map(url_unquote, self.command('print-execute-command', (), 1)[0].split(',')))
         self.caps = self.command('capabilities', (), None)
         debug('testbed capabilities: %s' % self.caps, 1)
         for c in self.caps:
@@ -770,7 +779,8 @@ class Testbed:
         self.sp.stdin
         try:
             debug('>> ' + string, 2)
-            print >>self.sp.stdin, string
+            self.sp.stdin.write(string)
+            self.sp.stdin.write('\n')
             self.sp.stdin.flush()
             self.lastsend = string
         except:
@@ -810,12 +820,12 @@ class Testbed:
         if len(args) and args[0] is None:
             args = args[1:]
         else:
-            args = map(urllib.quote, args)
+            args = list(map(url_quote, args))
         al = cmd + args
-        self.send(string.join(al))
+        self.send(' '.join(al))
         ll = self.expect('ok', nresults)
         if unquote:
-            ll = map(urllib.unquote, ll)
+            ll = list(map(url_unquote, ll))
         return ll
 
     def execute(self, argv, xenv=[], stdout=None, stderr=None, kind='short'):
@@ -1068,7 +1078,7 @@ class FieldBase:
         def distribute(vle):
             (lno, v) = vle
             r = v.split()
-            r = map((lambda w: (lno, w)), r)
+            r = list(map((lambda w: (lno, w)), r))
             return r
         return flatten(map(distribute, self.vl))
 
@@ -1179,10 +1189,7 @@ class Field_Depends(FieldBase):
     def parse(self):
         debug('Field_Depends: %s %s %s %s' %
               (self.stz, self.base, self.tnames, self.vl), 2)
-        dl = map(lambda x: x.strip(),
-                 flatten(map(lambda (lno, v): v.split(','), self.vl)))
-        # Remove empty dependencies
-        dl = filter(None, dl)
+        dl = [x.strip() for x in flatten([lno_v[1].split(',') for lno_v in self.vl]) if x]
 
         dep_re = re.compile(
             r'(?P<package>[a-z0-9+-.]+)(?::native)?\s*(\((?P<relation><<|<=|>=|=|>>)\s*(?P<version>[^\)]*)\))?(\s*\[[[a-z0-9+-. ]+\])?$')
@@ -1413,7 +1420,7 @@ def read_stanzas(path):
 
     try:
         control = open(path, 'r')
-    except (IOError, OSError), oe:
+    except (IOError, OSError) as oe:
         if oe[0] != errno.ENOENT:
             raise
         return []
@@ -1439,7 +1446,7 @@ def read_stanzas(path):
     for paragraph in deb822.Deb822.iter_paragraphs(lines):
         lno += 1
         stz = {' lno': lno, ' tests': []}
-        for field, value in paragraph.iteritems():
+        for field, value in paragraph.items():
             v = ''.join(value.split('\n')).replace('  ', ' ')
             field = string.capwords(field)
             stz[field] = [(lno, v)]
@@ -1463,8 +1470,8 @@ def read_control(act, control_path):
                 tnames = ['*']
                 raise Unsupported(stz[' lno'],
                                   'no Tests field')
-            tnames = map((lambda lt: lt[1]), tnames)
-            tnames = string.join(tnames).split()
+            tnames = list(map((lambda lt: lt[1]), tnames))
+            tnames = ' '.join(tnames).split()
             base = {
                 'restriction_names': [],
                 'restrictions': [],
@@ -1490,10 +1497,10 @@ def read_control(act, control_path):
                 try:
                     t = Test(tname, base, act)
                     stz[' tests'].append(t)
-                except Unsupported, u:
+                except Unsupported as u:
                     u.report(tname)
                     continue
-        except Unsupported, u:
+        except Unsupported as u:
             for tname in tnames:
                 u.report(tname)
             continue
@@ -1621,7 +1628,7 @@ class Binaries:
             for x in ['pubring', 'secring']:
                 os.stat(opts.gnupghome + '/' + x + '.gpg')
             ok = True
-        except (IOError, OSError), oe:
+        except (IOError, OSError) as oe:
             if oe.errno != errno.ENOENT:
                 raise
 
@@ -1641,8 +1648,8 @@ class Binaries:
     def genkey(self):
         self._debug('preparing for key generation')
 
-        mkdir_okexist(os.path.dirname(opts.gnupghome), 02755)
-        mkdir_okexist(opts.gnupghome, 0700)
+        mkdir_okexist(os.path.dirname(opts.gnupghome), 0o2755)
+        mkdir_okexist(opts.gnupghome, 0o700)
 
         script = '''
   exec >&2
@@ -1695,13 +1702,13 @@ Pin-Priority: 1002
 
         try:
             os.remove(dest)
-        except (IOError, OSError), oe:
+        except (IOError, OSError) as oe:
             if oe.errno != errno.ENOENT:
                 raise oe
 
         try:
             os.link(path, dest)
-        except (IOError, OSError), oe:
+        except (IOError, OSError) as oe:
             if oe.errno != errno.EXDEV:
                 raise oe
             shutil.copy(path, dest)
@@ -1935,7 +1942,7 @@ def build_source(act):
     #   - the test control file says so
     #       (assuming we have any tests)
 
-    class NeedBuildException:
+    class NeedBuildException(Exception):
         pass
 
     def build_needed(m):
