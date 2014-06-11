@@ -621,7 +621,8 @@ class Testbed:
         debug_subprocess('vserver', opts.vserver)
         self.sp = subprocess.Popen(opts.vserver,
                                    stdin=subprocess.PIPE,
-                                   stdout=subprocess.PIPE)
+                                   stdout=subprocess.PIPE,
+                                   universal_newlines=True)
         self.expect('ok', 0)
 
     def stop(self):
