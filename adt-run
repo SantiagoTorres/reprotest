@@ -612,9 +612,10 @@ class Testbed:
         root_dir = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
         if os.path.exists(os.path.join(root_dir, '.git')):
             try:
-                head = subprocess.check_output(['git', 'show', '-s', '--oneline'], cwd=root_dir)
+                head = subprocess.check_output(['git', 'show', '-s', '--oneline'],
+                                               cwd=root_dir, universal_newlines=True)
             except subprocess.CalledProcessError:
-                head = 'cannot determine curret HEAD'
+                head = 'cannot determine current HEAD'
             debug('git checkout: %s' % head, timestamp=True)
         else:
             debug('version @version@', timestamp=True)
