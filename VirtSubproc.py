@@ -234,9 +234,9 @@ def get_unix_socket(path):
     return s
 
 
-def expect(sock, search_str, timeout_sec, description=None):
-    debug('expect: "%s"' % search_str)
-    what = '"%s"' % (description or search_str or 'data')
+def expect(sock, search_bytes, timeout_sec, description=None):
+    debug('expect: "%s"' % search_bytes.decode())
+    what = '"%s"' % (description or search_bytes or 'data')
     out = b''
     with timeout(timeout_sec,
                  description and ('timed out waiting for %s' % what) or None):
@@ -245,7 +245,7 @@ def expect(sock, search_str, timeout_sec, description=None):
             block = sock.recv(4096)
             #debug('expect: got block: %s' % block)
             out += block
-            if search_str is None or search_str in out:
+            if search_bytes is None or search_bytes in out:
                 debug('expect: found "%s"' % what)
                 break
 
