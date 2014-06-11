@@ -196,7 +196,7 @@ def setup_config(shared_dir):
         tz = None
         with open('/etc/timezone', 'rb') as f:
             for l in f:
-                if l.startswith('#'):
+                if l.startswith(b'#'):
                     continue
                 l = l.strip()
                 if l:
@@ -205,7 +205,7 @@ def setup_config(shared_dir):
 
         if tz:
             VirtSubproc.debug('Copying host timezone %s to VM' % tz.decode())
-            term.send(b'echo %s > /etc/timezone\n' % tz)
+            term.send(b'echo ' + tz + b' > /etc/timezone\n')
         else:
             VirtSubproc.debug('Could not determine host timezone')
 
