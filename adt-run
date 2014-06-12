@@ -728,8 +728,10 @@ class Testbed:
                 debug('rebooting testbed after setup commands that affected boot')
                 self.scratch = self.command('reboot', (), 1)[0]
 
-    def prepare1(self, deps_new):
-        self._debug('prepare1, modified=%s, deps_processed=%s, deps_new=%s' %
+    def reset(self, deps_new):
+        '''Reset the testbed, if possible and necessary'''
+
+        self._debug('reset: modified=%s, deps_processed=%s, deps_new=%s' %
                     (self.modified, self.deps_processed, deps_new), 1)
         if 'revert' in self.caps and (
                 self.modified or [d for d in self.deps_processed if d not in deps_new]):
@@ -738,22 +740,25 @@ class Testbed:
             self._opened(pl)
         self.modified = False
 
-    def prepare2(self, deps_new, recommends):
-        self._debug('prepare2, deps_new=%s, recommends=%s' %
+    def install_deps(self, deps_new, recommends):
+        '''Install dependencies into testbed
+
+        Also publish the registered binaries.
+        '''
+        self._debug('install_deps: deps_new=%s, recommends=%s' %
                     (deps_new, recommends), 1)
         binaries.publish()
-        self._install_deps(deps_new, recommends)
 
-    def prepare(self, deps_new, recommends):
-        self.prepare1(deps_new)
-        self.prepare2(deps_new, recommends)
-
-    def _install_deps(self, deps_new, recommends):
-        self._debug(' installing dependencies ' + str(deps_new), 1)
         self.deps_processed = deps_new
         if not deps_new:
             return
         self.satisfy_dependencies_string(', '.join(deps_new), 'install-deps', recommends)
+
+    def prepare(self, deps_new, recommends):
+        '''Set up clean test bed with given dependencies'''
+
+        self.reset(deps_new)
+        self.install_deps(deps_new, recommends)
 
     def needs_reset(self):
         # show what caused a reset
@@ -1820,7 +1825,7 @@ def source_rules_command(script, which, cwd=None, results_lines=0):
 def build_source(act):
     act.blame = 'arg:' + act.arg
     testbed.blame(act.blame)
-    testbed.prepare1([])
+    testbed.reset([])
 
     what = act.what
     act.binaries = []
@@ -1878,7 +1883,7 @@ def build_source(act):
         atexit.register(lambda f: os.path.exists(f) and os.unlink(f), dsc)
 
     if act.kind in ['dsc', 'apt']:
-        testbed.prepare2([], False)
+        testbed.install_deps([], False)
         if testbed.execute(['which', 'dpkg-source'],
                            stdout=subprocess.PIPE,
                            stderr=subprocess.PIPE) != 0:
@@ -1966,7 +1971,7 @@ def build_source(act):
         testbed.needs_reset()
 
         if act.kind not in ['dsc', 'apt']:
-            testbed.prepare2([], False)
+            testbed.install_deps([], False)
 
         if act.kind == 'apt':
             # we need to get the downloaded debian/control from the testbed, so
