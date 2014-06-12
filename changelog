@@ -1,9 +1,18 @@
 autopkgtest (2.18) UNRELEASED; urgency=medium
 
-  [ Jean-Baptiste Lallement ]
-  * Fix handling of shstring. (Closes: #750544)
+  Improvements:
+  * adt-run: When running from git, show the current SHA and commit summary of
+    HEAD.
 
-  [ Martin Pitt ]
+  Bug fixes:
+  * tests: Fix race in cleaning up ChrootRunner mounts.
+  * adt-run: If apt-get update fails on publishing built binaries, retry after
+    15 seconds.
+  * VirtSubproc.cleanup(): Avoid recursion if something in hook_cleanup()
+    bombs.
+  * Fix --shell to also work with --output-dir. (LP: #1317078)
+
+  Code cleanup:
   * VirtSubproc: Document and cleanup execute*() functions.
   * Some test robustifications, to avoid making too many assumptions about
     debug output.
@@ -13,9 +22,6 @@ autopkgtest (2.18) UNRELEASED; urgency=medium
   * adt-run: Unify Testbed.command() and commandr() methods and make them
     stricter.
   * Add prefixes to all temporary directories.
-  * tests: Fix race in cleaning up ChrootRunner mounts.
-  * adt-run: If apt-get update fails on publishing built binaries, retry after
-    15 seconds.
   * Remove autopkgtest-xenlvm. It has been orphaned since ~ 2008, few to no
     current users, and no maintainer. (Closes: #508660, #680122)
   * Simplify build system.
@@ -23,18 +29,13 @@ autopkgtest (2.18) UNRELEASED; urgency=medium
     possibly with a wrapper and quoting by themselves if their implementation
     can only deal with shell commands. This avoids having to tell apart these
     two cases in adt-run, clarifies the documentation, and greatly simplifies
-    the code.
-  * VirtSubproc.cleanup(): Avoid recursion if something in hook_cleanup()
-    bombs.
-  * adt-run: When running from git, show the current SHA and commit summary of
-    HEAD.
+    the code. (Closes: #750544)
   * qemu: Use low-level IO in runcmd.  This avoids all the Python overhead and
     buffering and is less prone to bytes vs. string issues.
   * qemu: Fix text vs. binary confusion in reading and copying /etc/timezone.
   * schroot: Call schroot command with -q, to avoid stderr spew if the schroot
     has "message-verbosity=verbose".
   * Port to Python 3.
-  * Fix --shell to also work with --output-dir. (LP: #1317078)
 
  -- Martin Pitt <mpitt@debian.org>  Wed, 04 Jun 2014 16:05:46 +0200
 
