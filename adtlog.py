@@ -1,4 +1,4 @@
-# VirtSubproc is part of autopkgtest
+# adtlog is part of autopkgtest
 # autopkgtest is a tool for testing Debian binary packages
 #
 # autopkgtest is Copyright (C) 2006-2014 Canonical Ltd.
