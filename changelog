@@ -2,6 +2,8 @@ autopkgtest (2.18.1) UNRELEASED; urgency=medium
 
   * schroot: Always advertise "revert" capability, as it implements revert
     with simply close()/open().
+  * adt-run: Move warning about missing root on testbed into the correct
+    place.
 
  -- Martin Pitt <mpitt@debian.org>  Thu, 12 Jun 2014 08:43:49 +0200
 
