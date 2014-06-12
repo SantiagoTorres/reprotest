@@ -35,7 +35,8 @@ import pipes
 import socket
 import shutil
 
-debuglevel = None
+import adtlog
+
 progname = "<VirtSubproc>"
 devnull_read = open('/dev/null', 'r')
 caller = __main__
@@ -75,12 +76,6 @@ class FailedCmd(RuntimeError):
 
     def __init__(self, e):
         self.e = e
-
-
-def debug(m):
-    if not debuglevel:
-        return
-    sys.stderr.write('%s: debug: %s\n' % (progname, m))
 
 
 def bomb(m):
@@ -140,7 +135,7 @@ def execute_timeout(what, instr, timeout, *popenargs, **popenargsk):
 
     Return (status, stdout, stderr)
     '''
-    debug(" ++ %s" % ' '.join(popenargs[0]))
+    adtlog.debug('execute-timeout: ' + ' '.join(popenargs[0]))
     sp = subprocess.Popen(*popenargs,
                           preexec_fn=preexecfn,
                           universal_newlines=True,
@@ -230,7 +225,7 @@ def get_unix_socket(path):
 
 
 def expect(sock, search_bytes, timeout_sec, description=None):
-    debug('expect: "%s"' % search_bytes.decode())
+    adtlog.debug('expect: "%s"' % search_bytes.decode())
     what = '"%s"' % (description or search_bytes or 'data')
     out = b''
     with timeout(timeout_sec,
@@ -238,10 +233,10 @@ def expect(sock, search_bytes, timeout_sec, description=None):
         while True:
             time.sleep(0.1)
             block = sock.recv(4096)
-            #debug('expect: got block: %s' % block)
+            #adtlog.debug('expect: got block: %s' % block)
             out += block
             if search_bytes is None or search_bytes in out:
-                debug('expect: found "%s"' % what)
+                adtlog.debug('expect: found "%s"' % what)
                 break
 
 
@@ -251,7 +246,7 @@ def cmd_open(c, ce):
     if downtmp:
         bomb("`open' when already open")
     caller.hook_open()
-    debug("auxverb = %s, downtmp = %s" % (str(auxverb), downtmp))
+    adtlog.debug("auxverb = %s, downtmp = %s" % (str(auxverb), downtmp))
     downtmp = caller.hook_downtmp()
     return [downtmp]
 
@@ -277,7 +272,7 @@ def cmd_revert(c, ce):
         bomb("`revert' when `revert' not advertised")
     caller.hook_revert()
     downtmp = caller.hook_downtmp()
-    debug("auxverb = %s, downtmp = %s" % (str(auxverb), downtmp))
+    adtlog.debug("auxverb = %s, downtmp = %s" % (str(auxverb), downtmp))
     return [downtmp]
 
 
@@ -290,7 +285,7 @@ def cmd_reboot(c, ce):
         bomb("`reboot' when `reboot' not advertised")
     caller.hook_reboot()
     downtmp = caller.hook_downtmp()
-    debug("auxverb = %s, downtmp = %s" % (str(auxverb), downtmp))
+    adtlog.debug("auxverb = %s, downtmp = %s" % (str(auxverb), downtmp))
     return [downtmp]
 
 
@@ -317,8 +312,8 @@ def copytree(src, dst):
 
 
 def copyup_shareddir(tb, host, is_dir, downtmp_host):
-    debug('copyup_shareddir: tb %s, host %s, is_dir %s, downtmp_host %s' % (
-        tb, host, is_dir, downtmp_host))
+    adtlog.debug('copyup_shareddir: tb %s host %s is_dir %s downtmp_host %s'
+                 % (tb, host, is_dir, downtmp_host))
 
     host = os.path.normpath(host)
     tb = os.path.normpath(tb)
@@ -332,8 +327,8 @@ def copyup_shareddir(tb, host, is_dir, downtmp_host):
             tb = downtmp_host + tb[len(downtmp):]
         else:
             tb_tmp = os.path.join(downtmp, os.path.basename(host))
-            debug('copyup_shareddir: tb path %s is not already in downtmp, '
-                  'copying to %s' % (tb, tb_tmp))
+            adtlog.debug('copyup_shareddir: tb path %s is not already in '
+                         'downtmp, copying to %s' % (tb, tb_tmp))
             check_exec(['cp', '-r', '--preserve=timestamps,links', tb, tb_tmp],
                        downp=True)
             # translate into host path
@@ -342,23 +337,23 @@ def copyup_shareddir(tb, host, is_dir, downtmp_host):
         if tb == host:
             tb_tmp = None
         else:
-            debug('copyup_shareddir: tb(host) %s is not already at '
-                  'destination %s, copying' % (tb, host))
+            adtlog.debug('copyup_shareddir: tb(host) %s is not already at '
+                         'destination %s, copying' % (tb, host))
             if is_dir:
                 copytree(tb, host)
             else:
                 shutil.copy(tb, host)
 
         if tb_tmp:
-            debug('copyup_shareddir: cleaning intermediate copy: %s' % tb)
+            adtlog.debug('copyup_shareddir: rm intermediate copy: %s' % tb)
             check_exec(['rm', '-rf', tb_tmp], downp=True)
     finally:
         timeout_stop()
 
 
 def copydown_shareddir(host, tb, is_dir, downtmp_host):
-    debug('copydown_shareddir: host %s, tb %s, is_dir %s, downtmp_host %s' % (
-        host, tb, is_dir, downtmp_host))
+    adtlog.debug('copydown_shareddir: host %s tb %s is_dir %s downtmp_host %s'
+                 % (host, tb, is_dir, downtmp_host))
 
     host = os.path.normpath(host)
     tb = os.path.normpath(tb)
@@ -462,16 +457,16 @@ def copyupdown(c, ce, upp):
     else:
         cmdls = (localcmdl, downcmdl)
 
-    debug(str(["cmdls", str(cmdls)]))
-    debug(str(["srcstdin", str(srcstdin), "deststdout",
-          str(deststdout), "devnull_read", devnull_read]))
+    adtlog.debug(str(["cmdls", str(cmdls)]))
+    adtlog.debug(str(["srcstdin", str(srcstdin), "deststdout",
+                      str(deststdout), "devnull_read", devnull_read]))
 
     subprocs = [None, None]
-    debug(" +< %s" % ' '.join(cmdls[0]))
+    adtlog.debug(" +< %s" % ' '.join(cmdls[0]))
     subprocs[0] = subprocess.Popen(cmdls[0], stdin=srcstdin,
                                    stdout=subprocess.PIPE,
                                    preexec_fn=preexecfn)
-    debug(" +> %s" % ' '.join(cmdls[1]))
+    adtlog.debug(" +> %s" % ' '.join(cmdls[1]))
     subprocs[1] = subprocess.Popen(cmdls[1], stdin=subprocs[0].stdout,
                                    stdout=deststdout,
                                    preexec_fn=preexecfn)
@@ -479,7 +474,7 @@ def copyupdown(c, ce, upp):
     try:
         timeout_start(copy_timeout)
         for sdn in [1, 0]:
-            debug(" +" + "<>"[sdn] + "?")
+            adtlog.debug(" +" + "<>"[sdn] + "?")
             status = subprocs[sdn].wait()
             if not (status == 0 or (sdn == 0 and status == -13)):
                 timeout_stop()
@@ -534,7 +529,7 @@ def command():
     c = list(map(url_unquote, ce))
     if not c:
         bomb('empty commands are not permitted')
-    debug('executing ' + ' '.join(ce))
+    adtlog.debug('executing ' + ' '.join(ce))
     c_lookup = c[0].replace('-', '_')
     try:
         f = globals()['cmd_' + c_lookup]
@@ -560,7 +555,7 @@ def sethandlers(f):
 
 def cleanup():
     global downtmp, cleaning
-    debug("cleanup...")
+    adtlog.debug("cleanup...")
     sethandlers(signal.SIG_DFL)
     # avoid recursion if something bomb()s in hook_cleanup()
     if not cleaning:
