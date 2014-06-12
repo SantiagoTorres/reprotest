@@ -1,11 +1,16 @@
 autopkgtest (2.18.1) UNRELEASED; urgency=medium
 
+  Bug fixes:
   * schroot: Always advertise "revert" capability, as it implements revert
     with simply close()/open().
   * adt-run: Move warning about missing root on testbed into the correct
     place.
   * Install build-essential and build dependencies in one apt run, which is
     slightly faster.
+
+  Code cleanup:
+  * Unify logging functions into lib/adtlog.py, make their API easier and more
+    consistent, and use them in adt-run and all adt-virt-*.
 
  -- Martin Pitt <mpitt@debian.org>  Thu, 12 Jun 2014 08:43:49 +0200
 
