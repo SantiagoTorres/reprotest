@@ -5,10 +5,9 @@ Section: devel
 Priority: optional
 Standards-Version: 3.9.5
 Build-Depends: debhelper (>= 8),
- python (>= 2.7),
- python-debian,
- pyflakes,
  python3,
+ python3-debian,
+ pyflakes,
  pep8
 Vcs-Git: git://git.debian.org/git/autopkgtest/autopkgtest.git
 Vcs-Browser: http://anonscm.debian.org/gitweb/?p=autopkgtest/autopkgtest.git
@@ -16,8 +15,8 @@ XS-Testsuite: autopkgtest
 
 Package: autopkgtest
 Architecture: all
-Depends: python (>= 2.7),
- python-debian,
+Depends: python3,
+ python3-debian,
  apt-utils,
  libdpkg-perl,
  ${misc:Depends}
