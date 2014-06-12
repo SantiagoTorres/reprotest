@@ -956,10 +956,7 @@ Description: satisfy autopkgtest test dependencies
         '''Run shell in testbed for debugging tests'''
 
         debug(' - - - - - - - - - - running shell - - - - - - - - - -')
-        self.command('shell', (os.path.realpath('/dev/stdin'),
-                               os.path.realpath('/dev/stdout'),
-                               os.path.realpath('/dev/stderr'),
-                               cwd or '/'))
+        self.command('shell', ('/dev/tty', '/dev/tty', '/dev/tty', cwd or '/'))
 
 
 class TestbedPath:
