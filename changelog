@@ -13,6 +13,11 @@ autopkgtest (2.18.1) UNRELEASED; urgency=medium
   Code cleanup:
   * Unify logging functions into lib/adtlog.py, make their API easier and more
     consistent, and use them in adt-run and all adt-virt-*.
+  * Move test control parsing and keeping data into lib/testdesc.py. This
+    eases factorization, abstraction for future support of other source
+    package formats such as click, and testing. Add new tests/testdesc
+    unittests. This also drops the "tree0t-" like prefixes from test names in
+    the results and the output file names.
 
  -- Martin Pitt <mpitt@debian.org>  Thu, 12 Jun 2014 08:43:49 +0200
 
