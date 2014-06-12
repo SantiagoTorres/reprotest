@@ -114,10 +114,10 @@ def parse_args():
 
 def hook_open():
     global schroot, sessid
-    sessid = VirtSubproc.check_exec(['schroot', '-b', '-c', schroot] +
+    sessid = VirtSubproc.check_exec(['schroot', '-qb', '-c', schroot] +
                                     (sessid and ['-n', sessid] or []),
                                     outp=True)
-    VirtSubproc.auxverb = ['schroot', '-r', '-d', '/', '-c', sessid]
+    VirtSubproc.auxverb = ['schroot', '-r', '-qd', '/', '-c', sessid]
     if 'root-on-testbed' in capabilities:
         VirtSubproc.auxverb += ['-u', 'root']
     VirtSubproc.auxverb += ['--']
@@ -157,7 +157,7 @@ def hook_revert():
 def hook_cleanup():
     global schroot, sessid, capabilities
     VirtSubproc.downtmp_remove()
-    VirtSubproc.check_exec(['schroot', '-e', '-c', sessid])
+    VirtSubproc.check_exec(['schroot', '-qe', '-c', sessid])
     capabilities = [c for c in capabilities if not c.startswith('downtmp-host')]
 
 
