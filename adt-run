@@ -28,7 +28,6 @@ import tempfile
 import sys
 import subprocess
 import traceback
-import string
 import re
 import os
 import errno
@@ -37,18 +36,16 @@ import shutil
 import copy
 import time
 import atexit
-import functools
 
 from urllib.parse import quote as url_quote
 from urllib.parse import unquote as url_unquote
+from optparse import OptionParser
 
 try:
-    from debian import deb822, debian_support
-    deb822, debian_support  # pyflakes
+    from debian import deb822
+    deb822  # pyflakes
 except ImportError:
-    from debian_bundle import deb822, debian_support
-
-from optparse import OptionParser
+    from debian_bundle import deb822
 
 try:
     our_base = os.environ['AUTOPKGTEST_BASE'] + '/lib'
@@ -57,6 +54,7 @@ except KeyError:
 sys.path.insert(1, our_base)
 import VirtSubproc
 import adtlog
+import testdesc
 
 #---------- global variables
 
@@ -145,9 +143,6 @@ def rmtree(what, pathname):
             raise
 
 
-def flatten(l):
-    return functools.reduce((lambda a, b: a + b), l, [])
-
 #---------- parsing and representation of the arguments
 
 
@@ -159,7 +154,6 @@ class Action:
         self.arg = arg
         self.ah = arghandling
         self.what = what
-        self.missing_tests_control = False
 
     def __repr__(self):
         return '<Action %s %s %s>' % (self.kind, self.what, self.arg)
@@ -859,6 +853,139 @@ Description: satisfy autopkgtest test dependencies
         adtlog.info(' - - - - - - - - - - running shell - - - - - - - - - -')
         self.command('shell', ('/dev/tty', '/dev/tty', '/dev/tty', cwd or '/'))
 
+    def run_test(self, tree, test):
+        '''Run given test in testbed
+
+        tree (a TestbedPath) is the source tree root.
+        '''
+        def _info(m):
+            adtlog.info('test %s: %s' % (test.name, m))
+
+        _info('preparing')
+        self.prepare(test.depends, 'needs-recommends' in test.restrictions)
+
+        # record installed package versions
+        if opts.output_dir:
+            pkglist = TempTestbedPath(self, test.name + '-packages.all', autoclean=False)
+            self.check_exec([
+                'sh', '-ec', "dpkg-query --show -f '${Package}\\t${Version}\\n' > %s" % pkglist.tb])
+            pkglist.copyup()
+
+            # filter out packages from the base system
+            with open(pkglist.host[:-4], 'w') as out:
+                rc = script_out(['join', '-v2', '-t\t',
+                                 os.path.join(opts.output_dir, 'testbed-packages'),
+                                 pkglist.host], stdout=out, env={})[0]
+            if rc:
+                badpkg('failed to call join for test specific package list, code %d' % rc)
+            os.unlink(pkglist.host)
+
+        # ensure our tests are in the testbed
+        tree.copydown()
+
+        # stdout/err files in testbed
+        so = TempTestbedPath(self, test.name + '-stdout', autoclean=False)
+        se = TempTestbedPath(self, test.name + '-stderr', autoclean=False)
+
+        tb_test_path = os.path.join(tree.tb, test.path)
+
+        # create script to run test
+        test_artifacts = '%s/%s-artifacts' % (self.scratch, test.name)
+        script = '''set -e
+                    buildtree="%(t)s"
+                    rm -rf "%(a)s"; mkdir -m 1777 -- "%(a)s"
+                    export ADT_ARTIFACTS="%(a)s"
+                    export ADTTMP=$(mktemp -d --tmpdir adttmp.XXXXXX)
+                    trap "rm -rf $ADTTMP" EXIT INT QUIT PIPE
+                    chmod 755 $ADTTMP
+                    cd "$buildtree"
+                    ''' % {'t': tree.tb, 'a': test_artifacts}
+
+        if opts.user and 'rw-build-tree' in test.restrictions:
+            script += 'chown -R %s "$buildtree"\n' % opts.user
+
+        script += '''chmod +x %(t)s
+                     touch %(o)s %(e)s
+                     %(t)s 2> >(tee %(e)s >&2) > >(tee %(o)s)
+                  ''' % {'t': tb_test_path, 'o': so.tb, 'e': se.tb}
+
+        if 'needs-root' not in test.restrictions and opts.user is not None:
+            if 'root-on-testbed' not in self.caps:
+                bomb('cannot change to user %s without root-on-testbed' % opts.user)
+            test_argv = ['su', '-s', '/bin/bash', opts.user, '-c', script]
+        else:
+            test_argv = ['bash', '-c', script]
+
+        # run test script
+        _info('[-----------------------')
+        rc = self.execute(test_argv, kind='test')[0]
+        # give the setup_trace() cats some time to catch up
+        sys.stdout.flush()
+        sys.stderr.flush()
+        time.sleep(0.3)
+        _info('-----------------------]')
+        adtlog.debug('testbed executing test finished with exit status %i' % rc)
+
+        # copy stdout/err files to host
+        so.copyup()
+        se.copyup()
+        se_size = os.path.getsize(se.host)
+
+        # avoid mixing up stdout (from report) and stderr (from logging) in output
+        sys.stdout.flush()
+        sys.stderr.flush()
+        time.sleep(0.1)
+
+        _info(' - - - - - - - - - - results - - - - - - - - - -')
+
+        global errorcode
+        if rc != 0:
+            test.failed('non-zero exit status %d' % rc)
+            errorcode |= 4
+        elif se_size != 0 and 'allow-stderr' not in test.restrictions:
+            with open(se.host, encoding='UTF-8') as f:
+                stderr_top = f.readline().rstrip('\n \t\r')
+            test.failed('stderr: %s' % stderr_top)
+            errorcode |= 4
+        else:
+            test.passed()
+
+        sys.stdout.flush()
+        sys.stderr.flush()
+
+        if os.path.getsize(so.host) == 0:
+            # don't produce empty -stdout files in --output-dir
+            so.autoclean = True
+
+        if se_size != 0 and 'allow-stderr' not in test.restrictions:
+            _info(' - - - - - - - - - - stderr - - - - - - - - - -')
+            with open(se.host, 'rb') as f:
+                while True:
+                    block = f.read1(1000000)
+                    if not block:
+                        break
+                    sys.stderr.buffer.write(block)
+            sys.stderr.buffer.flush()
+        else:
+            # don't produce empty -stderr files in --output-dir
+            se.autoclean = True
+
+        # copy artifacts to host, if we have --output-dir
+        if opts.output_dir:
+            ap = TestbedPath(self,
+                             os.path.join(opts.output_dir, 'artifacts'),
+                             test_artifacts, is_dir=True)
+            ap.copyup()
+            # don't keep an empty artifacts dir around
+            if not os.listdir(ap.host):
+                os.rmdir(ap.host)
+
+        # clean up artifacts dirs
+        self.check_exec(['rm', '-rf', test_artifacts])
+
+        if opts.shell or (opts.shell_fail and test.result != 0):
+            self.run_shell(tree.tb)
+
 
 class TestbedPath:
     '''Represent a file/dir with a host and a testbed path'''
@@ -955,454 +1082,23 @@ class TempTestbedPath(TestbedPath):
                     else:
                         raise
 
-#---------- representation of test control files: Field*, Test, etc.
 
-
-class FieldBase:
-
-    def __init__(self, fname, stz, base, tnames, vl):
-        assert(vl)
-        self.stz = stz
-        self.fname = fname
-        self.base = base
-        self.tnames = tnames
-        self.vl = vl
-
-    def words(self):
-        def distribute(vle):
-            (lno, v) = vle
-            r = v.split()
-            r = list(map((lambda w: (lno, w)), r))
-            return r
-        return flatten(map(distribute, self.vl))
-
-    def atmostone(self):
-        if len(self.vl) == 1:
-            (self.lno, self.v) = self.vl[0]
-        else:
-            raise Unsupported(self.vl[1][0],
-                              'only one %s field allowed' % self.fname)
-        return self.v
-
-
-class FieldIgnore(FieldBase):
-
-    def parse(self):
-        pass
-
-
-class Restriction:
-
-    def __init__(self, rname, base):
-        pass
-
-
-class Restriction_rw_build_tree(Restriction):
-    pass
-
-
-class Restriction_build_needed(Restriction):
-    pass
-
-
-class Restriction_allow_stderr(Restriction):
-    pass
-
-
-class Restriction_isolation_container(Restriction):
-
-    def __init__(self, rname, base):
-        if 'isolation-container' not in testbed.caps and 'isolation-machine' not in testbed.caps:
-            raise Unsupported(-1, 'Test requires container-level isolation but testbed does not provide that')
-
-
-class Restriction_isolation_machine(Restriction):
-
-    def __init__(self, rname, base):
-        if 'isolation-machine' not in testbed.caps:
-            raise Unsupported(-1, 'Test requires machine-level isolation but testbed does not provide that')
-
-
-class Restriction_breaks_testbed(Restriction):
-
-    def __init__(self, rname, base):
-        if 'revert-full-system' not in testbed.caps:
-            raise Unsupported(-1, 'Test breaks testbed but testbed does not '
-                              'advertise revert-full-system')
-
-
-class Restriction_needs_root(Restriction):
-
-    def __init__(self, rname, base):
-        if 'root-on-testbed' not in testbed.caps:
-            raise Unsupported(-1,
-                              'Test needs root on testbed which is not available')
-
-
-class Restriction_needs_recommends(Restriction):
-    pass
-
-
-class Field_Restrictions(FieldBase):
-
-    def parse(self):
-        for wle in self.words():
-            (lno, rname) = wle
-            nrname = rname.replace('-', '_')
-            try:
-                rclass = globals()['Restriction_' + nrname]
-            except KeyError:
-                raise Unsupported(lno,
-                                  'unknown restriction %s' % rname)
-            r = rclass(nrname, self.base)
-            self.base['restriction_names'].append(rname)
-            self.base['restrictions'].append(r)
-
-
-class Field_Features(FieldIgnore):
-
-    def parse(self):
-        for wle in self.words():
-            (lno, fname) = wle
-            self.base['feature_names'].append(fname)
-            nfname = fname.replace('-', '_')
-            try:
-                fclass = globals()['Feature_' + nfname]
-            except KeyError:
-                continue
-            ft = fclass(nfname, self.base)
-            self.base['features'].append(ft)
-
-
-class Field_Tests(FieldIgnore):
-    pass
-
-
-class Field_Depends(FieldBase):
-
-    def parse(self):
-        adtlog.debug('Field_Depends: %s %s %s %s' %
-                     (self.stz, self.base, self.tnames, self.vl))
-        dl = [x.strip() for x in flatten([lno_v[1].split(',') for lno_v in self.vl]) if x]
-
-        dep_re = re.compile(
-            r'(?P<package>[a-z0-9+-.]+)(?::native)?\s*(\((?P<relation><<|<=|>=|=|>>)\s*(?P<version>[^\)]*)\))?(\s*\[[[a-z0-9+-. ]+\])?$')
-        for di in dl:
-            for d in di.split('|'):
-                d = d.strip()
-                if d == '@':
-                    continue  # Expanded to binary packages
-                if d == '@builddeps@':
-                    continue  # Expanded to build dependencies
-                m = dep_re.match(d)
-                if not m:
-                    badpkg("Test Depends field contains an invalid "
-                           "dependency `%s'" % d)
-                if m.group("version"):
-                    try:
-                        debian_support.NativeVersion(m.group('version'))
-                    except ValueError:
-                        badpkg("Test Depends field contains dependency"
-                               " `%s' with an invalid version" % d)
-                    except AttributeError:
-                        # too old python-debian, skip the check
-                        pass
-        self.base['depends'] = dl
-
-
-class Field_Tests_directory(FieldBase):
-
-    def parse(self):
-        td = self.atmostone()
-        if td.startswith('/'):
-            raise Unsupported(self.lno,
-                              'Tests-Directory may not be absolute')
-        self.base['testsdir'] = td
-
-
-def run_tests(stanzas, tree):
+def run_tests(tests, tree):
     global errorcode, testbed
 
-    if stanzas == ():
-        adtlog.report('*', 'SKIP no tests in this package')
-        errorcode |= 8
-    for stanza in stanzas:
-        tests = stanza[' tests']
-        if not tests:
-            # if we have skipped tests, don't claim that we don't have any
-            if not errorcode & 2:
-                adtlog.report('*', 'SKIP package has metadata but no tests')
-                errorcode |= 8
-        for t in tests:
-            t.prepare(tree)
-            t.run(tree)
-            if 'breaks-testbed' in t.restriction_names:
-                testbed.needs_reset()
-        testbed.needs_reset()
+    if not tests:
+        # if we have skipped tests, don't claim that we don't have any
+        if not errorcode & 2:
+            adtlog.report('*', 'SKIP no tests in this package')
+            errorcode |= 8
+        return
 
+    for t in tests:
+        testbed.run_test(tree, t)
+        if 'breaks-testbed' in t.restrictions:
+            testbed.needs_reset()
 
-class Test:
-
-    def __init__(self, tname, base, act):
-        if '/' in tname:
-            raise Unsupported(base[' lno'],
-                              'test name may not contain / character')
-        for k in base:
-            setattr(self, k, base[k])
-        self.tname = tname
-        self.act = act
-        self.what = act.what + 't-' + tname
-        if len(base['testsdir']):
-            self.path = base['testsdir'] + '/' + tname
-        else:
-            self.path = tname
-        adtlog.debug('Test: constructed; path=%s depends=%s' % (self.path, self.depends))
-
-    def _info(self, m):
-        adtlog.info('test %s: %s' % (self.what, m))
-
-    def report(self, m):
-        adtlog.report(self.what, m)
-
-    def reportfail(self, m):
-        global errorcode
-        errorcode |= 4
-        adtlog.report(self.what, 'FAIL ' + m)
-
-    def prepare(self, tree):
-        self._info('preparing')
-        dn = []
-        for d in self.depends:
-            self._info(' processing dependency ' + d)
-            if d == '@':
-                # expand to all binaries from that source
-                for pkg in packages_from_source(self.act, tree):
-                    self._info('  synthesised dependency ' + pkg)
-                    dn.append(pkg)
-            elif d == '@builddeps@':
-                for dp in build_deps_from_source(self.act, tree):
-                    self._info('  synthesised dependency ' + dp)
-                    dn.append(dp)
-            else:
-                self._info('  literal dependency ' + d)
-                dn.append(d)
-        testbed.prepare(dn, 'needs-recommends' in self.restriction_names)
-
-    def run(self, tree):
-        global testbed
-        # record installed package versions
-        if opts.output_dir:
-            pkglist = TempTestbedPath(testbed, self.what + '-packages.all', autoclean=False)
-            testbed.check_exec([
-                'sh', '-ec', "dpkg-query --show -f '${Package}\\t${Version}\\n' > %s" % pkglist.tb])
-            pkglist.copyup()
-
-            # filter out packages from the base system
-            with open(pkglist.host[:-4], 'w') as out:
-                rc = script_out(['join', '-v2', '-t\t',
-                                 os.path.join(opts.output_dir, 'testbed-packages'),
-                                 pkglist.host], stdout=out, env={})[0]
-            if rc:
-                badpkg('failed to call join for test specific package list, code %d' % rc)
-            os.unlink(pkglist.host)
-
-        # ensure our tests are in the testbed
-        tree.copydown()
-
-        # stdout/err files in testbed
-        so = TempTestbedPath(testbed, self.what + '-stdout', autoclean=False)
-        se = TempTestbedPath(testbed, self.what + '-stderr', autoclean=False)
-
-        tb_test_path = os.path.join(tree.tb, self.path)
-
-        # create script to run test
-        test_artifacts = '%s/%s-artifacts' % (testbed.scratch, self.what)
-        script = '''set -e
-                    buildtree="%(t)s"
-                    rm -rf "%(a)s"; mkdir -m 1777 -- "%(a)s"
-                    export ADT_ARTIFACTS="%(a)s"
-                    export ADTTMP=$(mktemp -d --tmpdir adttmp.XXXXXX)
-                    trap "rm -rf $ADTTMP" EXIT INT QUIT PIPE
-                    chmod 755 $ADTTMP
-                    cd "$buildtree"
-                    ''' % {'t': tree.tb, 'a': test_artifacts}
-
-        if opts.user and 'rw-build-tree' in self.restriction_names:
-            script += 'chown -R %s "$buildtree"\n' % opts.user
-
-        script += '''chmod +x %(t)s
-                     touch %(o)s %(e)s
-                     %(t)s 2> >(tee %(e)s >&2) > >(tee %(o)s)
-                  ''' % {'t': tb_test_path, 'o': so.tb, 'e': se.tb}
-
-        if 'needs-root' not in self.restriction_names and opts.user is not None:
-            if 'root-on-testbed' not in testbed.caps:
-                bomb('cannot change to user %s without root-on-testbed' % opts.user)
-            test_argv = ['su', '-s', '/bin/bash', opts.user, '-c', script]
-        else:
-            test_argv = ['bash', '-c', script]
-
-        # run test script
-        self._info('[-----------------------')
-        rc = testbed.execute(test_argv, kind='test')[0]
-        # give the setup_trace() cats some time to catch up
-        sys.stdout.flush()
-        sys.stderr.flush()
-        time.sleep(0.3)
-        self._info('-----------------------]')
-        adtlog.debug('testbed executing test finished with exit status %i' % rc)
-
-        # copy stdout/err files to host
-        so.copyup()
-        se.copyup()
-        se_size = os.path.getsize(se.host)
-
-        # avoid mixing up stdout (from report) and stderr (from logging) in output
-        sys.stdout.flush()
-        sys.stderr.flush()
-        time.sleep(0.1)
-
-        self._info(' - - - - - - - - - - results - - - - - - - - - -')
-
-        passed = False
-        if rc != 0:
-            self.reportfail('non-zero exit status %d' % rc)
-        elif se_size != 0 and 'allow-stderr' not in self.restriction_names:
-            with open(se.host, encoding='UTF-8') as f:
-                stderr_top = f.readline().rstrip('\n \t\r')
-            self.reportfail('status: %d, stderr: %s' % (rc, stderr_top))
-        else:
-            self.report('PASS')
-            passed = True
-
-        sys.stdout.flush()
-        sys.stderr.flush()
-
-        if os.path.getsize(so.host) == 0:
-            # don't produce empty -stdout files in --output-dir
-            so.autoclean = True
-
-        if se_size != 0 and 'allow-stderr' not in self.restriction_names:
-            self._info(' - - - - - - - - - - stderr - - - - - - - - - -')
-            with open(se.host, 'rb') as f:
-                while True:
-                    block = f.read1(1000000)
-                    if not block:
-                        break
-                    sys.stderr.buffer.write(block)
-            sys.stderr.buffer.flush()
-        else:
-            # don't produce empty -stderr files in --output-dir
-            se.autoclean = True
-
-        # copy artifacts to host, if we have --output-dir
-        if opts.output_dir:
-            ap = TestbedPath(testbed,
-                             os.path.join(opts.output_dir, 'artifacts'),
-                             test_artifacts, is_dir=True)
-            ap.copyup()
-            # don't keep an empty artifacts dir around
-            if not os.listdir(ap.host):
-                os.rmdir(ap.host)
-
-        # clean up artifacts dirs
-        testbed.check_exec(['rm', '-rf', test_artifacts])
-
-        if opts.shell or (opts.shell_fail and not passed):
-            testbed.run_shell(tree.tb)
-
-
-def read_stanzas(path):
-    stanzas = []
-
-    try:
-        control = open(path, encoding='UTF-8')
-    except (IOError, OSError) as oe:
-        if oe[0] != errno.ENOENT:
-            raise
-        return []
-
-    # filter out comments, python-debian doesn't do that
-    # (http://bugs.debian.org/743174)
-    lines = []
-    for l in control:
-        # completely ignore ^# as that breaks continuation lines
-        if l.startswith('#'):
-            continue
-        # filter out comments which don't start on first column
-        l = l.split('#', 1)[0]
-        lines.append(l)
-    control.close()
-
-    lno = 0
-    stz = {}  # stz[field_name][index] = (lno, value)
-                # special field names:
-                # stz[' lno'] = number
-                # stz[' tests'] = list of Test objects
-                # empty dictionary means we're between stanzas
-    for paragraph in deb822.Deb822.iter_paragraphs(lines):
-        lno += 1
-        stz = {' lno': lno, ' tests': []}
-        for field, value in paragraph.items():
-            v = ''.join(value.split('\n')).replace('  ', ' ')
-            field = string.capwords(field)
-            stz[field] = [(lno, v)]
-            lno += 1 + value.count('\n')  # Count multilines fields
-        stanzas.append(stz.copy())
-
-    return stanzas
-
-
-def read_control(act, control_path):
-
-    if act.missing_tests_control:
-        return ()
-    stanzas = read_stanzas(control_path)
-
-    for stz in stanzas:
-        try:
-            try:
-                tnames = stz['Tests']
-            except KeyError:
-                tnames = ['*']
-                raise Unsupported(stz[' lno'],
-                                  'no Tests field')
-            tnames = list(map((lambda lt: lt[1]), tnames))
-            tnames = ' '.join(tnames).split()
-            base = {
-                'restriction_names': [],
-                'restrictions': [],
-                'feature_names': [],
-                'features': [],
-                'testsdir': 'debian/tests',
-                'depends': '@',
-                ' lno': stz[' lno'],
-            }
-            for fname in stz.keys():
-                if fname.startswith(' '):
-                    continue
-                vl = stz[fname]
-                try:
-                    fclass = globals()['Field_' +
-                                       fname.replace('-', '_')]
-                except KeyError:
-                    raise Unsupported(vl[0][0],
-                                      'unknown metadata field %s' % fname)
-                f = fclass(stz, fname, base, tnames, vl)
-                f.parse()
-            for tname in tnames:
-                try:
-                    t = Test(tname, base, act)
-                    stz[' tests'].append(t)
-                except Unsupported as u:
-                    u.report(tname)
-                    continue
-        except Unsupported as u:
-            for tname in tnames:
-                u.report(tname)
-            continue
-
-    return stanzas
+    testbed.needs_reset()
 
 
 def print_exception(ei, msgprefix=''):
@@ -1445,61 +1141,6 @@ def signal_handler(signum, frame):
 
 
 #---------- registration, installation etc. of .deb's: Binaries
-
-
-def determine_package(act):
-    cmd = 'dpkg-deb --info --'.split(' ') + [act.arg, 'control']
-    (rc, output) = script_out(cmd, stdout=subprocess.PIPE)
-    if rc:
-        badpkg('failed to parse binary package, code %d' % rc)
-    pkg_re = re.compile('^\s*Package\s*:\s*([0-9a-z][-+.0-9a-z]*)\s*$')
-    act.pkg = None
-    for l in output.split('\n'):
-        m = pkg_re.match(l)
-        if not m:
-            continue
-        if act.pkg:
-            badpkg('two Package: lines in control file')
-        act.pkg = m.groups()[0]
-    if not act.pkg:
-        badpkg('no good Package: line in control file')
-
-
-def packages_from_source(act, tree):
-    packages = []
-
-    for st in read_stanzas(os.path.join(tree.host, 'debian/control')):
-        if 'Package' not in st:
-            # source stanza
-            continue
-        if 'Xc-package-type' in st:
-            # filter out udebs
-            pass
-        arch = st['Architecture'][0][1]
-        if arch in ('all', 'any'):
-            packages.append(st['Package'][0][1])
-        else:
-            packages.append('%s [%s]' % (st['Package'][0][1], arch))
-
-    return packages
-
-
-def build_deps_from_source(act, tree):
-    deps = []
-    for st in read_stanzas(os.path.join(tree.host, 'debian/control')):
-        if 'Build-depends' in st:
-            for d in st['Build-depends'][-1][1].split(','):
-                dp = d.strip()
-                if dp:
-                    deps.append(dp)
-        if 'Build-depends-indep' in st:
-            for d in st['Build-depends-indep'][-1][1].split(','):
-                dp = d.strip()
-                if dp:
-                    deps.append(dp)
-    # @builddeps@ should always imply build-essential
-    deps.append('build-essential')
-    return deps
 
 
 class Binaries:
@@ -1694,6 +1335,24 @@ Pin-Priority: 1002
 #---------- processing of sources (building)
 
 
+def determine_package(act):
+    cmd = ['dpkg-deb', '--info', '--', act.arg, 'control']
+    (rc, output) = script_out(cmd, stdout=subprocess.PIPE)
+    if rc:
+        badpkg('failed to parse binary package, code %d' % rc)
+    pkg_re = re.compile('^\s*Package\s*:\s*([0-9a-z][-+.0-9a-z]*)\s*$')
+    act.pkg = None
+    for l in output.split('\n'):
+        m = pkg_re.match(l)
+        if not m:
+            continue
+        if act.pkg:
+            badpkg('two Package: lines in control file')
+        act.pkg = m.groups()[0]
+    if not act.pkg:
+        badpkg('no good Package: line in control file')
+
+
 def source_rules_command(script, which, cwd=None, results_lines=0):
     if cwd is None:
         cwd = '.'
@@ -1732,6 +1391,7 @@ def build_source(act):
     def info_b(m):
         adtlog.info('build_source: <%s:%s> %s' % (act.kind, act.what, m))
 
+    # copy necessary source files into testbed and set create_command for final unpacking
     if act.kind == 'dsc':
         dsc = act.arg
         dsc_tb = os.path.join(testbed.scratch, what, os.path.basename(dsc))
@@ -1770,7 +1430,9 @@ def build_source(act):
                     os.path.join(testbed.scratch, what, leaf))
                 part.copydown()
 
-    if act.kind == 'ubtree':
+        create_command = 'dpkg-source -x "%s"' % dsc_tb
+
+    elif act.kind == 'ubtree':
         dsc = os.path.join(tmp, what + '-fakedsc')
         with open(dsc, 'w', encoding='UTF-8') as f_dsc:
             with open(os.path.join(act.arg, 'debian/control'), encoding='UTF-8') as f_control:
@@ -1780,6 +1442,18 @@ def build_source(act):
                     f_dsc.write(l)
             f_dsc.write('Binary: none-so-this-is-not-a-package-name\n')
         atexit.register(lambda f: os.path.exists(f) and os.unlink(f), dsc)
+
+        # copy unbuilt tree into testbed
+        ubtree = TestbedPath(testbed, act.arg,
+                             os.path.join(testbed.scratch, act.what + '-ubtree'))
+        ubtree.copydown()
+        create_command = 'cp -rd --preserve=timestamps -- "%s" real-tree' % ubtree.tb
+
+    elif act.kind == 'apt':
+        create_command = 'apt-get source --only-source ' + act.arg
+
+    else:
+        bomb('unknown action kind for build_source: ' + act.kind)
 
     if act.kind in ['dsc', 'apt']:
         testbed.install_deps([], False)
@@ -1791,20 +1465,7 @@ def build_source(act):
             testbed.satisfy_dependencies_string('dpkg-dev',
                                                 'install dpkg-dev')
 
-    if act.kind == 'ubtree':
-        # copy unbuilt tree into testbed
-        ubtree = TestbedPath(testbed, act.arg,
-                             os.path.join(testbed.scratch, act.what + '-ubtree'))
-        ubtree.copydown()
-        create_command = 'cp -rd --preserve=timestamps -- "%s" real-tree' % ubtree.tb
-
-    elif act.kind == 'dsc':
-        create_command = 'dpkg-source -x "%s"' % dsc_tb
-    elif act.kind == 'apt':
-        create_command = 'apt-get source --only-source ' + act.arg
-    else:
-        bomb('unknown action kind for build_source: ' + act.kind)
-
+    # run create_command
     script = [
         'builddir="%s/%s-build"' % (testbed.scratch, what),
         'mkdir -p $builddir',
@@ -1813,11 +1474,12 @@ def build_source(act):
         'cd [a-z0-9]*-*/.',
         'pwd >&3',
         'sed -n "1 {s/).*//; s/ (/\\n/; p}" debian/changelog >&3',
-        'set +e; test -f debian/tests/control; echo $? >&3'
+        'set +e; test -f debian/tests/control; echo $? >&3',
+        'grep -q "^Restrictions:.*\\bbuild-needed\\b" debian/tests/control; echo $? >&3'
     ]
 
-    (result_pwd, testpkg_name, testpkg_version, control_test_rc) = \
-        source_rules_command(script, 'extract', results_lines=4)
+    (result_pwd, testpkg_name, testpkg_version, control_test_rc, build_needed_rc) = \
+        source_rules_command(script, 'extract', results_lines=5)
 
     # record tested package version
     adtlog.info('testing package %s version %s' % (testpkg_name, testpkg_version))
@@ -1827,10 +1489,6 @@ def build_source(act):
 
     filter = act.ah['dsc_filter']
 
-    if control_test_rc == '1':
-        act.missing_tests_control = True
-        return
-
     # For optional builds:
     #
     # We might need to build the package because:
@@ -1839,34 +1497,18 @@ def build_source(act):
     #   - the test control file says so
     #       (assuming we have any tests)
 
-    class NeedBuildException(Exception):
-        pass
-
-    def build_needed(m):
-        info_b('build needed for %s' % m)
-        raise NeedBuildException()
-
-    try:
-        if filter != '_' and (act.ah['deb_forbuilds'] != 'ignore' or
-                              act.ah['deb_fortests'] != 'ignore'):
-            build_needed('binaries')
-
-        # get test control file from testbed
-        test_control = TestbedPath(testbed,
-                                   os.path.join(tmp, what + '-testcontrol'),
-                                   os.path.join(result_pwd, 'debian/tests/control'), False)
-        test_control.copyup()
-        stanzas = read_control(act, test_control.host)
-        os.unlink(test_control.host)
-        for stanza in stanzas:
-            for t in stanza[' tests']:
-                if 'build-needed' in t.restriction_names:
-                    build_needed('test %s' % t.tname)
-
+    build_needed = False
+    if filter != '_' and (act.ah['deb_forbuilds'] != 'ignore' or
+                          act.ah['deb_fortests'] != 'ignore'):
+        info_b('build needed for binaries')
+        build_needed = True
+    elif build_needed_rc == '0':
+        info_b('build needed for tests')
+        build_needed = True
+    else:
         info_b('build not needed')
-        built = False
 
-    except NeedBuildException:
+    if build_needed:
         testbed.needs_reset()
 
         if act.kind not in ['dsc', 'apt']:
@@ -1897,11 +1539,8 @@ def build_source(act):
         testbed.satisfy_dependencies_string(bd + ', ' + bdi + ', '.join(build_essential), what)
 
         source_rules_command([dpkg_buildpackage], 'build', cwd=result_pwd)
-        built = True
 
-    # copy tests from testbed to hosts, we need that for parsing control files
-    # and for "build-needed" tests
-    # FIXME: avoid copying whole tree for tests without build-needed
+    # copy built tree from testbed to hosts
     act.tests_tree = TestbedPath(
         testbed,
         os.path.join(tmp, what + '-tests-tree'),
@@ -1910,7 +1549,7 @@ def build_source(act):
     atexit.register(rmtree, 'tests-tree', act.tests_tree.host)
     act.tests_tree.copyup()
 
-    if not built:
+    if not build_needed:
         act.blamed = []
         return
 
@@ -1963,7 +1602,7 @@ def build_source(act):
 
 
 def process_actions():
-    global binaries
+    global binaries, errorcode
 
     def info_1(m):
         adtlog.log('@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ ' + m, 1)
@@ -1985,20 +1624,23 @@ def process_actions():
             testbed.blame('deb:' + act.pkg)
             binaries.register(act, act.pkg, act.arg,
                               'forbuilds', testbed.blamed)
-        if act.kind in ['dsc', 'ubtree', 'apt']:
-            build_source(act)
-        if act.kind == 'tree':
-            act.binaries = []
-        if act.kind == 'instantiate':
+        elif act.kind == 'instantiate':
             pass
+        else:
+            assert act.kind in ('dsc', 'tree', 'ubtree', 'apt')
+
+            # needs special-casing, build_source() does not handle built trees
+            if act.kind == 'tree':
+                act.binaries = []
+                act.tests_tree = TestbedPath(testbed, act.arg, os.path.join(testbed.scratch, 'tree'), is_dir=True)
+            else:
+                build_source(act)  # sets act.tests_tree
+
+            (act.tests, skipped) = testdesc.parse_debian_source(act.tests_tree.host, testbed.caps)
+            if skipped:
+                errorcode |= 2
 
     info_1('builds done.')
-
-    if act.missing_tests_control:
-        adtlog.report('*', 'SKIP no tests in this package')
-        global errorcode
-        errorcode |= 8
-        return
 
     binaries.reset()
 
@@ -2009,29 +1651,20 @@ def process_actions():
         if act.kind == 'deb':
             binaries.register(act, act.pkg, act.arg, 'fortests',
                               ['deb:' + act.pkg])
-        if act.kind == 'dsc' or act.kind == 'ubtree':
+        elif act.kind == 'instantiate':
+            testbed.prepare([], False)
+        else:
+            assert act.kind in ('dsc', 'tree', 'ubtree', 'apt')
+
+            if not act.ah['dsc_tests']:
+                continue
+
             for (pkg, path) in act.binaries:
                 binaries.register(act, pkg, path, 'fortests',
                                   act.blamed)
-        if act.kind in ['dsc', 'apt']:
-            if act.ah['dsc_tests']:
-                stanzas = read_control(
-                    act, os.path.join(act.tests_tree.host, 'debian/tests/control'))
-                testbed.blamed += act.blamed
-                run_tests(stanzas, act.tests_tree)
-        if act.kind == 'tree' or act.kind == 'ubtree':
-            testbed.blame('arg:' + act.arg)
-            stanzas = read_control(
-                act, os.path.join(act.arg, 'debian/tests/control'))
-            if act.kind == 'ubtree':
-                run_tests(stanzas, act.tests_tree)
-            else:
-                tree = TestbedPath(testbed, act.arg,
-                                   os.path.join(testbed.scratch, act.what + '-tree'))
-                run_tests(stanzas, tree)
-        if act.kind == 'instantiate':
-            testbed.prepare([], False)
-        testbed.needs_reset()
+
+            run_tests(act.tests, act.tests_tree)
+
     info_1('tests done.')
 
 
