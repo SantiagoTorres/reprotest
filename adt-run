@@ -889,6 +889,11 @@ class Testbed:
 
         debug('%s: satisfying %s' % (what, deps), 1)
 
+        if 'root-on-testbed' not in self.caps:
+            error('WARNING: virtualisation system does not offer root on '
+                  'testbed, cannot install any packages; failure likely')
+            return
+
         # ignore ":native" tags, apt cannot parse them and deps_parse() does
         # not seem to have an option to get rid of them; we always test on the
         # native platform
@@ -945,11 +950,6 @@ Description: satisfy autopkgtest test dependencies
 
     def satisfy_dependencies_dsc(self, dsc, what, recommends=False):
         '''Install build deps from a dsc into the testbed'''
-
-        if 'root-on-testbed' not in self.caps:
-            error('WARNING: virtualisation system does not offer root on '
-                  'testbed, cannot install any packages; failure likely')
-            return
 
         with open(dsc) as f:
             d = deb822.Deb822(sequence=f)
