@@ -4,6 +4,8 @@ autopkgtest (2.18.1) UNRELEASED; urgency=medium
     with simply close()/open().
   * adt-run: Move warning about missing root on testbed into the correct
     place.
+  * Install build-essential and build dependencies in one apt run, which is
+    slightly faster.
 
  -- Martin Pitt <mpitt@debian.org>  Thu, 12 Jun 2014 08:43:49 +0200
 
