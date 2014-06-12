@@ -1,3 +1,10 @@
+autopkgtest (2.18.1) UNRELEASED; urgency=medium
+
+  * schroot: Always advertise "revert" capability, as it implements revert
+    with simply close()/open().
+
+ -- Martin Pitt <mpitt@debian.org>  Thu, 12 Jun 2014 08:43:49 +0200
+
 autopkgtest (2.18) unstable; urgency=medium
 
   Improvements:
