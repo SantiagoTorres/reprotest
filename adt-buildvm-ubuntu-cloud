@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 #
 # adt-buildvm-ubuntu-cloud is part of autopkgtest
 # autopkgtest is a tool for testing Debian binary packages
@@ -31,7 +31,7 @@ import sys
 import subprocess
 import shutil
 import atexit
-import urllib
+import urllib.request
 import os
 import time
 import socket
@@ -132,7 +132,10 @@ def download_image(cloud_img_url, release, arch):
 
     def report(numblocks, blocksize, totalsize):
         cur_bytes = numblocks * blocksize
-        percent = int(cur_bytes * 100. / totalsize + .5)
+        if totalsize > 0:
+            percent = int(cur_bytes * 100. / totalsize + .5)
+        else:
+            percent = 0
         if is_tty:
             if percent > download_image.lastpercent:
                 download_image.lastpercent = percent
@@ -147,7 +150,7 @@ def download_image(cloud_img_url, release, arch):
                 sys.stdout.write('%i%% ' % percent)
                 sys.stdout.flush()
 
-    headers = urllib.urlretrieve(image_url, local_image, report)[1]
+    headers = urllib.request.urlretrieve(image_url, local_image, report)[1]
     if headers['content-type'] not in ('application/octet-stream',
                                        'text/plain'):
         sys.stderr.write('\nDownload failed!\n')
@@ -280,7 +283,7 @@ def boot_image(image, seed, qemu_command, verbose):
                 time.sleep(0.2)
                 if verbose:
                     block = tty.recv(4096)
-                    sys.stdout.write(block)
+                    sys.stdout.buffer.raw.write(block)
     finally:
         if qemu.poll() is None:
             qemu.terminate()
