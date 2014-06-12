@@ -32,6 +32,8 @@ autopkgtest (2.18) UNRELEASED; urgency=medium
   * qemu: Use low-level IO in runcmd.  This avoids all the Python overhead and
     buffering and is less prone to bytes vs. string issues.
   * qemu: Fix text vs. binary confusion in reading and copying /etc/timezone.
+  * schroot: Call schroot command with -q, to avoid stderr spew if the schroot
+    has "message-verbosity=verbose".
 
  -- Martin Pitt <mpitt@debian.org>  Wed, 04 Jun 2014 16:05:46 +0200
 
