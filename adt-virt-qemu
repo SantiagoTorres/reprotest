@@ -43,6 +43,8 @@ except KeyError:
 sys.path.insert(1, our_base)
 
 import VirtSubproc
+import adtlog
+
 
 args = None
 workdir = None
@@ -81,7 +83,8 @@ def parse_args():
 
     args = parser.parse_args()
 
-    VirtSubproc.debuglevel = args.debug
+    if args.debug:
+        adtlog.verbosity = 2
 
 
 def prepare_overlay():
@@ -93,7 +96,7 @@ def prepare_overlay():
             args.image[0]) + '.overlay-%s' % time.time())
     else:
         overlay = os.path.join(workdir, 'overlay.img')
-    VirtSubproc.debug('Creating temporary overlay image in %s' % overlay)
+    adtlog.debug('Creating temporary overlay image in %s' % overlay)
     subprocess.check_call(['qemu-img', 'create', '-f', 'qcow2', '-b',
                            os.path.abspath(args.image[0]), overlay],
                           stdout=subprocess.PIPE)
@@ -122,14 +125,14 @@ def setup_shell():
 
     # if the VM is already prepared to start a root shell on ttyS1, just use it
     if check_ttyS1_shell():
-        VirtSubproc.debug('setup_shell(): there already is a shell on ttyS1')
+        adtlog.debug('setup_shell(): there already is a shell on ttyS1')
         return
     else:
-        VirtSubproc.debug('setup_shell(): no default shell on ttyS1')
+        adtlog.debug('setup_shell(): no default shell on ttyS1')
 
     if args.user and args.password:
         # login on ttyS0 and start a root shell on ttyS1 from there
-        VirtSubproc.debug('Shell setup: have user and password, logging in..')
+        adtlog.debug('Shell setup: have user and password, logging in..')
         login_tty_and_setup_shell()
     else:
         VirtSubproc.bomb('The VM does not start a root shell on ttyS1 already.'
@@ -153,7 +156,7 @@ def login_tty_and_setup_shell():
     # send password
     term.send(args.password.encode('UTF-8'))
     term.send(b'\n')
-    VirtSubproc.debug('login_tty: sent password')
+    adtlog.debug('login_tty: sent password')
 
     cmd = b'setsid sh </dev/ttyS1 >/dev/ttyS1 2>&1 &'
 
@@ -204,10 +207,10 @@ def setup_config(shared_dir):
                     break
 
         if tz:
-            VirtSubproc.debug('Copying host timezone %s to VM' % tz.decode())
+            adtlog.debug('Copying host timezone %s to VM' % tz.decode())
             term.send(b'echo ' + tz + b' > /etc/timezone\n')
         else:
-            VirtSubproc.debug('Could not determine host timezone')
+            adtlog.debug('Could not determine host timezone')
 
     # create helper for runcmd: cat data from its stdin (from a file) to stdout
     # eternally (like tail -f), but stop once either an "EOF" file exists and
@@ -346,9 +349,9 @@ sys.exit(rc)
     status, out, err = VirtSubproc.execute_timeout(
         'down_check', None, 5, VirtSubproc.auxverb + ['runlevel'],
         stdout=subprocess.PIPE)
-    VirtSubproc.debug('runlevel: exit %i, out "%s", err "%s"' % (status, out, err))
+    adtlog.debug('runlevel: exit %i, out "%s", err "%s"' % (status, out, err))
     if status == 0 and out.endswith('2\n'):
-        VirtSubproc.debug('can connect to autopkgtest sh in VM')
+        adtlog.debug('can connect to autopkgtest sh in VM')
     else:
         VirtSubproc.bomb('failed to connect to VM')
 
@@ -359,13 +362,13 @@ def find_free_port(start):
     global ssh_port_lock
 
     for p in range(start, start + 50):
-        VirtSubproc.debug('find_free_port: trying %i' % p)
+        adtlog.debug('find_free_port: trying %i' % p)
         try:
             try:
                 ssh_port_lock = open('/run/lock/adt-virt-qemu.port.%i' % p, 'w')
                 fcntl.flock(ssh_port_lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
             except (IOError, OSError):
-                VirtSubproc.debug('find_free_port: %i is locked' % p)
+                adtlog.debug('find_free_port: %i is locked' % p)
                 if ssh_port_lock:
                     ssh_port_lock.close()
                 ssh_port_lock = None
@@ -379,12 +382,12 @@ def find_free_port(start):
             continue
         except socket.error as e:
             if e.errno == errno.ECONNREFUSED:
-                VirtSubproc.debug('find_free_port: %i is free' % p)
+                adtlog.debug('find_free_port: %i is free' % p)
                 return p
             else:
                 pass
 
-    VirtSubproc.debug('find_free_port: all ports are taken')
+    adtlog.debug('find_free_port: all ports are taken')
     return None
 
 
@@ -410,9 +413,9 @@ def determine_normal_user(shared_dir):
         out = f.read()
         if out:
             normal_user = out.strip()
-            VirtSubproc.debug('determine_normal_user: got user "%s"' % normal_user)
+            adtlog.debug('determine_normal_user: got user "%s"' % normal_user)
         else:
-            VirtSubproc.debug('determine_normal_user: no uid >= 500 available')
+            adtlog.debug('determine_normal_user: no uid >= 500 available')
 
 
 def hook_open():
@@ -452,7 +455,7 @@ def hook_open():
     # find free port to forward VM port 22 (for SSH access)
     ssh_port = find_free_port(10022)
     if ssh_port:
-        VirtSubproc.debug('Forwarding local port %i to VM ssh port 22' % ssh_port)
+        adtlog.debug('Forwarding local port %i to VM ssh port 22' % ssh_port)
         argv.append('-redir')
         argv.append('tcp:%i::22' % ssh_port)
 

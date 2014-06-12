@@ -34,6 +34,9 @@ except KeyError:
 sys.path.insert(1, our_base)
 
 import VirtSubproc
+import adtlog
+
+
 capabilities = []
 chroot_dir = None
 
@@ -51,7 +54,8 @@ def parse_args():
     if len(args) != 1:
         parser.error("need exactly one arg, chroot specification")
 
-    VirtSubproc.debuglevel = opts.debug
+    if opts.debug:
+        adtlog.verbosity = 2
 
     chroot_arg = args[0]
     if not chroot_arg:

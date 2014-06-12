@@ -42,6 +42,8 @@ except KeyError:
 sys.path.insert(1, our_base)
 
 import VirtSubproc
+import adtlog
+
 
 capabilities = ['revert', 'revert-full-system', 'root-on-testbed',
                 'isolation-container']
@@ -79,7 +81,8 @@ def parse_args():
     ephemeral = opts.ephemeral
     use_sudo = opts.sudo
 
-    VirtSubproc.debuglevel = opts.debug
+    if opts.debug:
+        adtlog.verbosity = 2
 
 
 def sudoify(command):
@@ -137,9 +140,9 @@ def wait_booted(lxc_name):
             if out.split()[-1].isdigit():
                 return
 
-            VirtSubproc.debug('wait_booted: runlevel "%s", retrying...' % out)
+            adtlog.debug('wait_booted: runlevel "%s", retrying...' % out)
         except subprocess.CalledProcessError:
-            VirtSubproc.debug('wait_booted: lxc-attach failed, retrying...')
+            adtlog.debug('wait_booted: lxc-attach failed, retrying...')
             pass
 
         timeout -= 1
@@ -163,16 +166,16 @@ def determine_normal_user(lxc_name):
     if out:
         normal_user = out
         capabilities.append('suggested-normal-user=' + normal_user)
-        VirtSubproc.debug('determine_normal_user: got user "%s"' % normal_user)
+        adtlog.debug('determine_normal_user: got user "%s"' % normal_user)
     else:
-        VirtSubproc.debug('determine_normal_user: no uid >= 500 available')
+        adtlog.debug('determine_normal_user: no uid >= 500 available')
 
 
 def hook_open():
     global lxc_container_name, shared_dir
 
     lxc_container_name = get_available_lxc_container_name()
-    VirtSubproc.debug('using container name %s' % lxc_container_name)
+    adtlog.debug('using container name %s' % lxc_container_name)
     shared_dir = tempfile.mkdtemp(prefix='adt-virt-lxc.shared.')
     os.chmod(shared_dir, 0o755)
     if ephemeral:
@@ -186,9 +189,9 @@ def hook_open():
             ['lxc-start', '-n', lxc_container_name, '-d',
              '-s', 'lxc.mount.entry=%s %s none bind,create=dir 0 0' % (shared_dir, shared_dir[1:])]))
     try:
-        VirtSubproc.debug('waiting for lxc guest start')
+        adtlog.debug('waiting for lxc guest start')
         wait_booted(lxc_container_name)
-        VirtSubproc.debug('lxc guest started')
+        adtlog.debug('lxc guest started')
         determine_normal_user(lxc_container_name)
         VirtSubproc.auxverb = ['lxc-attach', '-n', lxc_container_name, '--']
         if use_sudo:

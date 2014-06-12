@@ -34,6 +34,9 @@ except KeyError:
 sys.path.insert(1, our_base)
 
 import VirtSubproc
+import adtlog
+
+
 capabilities = ['isolation-machine']
 
 
@@ -47,7 +50,8 @@ def parse_args():
     if len(args):
         parser.error("no arguments allowed")
 
-    VirtSubproc.debuglevel = opts.debug
+    if opts.debug:
+        adtlog.verbosity = 2
 
     if os.getuid() == 0:
         capabilities.append('root-on-testbed')

@@ -37,6 +37,9 @@ except KeyError:
 sys.path.insert(1, our_base)
 
 import VirtSubproc
+import adtlog
+
+
 capabilities = ['revert']
 
 schroot = None
@@ -93,14 +96,15 @@ def parse_args():
         (key, val) = entry.split("=", 2)
         cfg[key] = val
 
-    VirtSubproc.debuglevel = opts.debug
+    if opts.debug:
+        adtlog.verbosity = 2
 
-    VirtSubproc.debug('schroot config: %s' % cfg)
+    adtlog.debug('schroot config: %s' % cfg)
 
     if (match(cfg['root-users'], [os.getuid()], pw_uid) or
             match(cfg['root-groups'], [os.getgid()] + os.getgroups(), gr_gid) or
             os.getuid() == 0):
-        VirtSubproc.debug('have "root-on-testbed" capability')
+        adtlog.debug('have "root-on-testbed" capability')
         capabilities.append('root-on-testbed')
 
     if os.geteuid() != 0:
@@ -132,16 +136,16 @@ def hook_downtmp():
     for l in out.splitlines():
         if sessid in l:
             location = l
-            VirtSubproc.debug('location of schroot session: %s' % location)
+            adtlog.debug('location of schroot session: %s' % location)
             break
     else:
         VirtSubproc.bomb('could not find our session in "%s"' % out)
     downtmp_host = '%s/%s' % (location, d)
     if os.access(downtmp_host, os.W_OK):
-        VirtSubproc.debug('%s is writable, registering as downtmp_host' % downtmp_host)
+        adtlog.debug('%s is writable, registering as downtmp_host' % downtmp_host)
         capabilities.append('downtmp-host=' + downtmp_host)
     else:
-        VirtSubproc.debug('%s is not writable, downtmp_host not supported' % downtmp_host)
+        adtlog.debug('%s is not writable, downtmp_host not supported' % downtmp_host)
     return d
 
 
