@@ -515,7 +515,7 @@ def command():
     sys.stdout.flush()
     while True:
         try:
-            ce = sys.stdin.readline()
+            ce = sys.stdin.readline().strip()
             # FIXME: This usually means EOF (as checked below), but with Python
             # 3 we often get empty strings here even though this is supposed to
             # block for new input.
