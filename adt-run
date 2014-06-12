@@ -948,15 +948,6 @@ Description: satisfy autopkgtest test dependencies
         if rc != 0:
             bomb('test dependencies are unsatisfiable')
 
-    def satisfy_dependencies_dsc(self, dsc, what, recommends=False):
-        '''Install build deps from a dsc into the testbed'''
-
-        with open(dsc) as f:
-            d = deb822.Deb822(sequence=f)
-            bd = d.get('Build-Depends', '')
-            bdi = d.get('Build-Depends-Indep', '')
-        self.satisfy_dependencies_string(bd + ', ' + bdi, what, recommends)
-
     def run_shell(self, cwd=None):
         '''Run shell in testbed for debugging tests'''
 
@@ -1991,9 +1982,11 @@ def build_source(act):
                 f_dsc.write('Binary: none-so-this-is-not-a-package-name\n')
             atexit.register(lambda f: os.path.exists(f) and os.unlink(f), dsc)
 
-        testbed.satisfy_dependencies_string(', '.join(build_essential),
-                                            'install build-essential')
-        testbed.satisfy_dependencies_dsc(dsc, 'build dependencies')
+        with open(dsc) as f:
+            d = deb822.Deb822(sequence=f)
+            bd = d.get('Build-Depends', '')
+            bdi = d.get('Build-Depends-Indep', '')
+        testbed.satisfy_dependencies_string(bd + ', ' + bdi + ', '.join(build_essential), what)
 
         source_rules_command([dpkg_buildpackage], 'build', cwd=result_pwd)
         built = True
