@@ -56,6 +56,7 @@ except KeyError:
     our_base = '/usr/share/autopkgtest/python'
 sys.path.insert(1, our_base)
 import VirtSubproc
+import adtlog
 
 #---------- global variables
 
@@ -75,86 +76,6 @@ os.putenv('APT_LISTCHANGES_FRONTEND', 'none')
           # do not consider using apt-listchanges
 
 
-#
-# logging/error functions
-#
-
-summary_stream = None
-
-
-def error(message):
-    '''Write an error message to stderr'''
-
-    # we sometimes hit EAGAIN here, try a few times
-    retries = 10
-    while retries >= 0:
-        try:
-            sys.stderr.buffer.write((message + '\n').encode('UTF-8'))
-            break
-        except IOError as e:
-            if e.errno == errno.EAGAIN:
-                retries -= 1
-                time.sleep(0.05)
-            else:
-                raise
-    sys.stderr.buffer.flush()
-
-
-def debug(message, minlevel=0, timestamp=False):
-    '''Write a debug message to stderr according to --quiet'''
-
-    if opts.debuglevel < minlevel:
-        return
-
-    p = 'adt-run'
-    if minlevel:
-        p += str(minlevel)
-    if timestamp:
-        p += ' [%s]' % time.strftime('%Y-%m-%d %H:%M:%S')
-    p += ': '
-    log_msg(message, p)
-
-
-def log_msg(message, prefix=''):
-    '''Write a string to stderr according to --quiet'''
-
-    if opts.quiet:
-        return
-    for line in message.rstrip('\n').splitlines():
-        s = prefix + line
-        if not opts.quiet:
-            error(s)
-
-
-def log_file(path, minlevel=0):
-    '''Write a file to stderr according to --quiet'''
-
-    if opts.debuglevel < minlevel or opts.quiet:
-        return
-    rc = subprocess.call(['cat', path], stdout=sys.stderr)
-    if rc:
-        bomb('cat failed for %s, exit code %d' % (path, rc))
-
-
-def debug_subprocess(what, argv, script=None):
-    '''Log a subprocess call for debugging'''
-
-    o = '$ ' + what + ':'
-    if argv is not None:
-        ol = []
-        for x in argv:
-            if x is script:
-                x = '<SCRIPT>'
-            ol.append(x.replace('\\', '\\\\').replace(' ', '\\ '))
-        o += ' ' + ' '.join(ol)
-    debug(o)
-    if script is not None and opts.debuglevel >= 1:
-        o = ''
-        for l in script.rstrip('\n').split('\n'):
-            o += '$     ' + l + '\n'
-        debug(o, 1)
-
-
 def script_out(argv, what=None, script=None, **kwargs):
     '''Call a script and get its return code, and optionally stdout.
 
@@ -164,28 +85,12 @@ def script_out(argv, what=None, script=None, **kwargs):
     stdout=subprocess.PIPE, otherwise None.
     '''
     if what:
-        debug_subprocess(what, argv, script=script)
+        adtlog.debug_subprocess(what, argv, script=script)
 
     process = subprocess.Popen(argv, universal_newlines=True, **kwargs)
     output = process.communicate()[0]
     return (process.returncode, output)
 
-
-def psummary(m):
-    if summary_stream is not None:
-        summary_stream.write(m.encode('UTF-8'))
-        summary_stream.write(b'\n')
-
-
-def preport(m):
-    sys.stdout.buffer.write(m.encode('UTF-8'))
-    sys.stdout.buffer.write(b'\n')
-    sys.stdout.buffer.flush()
-    psummary(m)
-
-
-def report(tname, result):
-    preport('%-20s %s' % (tname, result))
 
 #---------- errors we define
 
@@ -202,8 +107,8 @@ def bomb(m):
 
 
 def badpkg(m):
-    preport('blame: ' + ' '.join(testbed.blamed))
-    preport('badpkg: ' + m)
+    adtlog.preport('blame: ' + ' '.join(testbed.blamed))
+    adtlog.preport('badpkg: ' + m)
     raise Quit(12, 'erroneous package: %s' % m)
 
 
@@ -218,7 +123,7 @@ class Unsupported(Exception):
     def report(self, tname):
         global errorcode
         errorcode |= 2
-        report(tname, 'SKIP %s' % self.m)
+        adtlog.report(tname, 'SKIP %s' % self.m)
 
 #---------- convenience function
 
@@ -232,7 +137,7 @@ def mkdir_okexist(pathname, mode=0o2755):
 
 
 def rmtree(what, pathname):
-    debug('/ %s rmtree %s' % (what, pathname), 2)
+    adtlog.debug('/ %s rmtree %s' % (what, pathname))
     try:
         shutil.rmtree(pathname)
     except (IOError, OSError) as oe:
@@ -395,8 +300,8 @@ def parse_args():
     parser.add_option('-u', '--user', help='run tests as USER (needs root on testbed)')
     parser.add_option('--gain-root', type='string', dest='gainroot',
                       help='command to gain root during package build, passed to dpkg-buildpackage -r')
-    parser.add_option('-q', '--quiet', action='store_true', dest='quiet', default=False)
-    parser.add_option('-d', '--debug', action='count', dest='debuglevel', default=0)
+    parser.add_option('-q', '--quiet', action='store_const', dest='verbosity', const=0, default=1)
+    parser.add_option('-d', '--debug', action='store_const', dest='verbosity', const=2)
     parser.add_option('-s', '--shell-fail', action='store_true',
                       help='run a shell in the testbed after any failed build or test')
     parser.add_option('--shell', action='store_true',
@@ -509,7 +414,7 @@ def parse_args():
 
 
 def setup_trace():
-    global tmp, summary_stream
+    global tmp
 
     if opts.output_dir is not None:
         rmtree('tmp(specified)', opts.output_dir)
@@ -542,9 +447,11 @@ def setup_trace():
         atexit.register(err_tee.terminate)
 
     if opts.summary is not None:
-        summary_stream = open(opts.summary, 'wb', 0)
+        adtlog.summary_stream = open(opts.summary, 'wb', 0)
 
-    debug('options: ' + str(opts) + '; timeouts: ' + str(timeouts), 1)
+    adtlog.verbosity = opts.verbosity
+
+    adtlog.debug('options: ' + str(opts) + '; timeouts: ' + str(timeouts))
 
 
 def finalise_options():
@@ -564,8 +471,8 @@ def finalise_options():
 
     if opts.user:
         if 'root-on-testbed' not in testbed.caps:
-            error('warning: virtualisation system does not offer root on '
-                  'testbed but --user option specified: failure likely')
+            adtlog.warning('virtualisation system does not offer root on '
+                           'testbed but --user option specified: failure likely')
         opts.user_wrap = lambda x: "su -s /bin/sh %s -c '%s'" % (opts.user, x)
     else:
         opts.user_wrap = lambda x: x
@@ -593,14 +500,11 @@ class Testbed:
         self.scratch = None
         self.modified = False
         self.blamed = []
-        self._debug('init', 1)
         self._need_reset_apt = False
         self.stop_sent = False
         self.dpkg_arch = None
         self.exec_cmd = None
-
-    def _debug(self, m, minlevel=0):
-        debug('** ' + m, minlevel)
+        adtlog.debug('testbed init')
 
     def start(self):
         # are we running from a checkout?
@@ -609,12 +513,13 @@ class Testbed:
             try:
                 head = subprocess.check_output(['git', 'show', '-s', '--oneline'],
                                                cwd=root_dir, universal_newlines=True)
+                head = head.strip()
             except subprocess.CalledProcessError:
                 head = 'cannot determine current HEAD'
-            debug('git checkout: %s' % head, timestamp=True)
+            adtlog.info('git checkout: %s' % head)
         else:
-            debug('version @version@', timestamp=True)
-        debug_subprocess('vserver', opts.vserver)
+            adtlog.info('version @version@')
+        adtlog.debug_subprocess('vserver', opts.vserver)
         self.sp = subprocess.Popen(opts.vserver,
                                    stdin=subprocess.PIPE,
                                    stdout=subprocess.PIPE,
@@ -622,7 +527,7 @@ class Testbed:
         self.expect('ok', 0)
 
     def stop(self):
-        self._debug('stop', 1)
+        adtlog.debug('testbed stop')
         if self.stop_sent:
             # avoid endless loop
             return
@@ -642,7 +547,7 @@ class Testbed:
         self.sp = None
 
     def open(self):
-        self._debug('open, scratch=%s' % self.scratch, 1)
+        adtlog.debug('testbed open, scratch=%s' % self.scratch)
         if self.scratch is not None:
             return
         pl = self.command('open', (), 1)
@@ -655,7 +560,7 @@ class Testbed:
         self.deps_processed = []
         self.exec_cmd = list(map(url_unquote, self.command('print-execute-command', (), 1)[0].split(',')))
         self.caps = self.command('capabilities', (), None)
-        debug('testbed capabilities: %s' % self.caps, 1)
+        adtlog.debug('testbed capabilities: %s' % self.caps)
         for c in self.caps:
             if c.startswith('downtmp-host='):
                 shared_downtmp = c.split('=', 1)[1]
@@ -663,7 +568,7 @@ class Testbed:
 
         # determine testbed architecture
         self.dpkg_arch = self.check_exec(['dpkg', '--print-architecture'], True).strip()
-        debug('testbed dpkg architecture: ' + self.dpkg_arch)
+        adtlog.info('testbed dpkg architecture: ' + self.dpkg_arch)
 
         # record package versions of pristine testbed
         if opts.output_dir:
@@ -688,7 +593,7 @@ class Testbed:
     def close(self):
         global shared_downtmp
 
-        self._debug('close, scratch=%s' % self.scratch, 1)
+        adtlog.debug('testbed close, scratch=%s' % self.scratch)
         if self.scratch is None:
             return
         self.scratch = None
@@ -701,7 +606,7 @@ class Testbed:
         if not opts.setup_commands and not opts.apt_pocket:
             return
 
-        debug('@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ test bed setup')
+        adtlog.info('@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ test bed setup')
         for p in opts.apt_pocket:
             script = '''awk '/^deb(-src)? / { if ($3 !~ /-/) { $3 = $3"-%s"; print }}' ''' \
                 '''/etc/apt/sources.list `ls /etc/apt/sources.list.d/*.list 2>/dev/null|| true` ''' \
@@ -725,17 +630,17 @@ class Testbed:
                  '  [ ! -d $d ] || [ `stat -c %%Y $d` = `stat -c %%Y $s` ]; done' % (
                      boot_dirs, self.scratch)])[0]
             if boot_affected:
-                debug('rebooting testbed after setup commands that affected boot')
+                adtlog.info('rebooting testbed after setup commands that affected boot')
                 self.scratch = self.command('reboot', (), 1)[0]
 
     def reset(self, deps_new):
         '''Reset the testbed, if possible and necessary'''
 
-        self._debug('reset: modified=%s, deps_processed=%s, deps_new=%s' %
-                    (self.modified, self.deps_processed, deps_new), 1)
+        adtlog.debug('testbed reset: modified=%s, deps_processed=%s, deps_new=%s' %
+                     (self.modified, self.deps_processed, deps_new))
         if 'revert' in self.caps and (
                 self.modified or [d for d in self.deps_processed if d not in deps_new]):
-            self._debug('reset **', 1)
+            adtlog.debug('testbed reset')
             pl = self.command('revert', (), 1)
             self._opened(pl)
         self.modified = False
@@ -745,8 +650,7 @@ class Testbed:
 
         Also publish the registered binaries.
         '''
-        self._debug('install_deps: deps_new=%s, recommends=%s' %
-                    (deps_new, recommends), 1)
+        adtlog.debug('install_deps: deps_new=%s, recommends=%s' % (deps_new, recommends))
         binaries.publish()
 
         self.deps_processed = deps_new
@@ -763,23 +667,23 @@ class Testbed:
     def needs_reset(self):
         # show what caused a reset
         (fname, lineno, function, code) = traceback.extract_stack(limit=2)[0]
-        self._debug('needs_reset, previously=%s, requested by %s() line %i' %
-                    (self.modified, function, lineno), 1)
+        adtlog.debug('needs_reset, previously=%s, requested by %s() line %i' %
+                     (self.modified, function, lineno))
         self.modified = True
 
     def blame(self, m):
-        self._debug('blame += %s' % m, 1)
+        adtlog.debug('blame += %s' % m)
         self.blamed.append(m)
 
     def bomb(self, m):
-        self._debug('bomb %s' % m, 1)
+        adtlog.debug('bomb %s' % m)
         self.reset_apt()
         self.stop()
         raise Quit(16, 'testbed failed: %s' % m)
 
     def send(self, string):
         try:
-            debug('>> ' + string, 2)
+            adtlog.debug('sending command to testbed: ' + string)
             self.sp.stdin.write(string)
             self.sp.stdin.write('\n')
             self.sp.stdin.flush()
@@ -796,13 +700,13 @@ class Testbed:
         if not l.endswith('\n'):
             self.bomb('unterminated line from the testbed')
         l = l.rstrip('\n')
-        debug('<< ' + l, 2)
+        adtlog.debug('got reply from testbed: ' + l)
         ll = l.split()
         if not ll:
             self.bomb('unexpected whitespace-only line from the testbed')
         if ll[0] != keyword:
             if self.lastsend is None:
-                self.bomb("got banner `%s', expected `%s...'" %
+                self.bomb("got banner `%s', expected `%s...'"
                           (l, keyword))
             else:
                 self.bomb("sent `%s', got `%s', expected `%s...'" %
@@ -847,8 +751,9 @@ class Testbed:
         if opts.set_lang is not False:
             env.append('LANG=%s' % opts.set_lang)
 
-        debug('testbed command %s, kind %s, sout %s, serr %s, env %s' %
-              (argv, kind, stdout and 'pipe' or 'raw', stderr and 'pipe' or 'raw', env), 1)
+        adtlog.debug('testbed command %s, kind %s, sout %s, serr %s, env %s' %
+                     (argv, kind, stdout and 'pipe' or 'raw',
+                      stderr and 'pipe' or 'raw', env))
 
         if env:
             argv = ['env'] + env + argv
@@ -863,7 +768,7 @@ class Testbed:
             proc.terminate()
             self.bomb('timed out on command "%s" (kind: %s)' % (' '.join(argv), kind))
 
-        debug('testbed command exited with code %i' % proc.returncode, 1)
+        adtlog.debug('testbed command exited with code %i' % proc.returncode)
 
         return (proc.returncode, out, err)
 
@@ -887,11 +792,11 @@ class Testbed:
     def satisfy_dependencies_string(self, deps, what, recommends=False):
         '''Install dependencies from a string into the testbed'''
 
-        debug('%s: satisfying %s' % (what, deps), 1)
+        adtlog.debug('%s: satisfying %s' % (what, deps))
 
         if 'root-on-testbed' not in self.caps:
-            error('WARNING: virtualisation system does not offer root on '
-                  'testbed, cannot install any packages; failure likely')
+            adtlog.warning('virtualisation system does not offer root on '
+                           'testbed, cannot install any packages; failure likely')
             return
 
         # ignore ":native" tags, apt cannot parse them and deps_parse() does
@@ -909,7 +814,7 @@ class Testbed:
                                 ''' % (deps, self.dpkg_arch))[0].strip()
         if perl.returncode != 0:
             bomb('failed to run perl for parsing dependencies')
-        debug('%s: architecture resolved: %s' % (what, deps), 1)
+        adtlog.debug('%s: architecture resolved: %s' % (what, deps))
 
         # create a dummy deb with the deps
         pkgdir = tempfile.mkdtemp(prefix='adt-satdep.')
@@ -951,7 +856,7 @@ Description: satisfy autopkgtest test dependencies
     def run_shell(self, cwd=None):
         '''Run shell in testbed for debugging tests'''
 
-        debug(' - - - - - - - - - - running shell - - - - - - - - - -')
+        adtlog.info(' - - - - - - - - - - running shell - - - - - - - - - -')
         self.command('shell', ('/dev/tty', '/dev/tty', '/dev/tty', cwd or '/'))
 
 
@@ -1176,8 +1081,8 @@ class Field_Tests(FieldIgnore):
 class Field_Depends(FieldBase):
 
     def parse(self):
-        debug('Field_Depends: %s %s %s %s' %
-              (self.stz, self.base, self.tnames, self.vl), 2)
+        adtlog.debug('Field_Depends: %s %s %s %s' %
+                     (self.stz, self.base, self.tnames, self.vl))
         dl = [x.strip() for x in flatten([lno_v[1].split(',') for lno_v in self.vl]) if x]
 
         dep_re = re.compile(
@@ -1219,14 +1124,14 @@ def run_tests(stanzas, tree):
     global errorcode, testbed
 
     if stanzas == ():
-        report('*', 'SKIP no tests in this package')
+        adtlog.report('*', 'SKIP no tests in this package')
         errorcode |= 8
     for stanza in stanzas:
         tests = stanza[' tests']
         if not tests:
             # if we have skipped tests, don't claim that we don't have any
             if not errorcode & 2:
-                report('*', 'SKIP package has metadata but no tests')
+                adtlog.report('*', 'SKIP package has metadata but no tests')
                 errorcode |= 8
         for t in tests:
             t.prepare(tree)
@@ -1251,36 +1156,35 @@ class Test:
             self.path = base['testsdir'] + '/' + tname
         else:
             self.path = tname
-        debug('constructed; path=%s' % self.path, 1)
-        debug(' .depends=%s' % self.depends, 1)
+        adtlog.debug('Test: constructed; path=%s depends=%s' % (self.path, self.depends))
 
-    def _debug(self, m, timestamp=False):
-        debug('& %s: %s' % (self.what, m), timestamp=timestamp)
+    def _info(self, m):
+        adtlog.info('test %s: %s' % (self.what, m))
 
     def report(self, m):
-        report(self.what, m)
+        adtlog.report(self.what, m)
 
     def reportfail(self, m):
         global errorcode
         errorcode |= 4
-        report(self.what, 'FAIL ' + m)
+        adtlog.report(self.what, 'FAIL ' + m)
 
     def prepare(self, tree):
-        self._debug('preparing', True)
+        self._info('preparing')
         dn = []
         for d in self.depends:
-            self._debug(' processing dependency ' + d)
+            self._info(' processing dependency ' + d)
             if d == '@':
                 # expand to all binaries from that source
                 for pkg in packages_from_source(self.act, tree):
-                    self._debug('  synthesised dependency ' + pkg)
+                    self._info('  synthesised dependency ' + pkg)
                     dn.append(pkg)
             elif d == '@builddeps@':
                 for dp in build_deps_from_source(self.act, tree):
-                    self._debug('  synthesised dependency ' + dp)
+                    self._info('  synthesised dependency ' + dp)
                     dn.append(dp)
             else:
-                self._debug('  literal dependency ' + d)
+                self._info('  literal dependency ' + d)
                 dn.append(d)
         testbed.prepare(dn, 'needs-recommends' in self.restriction_names)
 
@@ -1339,26 +1243,26 @@ class Test:
             test_argv = ['bash', '-c', script]
 
         # run test script
-        self._debug('[-----------------------', True)
+        self._info('[-----------------------')
         rc = testbed.execute(test_argv, kind='test')[0]
         # give the setup_trace() cats some time to catch up
         sys.stdout.flush()
         sys.stderr.flush()
         time.sleep(0.3)
-        self._debug('-----------------------]', True)
-        debug('testbed executing test finished with exit status %i' % rc, 1)
+        self._info('-----------------------]')
+        adtlog.debug('testbed executing test finished with exit status %i' % rc)
 
         # copy stdout/err files to host
         so.copyup()
         se.copyup()
         se_size = os.path.getsize(se.host)
 
-        # avoid mixing up stdout (from report) and stderr (from _debug) in output
+        # avoid mixing up stdout (from report) and stderr (from logging) in output
         sys.stdout.flush()
         sys.stderr.flush()
         time.sleep(0.1)
 
-        self._debug(' - - - - - - - - - - results - - - - - - - - - -')
+        self._info(' - - - - - - - - - - results - - - - - - - - - -')
 
         passed = False
         if rc != 0:
@@ -1371,18 +1275,22 @@ class Test:
             self.report('PASS')
             passed = True
 
-        # avoid mixing up stdout (from report) and stderr (from _debug) in output
         sys.stdout.flush()
         sys.stderr.flush()
-        time.sleep(0.1)
 
         if os.path.getsize(so.host) == 0:
             # don't produce empty -stdout files in --output-dir
             so.autoclean = True
 
         if se_size != 0 and 'allow-stderr' not in self.restriction_names:
-                self._debug(' - - - - - - - - - - stderr - - - - - - - - - -')
-                log_file(se.host)
+            self._info(' - - - - - - - - - - stderr - - - - - - - - - -')
+            with open(se.host, 'rb') as f:
+                while True:
+                    block = f.read1(1000000)
+                    if not block:
+                        break
+                    sys.stderr.buffer.write(block)
+            sys.stderr.buffer.flush()
         else:
             # don't produce empty -stderr files in --output-dir
             se.autoclean = True
@@ -1499,15 +1407,15 @@ def read_control(act, control_path):
 
 def print_exception(ei, msgprefix=''):
     if msgprefix:
-        error(msgprefix)
+        adtlog.error(msgprefix)
     (et, q, tb) = ei
     if et is Quit:
-        error('adt-run: ' + q.m)
-        psummary('quitting: ' + q.m)
+        adtlog.error(q.m)
+        adtlog.psummary('quitting: ' + q.m)
         return q.ec
     else:
-        error('adt-run: unexpected, exceptional, error:')
-        psummary('quitting: unexpected error, consult transcript')
+        adtlog.error('unexpected error:')
+        adtlog.psummary('quitting: unexpected error, consult transcript')
         traceback.print_exc(None, sys.stderr)
         return 20
 
@@ -1526,7 +1434,7 @@ def cleanup():
 
 
 def signal_handler(signum, frame):
-    error('Received signal %i, cleaning up...' % signum)
+    adtlog.error('Received signal %i, cleaning up...' % signum)
     signal.signal(signum, signal.SIG_DFL)
     try:
         # don't call cleanup() here, resetting apt takes too long
@@ -1612,7 +1520,7 @@ class Binaries:
         if opts.gnupghome is None:
             opts.gnupghome = tmp + '/gnupg'
 
-        self._debug('initialising')
+        adtlog.debug('Binaries: initialising')
         try:
             for x in ['pubring', 'secring']:
                 os.stat(opts.gnupghome + '/' + x + '.gpg')
@@ -1622,7 +1530,7 @@ class Binaries:
                 raise
 
         if ok:
-            self._debug('no key generation needed')
+            adtlog.debug('Binaries: no key generation needed')
         else:
             self.genkey()
 
@@ -1631,11 +1539,8 @@ class Binaries:
                             '-o', 'APT::Get::force-yes=true',
                             '-o', 'APT::Get::Assume-Yes=true']
 
-    def _debug(self, s):
-        debug('* ' + s, 1)
-
     def genkey(self):
-        self._debug('preparing for key generation')
+        adtlog.debug('Binaries: preparing for key generation')
 
         mkdir_okexist(os.path.dirname(opts.gnupghome), 0o2755)
         mkdir_okexist(opts.gnupghome, 0o700)
@@ -1671,7 +1576,7 @@ Pin-Priority: 1002
         os.unlink(prefs.host)
 
     def reset(self):
-        self._debug('reset')
+        adtlog.debug('Binaries: reset')
         rmtree('binaries', self.dir.host)
         os.mkdir(self.dir.host)
         self.install = []
@@ -1679,8 +1584,8 @@ Pin-Priority: 1002
         self.registered = set()
 
     def register(self, act, pkg, path, forwhat, blamed):
-        self._debug('register what=%s deb_%s=%s pkg=%s path=%s' %
-                    (act.what, forwhat, act.ah['deb_' + forwhat], pkg, path))
+        adtlog.debug('Binaries: register what=%s deb_%s=%s pkg=%s path=%s' %
+                     (act.what, forwhat, act.ah['deb_' + forwhat], pkg, path))
 
         if act.ah['deb_' + forwhat] == 'ignore':
             return
@@ -1712,9 +1617,9 @@ Pin-Priority: 1002
         self.registered.add(pkg)
 
     def publish(self):
-        self._debug('publish')
+        adtlog.debug('Binaries: publish')
         if not self.registered:
-            self._debug('no registered binaries, not publishing anything')
+            adtlog.debug('Binaries: no registered binaries, not publishing anything')
             return
 
         self._configure_apt(testbed)
@@ -1756,7 +1661,7 @@ Pin-Priority: 1002
 
         aptkey_out.copyup()
 
-        self._debug('publish reinstall checking...')
+        adtlog.debug('Binaries: publish reinstall checking...')
         pkgs_reinstall = set()
         pkg = None
         for l in open(aptkey_out.host):
@@ -1765,7 +1670,7 @@ Pin-Priority: 1002
             elif l.startswith('Status: install '):
                 if pkg in self.registered:
                     pkgs_reinstall.add(pkg)
-                    self._debug(' publish reinstall needs ' + pkg)
+                    adtlog.debug('Binaries: publish reinstall needs ' + pkg)
 
         if pkgs_reinstall:
             for pkg in pkgs_reinstall:
@@ -1776,7 +1681,7 @@ Pin-Priority: 1002
             if rc:
                 badpkg('installation of basic binaries failed, exit code %d' % rc)
 
-        self._debug('publish install...')
+        adtlog.debug('Binaries: publish install...')
         for pkg in self.install:
             testbed.blame(pkg)
             rc = testbed.execute(self.apt_get_cmd + ['install'] + pkg, kind='install')
@@ -1784,7 +1689,7 @@ Pin-Priority: 1002
                 badpkg('installation of %s failed, exit code %d'
                        % (pkg, rc))
 
-        self._debug('publish done')
+        adtlog.debug('Binaries: publish done')
 
 #---------- processing of sources (building)
 
@@ -1792,7 +1697,7 @@ Pin-Priority: 1002
 def source_rules_command(script, which, cwd=None, results_lines=0):
     if cwd is None:
         cwd = '.'
-    if opts.debuglevel >= 1:
+    if opts.verbosity > 1:
         script = ['exec 3>&1 >&2', 'set -x', 'cd ' + cwd] + script
     else:
         script = ['exec 3>&1 >&2', 'cd ' + cwd] + script
@@ -1822,7 +1727,10 @@ def build_source(act):
     act.binaries = []
 
     def debug_b(m):
-        debug('* <%s:%s> %s' % (act.kind, act.what, m))
+        adtlog.debug('build_source: <%s:%s> %s' % (act.kind, act.what, m))
+
+    def info_b(m):
+        adtlog.info('build_source: <%s:%s> %s' % (act.kind, act.what, m))
 
     if act.kind == 'dsc':
         dsc = act.arg
@@ -1878,7 +1786,7 @@ def build_source(act):
         if testbed.execute(['which', 'dpkg-source'],
                            stdout=subprocess.PIPE,
                            stderr=subprocess.PIPE) != 0:
-            debug('dpkg-source not available in testbed, installing dpkg-dev', 1)
+            adtlog.debug('dpkg-source not available in testbed, installing dpkg-dev')
             # Install dpkg-source for unpacking .dsc
             testbed.satisfy_dependencies_string('dpkg-dev',
                                                 'install dpkg-dev')
@@ -1912,7 +1820,7 @@ def build_source(act):
         source_rules_command(script, 'extract', results_lines=4)
 
     # record tested package version
-    debug('testing package %s version %s' % (testpkg_name, testpkg_version))
+    adtlog.info('testing package %s version %s' % (testpkg_name, testpkg_version))
     if opts.output_dir:
         with open(os.path.join(tmp, 'testpkg-version'), 'w') as f:
             f.write('%s %s\n' % (testpkg_name, testpkg_version))
@@ -1935,7 +1843,7 @@ def build_source(act):
         pass
 
     def build_needed(m):
-        debug_b('build needed for %s' % m)
+        info_b('build needed for %s' % m)
         raise NeedBuildException()
 
     try:
@@ -1955,7 +1863,7 @@ def build_source(act):
                 if 'build-needed' in t.restriction_names:
                     build_needed('test %s' % t.tname)
 
-        debug_b('build not needed')
+        info_b('build not needed')
         built = False
 
     except NeedBuildException:
@@ -2057,22 +1965,19 @@ def build_source(act):
 def process_actions():
     global binaries
 
-    def debug_a1(m):
-        debug('@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ ' + m)
+    def info_1(m):
+        adtlog.log('@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ ' + m, 1)
 
-    def debug_a2(m):
-        debug('@@@@@@@@@@@@@@@@@@@@ ' + m)
-
-    def debug_a3(m):
-        debug('@@@@@@@@@@ ' + m)
+    def info_2(m):
+        adtlog.log('@@@@@@@@@@@@@@@@@@@@ ' + m, 1)
 
     binaries = Binaries(testbed)
 
     binaries.reset()
 
-    debug_a1('builds ...')
+    info_1('builds ...')
     for act in opts.actions:
-        debug_a2('%s %s' % (act.kind, act.what))
+        info_2('%s %s' % (act.kind, act.what))
 
         if act.kind == 'deb':
             testbed.blame('arg:' + act.arg)
@@ -2087,19 +1992,19 @@ def process_actions():
         if act.kind == 'instantiate':
             pass
 
-    debug_a1('builds done.')
+    info_1('builds done.')
 
     if act.missing_tests_control:
-        report('*', 'SKIP no tests in this package')
+        adtlog.report('*', 'SKIP no tests in this package')
         global errorcode
         errorcode |= 8
         return
 
     binaries.reset()
 
-    debug_a1('tests ...')
+    info_1('tests ...')
     for act in opts.actions:
-        debug_a2('test %s %s' % (act.kind, act.what))
+        info_2('test %s %s' % (act.kind, act.what))
 
         if act.kind == 'deb':
             binaries.register(act, act.pkg, act.arg, 'fortests',
@@ -2110,17 +2015,14 @@ def process_actions():
                                   act.blamed)
         if act.kind in ['dsc', 'apt']:
             if act.ah['dsc_tests']:
-                debug_a3('read control ...')
                 stanzas = read_control(
                     act, os.path.join(act.tests_tree.host, 'debian/tests/control'))
                 testbed.blamed += act.blamed
-                debug_a3('run_tests ...')
                 run_tests(stanzas, act.tests_tree)
         if act.kind == 'tree' or act.kind == 'ubtree':
             testbed.blame('arg:' + act.arg)
             stanzas = read_control(
                 act, os.path.join(act.arg, 'debian/tests/control'))
-            debug_a3('run_tests ...')
             if act.kind == 'ubtree':
                 run_tests(stanzas, act.tests_tree)
             else:
@@ -2130,7 +2032,7 @@ def process_actions():
         if act.kind == 'instantiate':
             testbed.prepare([], False)
         testbed.needs_reset()
-    debug_a1('tests done.')
+    info_1('tests done.')
 
 
 def main():
