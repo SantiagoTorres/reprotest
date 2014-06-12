@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 #
 # adt-virt-qemu is part of autopkgtest
 # autopkgtest is a tool for testing Debian binary packages
@@ -215,8 +215,9 @@ def setup_config(shared_dir):
     # arg), or an "exit flag" file exists.
     # We don't run that from /autopkgtest/ as 9p from older QEMU versions is
     # buggy and causes "invalid numeric result" errors on that.
-    term.send(b'''cat <<EOF > /bin/eofcat; chmod 755 /bin/eofcat
-#!/usr/bin/python
+    term.send(b'cat <<EOF > /bin/eofcat; chmod 755 /bin/eofcat\n#!')
+    term.send(sys.executable.encode())
+    term.send(b'''
 import sys, os, fcntl, time, errno
 (feof, fexit) = sys.argv[1:]
 count = 0
