@@ -24,13 +24,8 @@ import __main__
 
 import sys
 import os
-try:
-    from urllib.parse import quote as url_quote
-    from urllib.parse import unquote as url_unquote
-except ImportError:
-    # python 2
-    from urllib import quote as url_quote
-    from urllib import unquote as url_unquote
+from urllib.parse import quote as url_quote
+from urllib.parse import unquote as url_unquote
 import signal
 import subprocess
 import traceback
@@ -521,6 +516,11 @@ def command():
     while True:
         try:
             ce = sys.stdin.readline()
+            # FIXME: This usually means EOF (as checked below), but with Python
+            # 3 we often get empty strings here even though this is supposed to
+            # block for new input.
+            if ce == '':
+                continue
             break
         except IOError as e:
             if e.errno == errno.EAGAIN:
