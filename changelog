@@ -1,4 +1,4 @@
-autopkgtest (2.18) UNRELEASED; urgency=medium
+autopkgtest (2.18) unstable; urgency=medium
 
   Improvements:
   * adt-run: When running from git, show the current SHA and commit summary of
@@ -37,7 +37,7 @@ autopkgtest (2.18) UNRELEASED; urgency=medium
     has "message-verbosity=verbose".
   * Port to Python 3.
 
- -- Martin Pitt <mpitt@debian.org>  Wed, 04 Jun 2014 16:05:46 +0200
+ -- Martin Pitt <mpitt@debian.org>  Thu, 12 Jun 2014 07:48:58 +0200
 
 autopkgtest (2.17.1) unstable; urgency=medium
 
