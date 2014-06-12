@@ -34,6 +34,7 @@ autopkgtest (2.18) UNRELEASED; urgency=medium
   * schroot: Call schroot command with -q, to avoid stderr spew if the schroot
     has "message-verbosity=verbose".
   * Port to Python 3.
+  * Fix --shell to also work with --output-dir. (LP: #1317078)
 
  -- Martin Pitt <mpitt@debian.org>  Wed, 04 Jun 2014 16:05:46 +0200
 
