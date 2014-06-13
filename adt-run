@@ -1449,6 +1449,22 @@ def build_source(act):
         ubtree.copydown()
         create_command = 'cp -rd --preserve=timestamps -- "%s" real-tree' % ubtree.tb
 
+    elif act.kind == 'tree':
+        # this is a special case: we don't want to build, or even copy down
+        # (and back up) the tree here for efficiency; so shortcut everything
+        # below and just set the tests_tree and get the package version
+        act.tests_tree = TestbedPath(testbed, act.arg, os.path.join(testbed.scratch, 'tree'), is_dir=True)
+
+        with open(os.path.join(act.arg, 'debian', 'changelog')) as f:
+            (testpkg_name, testpkg_version, _) = f.readline().split(' ', 2)
+            testpkg_version = testpkg_version[1:-1]  # chop off parentheses
+
+        adtlog.info('testing package %s version %s' % (testpkg_name, testpkg_version))
+        if opts.output_dir:
+            with open(os.path.join(tmp, 'testpkg-version'), 'w') as f:
+                f.write('%s %s\n' % (testpkg_name, testpkg_version))
+        return
+
     elif act.kind == 'apt':
         create_command = 'apt-get source --only-source ' + act.arg
 
@@ -1628,14 +1644,7 @@ def process_actions():
             pass
         else:
             assert act.kind in ('dsc', 'tree', 'ubtree', 'apt')
-
-            # needs special-casing, build_source() does not handle built trees
-            if act.kind == 'tree':
-                act.binaries = []
-                act.tests_tree = TestbedPath(testbed, act.arg, os.path.join(testbed.scratch, 'tree'), is_dir=True)
-            else:
-                build_source(act)  # sets act.tests_tree
-
+            build_source(act)  # sets act.tests_tree
             (act.tests, skipped) = testdesc.parse_debian_source(act.tests_tree.host, testbed.caps)
             if skipped:
                 errorcode |= 2
