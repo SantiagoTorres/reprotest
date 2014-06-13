@@ -9,6 +9,7 @@ autopkgtest (2.18.1) UNRELEASED; urgency=medium
     slightly faster.
   * Explicity specify UTF-8 encoding for reading/writing Debian control files,
     to fix UnicodeDecodeError under C locale.
+  * Determine testpkg-version also for --built-tree tests.
 
   Code cleanup:
   * Unify logging functions into lib/adtlog.py, make their API easier and more
