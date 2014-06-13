@@ -74,22 +74,6 @@ os.putenv('APT_LISTCHANGES_FRONTEND', 'none')
           # do not consider using apt-listchanges
 
 
-def script_out(argv, what=None, script=None, **kwargs):
-    '''Call a script and get its return code, and optionally stdout.
-
-    If what/script are given, log these for debugging.
-
-    Return (exitcode, stdout). stdout will be a string if kwargs contains
-    stdout=subprocess.PIPE, otherwise None.
-    '''
-    if what:
-        adtlog.debug_subprocess(what, argv, script=script)
-
-    process = subprocess.Popen(argv, universal_newlines=True, **kwargs)
-    output = process.communicate()[0]
-    return (process.returncode, output)
-
-
 #---------- errors we define
 
 
@@ -141,6 +125,22 @@ def rmtree(what, pathname):
     except (IOError, OSError) as oe:
         if oe.errno not in (errno.EEXIST, errno.ENOENT):
             raise
+
+
+def script_out(argv, what=None, script=None, **kwargs):
+    '''Call a script and get its return code, and optionally stdout.
+
+    If what/script are given, log these for debugging.
+
+    Return (exitcode, stdout). stdout will be a string if kwargs contains
+    stdout=subprocess.PIPE, otherwise None.
+    '''
+    if what:
+        adtlog.debug_subprocess(what, argv, script=script)
+
+    process = subprocess.Popen(argv, universal_newlines=True, **kwargs)
+    output = process.communicate()[0]
+    return (process.returncode, output)
 
 
 #---------- parsing and representation of the arguments
@@ -452,16 +452,10 @@ def finalise_options():
     global opts, testbed, build_essential, dpkg_buildpackage
 
     if opts.user is None and 'root-on-testbed' in testbed.caps:
-        su = 'suggested-normal-user='
-        ul = [
-            e[len(su):]
-            for e in testbed.caps
-            if e.startswith(su)
-        ]
-        if ul:
-            opts.user = ul[0]
-        else:
-            opts.user = ''
+        opts.user = ''
+        for c in testbed.caps:
+            if c.startswith('suggested-normal-user='):
+                opts.user = c.split('=', 1)[1]
 
     if opts.user:
         if 'root-on-testbed' not in testbed.caps:
@@ -551,7 +545,7 @@ class Testbed:
         global shared_downtmp
 
         self.scratch = pl[0]
-        self.deps_processed = []
+        self.deps_installed = []
         self.exec_cmd = list(map(url_unquote, self.command('print-execute-command', (), 1)[0].split(',')))
         self.caps = self.command('capabilities', (), None)
         adtlog.debug('testbed capabilities: %s' % self.caps)
@@ -630,10 +624,10 @@ class Testbed:
     def reset(self, deps_new):
         '''Reset the testbed, if possible and necessary'''
 
-        adtlog.debug('testbed reset: modified=%s, deps_processed=%s, deps_new=%s' %
-                     (self.modified, self.deps_processed, deps_new))
+        adtlog.debug('testbed reset: modified=%s, deps_installed=%s, deps_new=%s' %
+                     (self.modified, self.deps_installed, deps_new))
         if 'revert' in self.caps and (
-                self.modified or [d for d in self.deps_processed if d not in deps_new]):
+                self.modified or [d for d in self.deps_installed if d not in deps_new]):
             adtlog.debug('testbed reset')
             pl = self.command('revert', (), 1)
             self._opened(pl)
@@ -647,7 +641,7 @@ class Testbed:
         adtlog.debug('install_deps: deps_new=%s, recommends=%s' % (deps_new, recommends))
         binaries.publish()
 
-        self.deps_processed = deps_new
+        self.deps_installed = deps_new
         if not deps_new:
             return
         self.satisfy_dependencies_string(', '.join(deps_new), 'install-deps', recommends)
