@@ -1316,7 +1316,7 @@ def read_stanzas(path):
     stanzas = []
 
     try:
-        control = open(path, 'r')
+        control = open(path, encoding='UTF-8')
     except (IOError, OSError) as oe:
         if oe[0] != errno.ENOENT:
             raise
@@ -1742,7 +1742,7 @@ def build_source(act):
         # parse source file parts from the .dsc and copy them to testbed
         in_files = False
         fre = re.compile('^\s+[0-9a-f]+\s+\d+\s+([^/.][^/]*)$')
-        with open(dsc) as f:
+        with open(dsc, encoding='UTF-8') as f:
             for l in f:
                 l = l.rstrip('\n')
                 if l.startswith('Files:'):
@@ -1772,8 +1772,8 @@ def build_source(act):
 
     if act.kind == 'ubtree':
         dsc = os.path.join(tmp, what + '-fakedsc')
-        with open(dsc, 'w') as f_dsc:
-            with open(os.path.join(act.arg, 'debian/control')) as f_control:
+        with open(dsc, 'w', encoding='UTF-8') as f_dsc:
+            with open(os.path.join(act.arg, 'debian/control'), encoding='UTF-8') as f_control:
                 for l in f_control:
                     if l == '\n':
                         break
@@ -1890,7 +1890,7 @@ def build_source(act):
                 f_dsc.write('Binary: none-so-this-is-not-a-package-name\n')
             atexit.register(lambda f: os.path.exists(f) and os.unlink(f), dsc)
 
-        with open(dsc) as f:
+        with open(dsc, encoding='UTF-8') as f:
             d = deb822.Deb822(sequence=f)
             bd = d.get('Build-Depends', '')
             bdi = d.get('Build-Depends-Indep', '')
