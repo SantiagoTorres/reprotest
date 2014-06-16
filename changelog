@@ -1,4 +1,11 @@
-autopkgtest (2.18.1) UNRELEASED; urgency=medium
+autopkgtest (2.19) UNRELEASED; urgency=medium
+
+  Improvements:
+  * Support new argument type --changes (implied if file name ends with
+    ".changes"). This behaves as if you specified all debs and the dsc from
+    the given binary changes file and implies --no-built-binaries. I. e. this
+    is the right thing to test a local package that you just built.
+    (Closes: #738552)
 
   Bug fixes:
   * schroot: Always advertise "revert" capability, as it implements revert
