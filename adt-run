@@ -1390,35 +1390,23 @@ def build_source(act):
         TestbedPath(testbed, dsc, dsc_tb).copydown()
 
         # parse source file parts from the .dsc and copy them to testbed
-        in_files = False
-        fre = re.compile('^\s+[0-9a-f]+\s+\d+\s+([^/.][^/]*)$')
-        with open(dsc, encoding='UTF-8') as f:
-            for l in f:
-                l = l.rstrip('\n')
-                if l.startswith('Files:'):
-                    in_files = True
-                    continue
-                elif l.startswith('#'):
-                    pass
-                elif not l.startswith(' '):
-                    in_files = False
-                    if l.startswith('Source:'):
-                        act.blame = 'dsc:' + l[7:].strip()
-                        testbed.blame(act.blame)
-                if not in_files:
-                    continue
+        try:
+            files = testdesc.parse_rfc822(dsc).__next__()['Files'].split()
+        except (StopIteration, KeyError):
+            badpkg('.dsc is invalid and does not contain Files:')
 
-                m = fre.match(l)
-                if not m:
-                    badpkg(".dsc contains unparseable line"
-                           " in Files: `%s'" % l)
-                leaf = m.groups(0)[0]
+        # every Files: line is "checksum size filename"
+        for i in range(2, 1000, 3):
+            try:
+                fname = files[i]
+            except IndexError:
+                break
 
-                part = TestbedPath(
-                    testbed,
-                    os.path.join(os.path.dirname(dsc), leaf),
-                    os.path.join(testbed.scratch, what, leaf))
-                part.copydown()
+            part = TestbedPath(
+                testbed,
+                os.path.join(os.path.dirname(dsc), fname),
+                os.path.join(testbed.scratch, what, fname))
+            part.copydown()
 
         create_command = 'dpkg-source -x "%s"' % dsc_tb
 
