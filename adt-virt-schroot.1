@@ -16,6 +16,15 @@ will be invoked by
 .BR adt\-run .
 
 The schroot name to use must be specified.
+.B Only
+use this with schroots that provide temporary sessions, i. e. with
+.B type=file
+or
+.B type=directory
+and a configured
+.BR union\-type .
+.B adt\-virt\-schroot
+will refuse to work with a static "directory" type schroot.
 
 You can use
 .BR mk-sbuild (1)

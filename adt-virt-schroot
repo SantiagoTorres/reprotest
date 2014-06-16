@@ -101,6 +101,12 @@ def parse_args():
 
     adtlog.debug('schroot config: %s' % cfg)
 
+    # we don't want to clobber non-ephemeral schroots
+    if cfg['type'] == 'directory' and cfg.get('union-type', 'none') in ('', 'none'):
+        VirtSubproc.bomb(
+            'adt-virt-schroot requires ephemeral schroot sessions. Set a '
+            '"union-type" or use a tarball schroot')
+
     if (match(cfg['root-users'], [os.getuid()], pw_uid) or
             match(cfg['root-groups'], [os.getgid()] + os.getgroups(), gr_gid) or
             os.getuid() == 0):
