@@ -24,6 +24,7 @@ autopkgtest (2.18.1) UNRELEASED; urgency=medium
     package formats such as click, and testing. Add new tests/testdesc
     unittests. This also drops the "tree0t-" like prefixes from test names in
     the results and the output file names.
+  * Don't read --setup-commands files multiple times.
 
  -- Martin Pitt <mpitt@debian.org>  Thu, 12 Jun 2014 08:43:49 +0200
 
