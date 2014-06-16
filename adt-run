@@ -1516,8 +1516,9 @@ def build_source(act):
                                       os.path.join(tmp, what + '-control'),
                                       os.path.join(result_pwd, 'debian/control'), False)
             pkg_control.copyup()
+            dsc = pkg_control.host
 
-        with open(pkg_control.host, encoding='UTF-8') as f:
+        with open(dsc, encoding='UTF-8') as f:
             d = deb822.Deb822(sequence=f)
             bd = d.get('Build-Depends', '')
             bdi = d.get('Build-Depends-Indep', '')
