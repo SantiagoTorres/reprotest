@@ -396,11 +396,11 @@ def parse_args():
 
         opts.actions.append(Action(kind, pathstr, arghandling, what))
 
-        # if we have --setup-commands and it points to a file, read its contents
-        for i, c in enumerate(opts.setup_commands):
-            if os.path.exists(c):
-                with open(c) as f:
-                    opts.setup_commands[i] = f.read()
+    # if we have --setup-commands and it points to a file, read its contents
+    for i, c in enumerate(opts.setup_commands):
+        if os.path.exists(c):
+            with open(c) as f:
+                opts.setup_commands[i] = f.read()
 
 
 def setup_trace():
