@@ -13,6 +13,8 @@ autopkgtest (2.18.1) UNRELEASED; urgency=medium
   * schroot: Refuse to work with non-ephemeral schroots, i. e. "directory"
     type schroots without union-type. Point this out in the manpage, too.
     (Closes: #751574)
+  * schroot: Verify that /proc is mounted, and abort with a proper error
+    message if not. (Closes: #751575)
 
   Code cleanup:
   * Unify logging functions into lib/adtlog.py, make their API easier and more
