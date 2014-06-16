@@ -157,7 +157,6 @@ def hook_downtmp():
     (rc, out, err) = VirtSubproc.execute_timeout(
         'proc-check', None, 5, VirtSubproc.auxverb + ['mountpoint', '/proc'],
         stdout=subprocess.PIPE)
-    adtlog.error('rc: %i, out: %s, err: %s' % (rc, out, err))
     if rc != 0:
         VirtSubproc.bomb('Misconfigured schroot: /proc is not mounted')
 
