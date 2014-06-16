@@ -80,9 +80,15 @@ subsequent source package will build a binary of the same name, that will be
 used from then on, and \fIdeb\fR will be ignored.
 
 .TP
+.BR --changes " " \fIchanges\fR
+Specifies that the debs in the given .changes should be used for tests of the
+source package in that .changes. Acts as if you had specified the .debs and .dsc
+from a .changes file as explicit arguments.
+
+.TP
 .I filename
 Bare filename arguments are processed as if
-.BR --built-tree ", " --source ", " --unbuilt-tree ", " --apt-source ", or " --binary
+.BR --built-tree ", " --source ", " --unbuilt-tree ", " --apt-source ", " --binary ", or " --changes
 was specified; the nature of the argument is guessed from the form of
 the filename.  In the case of \fB--built-tree\fR, either the
 option must be specified, or the filename must end in a slash; two

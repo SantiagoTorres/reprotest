@@ -155,6 +155,25 @@ class Action:
         return '<Action %s %s %s>' % (self.kind, self.what, self.arg)
 
 
+def files_from_dsc(dsc_path, optparser=None):
+    '''Get files from a .dsc or a .changes
+
+    Return list of files, including the directory of dsc_path.
+    '''
+    try:
+        files = testdesc.parse_rfc822(dsc_path).__next__()['Files'].split()
+    except (StopIteration, KeyError):
+        e = '%s is invalid and does not contain Files:' % dsc_path
+        if optparser:
+            optparser.error(e)
+        else:
+            badpkg(e)
+
+    dsc_dir = os.path.dirname(dsc_path)
+
+    return [os.path.join(dsc_dir, f) for f in files if '.' in f and '_' in f]
+
+
 def parse_args():
     global opts, timeouts
     global n_non_actions  # argh, stupid python scoping rules
@@ -186,13 +205,12 @@ def parse_args():
 
     pa_action('built-tree', 'TREE', '@/', help='run tests from build tree TREE')
     pa_action('unbuilt-tree', 'TREE', '@//', help='run tests from build tree TREE')
-
     pa_action('source', 'DSC', '@.dsc',
               help='build DSC and use its tests and/or generated binary packages')
-
     pa_action('binary', 'DEB', '@.deb',
               help='use binary package DEB according to most recent --binaries-* settings')
-
+    pa_action('changes', 'CHANGES', '@.changes',
+              help='use dsc and binary debs from a .changes file')
     pa_action('apt-source', 'SRCPKG', '@.apt',
               help='download with apt-get source in testbed and use its tests')
 
@@ -374,6 +392,8 @@ def parse_args():
             kind = 'deb'
         elif kindpath.endswith('.dsc'):
             kind = 'dsc'
+        elif kindpath.endswith('.changes'):
+            kind = 'changes'
         elif kindpath.endswith('.apt'):
             kind = 'apt'
         elif kindpath.endswith('//'):
@@ -384,17 +404,25 @@ def parse_args():
             kind = 'apt'
         else:
             parser.error("do not know how to handle filename `%s';"
-                         " specify --source, --binary, --built-tree, --unbuilt-tree, or --apt-source" %
+                         " specify --source, --binary, --changes, --built-tree, --unbuilt-tree, or --apt-source" %
                          kindpath)
 
         what = '%s%s' % (kind, ix)
         ix += 1
 
-        # "no built binaries" for apt sources
-        if kind == 'apt':
+        # "no built binaries" for apt sources or .changes
+        if kind in ('apt', 'changes'):
             arghandling['dsc_filter'] = '_'
 
-        opts.actions.append(Action(kind, pathstr, arghandling, what))
+        if kind == 'changes':
+            # expand .changes into *.deb and .dsc
+            for f in files_from_dsc(pathstr, parser):
+                if f.endswith('.deb'):
+                    opts.actions.append(Action('deb', f, arghandling, what))
+                elif f.endswith('.dsc'):
+                    opts.actions.append(Action('dsc', f, arghandling, what))
+        else:
+            opts.actions.append(Action(kind, pathstr, arghandling, what))
 
     # if we have --setup-commands and it points to a file, read its contents
     for i, c in enumerate(opts.setup_commands):
@@ -1388,25 +1416,11 @@ def build_source(act):
 
         # copy .dsc file itself
         TestbedPath(testbed, dsc, dsc_tb).copydown()
-
-        # parse source file parts from the .dsc and copy them to testbed
-        try:
-            files = testdesc.parse_rfc822(dsc).__next__()['Files'].split()
-        except (StopIteration, KeyError):
-            badpkg('.dsc is invalid and does not contain Files:')
-
-        # every Files: line is "checksum size filename"
-        for i in range(2, 1000, 3):
-            try:
-                fname = files[i]
-            except IndexError:
-                break
-
-            part = TestbedPath(
-                testbed,
-                os.path.join(os.path.dirname(dsc), fname),
-                os.path.join(testbed.scratch, what, fname))
-            part.copydown()
+        # copy files from it
+        for part in files_from_dsc(dsc):
+            p = TestbedPath(testbed, part, os.path.join(testbed.scratch, what,
+                                                        os.path.basename(part)))
+            p.copydown()
 
         create_command = 'dpkg-source -x "%s"' % dsc_tb
 
