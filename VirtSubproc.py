@@ -128,7 +128,7 @@ def preexecfn():
     caller.hook_forked_inchild()
 
 
-def execute_timeout(what, instr, timeout, *popenargs, **popenargsk):
+def execute_timeout(instr, timeout, *popenargs, **popenargsk):
     '''Popen wrapper with timeout supervision
 
     If instr is given, it is fed into stdin, otherwise stdin will be /dev/null.
@@ -174,7 +174,7 @@ def check_exec(argv, downp=False, outp=False, timeout=0):
     else:
         stdout = None
 
-    (status, out, err) = execute_timeout(argv[0], None, timeout, real_argv,
+    (status, out, err) = execute_timeout(None, timeout, real_argv,
                                          stdout=stdout)
 
     if status:
