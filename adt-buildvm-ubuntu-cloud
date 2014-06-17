@@ -188,34 +188,23 @@ packages:
  - linux-generic
  - haveged
 
-write_files:
- - path: /etc/init.d/autopkgtest
-   permissions: '0755'
-   content: |
-        #!/bin/sh
-        ### BEGIN INIT INFO
-        # Provides:          autopkgtest
-        # Required-Start:    $remote_fs $syslog
-        # Required-Stop:     $remote_fs $syslog
-        # Default-Start:     2 3 4 5
-        # Default-Stop:
-        # Short-Description: Start root shell on ttyS1 for autopkgtest control
-        ### END INIT INFO
-        if [ "$1" = start ]; then
-            (setsid sh </dev/ttyS1 >/dev/ttyS1 2>&1) &
-        fi
-
- - path: /etc/apt/apt.conf.d/90nolanguages
-   permissions: '0644'
-   content: Acquire::Languages "none";
-
- - path: /etc/dpkg/dpkg.cfg.d/autopkgtest
-   permisisons: '0644'
-   content: force-unsafe-io
-
 runcmd:
+ - echo 'Acquire::Languages "none";' > /etc/apt/apt.conf.d/90nolanguages
+ - echo 'force-unsafe-io' > /etc/dpkg/dpkg.cfg.d/autopkgtest
+ - echo '#!/bin/sh' > /etc/init.d/autopkgtest
+ - echo '### BEGIN INIT INFO' >> /etc/init.d/autopkgtest
+ - "echo '# Provides:          autopkgtest' >> /etc/init.d/autopkgtest"
+ - "echo '# Required-Start:    $remote_fs $syslog' >> /etc/init.d/autopkgtest"
+ - "echo '# Required-Stop:     $remote_fs $syslog' >> /etc/init.d/autopkgtest"
+ - "echo '# Default-Start:     2 3 4 5' >> /etc/init.d/autopkgtest"
+ - "echo '# Default-Stop:' >> /etc/init.d/autopkgtest"
+ - "echo '# Short-Description: Start root shell on ttyS1 for autopkgtest control' >> /etc/init.d/autopkgtest"
+ - echo '### END INIT INFO' >> /etc/init.d/autopkgtest
+ - "echo 'if [ $1 = start ]; then' >> /etc/init.d/autopkgtest"
+ - "echo '    (setsid sh </dev/ttyS1 >/dev/ttyS1 2>&1) &' >> /etc/init.d/autopkgtest"
+ - echo 'fi' >> /etc/init.d/autopkgtest
+ - [ chmod, 755, /etc/init.d/autopkgtest ]
  - [ ln, -s, ../init.d/autopkgtest , /etc/rc2.d/S99autopkgtest ]
- - [ apt-get, -y, purge, cloud-init ]
  - for p in accountsservice apt-xapian-index cryptsetup landscape-client
      landscape-common pollinate open-vm-tools; do
      apt-get --auto-remove -y purge $p || true;
@@ -224,6 +213,7 @@ runcmd:
      sed -i 's/GRUB_CMDLINE_LINUX_DEFAULT="[^"]*/& vmalloc=512M/' \
      /etc/default/grub.d/50-cloudimg-settings.cfg; update-grub;
    fi
+ - [ apt-get, -y, purge, cloud-init ]
  - [ shutdown, -P, now ]
 """
 
