@@ -213,8 +213,7 @@ runcmd:
      sed -i 's/GRUB_CMDLINE_LINUX_DEFAULT="[^"]*/& vmalloc=512M/' \
      /etc/default/grub.d/50-cloudimg-settings.cfg; update-grub;
    fi
- - [ apt-get, -y, purge, cloud-init ]
- - [ shutdown, -P, now ]
+ - (while [ ! -e /var/lib/cloud/instance/boot-finished ]; do echo POLL; sleep 1; done; apt-get -y purge cloud-init; shutdown -P now) &
 """
 
 
