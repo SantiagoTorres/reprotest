@@ -1536,7 +1536,7 @@ def build_source(act):
             d = deb822.Deb822(sequence=f)
             bd = d.get('Build-Depends', '')
             bdi = d.get('Build-Depends-Indep', '')
-        testbed.satisfy_dependencies_string(bd + ', ' + bdi + ', '.join(build_essential), what)
+        testbed.satisfy_dependencies_string(bd + ', ' + bdi + ', ' + ', '.join(build_essential), what)
 
         source_rules_command([dpkg_buildpackage], 'build', cwd=result_pwd)
 
