@@ -29,6 +29,8 @@ autopkgtest (2.19) UNRELEASED; urgency=medium
     yet supported in Ubuntu 12.04's cloud-init. Replace with runcmd echos.
   * adt-buildvm-ubuntu-cloud: Purge cloud-init and shutdown after cloud-init
     is done, not while it's still running.
+  * adt-buildvm-ubuntu-cloud: Create upstart job for ttyS0 console unless it
+    already exists, for compatibility with Ubuntu 12.04.
 
   Code cleanup:
   * Unify logging functions into lib/adtlog.py, make their API easier and more
