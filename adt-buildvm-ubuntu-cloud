@@ -168,8 +168,7 @@ def resize_image(image, size):
 DEFAULT_METADATA = 'instance-id: nocloud\nlocal-hostname: autopkgtest\n'
 
 
-DEFAULT_USERDATA = """
-#cloud-config
+DEFAULT_USERDATA = """#cloud-config
 locale: en_US.UTF-8
 timezone: Etc/UTC
 
