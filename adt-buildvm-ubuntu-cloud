@@ -205,6 +205,9 @@ runcmd:
  - echo 'fi' >> /etc/init.d/autopkgtest
  - [ chmod, 755, /etc/init.d/autopkgtest ]
  - [ ln, -s, ../init.d/autopkgtest , /etc/rc2.d/S99autopkgtest ]
+ - if [ ! -e /etc/init/ttyS0.conf ]; then
+       sed 's/tty2/ttyS0/g; s! *exec.*$!exec /sbin/getty -L ttyS0 115200 vt102!' /etc/init/tty2.conf > /etc/init/ttyS0.conf;
+   fi
  - for p in accountsservice apt-xapian-index cryptsetup landscape-client
      landscape-common pollinate open-vm-tools; do
      apt-get --auto-remove -y purge $p || true;
