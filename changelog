@@ -27,6 +27,8 @@ autopkgtest (2.19) UNRELEASED; urgency=medium
     Lallement! (LP: #1330950)
   * adt-buildvm-ubuntu-cloud: Don't use write_files cloud-init command, not
     yet supported in Ubuntu 12.04's cloud-init. Replace with runcmd echos.
+  * adt-buildvm-ubuntu-cloud: Purge cloud-init and shutdown after cloud-init
+    is done, not while it's still running.
 
   Code cleanup:
   * Unify logging functions into lib/adtlog.py, make their API easier and more
