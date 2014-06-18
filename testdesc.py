@@ -65,11 +65,15 @@ class Test:
     This is only a representation of the metadata, it does not have any
     actions.
     '''
-    def __init__(self, name, path, restrictions, features, depends):
+    def __init__(self, name, path, command, restrictions, features, depends):
         '''Create new test description
+
+        A test must have either "path" or "command", the respective other value
+        must be None.
 
         @name: Test name
         @path: path to the test's executable, relative to source tree
+        @command: shell command for the test code
         @restrictions, @features: string lists, as in README.package-tests
         @depends: string list of test dependencies (packages)
         '''
@@ -79,8 +83,12 @@ class Test:
             if r not in known_restrictions:
                 raise Unsupported(name, 'unknown restriction %s' % r)
 
+        if not ((path is None) ^ (command is None)):
+            raise ValueError('Test must have either path or command')
+
         self.name = name
         self.path = path
+        self.command = command
         self.features = features
         self.depends = depends
         self.restrictions = restrictions
@@ -292,7 +300,7 @@ def parse_debian_source(srcdir, testbed_caps):
                                             srcdir)
 
             for n in test_names:
-                test = Test(n, os.path.join(test_dir, n),
+                test = Test(n, os.path.join(test_dir, n), None,
                             record.get('Restrictions', '').split(),
                             record.get('Features', '').split(),
                             depends)
