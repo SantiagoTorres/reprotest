@@ -1,4 +1,4 @@
-autopkgtest (2.19) UNRELEASED; urgency=medium
+autopkgtest (2.19) unstable; urgency=medium
 
   Improvements:
   * Support new argument type --changes (implied if file name ends with
@@ -45,7 +45,7 @@ autopkgtest (2.19) UNRELEASED; urgency=medium
     the results and the output file names.
   * Don't read --setup-commands files multiple times.
 
- -- Martin Pitt <mpitt@debian.org>  Thu, 12 Jun 2014 08:43:49 +0200
+ -- Martin Pitt <mpitt@debian.org>  Wed, 18 Jun 2014 10:07:46 +0200
 
 autopkgtest (2.18) unstable; urgency=medium
 
