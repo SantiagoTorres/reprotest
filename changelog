@@ -31,6 +31,9 @@ autopkgtest (2.19) UNRELEASED; urgency=medium
     is done, not while it's still running.
   * adt-buildvm-ubuntu-cloud: Create upstart job for ttyS0 console unless it
     already exists, for compatibility with Ubuntu 12.04.
+  * adt-virt-qemu: Use python3 or python for eofcat depending on which one is
+    available. Fixes operation with older Ubuntu versions which don't yet
+    install Python 3 by default.
 
   Code cleanup:
   * Unify logging functions into lib/adtlog.py, make their API easier and more
