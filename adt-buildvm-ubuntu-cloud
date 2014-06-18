@@ -198,15 +198,18 @@ runcmd:
  - "echo '# Required-Stop:     $remote_fs $syslog' >> /etc/init.d/autopkgtest"
  - "echo '# Default-Start:     2 3 4 5' >> /etc/init.d/autopkgtest"
  - "echo '# Default-Stop:' >> /etc/init.d/autopkgtest"
- - "echo '# Short-Description: Start root shell on ttyS1 for autopkgtest control' >> /etc/init.d/autopkgtest"
+ - "echo '# Short-Description: root shell on ttyS1 for autopkgtest control'
+     >> /etc/init.d/autopkgtest"
  - echo '### END INIT INFO' >> /etc/init.d/autopkgtest
  - "echo 'if [ $1 = start ]; then' >> /etc/init.d/autopkgtest"
- - "echo '    (setsid sh </dev/ttyS1 >/dev/ttyS1 2>&1) &' >> /etc/init.d/autopkgtest"
+ - "echo '    (setsid sh </dev/ttyS1 >/dev/ttyS1 2>&1) &' >>
+     /etc/init.d/autopkgtest"
  - echo 'fi' >> /etc/init.d/autopkgtest
  - [ chmod, 755, /etc/init.d/autopkgtest ]
  - [ ln, -s, ../init.d/autopkgtest , /etc/rc2.d/S99autopkgtest ]
  - if [ ! -e /etc/init/ttyS0.conf ]; then
-       sed 's/tty2/ttyS0/g; s! *exec.*$!exec /sbin/getty -L ttyS0 115200 vt102!' /etc/init/tty2.conf > /etc/init/ttyS0.conf;
+     sed 's/tty2/ttyS0/g; s! *exec.*$!exec /sbin/getty -L ttyS0 115200 vt102!'
+       /etc/init/tty2.conf > /etc/init/ttyS0.conf;
    fi
  - for p in accountsservice apt-xapian-index cryptsetup landscape-client
      landscape-common pollinate open-vm-tools; do
@@ -216,7 +219,8 @@ runcmd:
      sed -i 's/GRUB_CMDLINE_LINUX_DEFAULT="[^"]*/& vmalloc=512M/' \
      /etc/default/grub.d/50-cloudimg-settings.cfg; update-grub;
    fi
- - (while [ ! -e /var/lib/cloud/instance/boot-finished ]; do echo POLL; sleep 1; done; apt-get -y purge cloud-init; shutdown -P now) &
+ - (while [ ! -e /var/lib/cloud/instance/boot-finished ]; do sleep 1; done;
+    apt-get -y purge cloud-init; shutdown -P now) &
 """
 
 
