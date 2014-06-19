@@ -20,15 +20,17 @@
 # See the file CREDITS for a full list of credits information (often
 # installed as /usr/share/doc/autopkgtest/CREDITS).
 
-import adtlog
 import string
 import re
 import errno
 import os.path
+import json
 
 import debian.deb822
 import debian.debian_support
+import debian.debfile
 
+import adtlog
 
 #
 # Abstract test representation
@@ -65,7 +67,8 @@ class Test:
     This is only a representation of the metadata, it does not have any
     actions.
     '''
-    def __init__(self, name, path, command, restrictions, features, depends):
+    def __init__(self, name, path, command, restrictions, features, depends,
+                 clicks):
         '''Create new test description
 
         A test must have either "path" or "command", the respective other value
@@ -76,6 +79,7 @@ class Test:
         @command: shell command for the test code
         @restrictions, @features: string lists, as in README.package-tests
         @depends: string list of test dependencies (packages)
+        @clicks: path list of click packages to install for this test
         '''
         if '/' in name:
             raise Unsupported(name, 'test name may not contain / character')
@@ -84,19 +88,21 @@ class Test:
                 raise Unsupported(name, 'unknown restriction %s' % r)
 
         if not ((path is None) ^ (command is None)):
-            raise ValueError('Test must have either path or command')
+            raise InvalidControl(name, 'Test must have either path or command')
 
         self.name = name
         self.path = path
         self.command = command
+        self.restrictions = restrictions
         self.features = features
         self.depends = depends
-        self.restrictions = restrictions
+        self.clicks = clicks
         # None while test hasn't run yet; True: pass, False: fail
         self.result = None
-        adtlog.debug('Test defined: name %s path %s restrictions %s '
-                     ' features %s depends %s' % (name, path, restrictions,
-                                                  features, depends))
+        adtlog.debug('Test defined: name %s path %s command "%s" '
+                     'restrictions %s features %s depends %s clicks %s' %
+                     (name, path, command, restrictions, features, depends,
+                      clicks))
 
     def passed(self):
         '''Mark test as passed'''
@@ -303,7 +309,7 @@ def parse_debian_source(srcdir, testbed_caps):
                 test = Test(n, os.path.join(test_dir, n), None,
                             record.get('Restrictions', '').split(),
                             record.get('Features', '').split(),
-                            depends)
+                            depends, [])
                 test.check_testbed_compat(testbed_caps)
                 tests.append(test)
         except Unsupported as u:
@@ -311,3 +317,92 @@ def parse_debian_source(srcdir, testbed_caps):
             some_skipped = True
 
     return (tests, some_skipped)
+
+
+#
+# Parsing for click packages
+#
+
+def parse_click_manifest(manifest, testbed_caps, clickdeps):
+    '''Parse test descriptions from a click manifest.
+
+    @manifest: String with the click manifest
+    @testbed_caps: List of testbed capabilities
+    @clickdeps: paths of click packages that these tests need
+
+    Return (list of Test objects, some_skipped). If this encounters any invalid
+    restrictions, fields, or test restrictions which cannot be met by the given
+    testbed capabilities, the test will be skipped (and reported so), and not
+    be included in the result.
+
+    This may raise an InvalidControl exception.
+    '''
+    try:
+        j = json.loads(manifest)
+        test_j = j.get('x-test', {})
+    except ValueError as e:
+        raise InvalidControl(
+            '*', 'click manifest is not valid JSON: %s' % str(e))
+    if not isinstance(test_j, dict):
+        raise InvalidControl(
+            '*', 'click manifest x-test key must be a dictionary')
+
+    some_skipped = False
+    tests = []
+
+    # It's a dictionary and thus does not have a predictable ordering; sort it
+    # to get a predictable list
+    for name in sorted(test_j):
+        desc = test_j[name]
+        adtlog.debug('parsing click manifest test %s: %s' % (name, desc))
+
+        # simple string is the same as { "path": <desc> } without any
+        # restrictions
+        if isinstance(desc, str):
+            desc = {'path': desc}
+        if not isinstance(desc, dict):
+            raise InvalidControl(name, 'click manifest x-test dictionary '
+                                 'entries must be strings or dicts')
+
+        try:
+            test = Test(name, desc.get('path'), desc.get('command'),
+                        desc.get('restrictions', []), desc.get('features', []),
+                        desc.get('depends', []), clickdeps)
+            test.check_testbed_compat(testbed_caps)
+            tests.append(test)
+        except Unsupported as u:
+            u.report()
+            some_skipped = True
+
+    return (tests, some_skipped)
+
+
+def parse_click(clickpath, testbed_caps, srcdir=None):
+    '''Parse test descriptions from a click package.
+
+    Return (source_dir, list of Test objects, some_skipped). If this encounters
+    any invalid restrictions, fields, or test restrictions which cannot be met
+    by the given testbed capabilities, the test will be skipped (and reported
+    so), and not be included in the result.
+
+    If srcdir is given, use that as source for the click package, and return
+    that as first return value. Otherwise, locate and download the source from
+    the click's manifest into a temporary directory and use that (not yet
+    implemented).
+
+    This may raise an InvalidControl exception.
+    '''
+    if srcdir is None:
+        raise NotImplementedError(
+            'Downloading click source packages from manifest is not '
+            'implemented. Specify --click-source explicitly.')
+
+    pkg = debian.debfile.DebFile(clickpath)
+    try:
+        manifest = pkg.control.get_content('manifest').decode('UTF-8')
+    finally:
+        pkg.close()
+
+    (tests, skipped) = parse_click_manifest(manifest, testbed_caps,
+                                            [clickpath])
+    return (srcdir, tests, skipped)
