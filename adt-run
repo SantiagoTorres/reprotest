@@ -886,7 +886,7 @@ Description: satisfy autopkgtest test dependencies
         if opts.output_dir:
             pkglist = TempTestbedPath(self, test.name + '-packages.all', autoclean=False)
             self.check_exec([
-                'sh', '-ec', "dpkg-query --show -f '${Package}\\t${Version}\\n' > %s" % pkglist.tb])
+                'sh', '-ec', "dpkg-query --show -f '${Package}\\t${Version}\\n' | grep -v '^adt-satdep' > %s" % pkglist.tb])
             pkglist.copyup()
 
             # filter out packages from the base system
