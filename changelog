@@ -5,6 +5,9 @@ autopkgtest (2.20) UNRELEASED; urgency=medium
     specifying a path to a test executable. Not currently supported by Debian
     parser.
 
+  Bug fixes:
+  * Don't include "adt-satdep" dummy package in <test>-packages output files.
+
  -- Martin Pitt <mpitt@debian.org>  Wed, 18 Jun 2014 14:40:35 +0200
 
 autopkgtest (2.19) unstable; urgency=medium
