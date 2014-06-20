@@ -4,6 +4,8 @@ autopkgtest (2.20) UNRELEASED; urgency=medium
   * Add "Test" argument/member for a shell string command, instead of
     specifying a path to a test executable. Not currently supported by Debian
     parser.
+  * Convert doc/README.* to Markdown, so that it's easy to format them as PDF
+    or HTML, e. g. with pandoc.
 
   Bug fixes:
   * Don't include "adt-satdep" dummy package in <test>-packages output files.
