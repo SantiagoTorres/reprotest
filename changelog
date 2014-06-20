@@ -10,6 +10,8 @@ autopkgtest (2.21) UNRELEASED; urgency=medium
     - Add two new actions --click and --click-source to run tests of a click
       package. For now, --click-source is mandatory as parsing/getting the
       source from a click's x-source manifest entry is not yet implemented.
+    - Add doc/README.click-tests.rst to document test definition for click
+      packages.
 
   Bug fixes:
   * lxc: Don't leak the host environment into the container (lxc-attach
