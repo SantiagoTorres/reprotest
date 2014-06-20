@@ -170,7 +170,7 @@ DEFAULT_METADATA = 'instance-id: nocloud\nlocal-hostname: autopkgtest\n'
 
 DEFAULT_USERDATA = """#cloud-config
 locale: en_US.UTF-8
-timezone: Etc/UTC
+timezone: %(tz)s
 
 password: ubuntu
 chpasswd: { expire: False }
@@ -239,7 +239,8 @@ def build_seed(mirror, proxy, release, no_apt_upgrade, metadata_file=None,
         userdata = open(userdata_file).read()
     else:
         userdata = DEFAULT_USERDATA % {'proxy': proxy or '', 'mirror': mirror,
-                                       'rel': release, 'upgr': upgr}
+                                       'rel': release, 'upgr': upgr,
+                                       'tz': host_tz()}
     with open(os.path.join(workdir, 'user-data'), 'w') as f:
         f.write(userdata)
 
@@ -252,6 +253,23 @@ def build_seed(mirror, proxy, release, no_apt_upgrade, metadata_file=None,
         sys.exit(1)
 
     return os.path.join(workdir, 'adt.seed')
+
+
+def host_tz():
+    '''Return host timezone.
+
+    Defaults to Etc/UTC if it cannot be determined
+    '''
+    if os.path.exists('/etc/timezone'):
+        with open('/etc/timezone', 'rb') as f:
+            for l in f:
+                if l.startswith(b'#'):
+                    continue
+                l = l.strip()
+                if l:
+                    return l.decode()
+
+    return 'Etc/UTC'
 
 
 def boot_image(image, seed, qemu_command, verbose):
