@@ -6,6 +6,10 @@ autopkgtest (2.21) UNRELEASED; urgency=medium
   * adt-run: Never run testbed commands with newlines in them. Those make it
     ridiculously hard to implement runners which can only accept shell
     strings.
+  * Add support for click packages (https://click.readthedocs.org):
+    - Add two new actions --click and --click-source to run tests of a click
+      package. For now, --click-source is mandatory as parsing/getting the
+      source from a click's x-source manifest entry is not yet implemented.
 
   Bug fixes:
   * lxc: Don't leak the host environment into the container (lxc-attach
