@@ -37,6 +37,7 @@ import copy
 import time
 import atexit
 
+from glob import glob
 from urllib.parse import quote as url_quote
 from urllib.parse import unquote as url_unquote
 from optparse import OptionParser
@@ -174,6 +175,16 @@ def files_from_dsc(dsc_path, optparser=None):
     return [os.path.join(dsc_dir, f) for f in files if '.' in f and '_' in f]
 
 
+def is_click_src(path):
+    '''Check if path is a click source tree'''
+
+    if os.path.isdir(os.path.join(path, 'click')):
+        return True
+    if glob(os.path.join(path, 'manifest.json*')):
+        return True
+    return False
+
+
 def parse_args():
     global opts, timeouts
     global n_non_actions  # argh, stupid python scoping rules
@@ -213,6 +224,10 @@ def parse_args():
               help='use dsc and binary debs from a .changes file')
     pa_action('apt-source', 'SRCPKG', '@.apt',
               help='download with apt-get source in testbed and use its tests')
+    pa_action('click-source', 'CLICKSRC', '@.clicksrc',
+              help='click source tree for subsequent --click package')
+    pa_action('click', 'CLICKPKG', '@.click',
+              help='install click package into testbed and run its tests (from preceding --click-source)')
 
     def cb_actnoarg(op, optstr, value, parser, largsentry):
         parser.largs.append(largsentry)
@@ -398,6 +413,10 @@ def parse_args():
             kind = 'changes'
         elif kindpath.endswith('.apt'):
             kind = 'apt'
+        elif kindpath.endswith('.click'):
+            kind = 'click'
+        elif kindpath == '@.clicksrc' or is_click_src(pathstr):
+            kind = 'clicksrc'
         elif kindpath.endswith('//'):
             kind = 'ubtree'
         elif kindpath.endswith('/'):
@@ -852,6 +871,17 @@ Description: satisfy autopkgtest test dependencies
         if rc != 0:
             bomb('test dependencies are unsatisfiable')
 
+    def install_click(self, clickpath):
+        # copy click into testbed
+        tp = TestbedPath(self, clickpath, os.path.join(
+            self.scratch, os.path.basename(clickpath)))
+        tp.copydown()
+        # install it
+        rc = self.execute(['click', 'install', '--all-users', tp.tb],
+                          kind='install')[0]
+        if rc != 0:
+            bomb('click install failed with status %i' % rc)
+
     def satisfy_dependencies_string(self, deps, what, recommends=False):
         '''Install dependencies from a string into the testbed'''
 
@@ -897,6 +927,8 @@ Description: satisfy autopkgtest test dependencies
 
         _info('preparing')
         self.prepare(test.depends, 'needs-recommends' in test.restrictions)
+        for c in test.clicks:
+            testbed.install_click(c)
 
         # record installed package versions
         if opts.output_dir:
@@ -921,8 +953,6 @@ Description: satisfy autopkgtest test dependencies
         so = TempTestbedPath(self, test.name + '-stdout', autoclean=False)
         se = TempTestbedPath(self, test.name + '-stderr', autoclean=False)
 
-        tb_test_path = os.path.join(tree.tb, test.path)
-
         # create script to run test
         test_artifacts = '%s/%s-artifacts' % (self.scratch, test.name)
         script = 'set -e; ' \
@@ -940,10 +970,15 @@ Description: satisfy autopkgtest test dependencies
         if opts.set_lang is not False:
             script += 'export LANG=%s; ' % opts.set_lang
 
-        script += 'chmod +x %(t)s; ' \
-                  'touch %(o)s %(e)s; ' \
+        if test.path:
+            test_cmd = os.path.join(tree.tb, test.path)
+            script += 'chmod +x %s; ' % test_cmd
+        else:
+            test_cmd = '(%s)' % test.command
+
+        script += 'touch %(o)s %(e)s; ' \
                   '%(t)s 2> >(tee %(e)s >&2) > >(tee %(o)s); ' \
-                  % {'t': tb_test_path, 'o': so.tb, 'e': se.tb}
+                  % {'t': test_cmd, 'o': so.tb, 'e': se.tb}
 
         if 'needs-root' not in test.restrictions and opts.user is not None:
             if 'root-on-testbed' not in self.caps:
@@ -1631,6 +1666,8 @@ def process_actions():
 
     binaries.reset()
 
+    pending_click_source = None
+
     info_1('builds ...')
     for act in opts.actions:
         info_2('%s %s' % (act.kind, act.what))
@@ -1643,10 +1680,22 @@ def process_actions():
                               'forbuilds', testbed.blamed)
         elif act.kind == 'instantiate':
             pass
+        elif act.kind == 'clicksrc':
+            if pending_click_source:
+                adtlog.warning('Ignoring --click-source %s, no subsequent --click argument' % pending_click_source)
+            pending_click_source = act.arg
         else:
-            assert act.kind in ('dsc', 'tree', 'ubtree', 'apt')
-            build_source(act)  # sets act.tests_tree
-            (act.tests, skipped) = testdesc.parse_debian_source(act.tests_tree.host, testbed.caps)
+            assert act.kind in ('dsc', 'tree', 'ubtree', 'apt', 'click')
+            if act.kind == 'click':
+                (srcdir, act.tests, skipped) = testdesc.parse_click(
+                    act.arg, testbed.caps, srcdir=pending_click_source)
+                act.tests_tree = TestbedPath(
+                    testbed, srcdir, os.path.join(testbed.scratch, 'tree'),
+                    is_dir=True)
+                pending_click_source = None
+            else:
+                build_source(act)  # sets act.tests_tree
+                (act.tests, skipped) = testdesc.parse_debian_source(act.tests_tree.host, testbed.caps)
             if skipped:
                 errorcode |= 2
 
@@ -1663,6 +1712,10 @@ def process_actions():
                               ['deb:' + act.pkg])
         elif act.kind == 'instantiate':
             testbed.prepare([], False)
+        elif act.kind == 'click':
+            run_tests(act.tests, act.tests_tree)
+        elif act.kind == 'clicksrc':
+            pass
         else:
             assert act.kind in ('dsc', 'tree', 'ubtree', 'apt')
 
