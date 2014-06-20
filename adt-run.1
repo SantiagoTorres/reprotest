@@ -12,9 +12,9 @@ adt\-run \- test an installed binary package using the package's tests
 .B adt\-run
 is the program for invoking the autopkgtest package testing machinery.
 
-autopkgtest is a facility for testing binary packages, as installed on
-a system (such as a testbed system).  The tests are those supplied in
-the source package.
+autopkgtest is a facility for testing binary Debian or Click packages, as
+installed on a system (such as a testbed system).  The tests are those supplied
+in the source package.
 
 adt\-run runs each test supplied by a particular package and reports
 the results.  It drives the specified virtualisation regime as
@@ -32,9 +32,9 @@ introduction about how to use adt\-run.
 
 .TP
 .BR --source " " \fIdsc\fR
-Run tests from source package \fIdsc\fR. By default the package will also be
-built and the resulting binaries will be used to satisfy test dependencies;
-to disable that, specify the
+Run tests from Debian source package \fIdsc\fR. By default the package will
+also be built and the resulting binaries will be used to satisfy test
+dependencies; to disable that, specify the
 .BR -B / --no-built-binaries
 option before.
 
@@ -44,7 +44,7 @@ produces.
 
 .TP
 .BR --unbuilt-tree " " \fIdirectory\fR
-Specifies that tests from the unbuilt source tree
+Specifies that tests from the unbuilt Debian source tree
 .IR directory
 should be run.  This is very similar to specifying \fB\-\-source\fR
 except that a directory tree (which should be pristine) is supplied,
@@ -52,7 +52,7 @@ instead of a source package.
 
 .TP
 .BR --built-tree " " \fIdirectory\fR
-Specifies that tests from the built source tree
+Specifies that tests from the built Debian source tree
 .IR directory
 should be run. Note that all test dependencies are then satisfied by
 archive packages, unless you explicitly specify locally built .debs with
@@ -86,13 +86,27 @@ source package in that .changes. Acts as if you had specified the .debs and .dsc
 from a .changes file as explicit arguments.
 
 .TP
+.BR --click-source " " \fIclicksrc
+Path to click source tree for subsequent
+.B --click
+package.
+
+.TP
+.BR --click " " \fIclickpkg
+Install given click package into testbed and run its tests from the preceeding
+.BR --click-source .
+
+.TP
 .I filename
 Bare filename arguments are processed as if
-.BR --built-tree ", " --source ", " --unbuilt-tree ", " --apt-source ", " --binary ", or " --changes
+.BR --built-tree ", " --source ", " --unbuilt-tree ", " --apt-source ", "
+.BR --binary ", " --changes ", " --click-source ", or" --click
 was specified; the nature of the argument is guessed from the form of
 the filename.  In the case of \fB--built-tree\fR, either the
 option must be specified, or the filename must end in a slash; two
-slashes at the end are taken to mean \fB--unbuilt-tree\fR.
+slashes at the end are taken to mean \fB--unbuilt-tree\fR. If a given directory
+has a "click" subdirectory, it is interpreted as
+.BR --click-source .
 
 .SH PROCESSING OPTIONS
 These affect processing instructions.  Unless stated
