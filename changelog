@@ -9,6 +9,9 @@ autopkgtest (2.20) UNRELEASED; urgency=medium
 
   Bug fixes:
   * Don't include "adt-satdep" dummy package in <test>-packages output files.
+  * adt-buildvm-ubuntu-cloud: Use host timezone as default for the VM, to
+    avoid TZ changes during boot when running tests. Thanks Jean-Baptiste
+    Lallement!
 
  -- Martin Pitt <mpitt@debian.org>  Wed, 18 Jun 2014 14:40:35 +0200
 
