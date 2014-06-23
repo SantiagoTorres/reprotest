@@ -248,6 +248,14 @@ is an existing file name, the commands are read from that; otherwise it
 is a string with the actual commands that gets run as-is. This option can be
 specified multiple times.
 
+If
+.B \-\-user
+is given or the test bed provides a
+.B suggested-normal-user
+capability, the
+.B $ADT_NORMAL_USER
+environment variable will be set to that user.
+
 .TP
 .BR --apt-upgrade " | " -U
 Run

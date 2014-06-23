@@ -475,12 +475,6 @@ def setup_trace():
 def finalise_options():
     global opts, testbed, build_essential, dpkg_buildpackage
 
-    if opts.user is None and 'root-on-testbed' in testbed.caps:
-        opts.user = ''
-        for c in testbed.caps:
-            if c.startswith('suggested-normal-user='):
-                opts.user = c.split('=', 1)[1]
-
     if opts.user:
         if 'root-on-testbed' not in testbed.caps:
             adtlog.warning('virtualisation system does not offer root on '
@@ -576,6 +570,14 @@ class Testbed:
         for c in self.caps:
             if c.startswith('downtmp-host='):
                 shared_downtmp = c.split('=', 1)[1]
+
+        # provide a default for --user
+        if opts.user is None and 'root-on-testbed' in self.caps:
+            opts.user = ''
+            for c in self.caps:
+                if c.startswith('suggested-normal-user='):
+                    opts.user = c.split('=', 1)[1]
+
         self.run_setup_commands()
 
         # determine testbed architecture
@@ -631,8 +633,12 @@ class Testbed:
                          'for d in %s; do [ ! -d $d ] || touch -r $d %s/${d//\//_}.stamp; done' % (
                              boot_dirs, self.scratch)])
 
+        xenv = []
+        if opts.user:
+            xenv.append('ADT_NORMAL_USER=' + opts.user)
+
         for c in opts.setup_commands:
-            rc = self.execute(['sh', '-ec', c], kind='install')[0]
+            rc = self.execute(['sh', '-ec', c], xenv=xenv, kind='install')[0]
             if rc:
                 bomb('testbed setup commands failed with status %i' % rc)
 
