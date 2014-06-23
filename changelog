@@ -12,6 +12,11 @@ autopkgtest (2.21) UNRELEASED; urgency=medium
       source from a click's x-source manifest entry is not yet implemented.
     - Add doc/README.click-tests.rst to document test definition for click
       packages.
+    - Add setup-commands/ubuntu-touch-session: --setup-commands script for
+      installing click, the Ubuntu SDK, some extra packages for autopilot, and
+      launching Xvfb and an user upstart session. This approximates the
+      environment of an Ubuntu touch device. You can also run
+      setup-commands/ro-apt afterwards.
 
   Bug fixes:
   * lxc: Don't leak the host environment into the container (lxc-attach
