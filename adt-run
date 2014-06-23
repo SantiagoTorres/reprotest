@@ -921,6 +921,8 @@ Description: satisfy autopkgtest test dependencies
 
         if opts.user and 'rw-build-tree' in test.restrictions:
             script += 'chown -R %s "$buildtree"\n' % opts.user
+        if opts.set_lang is not False:
+            script += 'export LANG=%s\n' % opts.set_lang
 
         script += '''chmod +x %(t)s
                      touch %(o)s %(e)s
