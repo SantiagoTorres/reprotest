@@ -6,6 +6,8 @@ autopkgtest (2.20) UNRELEASED; urgency=medium
     parser.
   * Convert doc/README.* to Markdown, so that it's easy to format them as PDF
     or HTML, e. g. with pandoc.
+  * If the --user option is given or the testbed specifies a normal user, pass
+    this to --setup-commands through $ADT_NORMAL_USER.
 
   Bug fixes:
   * Don't include "adt-satdep" dummy package in <test>-packages output files.
