@@ -882,6 +882,10 @@ Description: satisfy autopkgtest test dependencies
         if rc != 0:
             bomb('click install failed with status %i' % rc)
 
+        # work around https://launchpad.net/bugs/1333215
+        self.check_exec(['sh', '-ec', opts.user_wrap(
+            '[ -z "$UPSTART_SESSION" ] || initctl --user start click-user-hooks')])
+
     def satisfy_dependencies_string(self, deps, what, recommends=False):
         '''Install dependencies from a string into the testbed'''
 
