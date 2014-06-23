@@ -8,6 +8,9 @@ autopkgtest (2.20) UNRELEASED; urgency=medium
     or HTML, e. g. with pandoc.
   * If the --user option is given or the testbed specifies a normal user, pass
     this to --setup-commands through $ADT_NORMAL_USER.
+  * Allow --setup-commands which would ordinarily reboot the testbed to
+    suppress this by creating a stamp file in /run. This is useful for
+    commands which run processes that aren't started at boot.
 
   Bug fixes:
   * Don't include "adt-satdep" dummy package in <test>-packages output files.
