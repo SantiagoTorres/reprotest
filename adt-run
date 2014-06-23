@@ -644,7 +644,8 @@ class Testbed:
 
         if opts.setup_commands and 'reboot' in self.caps:
             boot_affected = self.execute(
-                ['bash', '-ec', 'for d in %s; do s=%s/${d//\//_}.stamp;'
+                ['bash', '-ec', '[ ! -e /run/autopkgtest_no_reboot.stamp ] || exit 0;'
+                 'for d in %s; do s=%s/${d//\//_}.stamp;'
                  '  [ ! -d $d ] || [ `stat -c %%Y $d` = `stat -c %%Y $s` ]; done' % (
                      boot_dirs, self.scratch)])[0]
             if boot_affected:

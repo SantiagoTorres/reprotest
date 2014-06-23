@@ -256,6 +256,11 @@ capability, the
 .B $ADT_NORMAL_USER
 environment variable will be set to that user.
 
+If the setup commands affect anything in boot directories (like /boot or
+/lib/systemd/system) and the testbed supports rebooting, the testbed will be
+rebooted after the setup commands. This can be suppressed by creating a file
+.BR /run/autopkgtest_no_reboot.stamp .
+
 .TP
 .BR --apt-upgrade " | " -U
 Run
