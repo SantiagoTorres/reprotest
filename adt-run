@@ -810,33 +810,11 @@ class Testbed:
             bomb('"%s" failed with status %i' % (' '.join(argv), code))
         return out
 
-    def satisfy_dependencies_string(self, deps, what, recommends=False):
-        '''Install dependencies from a string into the testbed'''
+    def install_apt(self, deps, recommends=False):
+        '''Install dependencies with apt-get into testbed
 
-        adtlog.debug('%s: satisfying %s' % (what, deps))
-
-        if 'root-on-testbed' not in self.caps:
-            adtlog.warning('virtualisation system does not offer root on '
-                           'testbed, cannot install any packages; failure likely')
-            return
-
-        # ignore ":native" tags, apt cannot parse them and deps_parse() does
-        # not seem to have an option to get rid of them; we always test on the
-        # native platform
-        deps = deps.replace(':native', '')
-
-        # resolve arch specific dependencies
-        perl = subprocess.Popen(['perl', '-'], stdin=subprocess.PIPE,
-                                stdout=subprocess.PIPE,
-                                universal_newlines=True)
-        deps = perl.communicate('''use Dpkg::Deps;
-                                $dep = deps_parse('%s', reduce_arch => 1, host_arch => '%s');
-                                print $dep->output(), "\\n";
-                                ''' % (deps, self.dpkg_arch))[0].strip()
-        if perl.returncode != 0:
-            bomb('failed to run perl for parsing dependencies')
-        adtlog.debug('%s: architecture resolved: %s' % (what, deps))
-
+        This requires root privileges and a writable file system.
+        '''
         # create a dummy deb with the deps
         pkgdir = tempfile.mkdtemp(prefix='adt-satdep.')
         debdir = os.path.join(pkgdir, 'DEBIAN')
@@ -873,6 +851,36 @@ Description: satisfy autopkgtest test dependencies
                           stderr=subprocess.PIPE)[0]
         if rc != 0:
             bomb('test dependencies are unsatisfiable')
+
+
+    def satisfy_dependencies_string(self, deps, what, recommends=False):
+        '''Install dependencies from a string into the testbed'''
+
+        adtlog.debug('%s: satisfying %s' % (what, deps))
+
+        if 'root-on-testbed' not in self.caps:
+            adtlog.warning('virtualisation system does not offer root on '
+                           'testbed, cannot install any packages; failure likely')
+            return
+
+        # ignore ":native" tags, apt cannot parse them and deps_parse() does
+        # not seem to have an option to get rid of them; we always test on the
+        # native platform
+        deps = deps.replace(':native', '')
+
+        # resolve arch specific dependencies
+        perl = subprocess.Popen(['perl', '-'], stdin=subprocess.PIPE,
+                                stdout=subprocess.PIPE,
+                                universal_newlines=True)
+        deps = perl.communicate('''use Dpkg::Deps;
+                                $dep = deps_parse('%s', reduce_arch => 1, host_arch => '%s');
+                                print $dep->output(), "\\n";
+                                ''' % (deps, self.dpkg_arch))[0].strip()
+        if perl.returncode != 0:
+            bomb('failed to run perl for parsing dependencies')
+        adtlog.debug('%s: architecture resolved: %s' % (what, deps))
+
+        self.install_apt(deps, recommends)
 
     def run_shell(self, cwd=None):
         '''Run shell in testbed for debugging tests'''
