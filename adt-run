@@ -42,7 +42,7 @@ from urllib.parse import quote as url_quote
 from urllib.parse import unquote as url_unquote
 from optparse import OptionParser
 
-from debian import deb822
+from debian import deb822, debian_support
 
 try:
     our_base = os.environ['AUTOPKGTEST_BASE'] + '/lib'
@@ -531,6 +531,7 @@ class Testbed:
         self.stop_sent = False
         self.dpkg_arch = None
         self.exec_cmd = None
+        self.install_tmp_env = []
         adtlog.debug('testbed init')
 
     def start(self):
@@ -790,6 +791,7 @@ class Testbed:
             env.append('DEBIAN_FRONTEND=noninteractive')
         if opts.set_lang is not False:
             env.append('LANG=%s' % opts.set_lang)
+        env += self.install_tmp_env
 
         adtlog.debug('testbed command %s, kind %s, sout %s, serr %s, env %s' %
                      (argv, kind, stdout and 'pipe' or 'raw',
@@ -871,6 +873,126 @@ Description: satisfy autopkgtest test dependencies
         if rc != 0:
             bomb('test dependencies are unsatisfiable')
 
+    def install_tmp(self, deps, recommends=False):
+        '''Unpack dependencies into temporary directory
+
+        This is a fallback if the testbed does not have root privileges or a
+        writable file system, and will only work for packages that can be
+        used from a different directory with PATH, LD_LIBRARY_PATH, PYTHONPATH
+        etc. set.
+
+        Sets/updates self.install_tmp_env to necessary variables.
+        '''
+        unsupported = []
+        pkg_constraints = {}  # pkg -> (relation, version)
+
+        # parse deps into pkg_constraints
+        dep_re = re.compile(
+            r'(?P<p>[a-z0-9+-.]+)\s*'
+            r'(\((?P<r><<|<=|>=|=|>>)\s*(?P<v>[^\)]*)\))?$')
+        for dep in deps.split(','):
+            dep = dep.strip()
+            if not dep:
+                continue  # trailing comma
+            m = dep_re.match(dep)
+            if not m:
+                unsupported.append(dep)
+                continue
+            pkg_constraints[m.group('p')] = (m.group('r'), m.group('v'))
+
+        adtlog.debug('install_tmp: "%s" -> %s, unsupported: %s' %
+                     (deps, pkg_constraints, unsupported))
+
+        if unsupported:
+            adtlog.warning('The following dependencies cannot be handled in '
+                           'reduced "unpack to temporary directory" mode: ' +
+                           ', '.join(unsupported))
+
+        # simulate installation, grab packages, and check constraints
+        (rc, out, _) = self.execute(['apt-get', '-qs', '--no-remove',
+                                     '-o', 'Debug::pkgProblemResolver=true',
+                                     '-o', 'Debug::NoLocking=true',
+                                     '-o', 'APT::Install-Recommends=%s' % recommends,
+                                     '-o', 'APT::Get::Show-User-Simulation-Note=False',
+                                     'install'] + list(pkg_constraints),
+                                    stdout=subprocess.PIPE)
+        if rc != 0:
+            bomb('test dependencies are unsatisfiable')
+
+        def check_constraint(pkg, ver):
+            constraint = pkg_constraints.get(pkg, (None, None))
+            if constraint[0] is None:
+                return True
+            comp = debian_support.version_compare(ver, constraint[1])
+            if constraint[0] == '<<':
+                return comp < 0
+            if constraint[0] == '<=':
+                return comp <= 0
+            if constraint[0] == '==':
+                return comp == 0
+            if constraint[0] == '>=':
+                return comp >= 0
+            if constraint[0] == '>>':
+                return comp > 0
+            raise ValueError('invalid dependency version relation %s' % constraint[0])
+
+        to_install = []
+        for line in out.splitlines():
+            if not line.startswith('Inst '):
+                continue
+            fields = line.split()
+            pkg = fields[1]
+            ver = fields[2][1:]  # chop off '('
+            if not check_constraint(pkg, ver):
+                bomb('test dependency %s (%s %s) is unsatisfiable: available version %s' %
+                     (pkg, pkg_constraints[pkg][0], pkg_constraints[pkg][1], ver))
+            to_install.append(pkg)
+
+        adtlog.debug('install_tmp: packages to install: %s' % ' '.join(to_install))
+
+        if not to_install:
+            # we already have everything, all good
+            return
+
+        adtlog.warning('virtualisation system does not offer root or writable '
+                       'testbed; unpacking dependencies to temporary dir, '
+                       'which will only work for some packages')
+
+        # download and unpack all debs
+        script = '''d=%(t)s/deps
+mkdir -p $d; cd $d
+apt-get download %(pkgs)s >&2
+for p in *.deb; do dpkg-deb -x $p .; rm $p; done
+
+# executables
+echo PATH=$d/sbin:$d/bin:$d/usr/sbin:$d/usr/bin:$d/usr/games:$PATH
+
+# shared libraries
+l=""
+for candidate in $(find $d -type d \( -name 'lib' -o -path '*/lib/*-linux-*' \)); do
+    [ -z "$(ls $candidate/*.so $candidate/*.so.* 2>/dev/null)" ] || l="$candidate:$l"
+done
+[ -z "$l" ] || echo LD_LIBRARY_PATH=$l${LD_LIBRARY_PATH:-}
+
+# Python modules
+p=""
+for candidate in $d/usr/lib/python3*/dist-packages; do
+    [ ! -d $candidate ] || p="$candidate:$p"
+done
+[ -z "$p" ] || echo PYTHONPATH=$p${PYTHONPATH:-}
+
+# gobject-introspection
+if [ -d $d/usr/lib/girepository-1.0 ]; then
+    echo GI_TYPELIB_PATH=$d/usr/lib/girepository-1.0:${GI_TYPELIB_PATH:-}
+fi
+''' % {'t': self.scratch, 'pkgs': ' '.join(to_install)}
+        (rc, out, _) = self.execute(['sh', '-euc', script],
+                                    stdout=subprocess.PIPE)
+        if rc != 0:
+            bomb('failed to download and unpack test dependencies')
+        self.install_tmp_env = [l.strip() for l in out.splitlines() if l]
+        adtlog.debug('install_tmp: env is now %s' % self.install_tmp_env)
+
     def install_click(self, clickpath):
         # copy click into testbed
         tp = TestbedPath(self, clickpath, os.path.join(
@@ -891,11 +1013,6 @@ Description: satisfy autopkgtest test dependencies
 
         adtlog.debug('%s: satisfying %s' % (what, deps))
 
-        if 'root-on-testbed' not in self.caps:
-            adtlog.warning('virtualisation system does not offer root on '
-                           'testbed, cannot install any packages; failure likely')
-            return
-
         # ignore ":native" tags, apt cannot parse them and deps_parse() does
         # not seem to have an option to get rid of them; we always test on the
         # native platform
@@ -913,7 +1030,18 @@ Description: satisfy autopkgtest test dependencies
             bomb('failed to run perl for parsing dependencies')
         adtlog.debug('%s: architecture resolved: %s' % (what, deps))
 
-        self.install_apt(deps, recommends)
+        # check if we can use apt-get
+        can_apt_get = False
+        if 'root-on-testbed' in self.caps:
+            rc = self.execute(['test', '-w', '/var/lib/dpkg/status'])[0]
+            if rc == 0:
+                can_apt_get = True
+        adtlog.debug('can use apt-get on testbed: %s' % can_apt_get)
+
+        if can_apt_get:
+            self.install_apt(deps, recommends)
+        else:
+            self.install_tmp(deps, recommends)
 
     def run_shell(self, cwd=None):
         '''Run shell in testbed for debugging tests'''
@@ -973,6 +1101,17 @@ Description: satisfy autopkgtest test dependencies
             script += 'chown -R %s "$buildtree"; ' % opts.user
         if opts.set_lang is not False:
             script += 'export LANG=%s; ' % opts.set_lang
+        # there's no way to tell su to not reset $PATH, for install-tmp mode
+        for e in self.install_tmp_env:
+            if e.startswith('PATH='):
+                script += 'export %s; ' % e
+                break
+        # if we have an user upstart session, poke the environment into it
+        if self.install_tmp_env:
+            script += 'if [ -n "$UPSTART_SESSION" ]; then '
+            for e in self.install_tmp_env:
+                script += ' initctl --user set-env "%s"; ' % e
+            script += 'fi; '
 
         if test.path:
             test_cmd = os.path.join(tree.tb, test.path)
