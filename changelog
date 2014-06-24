@@ -6,6 +6,13 @@ autopkgtest (2.21) UNRELEASED; urgency=medium
   * adt-run: Never run testbed commands with newlines in them. Those make it
     ridiculously hard to implement runners which can only accept shell
     strings.
+  * If the testbed does not have root (null runner or schroots without
+      root-user/group) or a writable dpkg database (as on Ubuntu system
+      images), fall back to unpacking test dependencies into a temporary
+      directory and set *_PATH environment variables accordingly. This will
+      make a limited number of test dependencies work in these test beds.
+  * Add setup-commands/ro-apt for making dpkg/apt readonly, to
+    approximate what happens with Ubuntu system images.
   * Add support for click packages (https://click.readthedocs.org):
     - Add two new actions --click and --click-source to run tests of a click
       package. For now, --click-source is mandatory as parsing/getting the
@@ -44,6 +51,11 @@ autopkgtest (2.20) unstable; urgency=medium
     commands which run processes that aren't started at boot.
   * Default to C.UTF-8 locale instead of C. This is supported in Debian >= 7
     (wheezy) and Ubuntu >= 12.04 LTS, and much closer to reality than C.
+  * If the testbed does not have root (null runner or schroots without
+    root-user/group) or a writable dpkg database (as on Ubuntu system images),
+    fall back to unpacking test dependencies into a temporary directory and
+    set *_PATH environment variables accordingly. This will make a limited
+    number of test dependencies work in these test beds.
 
   Bug fixes:
   * Don't include "adt-satdep" dummy package in <test>-packages output files.
