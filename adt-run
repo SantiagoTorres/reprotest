@@ -185,7 +185,7 @@ def parse_args():
         'dsc_filter': '*',
         'deb_forbuilds': 'auto',
         'deb_fortests': 'auto',
-        'set_lang': 'C'
+        'set_lang': 'C.UTF-8'
     }
     initial_arghandling = arghandling.copy()
     n_non_actions = 0
@@ -283,7 +283,9 @@ def parse_args():
     parser.add_option('--leave-lang', dest='set_lang', action='store_false',
                       help="leave LANG on testbed set to testbed's default")
     parser.add_option('--set-lang', metavar='LANGVAL',
-                      help='set LANG on testbed to LANGVAL', default='C')
+                      help='set LANG on testbed to LANGVAL (default: %s)' %
+                      initial_arghandling['set_lang'],
+                      default=initial_arghandling['set_lang'])
 
     parser.add_option('-o', '--output-dir',
                       help='write test artifacts (stdout/err, log, debs, etc.) '
