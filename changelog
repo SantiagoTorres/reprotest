@@ -11,6 +11,8 @@ autopkgtest (2.20) UNRELEASED; urgency=medium
   * Allow --setup-commands which would ordinarily reboot the testbed to
     suppress this by creating a stamp file in /run. This is useful for
     commands which run processes that aren't started at boot.
+  * Default to C.UTF-8 locale instead of C. This is supported in Debian >= 7
+    (wheezy) and Ubuntu >= 12.04 LTS, and much closer to reality than C.
 
   Bug fixes:
   * Don't include "adt-satdep" dummy package in <test>-packages output files.
