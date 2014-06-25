@@ -179,10 +179,10 @@ def check_exec(argv, downp=False, outp=False, timeout=0):
 
     if status:
         bomb("%s%s failed (exit status %d)" %
-            ((downp and "(down) " or ""), argv, status))
+             ((downp and "(down) " or ""), argv, status))
     if err:
         bomb("%s unexpectedly produced stderr output `%s'" %
-            (argv, err))
+             (argv, err))
 
     if outp and out and out[-1] == '\n':
         out = out[:-1]
@@ -233,7 +233,7 @@ def expect(sock, search_bytes, timeout_sec, description=None):
         while True:
             time.sleep(0.1)
             block = sock.recv(4096)
-            #adtlog.debug('expect: got block: %s' % block)
+            # adtlog.debug('expect: got block: %s' % block)
             out += block
             if search_bytes is None or search_bytes in out:
                 adtlog.debug('expect: found "%s"' % what)
@@ -268,7 +268,7 @@ def cmd_revert(c, ce):
     cmdnumargs(c, ce)
     if not downtmp:
         bomb("`revert' when not open")
-    if not 'revert' in caller.hook_capabilities():
+    if 'revert' not in caller.hook_capabilities():
         bomb("`revert' when `revert' not advertised")
     caller.hook_revert()
     downtmp = caller.hook_downtmp()
@@ -281,7 +281,7 @@ def cmd_reboot(c, ce):
     cmdnumargs(c, ce)
     if not downtmp:
         bomb("`reboot' when not open")
-    if not 'reboot' in caller.hook_capabilities():
+    if 'reboot' not in caller.hook_capabilities():
         bomb("`reboot' when `reboot' not advertised")
     caller.hook_reboot()
     downtmp = caller.hook_downtmp()
@@ -479,7 +479,7 @@ def copyupdown(c, ce, upp):
             if not (status == 0 or (sdn == 0 and status == -13)):
                 timeout_stop()
                 bomb("%s %s failed, status %d" %
-                    (wh, ['source', 'destination'][sdn], status))
+                     (wh, ['source', 'destination'][sdn], status))
         timeout_stop()
     except Timeout:
         for sdn in [1, 0]:
