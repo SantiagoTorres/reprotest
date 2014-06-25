@@ -52,7 +52,7 @@ import VirtSubproc
 import adtlog
 import testdesc
 
-#---------- global variables
+# ---------- global variables
 
 tmp = None		# pathstring on host
 testbed = None		# Testbed
@@ -64,13 +64,13 @@ binaries = None		# Binaries (.debs we have registered)
 build_essential = ['build-essential']
 dpkg_buildpackage = 'dpkg-buildpackage -us -uc -b'
 
+# do not consider using apt-listbugs
 os.putenv('APT_LISTBUGS_FRONTEND', 'none')
-          # do not consider using apt-listbugs
+# do not consider using apt-listchanges
 os.putenv('APT_LISTCHANGES_FRONTEND', 'none')
-          # do not consider using apt-listchanges
 
 
-#---------- errors we define
+# ---------- errors we define
 
 
 class Quit(RuntimeError):
@@ -103,7 +103,7 @@ class Unsupported(Exception):
         errorcode |= 2
         adtlog.report(tname, 'SKIP %s' % self.m)
 
-#---------- convenience function
+# ---------- convenience functions
 
 
 def mkdir_okexist(pathname, mode=0o2755):
@@ -139,7 +139,7 @@ def script_out(argv, what=None, script=None, **kwargs):
     return (process.returncode, output)
 
 
-#---------- parsing and representation of the arguments
+# ---------- parsing and representation of the arguments
 
 
 class Action:
@@ -190,7 +190,7 @@ def parse_args():
     initial_arghandling = arghandling.copy()
     n_non_actions = 0
 
-    #----------
+    # ----------
     # actions (ie, test sets to run, sources to build, binaries to use):
 
     def cb_action(op, optstr, value, parser, kindpath, is_act):
@@ -224,13 +224,13 @@ def parse_args():
                       ' selected for automatic installation, even'
                       ' if this might apparently not be required otherwise')
 
-    #----------
+    # ----------
     # argument handling settings (what ways to use action
-    #  arguments, and pathname processing):
+    # arguments, and pathname processing):
 
     def cb_setah(option, opt_str, value, parser, toset, setval):
         if type(setval) == list:
-            if not value in setval:
+            if value not in setval:
                 parser.error('value for %s option (%s) is not '
                              'one of the permitted values (%s)' %
                              (value, opt_str, setval.join(' ')))
@@ -247,7 +247,7 @@ def parse_args():
         parser.add_option(long, short, action='callback', callback=cb_setah,
                           callback_args=(affected, effect), **kwargs)
 
-    #---- source processing settings:
+    # ---- source processing settings:
 
     pa_setah(None, '--sources-tests', ['dsc_tests'], True,
              help='run tests from builds of subsequent sources')
@@ -261,7 +261,7 @@ def parse_args():
              ' according to most recent --binaries-* settings')
     pa_setah('-B', '--no-built-binaries', ['dsc_filter'], '_',
              help='from subsequent sources, do not use any binaries')
-    #---- binary package processing settings:
+    # ---- binary package processing settings:
 
     def pa_setahbins(long, toset, how):
         pa_setah(None, long, toset, ['ignore', 'auto', 'install'],
@@ -273,7 +273,7 @@ def parse_args():
     pa_setahbins('--binaries-forbuilds', ['deb_forbuilds'], 'for builds, ')
     pa_setahbins('--binaries-fortests', ['deb_fortests'], 'for tests, ')
 
-    #----------
+    # ----------
     # general options:
 
     def cb_vserv(op, optstr, value, parser):
@@ -335,7 +335,7 @@ def parse_args():
                       default=[],
                       help='Enable additional apt source for POCKETNAME')
 
-    #----------
+    # ----------
     # actual meat:
 
     class SpecialOption(optparse.Option):
@@ -497,7 +497,7 @@ def finalise_options():
     elif opts.gnupghome == 'fresh':
         opts.gnupghome = None
 
-#---------- testbed management - the Testbed class
+# ---------- testbed management - the Testbed class
 
 
 class Testbed:
@@ -593,7 +593,7 @@ class Testbed:
             pkglist.copyup()
 
     def mungeing_apt(self):
-        if not 'revert' in self.caps:
+        if 'revert' not in self.caps:
             self._need_reset_apt = True
 
     def reset_apt(self):
@@ -851,7 +851,6 @@ Description: satisfy autopkgtest test dependencies
                           stderr=subprocess.PIPE)[0]
         if rc != 0:
             bomb('test dependencies are unsatisfiable')
-
 
     def satisfy_dependencies_string(self, deps, what, recommends=False):
         '''Install dependencies from a string into the testbed'''
@@ -1177,7 +1176,7 @@ def signal_handler(signum, frame):
         os.kill(os.getpid(), signum)
 
 
-#---------- registration, installation etc. of .deb's: Binaries
+# ---------- registration, installation etc. of .deb's: Binaries
 
 
 class Binaries:
@@ -1369,7 +1368,7 @@ Pin-Priority: 1002
 
         adtlog.debug('Binaries: publish done')
 
-#---------- processing of sources (building)
+# ---------- processing of sources (building)
 
 
 def determine_package(act):
@@ -1520,9 +1519,8 @@ def build_source(act):
     #
     # We might need to build the package because:
     #   - we want its binaries (filter isn't _ and at least one of the
-    #	deb_... isn't ignore)
-    #   - the test control file says so
-    #       (assuming we have any tests)
+    #     deb_... isn't ignore)
+    #   - the test control file says so (assuming we have any tests)
 
     build_needed = False
     if filter != '_' and (act.ah['deb_forbuilds'] != 'ignore' or
@@ -1617,7 +1615,7 @@ def build_source(act):
                 break
         debug_b('all done.')
 
-#---------- main processing loop and main program
+# ---------- main processing loop and main program
 
 
 def process_actions():
