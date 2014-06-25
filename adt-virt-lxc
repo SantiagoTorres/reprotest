@@ -193,7 +193,12 @@ def hook_open():
         wait_booted(lxc_container_name)
         adtlog.debug('lxc guest started')
         determine_normal_user(lxc_container_name)
-        VirtSubproc.auxverb = ['lxc-attach', '-n', lxc_container_name, '--']
+        # provide a minimal and clean environment in the container
+        VirtSubproc.auxverb = [
+            'lxc-attach', '-n', lxc_container_name, '--',
+            'env', '-i', 'sh', '-ac',
+            '. /etc/environment 2>/dev/null; . /etc/default/locale 2>/dev/null; exec "$@"', '--'
+        ]
         if use_sudo:
             VirtSubproc.auxverb = ['sudo', '-E'] + VirtSubproc.auxverb
         if eatmydata:
