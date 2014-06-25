@@ -1,3 +1,10 @@
+autopkgtest (2.21) UNRELEASED; urgency=medium
+
+  * Convert doc/README.* to reStructuredText and rename to *.rst. Build HTML
+    files from them using rst2html and install them also.
+
+ -- Martin Pitt <mpitt@debian.org>  Wed, 25 Jun 2014 07:43:32 +0200
+
 autopkgtest (2.20) unstable; urgency=medium
 
   Improvements:
