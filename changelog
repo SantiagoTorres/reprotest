@@ -1,7 +1,13 @@
 autopkgtest (2.21) UNRELEASED; urgency=medium
 
+  Improvements:
   * Convert doc/README.* to reStructuredText and rename to *.rst. Build HTML
     files from them using rst2html and install them also.
+
+  Bug fixes:
+  * lxc: Don't leak the host environment into the container (lxc-attach
+    currently defaults to that), but build a clean and minimal environment
+    from /etc/environment and /etc/default/locale.
 
  -- Martin Pitt <mpitt@debian.org>  Wed, 25 Jun 2014 07:43:32 +0200
 
