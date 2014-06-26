@@ -357,9 +357,16 @@ def parse_click_manifest(manifest, testbed_caps, clickdeps):
         adtlog.debug('parsing click manifest test %s: %s' % (name, desc))
 
         # simple string is the same as { "path": <desc> } without any
-        # restrictions
+        # restrictions, or the special "autopilot" case
         if isinstance(desc, str):
-            desc = {'path': desc}
+            if name == 'autopilot' and re.match('^[a-z_][a-z0-9_]+$', desc):
+                desc = {'command': 'PYTHONPATH=tests/autopilot:$PYTHONPATH '
+                                   'python3 -m autopilot.run run ' + desc,
+                        'depends': ['ubuntu-ui-toolkit-autopilot',
+                                    'autopilot-touch']}
+            else:
+                desc = {'path': desc}
+
         if not isinstance(desc, dict):
             raise InvalidControl(name, 'click manifest x-test dictionary '
                                  'entries must be strings or dicts')
