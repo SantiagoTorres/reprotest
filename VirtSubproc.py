@@ -260,7 +260,9 @@ def downtmp_mktemp():
 
 def downtmp_remove():
     global downtmp
-    check_exec(['rm', '-rf', '--', downtmp], downp=True)
+    if downtmp:
+        check_exec(['rm', '-rf', '--', downtmp], downp=True)
+        downtmp = None
 
 
 def cmd_revert(c, ce):
