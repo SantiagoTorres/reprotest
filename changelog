@@ -1,4 +1,4 @@
-autopkgtest (2.21) UNRELEASED; urgency=medium
+autopkgtest (3.0) UNRELEASED; urgency=medium
 
   Improvements:
   * Convert doc/README.* to reStructuredText and rename to *.rst. Build HTML
