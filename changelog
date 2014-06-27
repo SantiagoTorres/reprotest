@@ -12,6 +12,9 @@ autopkgtest (2.21) UNRELEASED; urgency=medium
     currently defaults to that), but build a clean and minimal environment
     from /etc/environment and /etc/default/locale.
   * Fix calling a virt server with full path.
+  * lib/VirtSubProc.py, downtmp_remove(): Only remove the downtmp if it is
+    actually set. This avoids confusing error messages if something fails
+    during early test bed setup.
 
  -- Martin Pitt <mpitt@debian.org>  Wed, 25 Jun 2014 07:43:32 +0200
 
