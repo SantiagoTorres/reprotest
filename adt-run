@@ -925,25 +925,25 @@ Description: satisfy autopkgtest test dependencies
 
         # create script to run test
         test_artifacts = '%s/%s-artifacts' % (self.scratch, test.name)
-        script = '''set -e
-                    buildtree="%(t)s"
-                    rm -rf "%(a)s"; mkdir -m 1777 -- "%(a)s"
-                    export ADT_ARTIFACTS="%(a)s"
-                    export ADTTMP=$(mktemp -d --tmpdir adttmp.XXXXXX)
-                    trap "rm -rf $ADTTMP" EXIT INT QUIT PIPE
-                    chmod 755 $ADTTMP
-                    cd "$buildtree"
-                    ''' % {'t': tree.tb, 'a': test_artifacts}
+        script = 'set -e; ' \
+                 'buildtree="%(t)s"; ' \
+                 'rm -rf "%(a)s"; mkdir -m 1777 -- "%(a)s"; ' \
+                 'export ADT_ARTIFACTS="%(a)s"; ' \
+                 'export ADTTMP=$(mktemp -d --tmpdir adttmp.XXXXXX); ' \
+                 'trap "rm -rf $ADTTMP" EXIT INT QUIT PIPE; '\
+                 'chmod 755 $ADTTMP; '\
+                 'cd "$buildtree"; '\
+                 % {'t': tree.tb, 'a': test_artifacts}
 
         if opts.user and 'rw-build-tree' in test.restrictions:
-            script += 'chown -R %s "$buildtree"\n' % opts.user
+            script += 'chown -R %s "$buildtree"; ' % opts.user
         if opts.set_lang is not False:
-            script += 'export LANG=%s\n' % opts.set_lang
+            script += 'export LANG=%s; ' % opts.set_lang
 
-        script += '''chmod +x %(t)s
-                     touch %(o)s %(e)s
-                     %(t)s 2> >(tee %(e)s >&2) > >(tee %(o)s)
-                  ''' % {'t': tb_test_path, 'o': so.tb, 'e': se.tb}
+        script += 'chmod +x %(t)s; ' \
+                  'touch %(o)s %(e)s; ' \
+                  '%(t)s 2> >(tee %(e)s >&2) > >(tee %(o)s); ' \
+                  % {'t': tb_test_path, 'o': so.tb, 'e': se.tb}
 
         if 'needs-root' not in test.restrictions and opts.user is not None:
             if 'root-on-testbed' not in self.caps:
@@ -1396,7 +1396,7 @@ def source_rules_command(script, which, cwd=None, results_lines=0):
         script = ['exec 3>&1 >&2', 'set -x', 'cd ' + cwd] + script
     else:
         script = ['exec 3>&1 >&2', 'cd ' + cwd] + script
-    script = opts.user_wrap('\n'.join(script))
+    script = opts.user_wrap('; '.join(script))
     (rc, out, _) = testbed.execute(['sh', '-ec', script],
                                    stdout=subprocess.PIPE,
                                    kind='build')
