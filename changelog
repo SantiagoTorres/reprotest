@@ -3,6 +3,9 @@ autopkgtest (2.21) UNRELEASED; urgency=medium
   Improvements:
   * Convert doc/README.* to reStructuredText and rename to *.rst. Build HTML
     files from them using rst2html and install them also.
+  * adt-run: Never run testbed commands with newlines in them. Those make it
+    ridiculously hard to implement runners which can only accept shell
+    strings.
 
   Bug fixes:
   * lxc: Don't leak the host environment into the container (lxc-attach
