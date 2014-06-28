@@ -789,6 +789,7 @@ class Testbed:
         env = list(xenv)  # copy
         if kind == 'install':
             env.append('DEBIAN_FRONTEND=noninteractive')
+            env.append('APT_LISTBUGS_FRONTEND=none')
         if opts.set_lang is not False:
             env.append('LANG=%s' % opts.set_lang)
         env += self.install_tmp_env
