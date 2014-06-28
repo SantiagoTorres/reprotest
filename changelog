@@ -33,6 +33,9 @@ autopkgtest (3.0) UNRELEASED; urgency=medium
   * lib/VirtSubProc.py, downtmp_remove(): Only remove the downtmp if it is
     actually set. This avoids confusing error messages if something fails
     during early test bed setup.
+  * adt-run: set APT_LISTBUGS_FRONTEND=none when installing packages. This
+    will avoid the apt-listbugs prompt when apt-listbugs is installed.
+    Thanks to Antonio Terceiro!
 
  -- Martin Pitt <mpitt@debian.org>  Wed, 25 Jun 2014 07:43:32 +0200
 
