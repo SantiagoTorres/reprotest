@@ -1127,6 +1127,10 @@ fi
         if 'needs-root' not in test.restrictions and opts.user is not None:
             if 'root-on-testbed' not in self.caps:
                 bomb('cannot change to user %s without root-on-testbed' % opts.user)
+            # we don't want -l here which resets the environment from
+            # self.execute(); so emulate the parts that we want
+            # FIXME: move "run as user" as an argument of execute()/check_exec() and run with -l
+            script = ('export USER=%s; . /etc/profile || true; . ~/.profile || true; ' % opts.user) + script
             test_argv = ['su', '-s', '/bin/bash', opts.user, '-c', script]
         else:
             test_argv = ['bash', '-c', script]
