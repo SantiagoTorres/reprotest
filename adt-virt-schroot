@@ -28,6 +28,7 @@ import re
 import grp
 import pwd
 import subprocess
+import time
 from optparse import OptionParser
 
 try:
@@ -171,7 +172,19 @@ def hook_revert():
 def hook_cleanup():
     global schroot, sessid, capabilities
     VirtSubproc.downtmp_remove()
-    VirtSubproc.check_exec(['schroot', '-qe', '-c', sessid])
+    # sometimes fails on EBUSY
+    retries = 10
+    while retries > 0:
+        if VirtSubproc.execute_timeout(
+                None, 30, ['schroot', '-qe', '-c', sessid]) == 0:
+            break
+        retries -= 1
+        adtlog.info('schroot --end-session failed, retrying')
+        time.sleep(1)
+    else:
+        adtlog.warning('schroot --end-session failed repeatedly;'
+                       'please clean up manually')
+
     capabilities = [c for c in capabilities if not c.startswith('downtmp-host')]
 
 
