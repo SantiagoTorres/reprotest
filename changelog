@@ -41,6 +41,8 @@ autopkgtest (3.0) UNRELEASED; urgency=medium
   * adt-run: Read /etc/profile and ~/.profile when running tests as user. This
     emulates the bits of "su -l" that we want, until this gets cleaned up for
     using "su -l" completely.
+  * tests/run-parallel: Get sudo password early, to avoid asking for it in
+    background jobs.
 
  -- Martin Pitt <mpitt@debian.org>  Wed, 25 Jun 2014 07:43:32 +0200
 
