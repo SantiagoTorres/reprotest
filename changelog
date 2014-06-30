@@ -38,6 +38,9 @@ autopkgtest (3.0) UNRELEASED; urgency=medium
     Thanks to Antonio Terceiro!
   * schroot: Ending the schroot session sometimes fails on "Device or resource
     busy". Retry 10 times before giving up instead of failing immediately.
+  * adt-run: Read /etc/profile and ~/.profile when running tests as user. This
+    emulates the bits of "su -l" that we want, until this gets cleaned up for
+    using "su -l" completely.
 
  -- Martin Pitt <mpitt@debian.org>  Wed, 25 Jun 2014 07:43:32 +0200
 
