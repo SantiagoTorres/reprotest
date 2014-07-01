@@ -176,7 +176,7 @@ def hook_cleanup():
     retries = 10
     while retries > 0:
         if VirtSubproc.execute_timeout(
-                None, 30, ['schroot', '-qe', '-c', sessid]) == 0:
+                None, 30, ['schroot', '-qe', '-c', sessid])[0] == 0:
             break
         retries -= 1
         adtlog.info('schroot --end-session failed, retrying')
