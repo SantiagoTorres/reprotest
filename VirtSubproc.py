@@ -517,6 +517,7 @@ def command():
             # 3 we often get empty strings here even though this is supposed to
             # block for new input.
             if ce == '':
+                time.sleep(0.1)
                 continue
             break
         except IOError as e:
