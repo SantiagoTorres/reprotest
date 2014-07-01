@@ -1,4 +1,4 @@
-autopkgtest (3.0) UNRELEASED; urgency=medium
+autopkgtest (3.0) unstable; urgency=low
 
   Improvements:
   * Add support for click packages (https://click.readthedocs.org):
@@ -64,7 +64,7 @@ autopkgtest (3.0) UNRELEASED; urgency=medium
     pockets. (LP: #1334332)
   * Fix high adt-virt-* CPU usage on reading commands on stdin.
 
- -- Martin Pitt <mpitt@debian.org>  Wed, 25 Jun 2014 07:43:32 +0200
+ -- Martin Pitt <mpitt@debian.org>  Tue, 01 Jul 2014 15:21:55 +0200
 
 autopkgtest (2.20) unstable; urgency=medium
 
