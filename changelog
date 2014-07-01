@@ -46,6 +46,7 @@ autopkgtest (3.0) UNRELEASED; urgency=medium
   * Restrict --apt-pocket to *.ubuntu.com and *.debian.org sources, as
     third-party repositories such as launchpad.net don't (necessarily) have
     pockets. (LP: #1334332)
+  * Fix high adt-virt-* CPU usage on reading commands on stdin.
 
  -- Martin Pitt <mpitt@debian.org>  Wed, 25 Jun 2014 07:43:32 +0200
 
