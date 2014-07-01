@@ -1,18 +1,6 @@
 autopkgtest (3.0) UNRELEASED; urgency=medium
 
   Improvements:
-  * Convert doc/README.* to reStructuredText and rename to *.rst. Build HTML
-    files from them using rst2html and install them also.
-  * adt-run: Never run testbed commands with newlines in them. Those make it
-    ridiculously hard to implement runners which can only accept shell
-    strings.
-  * If the testbed does not have root (null runner or schroots without
-      root-user/group) or a writable dpkg database (as on Ubuntu system
-      images), fall back to unpacking test dependencies into a temporary
-      directory and set *_PATH environment variables accordingly. This will
-      make a limited number of test dependencies work in these test beds.
-  * Add setup-commands/ro-apt for making dpkg/apt readonly, to
-    approximate what happens with Ubuntu system images.
   * Add support for click packages (https://click.readthedocs.org):
     - Add two new actions --click and --click-source to run tests of a click
       package. For now, --click-source is mandatory as parsing/getting the
@@ -24,6 +12,18 @@ autopkgtest (3.0) UNRELEASED; urgency=medium
       launching Xvfb and an user upstart session. This approximates the
       environment of an Ubuntu touch device. You can also run
       setup-commands/ro-apt afterwards.
+  * If the testbed does not have root (null runner or schroots without
+      root-user/group) or a writable dpkg database (as on Ubuntu system
+      images), fall back to unpacking test dependencies into a temporary
+      directory and set *_PATH environment variables accordingly. This will
+      make a limited number of test dependencies work in these test beds.
+  * Add setup-commands/ro-apt for making dpkg/apt readonly, to
+    approximate what happens with Ubuntu system images.
+  * Convert doc/README.* to reStructuredText and rename to *.rst. Build HTML
+    files from them using rst2html and install them also.
+  * adt-run: Never run testbed commands with newlines in them. Those make it
+    ridiculously hard to implement runners which can only accept shell
+    strings.
 
   Bug fixes:
   * lxc: Don't leak the host environment into the container (lxc-attach
