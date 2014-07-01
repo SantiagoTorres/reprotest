@@ -30,6 +30,10 @@ autopkgtest (3.0) UNRELEASED; urgency=medium
     host is an Ubuntu Touch system, it also does some extra configuration like
     disabling the screen timeout and allowing Autopilot to introspect running
     apps. See header commends for details. Thanks to Jean-Baptiste Lallement!
+  * Add ssh-setup/nova: Sets up a nova instance to use as an autopkgtest
+    testbed. It assumes that the host system is already prepared to run nova
+    commands. This is not very robust at the moment and more like a proof of
+    concept. Thanks to Jean-Baptiste Lallement!
 
   * Convert doc/README.* to reStructuredText and rename to *.rst. Build HTML
     files from them using rst2html and install them also.
