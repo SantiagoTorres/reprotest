@@ -25,6 +25,7 @@ autopkgtest (3.0) UNRELEASED; urgency=medium
     "setup script" to create/configure a testbed (such as spinning up a cloud
     VM with nova or setting up SSH on a phone through ADB). See the manpage
     for details. Thanks to Jean-Baptiste Lallement!
+  * Add ssh-setup/SKELETON for a basis to write ssh setup scripts.
 
   * Convert doc/README.* to reStructuredText and rename to *.rst. Build HTML
     files from them using rst2html and install them also.
