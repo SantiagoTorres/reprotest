@@ -1000,7 +1000,11 @@ fi
             self.scratch, os.path.basename(clickpath)))
         tp.copydown()
         # install it
-        rc = self.execute(['click', 'install', '--all-users', tp.tb],
+        clickopts = ['--all-users']
+        if 'ADT_CLICK_NO_FRAMEWORK_CHECK' in os.environ:
+            # this is mostly for testing
+            clickopts.append('--force-missing-framework')
+        rc = self.execute(['click', 'install'] + clickopts + [tp.tb],
                           kind='install')[0]
         if rc != 0:
             bomb('click install failed with status %i' % rc)
