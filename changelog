@@ -19,6 +19,13 @@ autopkgtest (3.0) UNRELEASED; urgency=medium
       make a limited number of test dependencies work in these test beds.
   * Add setup-commands/ro-apt for making dpkg/apt readonly, to
     approximate what happens with Ubuntu system images.
+
+  * Add adt-virt-ssh runner: Generic runner for an externally set up testbed
+    which assumes nothing else than a working ssh connection. This can call a
+    "setup script" to create/configure a testbed (such as spinning up a cloud
+    VM with nova or setting up SSH on a phone through ADB). See the manpage
+    for details. Thanks to Jean-Baptiste Lallement!
+
   * Convert doc/README.* to reStructuredText and rename to *.rst. Build HTML
     files from them using rst2html and install them also.
   * adt-run: Never run testbed commands with newlines in them. Those make it
