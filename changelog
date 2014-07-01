@@ -43,6 +43,9 @@ autopkgtest (3.0) UNRELEASED; urgency=medium
     using "su -l" completely.
   * tests/run-parallel: Get sudo password early, to avoid asking for it in
     background jobs.
+  * Restrict --apt-pocket to *.ubuntu.com and *.debian.org sources, as
+    third-party repositories such as launchpad.net don't (necessarily) have
+    pockets. (LP: #1334332)
 
  -- Martin Pitt <mpitt@debian.org>  Wed, 25 Jun 2014 07:43:32 +0200
 
