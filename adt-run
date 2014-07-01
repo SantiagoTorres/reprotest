@@ -644,7 +644,7 @@ class Testbed:
 
         adtlog.info('@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ test bed setup')
         for p in opts.apt_pocket:
-            script = '''awk '/^deb(-src)? .*(ubuntu.com|debian.org)/ { if ($3 !~ /-/) { $3 = $3"-%s"; print }}' ''' \
+            script = '''awk '/^deb(-src)? .*(ubuntu.com|debian.org|ftpmaster)/ { if ($3 !~ /-/) { $3 = $3"-%s"; print }}' ''' \
                 '''/etc/apt/sources.list `ls /etc/apt/sources.list.d/*.list 2>/dev/null|| true` ''' \
                 ''' > /etc/apt/sources.list.d/%s.list''' % (p, p)
             self.check_exec(['sh', '-ec', script])
