@@ -1,6 +1,7 @@
 autopkgtest (3.0.1) UNRELEASED; urgency=medium
 
   * Install ssh setup scripts executable.
+  * doc/README.running-tests.rst: Add ssh runner example.
 
  -- Martin Pitt <mpitt@debian.org>  Tue, 01 Jul 2014 15:28:07 +0200
 
