@@ -1,0 +1,332 @@
+#!/usr/bin/python3
+#
+# adt-virt-ssh is part of autopkgtest
+# autopkgtest is a tool for testing Debian binary packages
+#
+# autopkgtest is Copyright (C) 2006-2014 Canonical Ltd.
+#
+# Author: Jean-Baptiste Lallement <jean-baptiste.lallement@canonical.com>
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+#
+# See the file CREDITS for a full list of credits information (often
+# installed as /usr/share/doc/autopkgtest/CREDITS).
+
+import sys
+import os
+import argparse
+import subprocess
+import tempfile
+import shutil
+import pipes
+import time
+
+try:
+    our_base = os.environ['AUTOPKGTEST_BASE'] + '/lib'
+except KeyError:
+    our_base = '/usr/share/autopkgtest/python'
+sys.path.insert(1, our_base)
+
+import VirtSubproc
+import adtlog
+
+capabilities = []
+args = None
+workdir = None
+sshcmd = None
+sshconfig = {'identity': None,
+             'login': None,
+             'password': None,
+             'port': None,
+             'options': None,
+             'hostname': None,
+             'capabilities': None,
+             'extraopts': None}
+# Note: Running in jenkins might require -tt
+sshopts = '-q -o BatchMode=yes -o UserKnownHostsFile=/dev/null '\
+          '-o StrictHostKeyChecking=no -o CheckHostIP=no '\
+          '-o ControlMaster=auto -o ControlPersist=60 '\
+          '-o ControlPath=%s/ssh_control-%%r@%%h:%%p'
+
+cleanup_paths = []  # paths on the device which we created
+
+
+def parse_args():
+    global args
+
+    parser = argparse.ArgumentParser(fromfile_prefix_chars='@')
+
+    parser.add_argument('-d', '--debug', action='store_true',
+                        help='Enable debugging output')
+    parser.add_argument('-H', '--hostname',
+                        help='hostname with optional user: [user@]hostname')
+    parser.add_argument('-i', '--identity',
+                        help='Selects a file from which the identity '
+                        '(private key) for public key authentication is '
+                        'read')
+    parser.add_argument('-l', '--login',
+                        help='Specifies the user to log in as on the '
+                        'remote machine.')
+    parser.add_argument('-P', '--password',
+                        help='Specifies the sudo password on the remote host.'
+                        ' It can be the password in clear text or a file '
+                        'containing the password.')
+    parser.add_argument('-p', '--port', type=str,
+                        help='ssh port to use to connect to the host')
+    parser.add_argument('-o', '--options',
+                        help='Passed verbatim to ssh; see man ssh_config')
+    parser.add_argument('-s', '--setup-script',
+                        help='Setup script to prepare testbed and ssh connection')
+    parser.add_argument('scriptargs', nargs=argparse.REMAINDER,
+                        help='Additional arguments to pass to the setup '
+                        'script for configuration')
+
+    args = parser.parse_args()
+    if args.debug:
+        adtlog.verbosity = 2
+    adtlog.debug(str(args))
+
+    # turn --password file path into the actual password
+    if args.password and os.path.exists(args.password):
+        with open(args.password) as f:
+            args.password = f.read().strip()
+
+
+def execute_setup_script(command):
+    '''Run the --setup-script.
+
+    Arguments passed after -- to the main program are passed verbatim to the
+    setup script.  The output of the script must be of the form key=value and
+    is parsed to populate sshconfig.
+
+    :param command: Command to execute. The command must match a function in
+                    the ssh script
+    '''
+    global sshconfig
+
+    if args.setup_script:
+        fpath = args.setup_script
+        if not os.path.isfile(fpath):
+            VirtSubproc.bomb('File not found: %s' % fpath)
+        elif not os.access(fpath, os.X_OK):
+            VirtSubproc.bomb('File is not executable: %s' % fpath)
+
+        if args.scriptargs and args.scriptargs[0] == '--':
+            del args.scriptargs[0]
+        cmd = [args.setup_script, command] + args.scriptargs
+        if args.login:
+            cmd += ['-l', args.login]
+        if sshconfig.get('extraopts'):
+            cmd += sshconfig['extraopts'].split(' ')
+        adtlog.debug('Executing host command: %s' % ' '.join(cmd))
+        out = VirtSubproc.check_exec(cmd, outp=True, timeout=1800)
+        if command == 'open':
+            for k, v in dict([s.split('=', 1) for s in out.splitlines()
+                              if s and '=' in s]).items():
+                sshconfig[k] = v
+            adtlog.debug('got sshconfig from script open: %s' % sshconfig)
+
+
+def host_setup():
+    '''Prepare remote host for ssh connection and return its configuration
+
+    When a --setup-script is passed, execute it and return its configuration.
+    The configuration of the remote side can be overloaded by options on the
+    command line.
+
+    Sets the global sshcmd accordingly.
+    '''
+    global sshconfig, sshcmd, capabilities, workdir
+
+    execute_setup_script('open')
+
+    # Command line arguments take priority
+    for param in sshconfig:
+        a = getattr(args, param, None)
+        if a is not None:
+            sshconfig[param] = a
+
+    sshcmd = ['ssh'] + (sshopts % workdir).split()
+    for param in sshconfig:
+        if not sshconfig[param]:
+            continue
+
+        if param == 'identity':
+            sshcmd += ['-i', sshconfig[param]]
+        elif param == 'login':
+            sshcmd += ['-l', sshconfig[param]]
+            if sshconfig[param] != 'root':
+                capabilities.append('suggested-normal-user=' + sshconfig[param])
+        elif param == 'port':
+            sshcmd += ['-p', sshconfig[param]]
+        elif param == 'options':
+            sshcmd += sshconfig[param].split()
+        elif param == 'hostname':
+            sshcmd += [sshconfig[param]]
+        elif param == 'capabilities':
+            capabilities += sshconfig[param].split(',')
+            # Remove duplicates
+            capabilities = list(set(capabilities))
+        elif param == 'password':
+            if not args.password:
+                args.password = sshconfig[param]  # forward to can_sudo
+        elif param == 'extraopts':
+            # Do nothing but don't print a warning. It will be passed back as
+            # is to the ssh setup script
+            pass
+        else:
+            adtlog.warning('Ignoring invalid parameter: %s' % param)
+    adtlog.debug('final sshconfig: %s' % sshconfig)
+
+
+def can_sudo(ssh_cmd):
+    '''Determine if the user can sudo
+
+    :param ssh_cmd: ssh command to connect to the host
+    :returns: sudo command or None if user cannot sudo
+    '''
+    global cleanup_paths
+
+    sudocmd = None
+
+    # if we have a password, use that
+    if args.password:
+        cmd = 'F=`mktemp -t sudo_askpass.XXXX`;' \
+              '/bin/echo -e "#!/bin/sh\necho \'%s\'" > $F;' \
+              'chmod u+x $F; sync; echo $F' % args.password
+        askpass = VirtSubproc.check_exec(
+            ssh_cmd + ['/bin/sh', '-ec', pipes.quote(cmd)],
+            outp=True, timeout=30).strip()
+        adtlog.debug('created SUDO_ASKPASS from specified password')
+        cleanup_paths.append(askpass)
+
+        sudocmd = 'SUDO_ASKPASS=%s sudo -A' % askpass
+        cmd = ssh_cmd + ['--'] + sudocmd.split() + ['/bin/true']
+        rc = VirtSubproc.execute_timeout(None, 30, cmd)[0]
+        if rc == 0:
+            adtlog.debug('can_sudo: askpass works')
+            return sudocmd
+        else:
+            adtlog.warning('specified sudo password fails, no root available')
+            pass
+
+    # otherwise, test if we can do it without password (NOPASSWD sudo option)
+    sudocmd = "sudo -n"
+    cmd = ssh_cmd + ['--'] + sudocmd.split() + ['/bin/true']
+    rc = VirtSubproc.execute_timeout(None, 30, cmd)[0]
+    if rc == 0:
+        adtlog.debug('can_sudo: sudo without password works')
+        return sudocmd
+    else:
+        adtlog.debug('can_sudo: sudo without password does not work')
+
+    return None
+
+
+def wait_for_ssh(ssh_cmd, timeout=300):
+    cmd = ssh_cmd + ['/bin/true']
+    start = time.time()
+    elapsed = 0
+    delay = 3
+
+    while elapsed < timeout:
+        try:
+            rc = VirtSubproc.execute_timeout(None, 30, cmd)[0]
+            if rc == 0:
+                adtlog.debug('ssh connection established.')
+                return
+        except VirtSubproc.Timeout:
+            pass
+        adtlog.warning('ssh connection failed. Retrying in %d seconds...'
+                       % delay)
+        time.sleep(delay)
+        elapsed = time.time() - start
+    VirtSubproc.bomb('Timed out on waiting for ssh connection')
+
+
+def hook_open():
+    global workdir, sshcmd
+
+    try:
+        workdir = tempfile.mkdtemp(prefix='adt-virt-ssh.')
+        host_setup()
+        wait_for_ssh(sshcmd)
+        os.chmod(workdir, 0o755)
+        auxverb = os.path.join(workdir, 'runcmd')
+        if sshconfig['login'] != 'root':
+            sudocmd = can_sudo(sshcmd)
+        if sudocmd:
+            if 'root-on-testbed' not in capabilities:
+                capabilities.append('root-on-testbed')
+        else:
+            if 'root-on-testbed' in capabilities:
+                capabilities.remove('root-on-testbed')
+
+        with open(auxverb, 'w') as f:
+            f.write('''#!/bin/bash
+exec %s -- %s $(printf '%%q ' "$@")
+''' % (" ".join(sshcmd), sudocmd or ''))
+        os.chmod(auxverb, 0o755)
+
+        VirtSubproc.auxverb = [auxverb]
+    except:
+        # Clean up on failure
+        hook_cleanup()
+        raise
+
+
+def hook_downtmp():
+    d = VirtSubproc.downtmp_mktemp()
+    return d
+
+
+def hook_forked_inchild():
+    pass
+
+
+def hook_revert():
+    execute_setup_script('revert')
+
+
+def hook_cleanup():
+    global capabilities, workdir, cleanup_paths
+
+    VirtSubproc.downtmp_remove()
+    if cleanup_paths:
+        VirtSubproc.check_exec(['rm', '-rf'] + cleanup_paths, downp=True, timeout=10)
+
+    execute_setup_script('cleanup')
+
+    capabilities = [c for c in capabilities if not c.startswith('downtmp-host')]
+
+    if workdir:
+        shutil.rmtree(workdir)
+        workdir = None
+
+
+def hook_capabilities():
+    return capabilities
+
+
+def hook_shell(stdin, stdout, stderr, dir):
+    global sshcmd
+    with open(stdin, 'rb') as sin:
+        with open(stdout, 'wb') as sout:
+            with open(stderr, 'wb') as serr:
+                subprocess.call(sshcmd, stdin=sin, stdout=sout, stderr=serr)
+
+
+parse_args()
+VirtSubproc.main()
