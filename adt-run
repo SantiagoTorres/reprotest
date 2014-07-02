@@ -1134,7 +1134,9 @@ fi
             # we don't want -l here which resets the environment from
             # self.execute(); so emulate the parts that we want
             # FIXME: move "run as user" as an argument of execute()/check_exec() and run with -l
-            script = ('export USER=%s; . /etc/profile || true; . ~/.profile || true; ' % opts.user) + script
+            script = ('export USER=%s;' % opts.user) + \
+                '. /etc/profile >/dev/null 2>&1 || true; ' \
+                ' . ~/.profile >/dev/null 2>&1 || true; ' + script
             test_argv = ['su', '-s', '/bin/bash', opts.user, '-c', script]
         else:
             test_argv = ['bash', '-c', script]
