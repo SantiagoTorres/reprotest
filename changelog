@@ -1,3 +1,9 @@
+autopkgtest (3.0.3) UNRELEASED; urgency=medium
+
+  * Work around subprocess.Popen bug in Python 3.2.
+
+ -- Martin Pitt <mpitt@debian.org>  Wed, 02 Jul 2014 11:42:01 +0200
+
 autopkgtest (3.0.2) unstable; urgency=low
 
   * Fix -s/--shell-fail to actually work again (regression in 2.19).
