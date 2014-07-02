@@ -1126,7 +1126,9 @@ fi
             test_cmd = '(%s)' % test.command
 
         script += 'touch %(o)s %(e)s; ' \
-                  '%(t)s 2> >(tee %(e)s >&2) > >(tee %(o)s); ' \
+                  '%(t)s 2> >(tee %(e)s >&2) > >(tee %(o)s) & TPID=$!; ' \
+                  'trap "kill $TPID || true; rm -rf $ADTTMP" TERM; ' \
+                  'wait $TPID;' \
                   % {'t': test_cmd, 'o': so.tb, 'e': se.tb}
 
         if 'needs-root' not in test.restrictions and opts.user is not None:
