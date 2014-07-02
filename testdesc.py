@@ -45,20 +45,28 @@ class Unsupported(Exception):
     '''Test cannot be run in the testbed'''
 
     def __init__(self, testname, message):
-        Exception(testname, message)
+        self.testname = testname
+        self.message = message
+
+    def __str__(self):
+        return 'Unsupported test %s: %s' % (self.testname, self.message)
 
     def report(self):
-        adtlog.report(self.args[0], 'SKIP %s' % self.args[1])
+        adtlog.report(self.testname, 'SKIP %s' % self.message)
 
 
 class InvalidControl(Exception):
     '''Test has invalid control data'''
 
     def __init__(self, testname, message):
-        Exception(testname, message)
+        self.testname = testname
+        self.message = message
+
+    def __str__(self):
+        return 'InvalidControl test %s: %s' % (self.testname, self.message)
 
     def report(self):
-        adtlog.report(self.args[0], 'BROKEN %s' % self.args[1])
+        adtlog.report(self.testname, 'BROKEN %s' % self.message)
 
 
 class Test:
