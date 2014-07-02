@@ -1206,7 +1206,7 @@ fi
         # clean up artifacts dirs
         self.check_exec(['rm', '-rf', test_artifacts])
 
-        if opts.shell or (opts.shell_fail and test.result != 0):
+        if opts.shell or (opts.shell_fail and not test.result):
             self.run_shell(tree.tb)
 
 
