@@ -500,7 +500,7 @@ def finalise_options():
         if 'root-on-testbed' not in testbed.caps:
             adtlog.warning('virtualisation system does not offer root on '
                            'testbed but --user option specified: failure likely')
-        opts.user_wrap = lambda x: "su -l -s /bin/sh %s -c '%s'" % (opts.user, x)
+        opts.user_wrap = lambda x: "su -s /bin/sh %s -c '%s'" % (opts.user, x)
     else:
         opts.user_wrap = lambda x: x
 
@@ -1011,6 +1011,12 @@ fi
 
         # work around https://launchpad.net/bugs/1333215
         self.check_exec(['sh', '-ec', opts.user_wrap(
+            # we don't want su -l here which resets the environment from
+            # self.execute(); so emulate the parts that we want
+            # FIXME: move "run as user" as an argument of execute()/check_exec() and run with -l
+            ('export USER=%s;' % opts.user) + \
+            '. /etc/profile >/dev/null 2>&1 || true; ' \
+            ' . ~/.profile >/dev/null 2>&1 || true; ' \
             '[ -z "$UPSTART_SESSION" ] || /sbin/initctl --user start click-user-hooks')])
 
     def satisfy_dependencies_string(self, deps, what, recommends=False):
