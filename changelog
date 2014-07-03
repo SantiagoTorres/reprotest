@@ -1,11 +1,6 @@
-autopkgtest (3.0.3) UNRELEASED; urgency=medium
+autopkgtest (3.1) UNRELEASED; urgency=medium
 
-  * Work around subprocess.Popen bug in Python 3.2.
-  * lib/testdesc.py: Change exceptions to be Python 3.2 compatible.
-  * Kill the actual test on timeout instead of just the wrapping shell script.
-  * Fix workaround for LP #1333215: Don't run with "su -l" as that causes
-    extra stdout spew from su for nonexisting home directories; instead just
-    source /etc/profile and ~/.profile as these are the parts that we need.
+  Improvements:
   * ssh-setup/adb: On Ubuntu phones, use phablet-config to disable first-time
     wizards/intros. Implement reboot and revert. This requires phablet-config
     now, either installed as package or from bzr checkout with
@@ -13,13 +8,21 @@ autopkgtest (3.0.3) UNRELEASED; urgency=medium
   * ssh-setup/adb: Save/restore NetworkManager system connections in revert.
   * ssh-setup/adb: Add -r/--reset option to perform a factory reset before
     running tests.
+  * Bring back --control-override option, with tests and documentation.
+
+  Bug fixes:
+  * Work around subprocess.Popen bug in Python 3.2.
+  * lib/testdesc.py: Change exceptions to be Python 3.2 compatible.
+  * Kill the actual test on timeout instead of just the wrapping shell script.
+  * Fix workaround for LP #1333215: Don't run with "su -l" as that causes
+    extra stdout spew from su for nonexisting home directories; instead just
+    source /etc/profile and ~/.profile as these are the parts that we need.
   * Run aa-clickhook after every click install, otherwise it doesn't apply to
     newly installed clicks. Works around LP #1337253.
   * Open files which can potentially contain non-ASCII data with explicit
     UTF-8 encoding, to avoid UnicodeDecodeErrors under C locale.
     (Closes: #753582)
   * Fix metavariable names in adt --help.
-  * Bring back --control-override option, with tests and documentation.
   * ChrootRunner tests: Retry removal of temporary chroot when busy.
 
  -- Martin Pitt <mpitt@debian.org>  Wed, 02 Jul 2014 11:42:01 +0200
