@@ -212,7 +212,7 @@ def parse_args():
     def pa_action(longname, metavar, kindpath, help, is_act=True):
         parser.add_option('--' + longname, action='callback', callback=cb_action,
                           nargs=1, type='string', callback_args=(kindpath, is_act),
-                          help=help)
+                          metavar=metavar, help=help)
 
     pa_action('built-tree', 'TREE', '@/', help='run tests from build tree TREE')
     pa_action('unbuilt-tree', 'TREE', '@//', help='run tests from build tree TREE')
