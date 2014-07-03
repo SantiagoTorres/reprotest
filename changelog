@@ -19,6 +19,7 @@ autopkgtest (3.0.3) UNRELEASED; urgency=medium
     UTF-8 encoding, to avoid UnicodeDecodeErrors under C locale.
     (Closes: #753582)
   * Fix metavariable names in adt --help.
+  * Bring back --control-override option, with tests and documentation.
 
  -- Martin Pitt <mpitt@debian.org>  Wed, 02 Jul 2014 11:42:01 +0200
 
