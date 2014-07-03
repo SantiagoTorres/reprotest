@@ -6,6 +6,10 @@ autopkgtest (3.0.3) UNRELEASED; urgency=medium
   * Fix workaround for LP #1333215: Don't run with "su -l" as that causes
     extra stdout spew from su for nonexisting home directories; instead just
     source /etc/profile and ~/.profile as these are the parts that we need.
+  * ssh-setup/adb: On Ubuntu phones, use phablet-config to disable first-time
+    wizards/intros. Implement reboot and revert. This requires phablet-config
+    now, either installed as package or from bzr checkout with
+    PHABLET_TOOLS_PATH=<checkout dir>.
 
  -- Martin Pitt <mpitt@debian.org>  Wed, 02 Jul 2014 11:42:01 +0200
 
