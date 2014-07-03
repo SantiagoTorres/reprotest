@@ -15,6 +15,9 @@ autopkgtest (3.0.3) UNRELEASED; urgency=medium
     running tests.
   * Run aa-clickhook after every click install, otherwise it doesn't apply to
     newly installed clicks. Works around LP #1337253.
+  * Open files which can potentially contain non-ASCII data with explicit
+    UTF-8 encoding, to avoid UnicodeDecodeErrors under C locale.
+    (Closes: #753582)
 
  -- Martin Pitt <mpitt@debian.org>  Wed, 02 Jul 2014 11:42:01 +0200
 
