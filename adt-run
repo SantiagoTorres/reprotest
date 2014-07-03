@@ -448,7 +448,7 @@ def parse_args():
     # if we have --setup-commands and it points to a file, read its contents
     for i, c in enumerate(opts.setup_commands):
         if os.path.exists(c):
-            with open(c) as f:
+            with open(c, encoding='UTF-8') as f:
                 opts.setup_commands[i] = f.read()
 
 
@@ -486,7 +486,7 @@ def setup_trace():
         atexit.register(err_tee.terminate)
 
     if opts.summary is not None:
-        adtlog.summary_stream = open(opts.summary, 'wb', 0)
+        adtlog.summary_stream = open(opts.summary, 'wb', 0, encoding='UTF-8')
 
     adtlog.verbosity = opts.verbosity
 
@@ -1547,7 +1547,7 @@ Pin-Priority: 1002
         adtlog.debug('Binaries: publish reinstall checking...')
         pkgs_reinstall = set()
         pkg = None
-        for l in open(aptkey_out.host):
+        for l in open(aptkey_out.host, encoding='UTF-8'):
             if l.startswith('Package: '):
                 pkg = l[9:].rstrip()
             elif l.startswith('Status: install '):
