@@ -10,6 +10,7 @@ autopkgtest (3.0.3) UNRELEASED; urgency=medium
     wizards/intros. Implement reboot and revert. This requires phablet-config
     now, either installed as package or from bzr checkout with
     PHABLET_TOOLS_PATH=<checkout dir>.
+  * ssh-setup/adb: Save/restore NetworkManager system connections in revert.
 
  -- Martin Pitt <mpitt@debian.org>  Wed, 02 Jul 2014 11:42:01 +0200
 
