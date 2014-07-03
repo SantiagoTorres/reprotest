@@ -3,6 +3,9 @@ autopkgtest (3.0.3) UNRELEASED; urgency=medium
   * Work around subprocess.Popen bug in Python 3.2.
   * lib/testdesc.py: Change exceptions to be Python 3.2 compatible.
   * Kill the actual test on timeout instead of just the wrapping shell script.
+  * Fix workaround for LP #1333215: Don't run with "su -l" as that causes
+    extra stdout spew from su for nonexisting home directories; instead just
+    source /etc/profile and ~/.profile as these are the parts that we need.
 
  -- Martin Pitt <mpitt@debian.org>  Wed, 02 Jul 2014 11:42:01 +0200
 
