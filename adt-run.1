@@ -153,6 +153,14 @@ packages will be ignored, used for dependencies (including as the
 package under test), or unconditionally installed, when tests are run
 (as a result of \fB--source\fR, \fB--built-tree\fR or \fB--unbuilt-tree\fR).
 
+.TP
+.BI --control-override= PATH
+Read the test metadata from
+.I PATH
+instead of
+.B debian/tests/control
+for the following Debian test.
+
 .SH OTHER OPTIONS
 .TP
 .BI -u " user" " | --user=" user

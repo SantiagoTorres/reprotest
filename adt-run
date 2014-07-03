@@ -239,6 +239,10 @@ def parse_args():
                       ' selected for automatic installation, even'
                       ' if this might apparently not be required otherwise')
 
+    pa_action('override-control', 'CONTROL', ('control',), is_act=0,
+              help='run tests from control file CONTROL instead,'
+              ' (applies to next Debian test suite only)')
+
     # ----------
     # argument handling settings (what ways to use action
     # arguments, and pathname processing):
@@ -1836,6 +1840,7 @@ def process_actions():
     binaries = Binaries(testbed)
 
     binaries.reset()
+    control_override = None
 
     pending_click_source = None
 
@@ -1843,7 +1848,9 @@ def process_actions():
     for act in opts.actions:
         info_2('%s %s' % (act.kind, act.what))
 
-        if act.kind == 'deb':
+        if act.kind == 'control':
+            control_override = act.arg
+        elif act.kind == 'deb':
             testbed.blame('arg:' + act.arg)
             determine_package(act)
             testbed.blame('deb:' + act.pkg)
@@ -1866,9 +1873,11 @@ def process_actions():
                 pending_click_source = None
             else:
                 build_source(act)  # sets act.tests_tree
-                (act.tests, skipped) = testdesc.parse_debian_source(act.tests_tree.host, testbed.caps)
+                (act.tests, skipped) = testdesc.parse_debian_source(
+                    act.tests_tree.host, testbed.caps, control_path=control_override)
             if skipped:
                 errorcode |= 2
+            control_override = None
 
     info_1('builds done.')
 
@@ -1885,7 +1894,7 @@ def process_actions():
             testbed.prepare([], False)
         elif act.kind == 'click':
             run_tests(act.tests, act.tests_tree)
-        elif act.kind == 'clicksrc':
+        elif act.kind in ('clicksrc', 'control'):
             pass
         else:
             assert act.kind in ('dsc', 'tree', 'ubtree', 'apt')
