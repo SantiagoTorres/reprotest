@@ -288,8 +288,11 @@ def _parse_debian_depends(testname, dep_str, srcdir):
     return deps
 
 
-def parse_debian_source(srcdir, testbed_caps):
+def parse_debian_source(srcdir, testbed_caps, control_path=None):
     '''Parse test descriptions from a Debian DEP-8 source dir
+
+    You can specify an alternative path for the control file (default:
+    debian/tests/control).
 
     Return (list of Test objects, some_skipped). If this encounters any invalid
     restrictions, fields, or test restrictions which cannot be met by the given
@@ -300,8 +303,11 @@ def parse_debian_source(srcdir, testbed_caps):
     '''
     some_skipped = False
     tests = []
-    for record in parse_rfc822(os.path.join(srcdir, 'debian', 'tests',
-                                            'control')):
+    if control_path:
+        control_path = os.path.join(srcdir, control_path)
+    else:
+        control_path = os.path.join(srcdir, 'debian', 'tests', 'control')
+    for record in parse_rfc822(control_path):
         try:
             try:
                 test_names = record['Tests'].split()
