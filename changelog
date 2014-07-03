@@ -20,6 +20,7 @@ autopkgtest (3.0.3) UNRELEASED; urgency=medium
     (Closes: #753582)
   * Fix metavariable names in adt --help.
   * Bring back --control-override option, with tests and documentation.
+  * ChrootRunner tests: Retry removal of temporary chroot when busy.
 
  -- Martin Pitt <mpitt@debian.org>  Wed, 02 Jul 2014 11:42:01 +0200
 
