@@ -13,6 +13,8 @@ autopkgtest (3.0.3) UNRELEASED; urgency=medium
   * ssh-setup/adb: Save/restore NetworkManager system connections in revert.
   * ssh-setup/adb: Add -r/--reset option to perform a factory reset before
     running tests.
+  * Run aa-clickhook after every click install, otherwise it doesn't apply to
+    newly installed clicks. Works around LP #1337253.
 
  -- Martin Pitt <mpitt@debian.org>  Wed, 02 Jul 2014 11:42:01 +0200
 
