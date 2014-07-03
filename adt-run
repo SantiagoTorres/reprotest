@@ -1012,9 +1012,9 @@ fi
         adtlog.info('Updating AppArmor rules to allow autopilot introspection '
                     '(takes a minute, workaround for https://launchpad.net/bugs/1337253)...')
         script = '[ -d /var/cache/apparmor ] || exit; ' \
-                'echo "dbus (receive, send) bus=session path=/com/canonical/Autopilot/**,"' \
-                ' > /var/cache/apparmor/click-ap.rules; ' \
-                'aa-clickhook -f --include=/var/cache/apparmor/click-ap.rules'
+            'echo "dbus (receive, send) bus=session path=/com/canonical/Autopilot/**,"' \
+            ' > /var/cache/apparmor/click-ap.rules; ' \
+            'aa-clickhook -f --include=/var/cache/apparmor/click-ap.rules'
         self.execute(['sh', '-ec', script])
 
         # work around https://launchpad.net/bugs/1333215
@@ -1022,9 +1022,9 @@ fi
             # we don't want su -l here which resets the environment from
             # self.execute(); so emulate the parts that we want
             # FIXME: move "run as user" as an argument of execute()/check_exec() and run with -l
-            ('export USER=%s;' % opts.user) + \
-            '. /etc/profile >/dev/null 2>&1 || true; ' \
-            ' . ~/.profile >/dev/null 2>&1 || true; ' \
+            ('export USER=%s;' % opts.user) +
+            '. /etc/profile >/dev/null 2>&1 || true; '
+            ' . ~/.profile >/dev/null 2>&1 || true; '
             '[ -z "$UPSTART_SESSION" ] || /sbin/initctl --user start click-user-hooks')])
 
     def satisfy_dependencies_string(self, deps, what, recommends=False):
