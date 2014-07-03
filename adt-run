@@ -486,7 +486,7 @@ def setup_trace():
         atexit.register(err_tee.terminate)
 
     if opts.summary is not None:
-        adtlog.summary_stream = open(opts.summary, 'wb', 0, encoding='UTF-8')
+        adtlog.summary_stream = open(opts.summary, 'wb', 0)
 
     adtlog.verbosity = opts.verbosity
 
