@@ -24,6 +24,8 @@ autopkgtest (3.1) UNRELEASED; urgency=medium
     (Closes: #753582)
   * Fix metavariable names in adt --help.
   * ChrootRunner tests: Retry removal of temporary chroot when busy.
+  * Don't let a first failed apt-get update run break the test due to stderr;
+    it gets retried 15 seconds later.
 
  -- Martin Pitt <mpitt@debian.org>  Wed, 02 Jul 2014 11:42:01 +0200
 
