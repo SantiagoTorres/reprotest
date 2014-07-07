@@ -1160,6 +1160,7 @@ fi
                 ' . ~/.profile >/dev/null 2>&1 || true; ' + script
             test_argv = ['su', '-s', '/bin/bash', opts.user, '-c', script]
         else:
+            script = 'export USER=root; ' + script
             test_argv = ['bash', '-c', script]
 
         # run test script
