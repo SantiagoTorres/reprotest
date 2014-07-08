@@ -93,8 +93,14 @@ package.
 
 .TP
 .BR --click " " \fIclickpkg
-Install given click package into testbed and run its tests from the preceeding
+Run click package tests from the preceeding
 .BR --click-source .
+If
+.I clickpkg
+is a file (*.click), install given click package into testbed. If it is a click
+name (like "com.example.myapp"), assume it is already installed in the testbed
+and read the manifest from it.
+
 
 .TP
 .I filename

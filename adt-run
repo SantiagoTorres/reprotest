@@ -227,7 +227,9 @@ def parse_args():
     pa_action('click-source', 'CLICKSRC', '@.clicksrc',
               help='click source tree for subsequent --click package')
     pa_action('click', 'CLICKPKG', '@.click',
-              help='install click package into testbed and run its tests (from preceding --click-source)')
+              help='install click package into testbed (path to *.click) or '
+              'use an already installed click package ("com.example.myapp") '
+              'and run its tests (from preceding --click-source)')
 
     def cb_actnoarg(op, optstr, value, parser, largsentry):
         parser.largs.append(largsentry)
@@ -1887,8 +1889,21 @@ def process_actions():
         else:
             assert act.kind in ('dsc', 'tree', 'ubtree', 'apt', 'click')
             if act.kind == 'click':
-                (srcdir, act.tests, skipped) = testdesc.parse_click(
-                    act.arg, testbed.caps, srcdir=pending_click_source)
+                if os.path.exists(act.arg):
+                    # local .click package file
+                    (srcdir, act.tests, skipped) = testdesc.parse_click(
+                        act.arg, testbed.caps, srcdir=pending_click_source)
+                else:
+                    # already installed click package name
+                    if pending_click_source is None:
+                        raise NotImplementedError(
+                            'Downloading click source packages from manifest is not '
+                            'implemented. Specify --click-source explicitly.')
+                    manifest = testbed.check_exec(['click', 'info', act.arg], stdout=True)
+                    srcdir = pending_click_source
+                    (act.tests, skipped) = testdesc.parse_click_manifest(
+                        manifest, testbed.caps, [])
+
                 act.tests_tree = TestbedPath(
                     testbed, srcdir, os.path.join(testbed.scratch, 'tree'),
                     is_dir=True)
