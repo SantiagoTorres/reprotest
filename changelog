@@ -2,6 +2,9 @@ autopkgtest (3.2) UNRELEASED; urgency=medium
 
   Improvements:
   * Add --copy option to copy a file or directory into the testbed.
+  * Support specifying a click name like "com.example.myapp" with --click to
+    test an already installed click instead of a local *.click file.
+    (LP: #1338899)
 
   Bug fixes:
   * Set $USER environment variable also for tests that run as root.
