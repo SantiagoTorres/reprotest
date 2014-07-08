@@ -4,6 +4,8 @@ autopkgtest (3.1.1) UNRELEASED; urgency=medium
     (LP: #1337802)
   * Add lintian override for ssh-setup/SKELETON, it's deliberately not
     executable.
+  * Increase timeout for aa-clickhook workaround for LP#1337253, 100s is often
+    not enough.
 
  -- Martin Pitt <mpitt@debian.org>  Mon, 07 Jul 2014 14:35:59 +0200
 
