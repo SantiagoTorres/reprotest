@@ -17,6 +17,8 @@ autopkgtest (3.2) UNRELEASED; urgency=medium
     executable.
   * Increase timeout for aa-clickhook workaround for LP#1337253, 100s is often
     not enough.
+  * ssh-setup/adb: Disabling the first-time wizards sometimes fails due to adb
+    being brittle at that time. Retry up to 5 times.
 
  -- Martin Pitt <mpitt@debian.org>  Mon, 07 Jul 2014 14:35:59 +0200
 
