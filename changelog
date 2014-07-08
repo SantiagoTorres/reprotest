@@ -5,6 +5,10 @@ autopkgtest (3.2) UNRELEASED; urgency=medium
   * Support specifying a click name like "com.example.myapp" with --click to
     test an already installed click instead of a local *.click file.
     (LP: #1338899)
+  * Introduce "autopilot_module" click test control field for specifying an
+    autopilot test module name. This allows tests to require additional test
+    dependencies, restrictions, etc. without having to specify the full
+    invocation of autopilot. (LP: #1338911)
 
   Bug fixes:
   * Set $USER environment variable also for tests that run as root.
