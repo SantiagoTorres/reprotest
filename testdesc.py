@@ -374,16 +374,21 @@ def parse_click_manifest(manifest, testbed_caps, clickdeps):
         # restrictions, or the special "autopilot" case
         if isinstance(desc, str):
             if name == 'autopilot' and re.match('^[a-z_][a-z0-9_]+$', desc):
-                desc = {'command': 'PYTHONPATH=tests/autopilot:$PYTHONPATH '
-                                   'python3 -m autopilot.run run ' + desc,
-                        'depends': ['ubuntu-ui-toolkit-autopilot',
-                                    'autopilot-touch']}
+                desc = {'autopilot_module': desc}
             else:
                 desc = {'path': desc}
 
         if not isinstance(desc, dict):
             raise InvalidControl(name, 'click manifest x-test dictionary '
                                  'entries must be strings or dicts')
+
+        # autopilot special case: dict with extra depends
+        if 'autopilot_module' in desc:
+            desc['command'] = 'PYTHONPATH=tests/autopilot:$PYTHONPATH ' \
+                'python3 -m autopilot.run run ' + desc['autopilot_module']
+            desc.setdefault('depends', []).insert(
+                0, 'ubuntu-ui-toolkit-autopilot')
+            desc['depends'].insert(0, 'autopilot-touch')
 
         try:
             test = Test(name, desc.get('path'), desc.get('command'),
