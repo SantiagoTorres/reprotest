@@ -1019,7 +1019,7 @@ fi
             'echo "dbus (receive, send) bus=session path=/com/canonical/Autopilot/**,"' \
             ' > /var/cache/apparmor/click-ap.rules; ' \
             'aa-clickhook -f --include=/var/cache/apparmor/click-ap.rules'
-        self.execute(['sh', '-ec', script])
+        self.execute(['sh', '-ec', script], kind='install')
 
         # work around https://launchpad.net/bugs/1333215
         self.check_exec(['sh', '-ec', opts.user_wrap(
