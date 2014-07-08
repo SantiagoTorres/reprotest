@@ -303,6 +303,13 @@ that pocket to
 Note that this does not imply calling
 .B apt-get update\fR.
 
+.TP
+.BI \-\-copy= HOSTPATH:TESTBEDPATH
+Copy file or directory from host into testbed after opening. This happens
+before
+.B \-\-setup-commands
+thus you can use these files in the setup commands.
+
 .SH VIRTUALIZATION SERVER
 
 .TP

@@ -353,6 +353,9 @@ def parse_args():
     parser.add_option('--apt-pocket', metavar='POCKETNAME', action='append',
                       default=[],
                       help='Enable additional apt source for POCKETNAME')
+    parser.add_option('--copy', metavar='HOSTFILE:TESTBEDFILE',
+                      action='append', default=[],
+                      help='Copy file or dir from host into testbed after opening')
 
     # ----------
     # actual meat:
@@ -454,6 +457,18 @@ def parse_args():
         if os.path.exists(c):
             with open(c, encoding='UTF-8') as f:
                 opts.setup_commands[i] = f.read()
+
+    # parse --copy arguments
+    copy_pairs = []
+    for arg in opts.copy:
+        try:
+            (host, tb) = arg.split(':', 1)
+        except ValueError:
+            parser.error('--copy argument must be HOSTPATH:TESTBEDPATH: %s' % arg)
+        if not os.path.exists(host):
+            parser.error('--copy host path %s does not exist' % host)
+        copy_pairs.append((host, tb))
+    opts.copy = copy_pairs
 
 
 def setup_trace():
@@ -643,10 +658,16 @@ class Testbed:
         shared_downtmp = None
 
     def run_setup_commands(self):
-        if not opts.setup_commands and not opts.apt_pocket:
+        '''Run --setup-commmands and --copy'''
+
+        if not opts.setup_commands and not opts.apt_pocket and not opts.copy:
             return
 
         adtlog.info('@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ test bed setup')
+        for (host, tb) in opts.copy:
+            adtlog.debug('Copying file %s to testbed %s' % (host, tb))
+            TestbedPath(self, host, tb, os.path.isdir(host)).copydown()
+
         for p in opts.apt_pocket:
             script = '''awk '/^deb(-src)? .*(ubuntu.com|debian.org|ftpmaster)/ { if ($3 !~ /-/) { $3 = $3"-%s"; print }}' ''' \
                 '''/etc/apt/sources.list `ls /etc/apt/sources.list.d/*.list 2>/dev/null|| true` ''' \
