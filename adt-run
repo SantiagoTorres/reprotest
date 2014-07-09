@@ -1036,12 +1036,16 @@ fi
         if rc != 0:
             bomb('click install failed with status %i' % rc)
 
-        adtlog.info('Updating AppArmor rules to allow autopilot introspection '
-                    '(takes a minute, workaround for https://launchpad.net/bugs/1337253)...')
+        # work around https://launchpad.net/bugs/1337253
+        adtlog.info('Updating AppArmor rules to allow autopilot introspection')
         script = '[ -d /var/cache/apparmor ] || exit; ' \
             'echo "dbus (receive, send) bus=session path=/com/canonical/Autopilot/**,"' \
             ' > /var/cache/apparmor/click-ap.rules; ' \
-            'aa-clickhook -f --include=/var/cache/apparmor/click-ap.rules'
+            'info=$(click info %s); ' \
+            '''name=$(echo "$info" | sed -rn '/"name"/ {s/^.*: *"([^"]+)",/\\1/; p}'); ''' \
+            '''version=$(echo "$info" | sed -rn '/"version"/ {s/^.*: *"([^"]+)",/\\1/; p}'); ''' \
+            'touch -h /var/lib/apparmor/clicks/${name}_*_${version}.json; '\
+            'aa-clickhook --include=/var/cache/apparmor/click-ap.rules' % tp.tb
         self.execute(['sh', '-ec', script], kind='install')
 
         # work around https://launchpad.net/bugs/1333215
