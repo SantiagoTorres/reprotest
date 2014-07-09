@@ -971,6 +971,13 @@ Description: satisfy autopkgtest test dependencies
             fields = line.split()
             pkg = fields[1]
             ver = fields[2][1:]  # chop off '('
+            # ignore Python 2 stuff, with PYTHONPATH we can only support one
+            # Python major version (3)
+            if pkg.startswith('python-') or pkg.startswith('libpython-') or \
+               'python2.' in pkg or pkg == 'python':
+                adtlog.warning('Ignoring Python 2.x dependency %s, not '
+                               'supported in unpack only mode' % pkg)
+                continue
             if not check_constraint(pkg, ver):
                 bomb('test dependency %s (%s %s) is unsatisfiable: available version %s' %
                      (pkg, pkg_constraints[pkg][0], pkg_constraints[pkg][1], ver))
