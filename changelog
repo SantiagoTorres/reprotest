@@ -19,6 +19,9 @@ autopkgtest (3.2) UNRELEASED; urgency=medium
     not enough.
   * ssh-setup/adb: Disabling the first-time wizards sometimes fails due to adb
     being brittle at that time. Retry up to 5 times.
+  * Optimize aa-clickhook workaround for LP #1337253 to only rebuild the
+    profile of the installed click app. This reduces the time from about a
+    minute to about a second.
 
  -- Martin Pitt <mpitt@debian.org>  Mon, 07 Jul 2014 14:35:59 +0200
 
