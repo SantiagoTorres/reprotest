@@ -29,7 +29,7 @@ import grp
 import pwd
 import subprocess
 import time
-from optparse import OptionParser
+import argparse
 
 try:
     our_base = os.environ['AUTOPKGTEST_BASE'] + '/lib'
@@ -72,20 +72,19 @@ def match(exp_names, ids, extract_id):
 def parse_args():
     global schroot, sessid
 
-    usage = "%prog [<options>] <schroot>"
-    parser = OptionParser(usage=usage)
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-d', '--debug', action='store_true',
+                        help='Enable debugging output')
+    parser.add_argument('-s', '--session-id',
+                        help='custom schroot session ID for easy identification '
+                        'in "schroot --list --all-sessions"')
+    parser.add_argument('schroot', help='name of schroot')
 
-    parser.add_option('-d', '--debug', action='store_true')
-    parser.add_option('-s', '--session-id',
-                      help='custom schroot session ID for easy identification '
-                      'in "schroot --list --all-sessions"')
-
-    (opts, args) = parser.parse_args()
-    if len(args) != 1:
-        parser.error("need exactly one arg, schroot name")
-
-    sessid = opts.session_id
-    schroot = args[0]
+    args = parser.parse_args()
+    sessid = args.session_id
+    schroot = args.schroot
+    if args.debug:
+        adtlog.verbosity = 2
 
     info = VirtSubproc.check_exec(['schroot', '--config', '-c', schroot],
                                   downp=False, outp=True)
@@ -96,9 +95,6 @@ def parse_args():
             continue
         (key, val) = entry.split("=", 2)
         cfg[key] = val
-
-    if opts.debug:
-        adtlog.verbosity = 2
 
     adtlog.debug('schroot config: %s' % cfg)
 

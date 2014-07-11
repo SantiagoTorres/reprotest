@@ -25,7 +25,7 @@
 import sys
 import os
 import subprocess
-from optparse import OptionParser
+import argparse
 
 try:
     our_base = os.environ['AUTOPKGTEST_BASE'] + '/lib'
@@ -38,23 +38,17 @@ import adtlog
 
 
 capabilities = ['isolation-machine']
+if os.getuid() == 0:
+    capabilities.append('root-on-testbed')
 
 
 def parse_args():
-    usage = "%prog [<options>]"
-    parser = OptionParser(usage=usage)
-
-    parser.add_option('-d', '--debug', action='store_true')
-
-    (opts, args) = parser.parse_args()
-    if len(args):
-        parser.error("no arguments allowed")
-
-    if opts.debug:
+    parser = argparse.ArgumentParser(fromfile_prefix_chars='@')
+    parser.add_argument('-d', '--debug', action='store_true',
+                        help='Enable debugging output')
+    args = parser.parse_args()
+    if args.debug:
         adtlog.verbosity = 2
-
-    if os.getuid() == 0:
-        capabilities.append('root-on-testbed')
 
 
 def hook_open():

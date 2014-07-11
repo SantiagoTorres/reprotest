@@ -25,7 +25,7 @@
 import sys
 import os
 import subprocess
-from optparse import OptionParser
+import argparse
 
 try:
     our_base = os.environ['AUTOPKGTEST_BASE'] + '/lib'
@@ -44,38 +44,32 @@ chroot_dir = None
 def parse_args():
     global chroot_dir
 
-    usage = "%prog [<options>] =<dchroot>|/path/to/chroot"
-    parser = OptionParser(usage=usage)
-
-    parser.add_option('-r', '--gain-root')
-    parser.add_option('-d', '--debug', action='store_true')
-
-    (opts, args) = parser.parse_args()
-    if len(args) != 1:
-        parser.error("need exactly one arg, chroot specification")
-
-    if opts.debug:
+    parser = argparse.ArgumentParser(fromfile_prefix_chars='@')
+    parser.add_argument('-r', '--gain-root', metavar='COMMAND',
+                        help='can become root by prefixing commands with COMMAND')
+    parser.add_argument('-d', '--debug', action='store_true',
+                        help='Enable debugging output')
+    parser.add_argument('chroot', metavar='=[dchroot]|/path/to/chroot')
+    args = parser.parse_args()
+    if args.debug:
         adtlog.verbosity = 2
 
-    chroot_arg = args[0]
-    if not chroot_arg:
-        parser.error("chroot specification may not be empty")
-    if chroot_arg == '=':
+    if args.chroot == '=':
         down = ['dchroot', '-q', '--']
         # FIXME: figure out chroot_dir
-    elif chroot_arg[0] == '=':
-        down = ['dchroot', '-q', '-c', chroot_arg[1:], '--']
+    elif args.chroot[0] == '=':
+        down = ['dchroot', '-q', '-c', args.chroot[1:], '--']
         # FIXME: figure out chroot_dir
-    elif chroot_arg[0] == '/':
-        down = ['chroot', chroot_arg]
-        chroot_dir = chroot_arg
+    elif args.chroot[0] == '/':
+        down = ['chroot', args.chroot]
+        chroot_dir = args.chroot
     else:
         parser.error("chroot spec must be =[DCHROOT] or /PATH/TO/CHROOT")
 
-    if opts.gain_root:
-        down = opts.gain_root.split() + down
+    if args.gain_root:
+        down = args.gain_root.split() + down
 
-    if opts.gain_root or os.getuid() == 0:
+    if args.gain_root or os.getuid() == 0:
         capabilities.append('root-on-testbed')
 
     VirtSubproc.auxverb = down

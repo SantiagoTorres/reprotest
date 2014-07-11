@@ -28,12 +28,12 @@
 import sys
 import os
 import string
-from optparse import OptionParser
 import random
 import subprocess
 import time
 import tempfile
 import shutil
+import argparse
 
 try:
     our_base = os.environ['AUTOPKGTEST_BASE'] + '/lib'
@@ -48,47 +48,38 @@ import adtlog
 capabilities = ['revert', 'revert-full-system', 'root-on-testbed',
                 'isolation-container']
 
-ephemeral = False
-eatmydata = False
-use_sudo = False
-lxc_template = None
+args = None
 lxc_container_name = None
 normal_user = None
 shared_dir = None
 
 
 def parse_args():
-    global lxc_template, eatmydata, ephemeral, use_sudo
+    global args
 
-    usage = '%prog [<options>] <template>'
-    parser = OptionParser(usage=usage)
+    parser = argparse.ArgumentParser(fromfile_prefix_chars='@')
 
-    parser.add_option('-d', '--debug', action='store_true')
-    parser.add_option('--eatmydata', action='store_true')
-    parser.add_option('-e', '--ephemeral', action='store_true',
-                      help='Use ephemeral overlays instead of cloning (much '
-                      'faster, but might cause errors in some corner cases)')
-    parser.add_option('-s', '--sudo', action='store_true',
-                      help='Run lxc-* commands with sudo; use if you run '
-                      'adt-run as normal user')
-
-    (opts, args) = parser.parse_args()
-    if len(args) != 1:
-        parser.error('need exactly one arg, template lxc container name')
-
-    lxc_template = args[0]
-    eatmydata = opts.eatmydata
-    ephemeral = opts.ephemeral
-    use_sudo = opts.sudo
-
-    if opts.debug:
+    parser.add_argument('-d', '--debug', action='store_true',
+                        help='Enable debugging output')
+    parser.add_argument('--eatmydata', action='store_true',
+                        help='Use eatmydata inside the container to improve performance')
+    parser.add_argument('-e', '--ephemeral', action='store_true',
+                        help='Use ephemeral overlays instead of cloning (much '
+                        'faster, but might cause errors in some corner cases)')
+    parser.add_argument('-s', '--sudo', action='store_true',
+                        help='Run lxc-* commands with sudo; use if you run '
+                        'adt-run as normal user')
+    parser.add_argument('template', help='LXC container name that will be '
+                        'used as a template')
+    args = parser.parse_args()
+    if args.debug:
         adtlog.verbosity = 2
 
 
 def sudoify(command):
     '''Prepend sudo to command with the --sudo option'''
 
-    if use_sudo:
+    if args.sudo:
         return ['sudo'] + command
     else:
         return command
@@ -172,19 +163,19 @@ def determine_normal_user(lxc_name):
 
 
 def hook_open():
-    global lxc_container_name, shared_dir
+    global args, lxc_container_name, shared_dir
 
     lxc_container_name = get_available_lxc_container_name()
     adtlog.debug('using container name %s' % lxc_container_name)
     shared_dir = tempfile.mkdtemp(prefix='adt-virt-lxc.shared.')
     os.chmod(shared_dir, 0o755)
-    if ephemeral:
+    if args.ephemeral:
         VirtSubproc.check_exec(sudoify(
             ['lxc-start-ephemeral', '-n', lxc_container_name, '-k', '-d',
-             '--bdir', shared_dir, '-o', lxc_template]), outp=True)
+             '--bdir', shared_dir, '-o', args.template]), outp=True)
     else:
         VirtSubproc.check_exec(sudoify(
-            ['lxc-clone', '-n', lxc_container_name, '-o', lxc_template]), outp=True)
+            ['lxc-clone', '-n', lxc_container_name, '-o', args.template]), outp=True)
         VirtSubproc.check_exec(sudoify(
             ['lxc-start', '-n', lxc_container_name, '-d',
              '-s', 'lxc.mount.entry=%s %s none bind,create=dir 0 0' % (shared_dir, shared_dir[1:])]))
@@ -199,10 +190,10 @@ def hook_open():
             'env', '-i', 'sh', '-ac',
             '. /etc/environment 2>/dev/null; . /etc/default/locale 2>/dev/null; exec "$@"', '--'
         ]
-        if use_sudo:
+        if args.sudo:
             VirtSubproc.auxverb = ['sudo', '-E'] + VirtSubproc.auxverb
-        if eatmydata:
-            check_for_eatmydata(lxc_container_name, lxc_template)
+        if args.eatmydata:
+            check_for_eatmydata(lxc_container_name, args.template)
             VirtSubproc.auxverb.extend(['eatmydata', '--'])
     except:
         # Clean up on failure
@@ -253,7 +244,7 @@ def hook_capabilities():
 
 def hook_shell(stdin, stdout, stderr, dir):
     argv = ['lxc-attach', '-n', lxc_container_name, '--', 'sh', '-c', 'cd %s; exec bash -i' % dir]
-    if use_sudo:
+    if args.sudo:
         argv = ['sudo', '-E'] + argv
     with open(stdin, 'rb') as sin:
         with open(stdout, 'wb') as sout:
