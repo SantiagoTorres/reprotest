@@ -12,6 +12,9 @@ autopkgtest (3.2) UNRELEASED; urgency=medium
   * In "unpack into temp dir" mode, ignore Python 2.x test dependencies. They
     are not exposed anyway as with $PYTHONPATH we can only serve one major
     Python version, and we want Python 3.
+  * Port remaining runners from obsolete optparse to modern argparse. This
+    gives a consistent command line help and support for reading options from
+    a file with '@'.
 
   Bug fixes:
   * Set $USER environment variable also for tests that run as root.
