@@ -97,9 +97,9 @@ def prepare_overlay():
     else:
         overlay = os.path.join(workdir, 'overlay.img')
     adtlog.debug('Creating temporary overlay image in %s' % overlay)
-    subprocess.check_call(['qemu-img', 'create', '-f', 'qcow2', '-b',
-                           os.path.abspath(args.image[0]), overlay],
-                          stdout=subprocess.PIPE)
+    VirtSubproc.check_exec(['qemu-img', 'create', '-f', 'qcow2', '-b',
+                            os.path.abspath(args.image[0]), overlay],
+                           outp=True, timeout=300)
     return overlay
 
 

@@ -87,9 +87,9 @@ def sudoify(command):
 
 def check_for_eatmydata(container, template_name):
     with open('/dev/null', 'wb') as null:
-        result = subprocess.call(
-            sudoify(['lxc-attach', '-n', container, '--', 'sh', '-c',
-                     'command -v eatmydata']),
+        result = VirtSubproc.execute_timeout(
+            None, 10, sudoify(['lxc-attach', '-n', container, '--', 'sh', '-c',
+                               'type eatmydata']),
             close_fds=True, stdout=null, stderr=null)
     if result:
         raise RuntimeError(
@@ -111,8 +111,8 @@ def get_available_lxc_container_name():
         rnd = [random.choice(string.ascii_lowercase) for i in range(6)]
         candidate = 'adt-virt-lxc-' + ''.join(rnd)
 
-        containers = subprocess.check_output(sudoify(['lxc-ls']),
-                                             universal_newlines=True)
+        containers = VirtSubproc.check_exec(sudoify(['lxc-ls']), outp=True,
+                                            timeout=10)
         if candidate not in containers:
             return candidate
 
@@ -125,19 +125,19 @@ def wait_booted(lxc_name):
     '''
     timeout = 60
     while timeout > 0:
-        try:
-            out = subprocess.check_output(
-                sudoify(['lxc-attach', '-n', lxc_name, 'runlevel'])).strip()
-            if out.split()[-1].isdigit():
-                return
-
-            adtlog.debug('wait_booted: runlevel "%s", retrying...' % out)
-        except subprocess.CalledProcessError:
-            adtlog.debug('wait_booted: lxc-attach failed, retrying...')
-            pass
-
         timeout -= 1
         time.sleep(1)
+        (rc, out, _) = VirtSubproc.execute_timeout(
+            None, 10, sudoify(['lxc-attach', '-n', lxc_name, 'runlevel']),
+            stdout=subprocess.PIPE)
+        if rc != 0:
+            adtlog.debug('wait_booted: lxc-attach failed, retrying...')
+            continue
+        out = out.strip()
+        if out.split()[-1].isdigit():
+            return
+
+        adtlog.debug('wait_booted: runlevel "%s", retrying...' % out)
 
     VirtSubproc.bomb('timed out waiting for container %s to start; '
                      'last runlevel "%s"' % (lxc_name, out))
@@ -149,11 +149,11 @@ def determine_normal_user(lxc_name):
     global capabilities, normal_user
 
     # get the first UID >= 500
-    out = subprocess.check_output(
-        sudoify(['lxc-attach', '-n', lxc_name,
-                 '--', 'sh', '-c', "getent passwd | sort -t: -nk3 | "
-                 "awk -F: '{if ($3 >= 500) { print $1; exit } }'"]),
-        universal_newlines=True).strip()
+    cmd = ['lxc-attach', '-n', lxc_name, '--', 'sh', '-c',
+           'getent passwd | sort -t: -nk3 | '
+           "awk -F: '{if ($3 >= 500) { print $1; exit } }'"]
+    out = VirtSubproc.execute_timeout(None, 10, sudoify(cmd),
+                                      stdout=subprocess.PIPE)[1].strip()
     if out:
         normal_user = out
         capabilities.append('suggested-normal-user=' + normal_user)
