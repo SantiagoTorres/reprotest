@@ -28,6 +28,8 @@ autopkgtest (3.2) UNRELEASED; urgency=medium
   * Optimize aa-clickhook workaround for LP #1337253 to only rebuild the
     profile of the installed click app. This reduces the time from about a
     minute to about a second.
+  * qemu, lxc: Use VirtSubproc subprocess wrappers to get timeout handling for
+    all commands.
 
  -- Martin Pitt <mpitt@debian.org>  Mon, 07 Jul 2014 14:35:59 +0200
 
