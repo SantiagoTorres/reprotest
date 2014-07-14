@@ -30,6 +30,8 @@ autopkgtest (3.2) UNRELEASED; urgency=medium
     minute to about a second.
   * qemu, lxc: Use VirtSubproc subprocess wrappers to get timeout handling for
     all commands.
+  * Rewrite build depends to not rely on builders being able to fall back to
+    alternatives (python >= 3.3 | python3-mock), to ease backporting.
 
  -- Martin Pitt <mpitt@debian.org>  Mon, 07 Jul 2014 14:35:59 +0200
 
