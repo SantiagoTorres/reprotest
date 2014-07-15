@@ -33,6 +33,8 @@ autopkgtest (3.2) UNRELEASED; urgency=medium
   * Rewrite build depends to not rely on builders being able to fall back to
     alternatives (python >= 3.3 | python3-mock), to ease backporting.
   * tests/pyflakes: Use pyflakes3.
+  * Only run pyflakes test during package build if pyflakes3 is available.
+    This unbreaks backports.
 
  -- Martin Pitt <mpitt@debian.org>  Mon, 07 Jul 2014 14:35:59 +0200
 

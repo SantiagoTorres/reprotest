@@ -34,7 +34,7 @@ override_dh_auto_install:
 	sed -i 's/@version@/$(VERSION)/' debian/autopkgtest/usr/bin/adt-run
 
 override_dh_auto_test:
-	tests/pyflakes
+	if type pyflakes3 >/dev/null 2>&1; then tests/pyflakes; else echo "pyflakes3 not available, skipping"; fi
 	tests/pep8 || true
 	env NO_PKG_MANGLE=1 tests/adt-run NullRunnerNoRoot
 
