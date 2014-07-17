@@ -27,6 +27,7 @@ import argparse
 from glob import glob
 
 import adtlog
+import testdesc
 
 __all__ = ['parse_args']
 
@@ -106,8 +107,23 @@ built_binaries = None
 class ActionArg(argparse.Action):
     def __call__(self, parser, args, value, option_string=None):
         global actions, built_binaries
+        if option_string == '--changes':
+            try:
+                files = testdesc.parse_rfc822(value).__next__()['Files']
+            except (StopIteration, KeyError):
+                parser.error('%s is invalid and does not contain Files:'
+                             % value)
+            dsc_dir = os.path.dirname(value)
+            for f in files.split():
+                if '.' in f and '_' in f:
+                    fpath = os.path.join(dsc_dir, f)
+                    if f.endswith('.deb'):
+                        actions.append(('binary', fpath, None))
+                    elif f.endswith('.dsc'):
+                        actions.append(('source', fpath, False))
+            return
 
-        if option_string in ('--apt-source', '--changes', '--built-tree'):
+        if option_string in ('--apt-source', '--built-tree'):
             bins = False
         # these are the only types where built_binaries applies
         elif option_string in ('--unbuilt-tree', '--source'):
