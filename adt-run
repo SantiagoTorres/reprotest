@@ -23,7 +23,6 @@
 # installed as /usr/share/doc/autopkgtest/CREDITS).
 
 import signal
-import optparse
 import tempfile
 import sys
 import subprocess
@@ -31,16 +30,12 @@ import traceback
 import re
 import os
 import errno
-import fnmatch
 import shutil
-import copy
 import time
 import atexit
 
-from glob import glob
 from urllib.parse import quote as url_quote
 from urllib.parse import unquote as url_unquote
-from optparse import OptionParser
 
 from debian import deb822, debian_support
 
@@ -52,15 +47,17 @@ sys.path.insert(1, our_base)
 import VirtSubproc
 import adtlog
 import testdesc
+import adt_run_args
 
 # ---------- global variables
 
 tmp = None		# pathstring on host
 testbed = None		# Testbed
 shared_downtmp = None   # testbed's downtmp on the host, if supported
-opts = None             # optparse options
+opts = None             # argparse options
+vserver_args = None     # everything after ---
+actions = None          # list of (action_type, path)
 errorcode = 0		# exit status that we are going to use
-timeouts = {'short': 100, 'copy': 300, 'install': 3000, 'test': 10000, 'build': 100000}
 binaries = None		# Binaries (.debs we have registered)
 build_essential = ['build-essential']
 dpkg_buildpackage = 'dpkg-buildpackage -us -uc -b'
@@ -140,23 +137,7 @@ def script_out(argv, what=None, script=None, **kwargs):
     return (process.returncode, output)
 
 
-# ---------- parsing and representation of the arguments
-
-
-class Action:
-
-    def __init__(self, kind, arg, arghandling, what):
-        # extra attributes get added during processing
-        self.kind = kind
-        self.arg = arg
-        self.ah = arghandling
-        self.what = what
-
-    def __repr__(self):
-        return '<Action %s %s %s>' % (self.kind, self.what, self.arg)
-
-
-def files_from_dsc(dsc_path, optparser=None):
+def files_from_dsc(dsc_path):
     '''Get files from a .dsc or a .changes
 
     Return list of files, including the directory of dsc_path.
@@ -164,313 +145,11 @@ def files_from_dsc(dsc_path, optparser=None):
     try:
         files = testdesc.parse_rfc822(dsc_path).__next__()['Files'].split()
     except (StopIteration, KeyError):
-        e = '%s is invalid and does not contain Files:' % dsc_path
-        if optparser:
-            optparser.error(e)
-        else:
-            badpkg(e)
+        badpkg('%s is invalid and does not contain Files:' % dsc_path)
 
     dsc_dir = os.path.dirname(dsc_path)
 
     return [os.path.join(dsc_dir, f) for f in files if '.' in f and '_' in f]
-
-
-def is_click_src(path):
-    '''Check if path is a click source tree'''
-
-    if os.path.isdir(os.path.join(path, 'click')):
-        return True
-    if glob(os.path.join(path, 'manifest.json*')):
-        return True
-    return False
-
-
-def parse_args():
-    global opts, timeouts
-    global n_non_actions  # argh, stupid python scoping rules
-    usage = '%prog <options> --- <virt-server>...'
-    parser = OptionParser(usage=usage)
-
-    arghandling = {
-        'dsc_tests': True,
-        'dsc_filter': '*',
-        'deb_forbuilds': 'auto',
-        'deb_fortests': 'auto',
-        'set_lang': 'C.UTF-8'
-    }
-    initial_arghandling = arghandling.copy()
-    n_non_actions = 0
-
-    # ----------
-    # actions (ie, test sets to run, sources to build, binaries to use):
-
-    def cb_action(op, optstr, value, parser, kindpath, is_act):
-        global n_non_actions
-        parser.largs.append((value, kindpath))
-        n_non_actions += not(is_act)
-
-    def pa_action(longname, metavar, kindpath, help, is_act=True):
-        parser.add_option('--' + longname, action='callback', callback=cb_action,
-                          nargs=1, type='string', callback_args=(kindpath, is_act),
-                          metavar=metavar, help=help)
-
-    pa_action('built-tree', 'TREE', '@/', help='run tests from build tree TREE')
-    pa_action('unbuilt-tree', 'TREE', '@//', help='run tests from build tree TREE')
-    pa_action('source', 'DSC', '@.dsc',
-              help='build DSC and use its tests and/or generated binary packages')
-    pa_action('binary', 'DEB', '@.deb',
-              help='use binary package DEB according to most recent --binaries-* settings')
-    pa_action('changes', 'CHANGES', '@.changes',
-              help='use dsc and binary debs from a .changes file')
-    pa_action('apt-source', 'SRCPKG', '@.apt',
-              help='download with apt-get source in testbed and use its tests')
-    pa_action('click-source', 'CLICKSRC', '@.clicksrc',
-              help='click source tree for subsequent --click package')
-    pa_action('click', 'CLICKPKG', '@.click',
-              help='install click package into testbed (path to *.click) or '
-              'use an already installed click package ("com.example.myapp") '
-              'and run its tests (from preceding --click-source)')
-
-    def cb_actnoarg(op, optstr, value, parser, largsentry):
-        parser.largs.append(largsentry)
-
-    parser.add_option('--instantiate', action='callback', callback=cb_actnoarg,
-                      callback_args=((None, ('instantiate',)),),
-                      help='instantiate testbed now (during testing phase)'
-                      ' and install packages'
-                      ' selected for automatic installation, even'
-                      ' if this might apparently not be required otherwise')
-
-    pa_action('override-control', 'CONTROL', ('control',), is_act=0,
-              help='run tests from control file CONTROL instead,'
-              ' (applies to next Debian test suite only)')
-
-    # ----------
-    # argument handling settings (what ways to use action
-    # arguments, and pathname processing):
-
-    def cb_setah(option, opt_str, value, parser, toset, setval):
-        if type(setval) == list:
-            if value not in setval:
-                parser.error('value for %s option (%s) is not '
-                             'one of the permitted values (%s)' %
-                             (value, opt_str, setval.join(' ')))
-        elif setval is not None:
-            value = setval
-        for v in toset:
-            arghandling[v] = value
-        parser.largs.append(arghandling.copy())
-
-    def pa_setah(short, long, affected, effect, metavar=None, **kwargs):
-        type = metavar
-        if type is not None:
-            type = 'string'
-        parser.add_option(long, short, action='callback', callback=cb_setah,
-                          callback_args=(affected, effect), **kwargs)
-
-    # ---- source processing settings:
-
-    pa_setah(None, '--sources-tests', ['dsc_tests'], True,
-             help='run tests from builds of subsequent sources')
-    pa_setah(None, '--sources-no-tests', ['dsc_tests'], False,
-             help='do not run tests from builds of subsequent sources')
-
-    pa_setah(None, '--built-binaries-filter', ['dsc_filter'], None,
-             type='string', metavar='PATTERN-LIST',
-             help='from subsequent sources, use binaries matching'
-             ' PATTERN-LIST (comma-separated glob patterns)'
-             ' according to most recent --binaries-* settings')
-    pa_setah('-B', '--no-built-binaries', ['dsc_filter'], '_',
-             help='from subsequent sources, do not use any binaries')
-    # ---- binary package processing settings:
-
-    def pa_setahbins(long, toset, how):
-        pa_setah(None, long, toset, ['ignore', 'auto', 'install'],
-                 type='string', metavar='IGNORE|AUTO|INSTALL', default='auto',
-                 help=how + ' ignore binaries, install them as needed'
-                 ' for dependencies, or unconditionally install'
-                 ' them, respectively')
-    pa_setahbins('--binaries', ['deb_forbuilds', 'deb_fortests'], '')
-    pa_setahbins('--binaries-forbuilds', ['deb_forbuilds'], 'for builds, ')
-    pa_setahbins('--binaries-fortests', ['deb_fortests'], 'for tests, ')
-
-    # ----------
-    # general options:
-
-    def cb_vserv(op, optstr, value, parser):
-        parser.values.vserver = list(parser.rargs)
-        del parser.rargs[:]
-
-    parser.add_option('--leave-lang', dest='set_lang', action='store_false',
-                      help="leave LANG on testbed set to testbed's default")
-    parser.add_option('--set-lang', metavar='LANGVAL',
-                      help='set LANG on testbed to LANGVAL (default: %s)' %
-                      initial_arghandling['set_lang'],
-                      default=initial_arghandling['set_lang'])
-
-    parser.add_option('-o', '--output-dir',
-                      help='write test artifacts (stdout/err, log, debs, etc.) '
-                      'to OUTPUT-DIR, emptying it beforehand')
-    # backwards compatible alias
-    parser.add_option('--tmp-dir', dest='output_dir',
-                      help='alias for --output-dir for backwards compatibility')
-
-    parser.add_option('-l', '--log-file', dest='logfile',
-                      help='write the log LOGFILE, emptying it beforehand,'
-                      ' instead of using OUTPUT-DIR/log')
-    parser.add_option('--summary-file', dest='summary',
-                      help='write a summary report to SUMMARY, emptying it beforehand')
-
-    for k in timeouts.keys():
-        parser.add_option('--timeout-' + k, type='int', dest='timeout_' + k,
-                          metavar='T', help='set %s timeout to T' % k)
-    parser.add_option('--timeout-factor', type='float', metavar='FACTOR',
-                      default=1.0,
-                      help='multiply all default timeouts by FACTOR')
-
-    parser.add_option('-u', '--user', help='run tests as USER (needs root on testbed)')
-    parser.add_option('--gain-root', type='string', dest='gainroot',
-                      help='command to gain root during package build, passed to dpkg-buildpackage -r')
-    parser.add_option('-q', '--quiet', action='store_const', dest='verbosity', const=0, default=1)
-    parser.add_option('-d', '--debug', action='store_const', dest='verbosity', const=2)
-    parser.add_option('-s', '--shell-fail', action='store_true',
-                      help='run a shell in the testbed after any failed build or test')
-    parser.add_option('--shell', action='store_true',
-                      help='run a shell in the testbed after every test')
-    parser.add_option('--gnupg-home', type='string', dest='gnupghome',
-                      default='~/.autopkgtest/gpg',
-                      help='use GNUPGHOME rather than ~/.autopkgtest (for'
-                      ' signing private apt archive);'
-                      ' "fresh" means generate new key each time.')
-    parser.add_option('--setup-commands', metavar='COMMANDS_OR_PATH',
-                      action='append', default=[],
-                      help='Run these commands after opening the testbed '
-                      '(e. g. "apt-get update" or adding apt sources); can be '
-                      'a string with the commands, or a file containing the '
-                      'commands')
-    parser.add_option('-U', '--apt-upgrade', dest='setup_commands',
-                      action='append_const',
-                      const='(apt-get update || (sleep 15; apt-get update)) && apt-get dist-upgrade -y -o Dpkg::Options::="--force-confnew"',
-                      help='Run apt update/dist-upgrade before the tests')
-    parser.add_option('--apt-pocket', metavar='POCKETNAME', action='append',
-                      default=[],
-                      help='Enable additional apt source for POCKETNAME')
-    parser.add_option('--copy', metavar='HOSTFILE:TESTBEDFILE',
-                      action='append', default=[],
-                      help='Copy file or dir from host into testbed after opening')
-
-    # ----------
-    # actual meat:
-
-    class SpecialOption(optparse.Option):
-        pass
-    vs_op = SpecialOption('', '--VSERVER-DUMMY')
-    vs_op.action = 'callback'
-    vs_op.type = None
-    vs_op.default = None
-    vs_op.nargs = 0
-    vs_op.callback = cb_vserv
-    vs_op.callback_args = ()
-    vs_op.callback_kwargs = {}
-    vs_op.help = 'introduces virtualisation server and args'
-    vs_op._short_opts = []
-    vs_op._long_opts = ['---']
-
-    parser.add_option(vs_op)
-
-    (opts, args) = parser.parse_args()
-    if not hasattr(opts, 'vserver'):
-        parser.error('you must specify --- <virt-server>...')
-    if '/' not in opts.vserver[0] and not opts.vserver[0].startswith('adt-virt-'):
-        opts.vserver[0] = 'adt-virt-' + opts.vserver[0]
-
-    if n_non_actions >= len(parser.largs):
-        parser.error('nothing to do specified')
-
-    for k in timeouts.keys():
-        t = getattr(opts, 'timeout_' + k)
-        if t is None:
-            t = timeouts[k] * opts.timeout_factor
-        timeouts[k] = int(t)
-
-    # this timeout is for adt-virt-*, so pass it down via environment
-    os.environ['ADT_VIRT_COPY_TIMEOUT'] = str(timeouts['copy'])
-
-    arghandling = initial_arghandling
-    opts.actions = []
-    ix = 0
-    for act in args:
-        if type(act) == dict:
-            arghandling = act
-            continue
-        elif type(act) == tuple:
-            pass
-        elif type(act) == str:
-            act = (act, act)
-        else:
-            raise Exception("unknown action in list `%s' having"
-                            " type `%s'" % (act, type(act)))
-        (pathstr, kindpath) = act
-
-        if type(kindpath) is tuple:
-            kind = kindpath[0]
-        elif kindpath.endswith('.deb'):
-            kind = 'deb'
-        elif kindpath.endswith('.dsc'):
-            kind = 'dsc'
-        elif kindpath.endswith('.changes'):
-            kind = 'changes'
-        elif kindpath.endswith('.apt'):
-            kind = 'apt'
-        elif kindpath.endswith('.click'):
-            kind = 'click'
-        elif kindpath == '@.clicksrc' or is_click_src(pathstr):
-            kind = 'clicksrc'
-        elif kindpath.endswith('//'):
-            kind = 'ubtree'
-        elif kindpath.endswith('/'):
-            kind = 'tree'
-        elif re.match('[0-9a-z][0-9a-z.+-]+', kindpath):
-            kind = 'apt'
-        else:
-            parser.error("do not know how to handle filename `%s';"
-                         " specify --source, --binary, --changes, --built-tree, --unbuilt-tree, or --apt-source" %
-                         kindpath)
-
-        what = '%s%s' % (kind, ix)
-        ix += 1
-
-        # "no built binaries" for apt sources or .changes
-        if kind in ('apt', 'changes'):
-            arghandling['dsc_filter'] = '_'
-
-        if kind == 'changes':
-            # expand .changes into *.deb and .dsc
-            for f in files_from_dsc(pathstr, parser):
-                if f.endswith('.deb'):
-                    opts.actions.append(Action('deb', f, arghandling, what))
-                elif f.endswith('.dsc'):
-                    opts.actions.append(Action('dsc', f, arghandling, what))
-        else:
-            opts.actions.append(Action(kind, pathstr, arghandling, what))
-
-    # if we have --setup-commands and it points to a file, read its contents
-    for i, c in enumerate(opts.setup_commands):
-        if os.path.exists(c):
-            with open(c, encoding='UTF-8') as f:
-                opts.setup_commands[i] = f.read()
-
-    # parse --copy arguments
-    copy_pairs = []
-    for arg in opts.copy:
-        try:
-            (host, tb) = arg.split(':', 1)
-        except ValueError:
-            parser.error('--copy argument must be HOSTPATH:TESTBEDPATH: %s' % arg)
-        if not os.path.exists(host):
-            parser.error('--copy host path %s does not exist' % host)
-        copy_pairs.append((host, tb))
-    opts.copy = copy_pairs
 
 
 def setup_trace():
@@ -509,10 +188,6 @@ def setup_trace():
     if opts.summary is not None:
         adtlog.summary_stream = open(opts.summary, 'wb', 0)
 
-    adtlog.verbosity = opts.verbosity
-
-    adtlog.debug('options: ' + str(opts) + '; timeouts: ' + str(timeouts))
-
 
 def finalise_options():
     global opts, testbed, build_essential, dpkg_buildpackage
@@ -534,8 +209,6 @@ def finalise_options():
 
     if opts.gnupghome.startswith('~/'):
         opts.gnupghome = os.path.expanduser(opts.gnupghome)
-    elif opts.gnupghome == 'fresh':
-        opts.gnupghome = None
 
 # ---------- testbed management - the Testbed class
 
@@ -568,8 +241,13 @@ class Testbed:
             adtlog.info('git checkout: %s' % head)
         else:
             adtlog.info('version @version@')
-        adtlog.debug_subprocess('vserver', opts.vserver)
-        self.sp = subprocess.Popen(opts.vserver,
+
+        # vserver can be given without "adt-virt-" prefix
+        if '/' not in vserver_args[0] and not vserver_args[0].startswith('adt-virt-'):
+            vserver_args[0] = 'adt-virt-' + vserver_args[0]
+
+        adtlog.debug_subprocess('vserver', vserver_args)
+        self.sp = subprocess.Popen(vserver_args,
                                    stdin=subprocess.PIPE,
                                    stdout=subprocess.PIPE,
                                    universal_newlines=True)
@@ -665,7 +343,7 @@ class Testbed:
         if not opts.setup_commands and not opts.apt_pocket and not opts.copy:
             return
 
-        adtlog.info('@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ test bed setup')
+        adtlog.info('@@@@@@@@@@@@@@@@@@@@ test bed setup')
         for (host, tb) in opts.copy:
             adtlog.debug('Copying file %s to testbed %s' % (host, tb))
             TestbedPath(self, host, tb, os.path.isdir(host)).copydown()
@@ -811,7 +489,7 @@ class Testbed:
         Return (exit code, stdout, stderr). stdout/err will be None when output
         is not redirected.
         '''
-        timeout = timeouts[kind]
+        timeout = getattr(opts, 'timeout_' + kind)
 
         env = list(xenv)  # copy
         if kind == 'install':
@@ -1501,27 +1179,21 @@ Pin-Priority: 1002
         adtlog.debug('Binaries: reset')
         rmtree('binaries', self.dir.host)
         os.mkdir(self.dir.host)
-        self.install = []
         self.blamed = []
         self.registered = set()
 
-    def register(self, act, pkg, path, forwhat, blamed):
-        adtlog.debug('Binaries: register what=%s deb_%s=%s pkg=%s path=%s' %
-                     (act.what, forwhat, act.ah['deb_' + forwhat], pkg, path))
-
-        if act.ah['deb_' + forwhat] == 'ignore':
-            return
-
+    def register(self, path, pkgname):
+        adtlog.debug('Binaries: register deb=%s pkgname=%s ' % (path, pkgname))
         self.blamed += testbed.blamed
 
-        dest = os.path.join(self.dir.host, pkg + '.deb')
+        dest = os.path.join(self.dir.host, pkgname + '.deb')
 
+        # link or copy to self.dir
         try:
             os.remove(dest)
         except (IOError, OSError) as oe:
             if oe.errno != errno.ENOENT:
                 raise oe
-
         try:
             os.link(path, dest)
         except (IOError, OSError) as oe:
@@ -1532,11 +1204,7 @@ Pin-Priority: 1002
         # --output-dir, but don't clean up --binary arguments
         if opts.output_dir and path.startswith(opts.output_dir):
             atexit.register(lambda f: os.path.exists(f) and os.unlink(f), path)
-
-        if act.ah['deb_' + forwhat] == 'install':
-            self.install.append(pkg)
-
-        self.registered.add(pkg)
+        self.registered.add(pkgname)
 
     def publish(self):
         adtlog.debug('Binaries: publish')
@@ -1603,35 +1271,30 @@ Pin-Priority: 1002
             if rc:
                 badpkg('installation of basic binaries failed, exit code %d' % rc)
 
-        adtlog.debug('Binaries: publish install...')
-        for pkg in self.install:
-            testbed.blame(pkg)
-            rc = testbed.execute(self.apt_get_cmd + ['install'] + pkg, kind='install')
-            if rc:
-                badpkg('installation of %s failed, exit code %d'
-                       % (pkg, rc))
-
         adtlog.debug('Binaries: publish done')
 
 # ---------- processing of sources (building)
 
 
-def determine_package(act):
-    cmd = ['dpkg-deb', '--info', '--', act.arg, 'control']
+def deb_package_name(deb):
+    '''Return package name from a .deb'''
+
+    cmd = ['dpkg-deb', '--info', '--', deb, 'control']
     (rc, output) = script_out(cmd, stdout=subprocess.PIPE)
     if rc:
         badpkg('failed to parse binary package, code %d' % rc)
     pkg_re = re.compile('^\s*Package\s*:\s*([0-9a-z][-+.0-9a-z]*)\s*$')
-    act.pkg = None
+    result = None
     for l in output.split('\n'):
         m = pkg_re.match(l)
         if not m:
             continue
-        if act.pkg:
+        if result:
             badpkg('two Package: lines in control file')
-        act.pkg = m.groups()[0]
-    if not act.pkg:
+        result = m.groups()[0]
+    if not result:
         badpkg('no good Package: line in control file')
+    return result
 
 
 def source_rules_command(script, which, cwd=None, results_lines=0):
@@ -1658,39 +1321,38 @@ def source_rules_command(script, which, cwd=None, results_lines=0):
     return results
 
 
-def build_source(act):
-    act.blame = 'arg:' + act.arg
-    testbed.blame(act.blame)
+def build_source(kind, arg, built_binaries):
+    '''Prepare action argument for testing
+
+    This builds packages when necessary and registers their binaries, copies
+    tests into the testbed, etc.
+
+    Return a TestbedPath to the unpacked tests tree.
+    '''
+    testbed.blame(arg)
     testbed.reset([])
 
-    what = act.what
-    act.binaries = []
-
     def debug_b(m):
-        adtlog.debug('build_source: <%s:%s> %s' % (act.kind, act.what, m))
-
-    def info_b(m):
-        adtlog.info('build_source: <%s:%s> %s' % (act.kind, act.what, m))
+        adtlog.debug('build_source: <%s:%s> %s' % (kind, arg, m))
 
     # copy necessary source files into testbed and set create_command for final unpacking
-    if act.kind == 'dsc':
-        dsc = act.arg
-        dsc_tb = os.path.join(testbed.scratch, what, os.path.basename(dsc))
+    if kind == 'source':
+        dsc = arg
+        dsc_tb = os.path.join(testbed.scratch, os.path.basename(dsc))
 
         # copy .dsc file itself
         TestbedPath(testbed, dsc, dsc_tb).copydown()
         # copy files from it
         for part in files_from_dsc(dsc):
-            p = TestbedPath(testbed, part, os.path.join(testbed.scratch, what,
-                                                        os.path.basename(part)))
+            p = TestbedPath(testbed, part, os.path.join(testbed.scratch, os.path.basename(part)))
             p.copydown()
 
         create_command = 'dpkg-source -x "%s"' % dsc_tb
 
-    elif act.kind == 'ubtree':
-        dsc = os.path.join(tmp, what + '-fakedsc')
+    elif kind == 'unbuilt-tree':
+        dsc = os.path.join(tmp, 'fake.dsc')
         with open(dsc, 'w', encoding='UTF-8') as f_dsc:
-            with open(os.path.join(act.arg, 'debian/control'), encoding='UTF-8') as f_control:
+            with open(os.path.join(arg, 'debian/control'), encoding='UTF-8') as f_control:
                 for l in f_control:
                     if l == '\n':
                         break
@@ -1699,18 +1361,18 @@ def build_source(act):
         atexit.register(lambda f: os.path.exists(f) and os.unlink(f), dsc)
 
         # copy unbuilt tree into testbed
-        ubtree = TestbedPath(testbed, act.arg,
-                             os.path.join(testbed.scratch, act.what + '-ubtree'))
+        ubtree = TestbedPath(testbed, arg,
+                             os.path.join(testbed.scratch, 'ubtree-' + os.path.basename(arg)))
         ubtree.copydown()
         create_command = 'cp -rd --preserve=timestamps -- "%s" real-tree' % ubtree.tb
 
-    elif act.kind == 'tree':
+    elif kind == 'built-tree':
         # this is a special case: we don't want to build, or even copy down
         # (and back up) the tree here for efficiency; so shortcut everything
         # below and just set the tests_tree and get the package version
-        act.tests_tree = TestbedPath(testbed, act.arg, os.path.join(testbed.scratch, 'tree'), is_dir=True)
+        tests_tree = TestbedPath(testbed, arg, os.path.join(testbed.scratch, 'tree'), is_dir=True)
 
-        with open(os.path.join(act.arg, 'debian', 'changelog')) as f:
+        with open(os.path.join(arg, 'debian', 'changelog')) as f:
             (testpkg_name, testpkg_version, _) = f.readline().split(' ', 2)
             testpkg_version = testpkg_version[1:-1]  # chop off parentheses
 
@@ -1718,15 +1380,15 @@ def build_source(act):
         if opts.output_dir:
             with open(os.path.join(tmp, 'testpkg-version'), 'w') as f:
                 f.write('%s %s\n' % (testpkg_name, testpkg_version))
-        return
+        return tests_tree
 
-    elif act.kind == 'apt':
-        create_command = 'apt-get source --only-source ' + act.arg
+    elif kind == 'apt-source':
+        create_command = 'apt-get source --only-source ' + arg
 
     else:
-        bomb('unknown action kind for build_source: ' + act.kind)
+        bomb('unknown action kind for build_source: ' + kind)
 
-    if act.kind in ['dsc', 'apt']:
+    if kind in ['source', 'apt-source']:
         testbed.install_deps([], False)
         if testbed.execute(['which', 'dpkg-source'],
                            stdout=subprocess.PIPE,
@@ -1738,11 +1400,11 @@ def build_source(act):
 
     # run create_command
     script = [
-        'builddir="%s/%s-build"' % (testbed.scratch, what),
-        'mkdir -p $builddir',
+        'builddir=$(mktemp -d %s/build.XXX)' % testbed.scratch,
+        'chmod 755 $builddir',
         'cd $builddir',
         create_command,
-        'cd [a-z0-9]*-*/.',
+        'cd [a-z0-9]*/.',
         'pwd >&3',
         'sed -n "1 {s/).*//; s/ (/\\n/; p}" debian/changelog >&3',
         'set +e; test -f debian/tests/control; echo $? >&3',
@@ -1758,38 +1420,33 @@ def build_source(act):
         with open(os.path.join(tmp, 'testpkg-version'), 'w') as f:
             f.write('%s %s\n' % (testpkg_name, testpkg_version))
 
-    filter = act.ah['dsc_filter']
-
     # For optional builds:
     #
     # We might need to build the package because:
-    #   - we want its binaries (filter isn't _ and at least one of the
-    #     deb_... isn't ignore)
+    #   - we want its binaries
     #   - the test control file says so (assuming we have any tests)
 
     build_needed = False
-    if filter != '_' and (act.ah['deb_forbuilds'] != 'ignore' or
-                          act.ah['deb_fortests'] != 'ignore'):
-        info_b('build needed for binaries')
+    if built_binaries:
+        adtlog.info('build needed for binaries')
         build_needed = True
     elif build_needed_rc == '0':
-        info_b('build needed for tests')
+        adtlog.info('build needed for tests')
         build_needed = True
     else:
-        info_b('build not needed')
+        adtlog.info('build not needed')
 
     if build_needed:
         testbed.needs_reset()
-
-        if act.kind not in ['dsc', 'apt']:
+        if kind not in ['dsc', 'apt']:
             testbed.install_deps([], False)
 
-        if act.kind == 'apt':
+        if kind == 'apt':
             # we need to get the downloaded debian/control from the testbed, so
             # that we can avoid calling "apt-get build-dep" and thus
             # introducing a second mechanism for installing build deps
             pkg_control = TestbedPath(testbed,
-                                      os.path.join(tmp, what + '-control'),
+                                      os.path.join(tmp, 'apt-control'),
                                       os.path.join(result_pwd, 'debian/control'), False)
             pkg_control.copyup()
             dsc = pkg_control.host
@@ -1798,30 +1455,21 @@ def build_source(act):
             d = deb822.Deb822(sequence=f)
             bd = d.get('Build-Depends', '')
             bdi = d.get('Build-Depends-Indep', '')
-        testbed.satisfy_dependencies_string(bd + ', ' + bdi + ', ' + ', '.join(build_essential), what)
+        testbed.satisfy_dependencies_string(bd + ', ' + bdi + ', ' + ', '.join(build_essential), arg)
 
         source_rules_command([dpkg_buildpackage], 'build', cwd=result_pwd)
 
     # copy built tree from testbed to hosts
-    act.tests_tree = TestbedPath(
-        testbed,
-        os.path.join(tmp, what + '-tests-tree'),
-        result_pwd,
-        is_dir=True)
-    atexit.register(rmtree, 'tests-tree', act.tests_tree.host)
-    act.tests_tree.copyup()
+    tests_tree = TestbedPath(testbed, os.path.join(tmp, 'tests-tree'), result_pwd, is_dir=True)
+    atexit.register(rmtree, 'tests-tree', tests_tree.host)
+    tests_tree.copyup()
 
     if not build_needed:
-        act.blamed = []
-        return
+        return tests_tree
 
-    act.blamed = copy.copy(testbed.blamed)
-
-    debug_b('filter=%s' % filter)
-    if filter != '_':
+    if built_binaries:
+        debug_b('want built binaries, getting and registering built debs')
         script = [
-            # FIXME: why do we need this?
-            dpkg_buildpackage,
             'cd ..',
             'echo *.deb >&3',
         ]
@@ -1830,7 +1478,7 @@ def build_source(act):
         if result_debs == '*.deb':
             debs = []
         else:
-            debs = result_debs.split(' ')
+            debs = result_debs.split()
         debug_b('debs=' + repr(debs))
 
         # determine built debs and copy them from testbed
@@ -1839,132 +1487,85 @@ def build_source(act):
             m = deb_re.match(deb)
             if not m:
                 badpkg("badly-named binary `%s'" % deb)
-            pkg = m.groups()[0]
-            debug_b(' deb=%s, pkg=%s' % (deb, pkg))
-            for pat in filter.split(','):
-                debug_b('  pat=%s' % pat)
-                if not fnmatch.fnmatchcase(pkg, pat):
-                    debug_b('   no match')
-                    continue
-                deb_what = pkg + '_' + what + '.deb'
-                deb_path = TestbedPath(testbed,
-                                       os.path.join(tmp, deb_what),
-                                       os.path.join(result_pwd, '..', deb),
-                                       False)
-                debug_b('  deb_what=%s, deb_path=%s' %
-                        (deb_what, str(deb_path)))
-                deb_path.copyup()
-                binaries.register(act, pkg, deb_path.host,
-                                  'forbuilds', testbed.blamed)
-                act.binaries.append((pkg, deb_path.host))
-                break
-        debug_b('all done.')
+            pkgname = m.groups()[0]
+            debug_b(' deb=%s, pkgname=%s' % (deb, pkgname))
+            deb_path = TestbedPath(testbed,
+                                   os.path.join(tmp, os.path.basename(deb)),
+                                   os.path.join(result_pwd, '..', deb),
+                                   False)
+            deb_path.copyup()
+            binaries.register(deb_path.host, pkgname)
+        debug_b('got all built binaries')
 
-# ---------- main processing loop and main program
+    return tests_tree
 
 
 def process_actions():
-    global binaries, errorcode
-
-    def info_1(m):
-        adtlog.log('@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ ' + m, 1)
-
-    def info_2(m):
-        adtlog.log('@@@@@@@@@@@@@@@@@@@@ ' + m, 1)
+    global actions, binaries, errorcode
 
     binaries = Binaries(testbed)
-
     binaries.reset()
     control_override = None
-
     pending_click_source = None
 
-    info_1('builds ...')
-    for act in opts.actions:
-        info_2('%s %s' % (act.kind, act.what))
-
-        if act.kind == 'control':
-            control_override = act.arg
-        elif act.kind == 'deb':
-            testbed.blame('arg:' + act.arg)
-            determine_package(act)
-            testbed.blame('deb:' + act.pkg)
-            binaries.register(act, act.pkg, act.arg,
-                              'forbuilds', testbed.blamed)
-        elif act.kind == 'instantiate':
-            pass
-        elif act.kind == 'clicksrc':
+    for (kind, arg, built_binaries) in actions:
+        # non-tests/build actions
+        if kind == 'override-control':
+            control_override = arg
+            continue
+        if kind == 'binary':
+            testbed.blame('arg:' + arg)
+            pkg = deb_package_name(arg)
+            testbed.blame('deb:' + pkg)
+            binaries.register(arg, pkg)
+            continue
+        if kind == 'click-source':
             if pending_click_source:
                 adtlog.warning('Ignoring --click-source %s, no subsequent --click argument' % pending_click_source)
-            pending_click_source = act.arg
-        else:
-            assert act.kind in ('dsc', 'tree', 'ubtree', 'apt', 'click')
-            if act.kind == 'click':
-                if os.path.exists(act.arg):
-                    # local .click package file
-                    (srcdir, act.tests, skipped) = testdesc.parse_click(
-                        act.arg, testbed.caps, srcdir=pending_click_source)
-                else:
-                    # already installed click package name
-                    if pending_click_source is None:
-                        raise NotImplementedError(
-                            'Downloading click source packages from manifest is not '
-                            'implemented. Specify --click-source explicitly.')
-                    manifest = testbed.check_exec(['click', 'info', act.arg], stdout=True)
-                    srcdir = pending_click_source
-                    (act.tests, skipped) = testdesc.parse_click_manifest(
-                        manifest, testbed.caps, [])
+            pending_click_source = arg
+            continue
 
-                act.tests_tree = TestbedPath(
-                    testbed, srcdir, os.path.join(testbed.scratch, 'tree'),
-                    is_dir=True)
-                pending_click_source = None
+        # tests/build actions
+        assert kind in ('source', 'unbuilt-tree', 'built-tree', 'apt-source', 'click')
+        adtlog.info('@@@@@@@@@@@@@@@@@@@@ %s %s' % (kind, arg))
+
+        if kind == 'click':
+            if os.path.exists(arg):
+                # local .click package file
+                (srcdir, tests, skipped) = testdesc.parse_click(
+                    arg, testbed.caps, srcdir=pending_click_source)
             else:
-                build_source(act)  # sets act.tests_tree
-                (act.tests, skipped) = testdesc.parse_debian_source(
-                    act.tests_tree.host, testbed.caps, control_path=control_override)
-            if skipped:
-                errorcode |= 2
-            control_override = None
+                # already installed click package name
+                if pending_click_source is None:
+                    raise NotImplementedError(
+                        'Downloading click source packages from manifest is not '
+                        'implemented. Specify --click-source explicitly.')
+                manifest = testbed.check_exec(['click', 'info', arg], stdout=True)
+                srcdir = pending_click_source
+                (tests, skipped) = testdesc.parse_click_manifest(
+                    manifest, testbed.caps, [])
 
-    info_1('builds done.')
-
-    binaries.reset()
-
-    info_1('tests ...')
-    for act in opts.actions:
-        info_2('test %s %s' % (act.kind, act.what))
-
-        if act.kind == 'deb':
-            binaries.register(act, act.pkg, act.arg, 'fortests',
-                              ['deb:' + act.pkg])
-        elif act.kind == 'instantiate':
-            testbed.prepare([], False)
-        elif act.kind == 'click':
-            run_tests(act.tests, act.tests_tree)
-        elif act.kind in ('clicksrc', 'control'):
-            pass
+            tests_tree = TestbedPath(
+                testbed, srcdir, os.path.join(testbed.scratch, 'tree'),
+                is_dir=True)
+            pending_click_source = None
         else:
-            assert act.kind in ('dsc', 'tree', 'ubtree', 'apt')
+            tests_tree = build_source(kind, arg, built_binaries)
+            (tests, skipped) = testdesc.parse_debian_source(
+                tests_tree.host, testbed.caps, control_path=control_override)
 
-            if not act.ah['dsc_tests']:
-                continue
-
-            for (pkg, path) in act.binaries:
-                binaries.register(act, pkg, path, 'fortests',
-                                  act.blamed)
-
-            run_tests(act.tests, act.tests_tree)
-
-    info_1('tests done.')
+        if skipped:
+            errorcode |= 2
+        control_override = None
+        run_tests(tests, tests_tree)
 
 
 def main():
-    global testbed
+    global testbed, opts, vserver_args, actions
     try:
-        parse_args()
+        (opts, actions, vserver_args) = adt_run_args.parse_args()
     except SystemExit:
-        # optparser exits with error 2 by default, but we have a different
+        # argparser exits with error 2 by default, but we have a different
         # meaning for that already
         sys.exit(20)
 
