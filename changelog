@@ -15,6 +15,18 @@ autopkgtest (3.2) UNRELEASED; urgency=medium
   * Port remaining runners from obsolete optparse to modern argparse. This
     gives a consistent command line help and support for reading options from
     a file with '@'.
+  * Port adt-run to argparse, and clean up the CLI:
+    - Drop rarely used and confusing options: --instantiate, --sources-tests,
+    --sources-no-tests, --built-binaries-filter,
+    --binaries{,-forbuilds,-fortests}. Add a single new --built-binaries as
+      the opposite of -B/--no-built-binaries.
+    - CLI parsing is now done in lib/adt_run_args.py, with separate unit
+      tests.
+    - This now allows any part of the command line (for adt-run itself or the
+      virt-server or both) to be read from a file, using the '@' prefix.
+      (Closes: #749241)
+    - Separate the options into different logical groups, in both --help and
+      the manpage.
 
   Bug fixes:
   * Set $USER environment variable also for tests that run as root.
