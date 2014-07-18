@@ -36,6 +36,8 @@ override_dh_auto_install:
 override_dh_auto_test:
 	if type pyflakes3 >/dev/null 2>&1; then tests/pyflakes; else echo "pyflakes3 not available, skipping"; fi
 	tests/pep8 || true
+	tests/testdesc
+	tests/run_args
 	env NO_PKG_MANGLE=1 tests/adt-run NullRunnerNoRoot
 
 # necessary until we move to compat level 9
