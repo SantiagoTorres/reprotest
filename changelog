@@ -47,6 +47,7 @@ autopkgtest (3.2) UNRELEASED; urgency=medium
   * tests/pyflakes: Use pyflakes3.
   * Only run pyflakes test during package build if pyflakes3 is available.
     This unbreaks backports.
+  * Run "click info" as the same user as the test. (LP: #1342836)
 
  -- Martin Pitt <mpitt@debian.org>  Mon, 07 Jul 2014 14:35:59 +0200
 
