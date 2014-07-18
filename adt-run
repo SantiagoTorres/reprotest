@@ -854,7 +854,7 @@ fi
             test_cmd = os.path.join(tree.tb, test.path)
             script += 'chmod +x %s; ' % test_cmd
         else:
-            test_cmd = '(%s)' % test.command
+            test_cmd = "bash -ec '%s'" % test.command
 
         script += 'touch %(o)s %(e)s; ' \
                   '%(t)s 2> >(tee %(e)s >&2) > >(tee %(o)s) & TPID=$!; ' \
@@ -877,6 +877,8 @@ fi
             test_argv = ['bash', '-c', script]
 
         # run test script
+        if test.command:
+            _info(test.command)
         _info('[-----------------------')
         rc = self.execute(test_argv, kind='test')[0]
         # give the setup_trace() cats some time to catch up
