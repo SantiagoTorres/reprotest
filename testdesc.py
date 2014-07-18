@@ -302,30 +302,47 @@ def parse_debian_source(srcdir, testbed_caps, control_path=None):
     This may raise an InvalidControl exception.
     '''
     some_skipped = False
+    command_counter = 0
     tests = []
     if control_path:
         control_path = os.path.join(srcdir, control_path)
     else:
         control_path = os.path.join(srcdir, 'debian', 'tests', 'control')
+
     for record in parse_rfc822(control_path):
+        command = None
         try:
-            try:
+            restrictions = record.get('Restrictions', '').split()
+            features = record.get('Features', '').split()
+
+            if 'Tests' in record:
                 test_names = record['Tests'].split()
-            except KeyError:
-                raise InvalidControl('*', 'missing "Tests" field')
+                depends = _parse_debian_depends(test_names[0],
+                                                record.get('Depends', '@'),
+                                                srcdir)
+                if 'Test-command' in record:
+                    raise InvalidControl('*', 'Only one of "Tests" or '
+                                         '"Test-Command" may be given')
+                test_dir = record.get('Tests-directory', 'debian/tests')
 
-            test_dir = record.get('Tests-directory', 'debian/tests')
-            depends = _parse_debian_depends(test_names[0],
-                                            record.get('Depends', '@'),
-                                            srcdir)
-
-            for n in test_names:
-                test = Test(n, os.path.join(test_dir, n), None,
-                            record.get('Restrictions', '').split(),
-                            record.get('Features', '').split(),
-                            depends, [])
+                for n in test_names:
+                    test = Test(n, os.path.join(test_dir, n), None,
+                                restrictions, features, depends, [])
+                    test.check_testbed_compat(testbed_caps)
+                    tests.append(test)
+            elif 'Test-command' in record:
+                command = record['Test-command']
+                depends = _parse_debian_depends(command,
+                                                record.get('Depends', '@'),
+                                                srcdir)
+                command_counter += 1
+                test = Test('command%i' % command_counter, None, command,
+                            restrictions, features, depends, [])
                 test.check_testbed_compat(testbed_caps)
                 tests.append(test)
+            else:
+                raise InvalidControl('*', 'missing "Tests" or "Test-Command"'
+                                     ' field')
         except Unsupported as u:
             u.report()
             some_skipped = True
