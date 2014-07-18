@@ -28,6 +28,10 @@ autopkgtest (3.2) UNRELEASED; urgency=medium
     - Separate the options into different logical groups, in both --help and
       the manpage.
   * Make --override-control work for click manifests. (LP: #1342818)
+  * Introduce "Test-Command:" debian/tests/control field to run a shell
+    command instead of a "Tests" named executable. This avoids having to write
+    trivial one-liner scripts or allows wrapping calls to test executables.
+    (Closes: #741330)
 
   Bug fixes:
   * Set $USER environment variable also for tests that run as root.
