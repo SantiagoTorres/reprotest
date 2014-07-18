@@ -22,7 +22,6 @@
 
 import os
 import re
-import sys
 import argparse
 from glob import glob
 
