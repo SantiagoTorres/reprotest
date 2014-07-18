@@ -186,8 +186,8 @@ def parse_args(arglist=None):
         'and run its tests (from preceding --click-source)')
     action_parser.add_argument(
         '--override-control', action=ActionArg,
-        metavar='CONTROL', help='run tests from control file CONTROL instead,'
-        ' (applies to next Debian test suite only)')
+        metavar='CONTROL', help='run tests from control file/manifest CONTROL'
+        ' instead, (applies to next Debian/click test suite only)')
     action_parser.add_argument(
         '-B', '--no-built-binaries', nargs=0, action=BinariesArg,
         help='do not use any binaries from subsequent --source or '
