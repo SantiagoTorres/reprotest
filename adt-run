@@ -726,11 +726,12 @@ fi
         script = '[ -d /var/cache/apparmor ] || exit; ' \
             'echo "dbus (receive, send) bus=session path=/com/canonical/Autopilot/**,"' \
             ' > /var/cache/apparmor/click-ap.rules; ' \
-            'info=$(click info %s); ' \
+            'info=$(click info %s %s); ' \
             '''name=$(echo "$info" | sed -rn '/"name"/ {s/^.*: *"([^"]+)",/\\1/; p}'); ''' \
             '''version=$(echo "$info" | sed -rn '/"version"/ {s/^.*: *"([^"]+)",/\\1/; p}'); ''' \
             'touch -h /var/lib/apparmor/clicks/${name}_*_${version}.json; '\
-            'aa-clickhook --include=/var/cache/apparmor/click-ap.rules' % tp.tb
+            'aa-clickhook --include=/var/cache/apparmor/click-ap.rules' % (
+                opts.user and ('--user ' + opts.user) or '', tp.tb)
         self.execute(['sh', '-ec', script], kind='install')
 
         # work around https://launchpad.net/bugs/1333215
@@ -1540,7 +1541,11 @@ def process_actions():
                     raise NotImplementedError(
                         'Downloading click source packages from manifest is not '
                         'implemented. Specify --click-source explicitly.')
-                manifest = testbed.check_exec(['click', 'info', arg], stdout=True)
+                if opts.user:
+                    u = ['--user', opts.user]
+                else:
+                    u = []
+                manifest = testbed.check_exec(['click', 'info'] + u + [arg], stdout=True)
                 srcdir = pending_click_source
                 (tests, skipped) = testdesc.parse_click_manifest(
                     manifest, testbed.caps, [])
