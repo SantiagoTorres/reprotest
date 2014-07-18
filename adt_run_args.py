@@ -305,7 +305,8 @@ details.'''
         help='show this help message and exit')
 
     # first, expand argument files
-    file_parser = argparse.ArgumentParser(fromfile_prefix_chars='@')
+    file_parser = argparse.ArgumentParser(fromfile_prefix_chars='@',
+                                          add_help=False)
     arglist = file_parser.parse_known_args(arglist)[1]
 
     # split off virt-server args
