@@ -1,3 +1,9 @@
+autopkgtest (3.2.1) UNRELEASED; urgency=medium
+
+  * Ship forgotten adt_run_args module.
+
+ -- Martin Pitt <mpitt@debian.org>  Mon, 21 Jul 2014 11:41:39 +0200
+
 autopkgtest (3.2) unstable; urgency=medium
 
   Improvements:
