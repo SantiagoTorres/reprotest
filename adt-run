@@ -928,7 +928,8 @@ fi
             sys.stderr.buffer.flush()
         else:
             # don't produce empty -stderr files in --output-dir
-            se.autoclean = True
+            if se_size == 0:
+                se.autoclean = True
 
         # copy artifacts to host, if we have --output-dir
         if opts.output_dir:
