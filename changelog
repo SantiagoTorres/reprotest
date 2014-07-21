@@ -1,3 +1,10 @@
+autopkgtest (3.2.3) UNRELEASED; urgency=medium
+
+  * When running a test as user on a root testbed, run source extraction under
+    set -e, to fail early at the proper error. (LP: #1346388)
+
+ -- Martin Pitt <mpitt@debian.org>  Mon, 21 Jul 2014 18:36:18 +0200
+
 autopkgtest (3.2.2) unstable; urgency=medium
 
   * adt-run: Fix typo that broke --apt-source with "build-needed" tests.
