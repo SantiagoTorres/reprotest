@@ -1442,10 +1442,10 @@ def build_source(kind, arg, built_binaries):
 
     if build_needed:
         testbed.needs_reset()
-        if kind not in ['dsc', 'apt']:
+        if kind not in ['dsc', 'apt-source']:
             testbed.install_deps([], False)
 
-        if kind == 'apt':
+        if kind == 'apt-source':
             # we need to get the downloaded debian/control from the testbed, so
             # that we can avoid calling "apt-get build-dep" and thus
             # introducing a second mechanism for installing build deps
