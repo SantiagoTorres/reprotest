@@ -6,3 +6,6 @@ Tests-Directory: tests
 Tests: pyflakes
 Depends: pyflakes
 Tests-Directory: tests
+
+Tests: installed
+Depends: autopkgtest

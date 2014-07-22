@@ -3,6 +3,9 @@ autopkgtest (3.2.3) UNRELEASED; urgency=medium
   * When running a test as user on a root testbed, run source extraction under
     set -e, to fail early at the proper error. (LP: #1346388)
   * Add test case for non-existing --apt-source package name.
+  * Add "installed" autopkgtest to run adt-run against a simple source tree in
+    $ADTTMP, to avoid using Python modules from the autopkgtest source tree.
+    This spots grave bugs like in 3.2.1.
 
  -- Martin Pitt <mpitt@debian.org>  Mon, 21 Jul 2014 18:36:18 +0200
 
