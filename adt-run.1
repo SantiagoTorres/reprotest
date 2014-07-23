@@ -188,8 +188,13 @@ or similar.
 If
 .I commands
 is an existing file name, the commands are read from that; otherwise it
-is a string with the actual commands that gets run as-is. This option can be
-specified multiple times.
+is a string with the actual commands that gets run as-is. File names
+without directory will be searched in both the current directory and in
+.B /usr/share/autopkgtest/setup-commands/
+so you do not need to give the full path for setup scripts shipped with
+autopkgtest.
+
+This option can be specified multiple times.
 
 If
 .B \-\-user
