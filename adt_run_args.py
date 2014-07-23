@@ -343,6 +343,11 @@ details.'''
 
     # if we have --setup-commands and it points to a file, read its contents
     for i, c in enumerate(args.setup_commands):
+        # shortcut for shipped scripts
+        if '/' not in c:
+            shipped = os.path.join('/usr/share/autopkgtest/setup-commands', c)
+            if os.path.exists(shipped):
+                c = shipped
         if os.path.exists(c):
             with open(c, encoding='UTF-8') as f:
                 args.setup_commands[i] = f.read().strip()
