@@ -1,4 +1,4 @@
-autopkgtest (3.3) UNRELEASED; urgency=medium
+autopkgtest (3.3) unstable; urgency=medium
 
   Improvements:
   * Define "Classes:" (Debian) / "classes" (click manifest) test control field
@@ -22,7 +22,7 @@ autopkgtest (3.3) UNRELEASED; urgency=medium
     $ADTTMP, to avoid using Python modules from the autopkgtest source tree.
     This spots grave bugs like in 3.2.1.
 
- -- Martin Pitt <mpitt@debian.org>  Mon, 21 Jul 2014 18:36:18 +0200
+ -- Martin Pitt <mpitt@debian.org>  Wed, 23 Jul 2014 09:16:08 +0200
 
 autopkgtest (3.2.2) unstable; urgency=medium
 
