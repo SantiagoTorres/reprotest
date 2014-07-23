@@ -6,6 +6,12 @@ autopkgtest (3.2.3) UNRELEASED; urgency=medium
   * Add "installed" autopkgtest to run adt-run against a simple source tree in
     $ADTTMP, to avoid using Python modules from the autopkgtest source tree.
     This spots grave bugs like in 3.2.1.
+  * Define "Classes:" (Debian) / "classes" (click manifest) test control field
+    in the specifications. For packages whose tests should run on particular/a
+    set of different hardware/platforms, this can specify a list of abstract
+    class names such as "desktop" or "graphics-driver". Consumers of
+    autopkgtest can then map these class names to particular
+    machines/platforms/policies.
 
  -- Martin Pitt <mpitt@debian.org>  Mon, 21 Jul 2014 18:36:18 +0200
 
