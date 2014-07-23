@@ -1,17 +1,23 @@
-autopkgtest (3.2.3) UNRELEASED; urgency=medium
+autopkgtest (3.3) UNRELEASED; urgency=medium
 
-  * When running a test as user on a root testbed, run source extraction under
-    set -e, to fail early at the proper error. (LP: #1346388)
-  * Add test case for non-existing --apt-source package name.
-  * Add "installed" autopkgtest to run adt-run against a simple source tree in
-    $ADTTMP, to avoid using Python modules from the autopkgtest source tree.
-    This spots grave bugs like in 3.2.1.
+  Improvements:
   * Define "Classes:" (Debian) / "classes" (click manifest) test control field
     in the specifications. For packages whose tests should run on particular/a
     set of different hardware/platforms, this can specify a list of abstract
     class names such as "desktop" or "graphics-driver". Consumers of
     autopkgtest can then map these class names to particular
     machines/platforms/policies.
+  * Fall back to searching for --setup-commands files in
+    /usr/share/autopkgtest/setup-commands/ if they are specified without path,
+    to reduce typing.
+
+  Bug fixes:
+  * When running a test as user on a root testbed, run source extraction under
+    set -e, to fail early at the proper error. (LP: #1346388)
+  * Add test case for non-existing --apt-source package name.
+  * Add "installed" autopkgtest to run adt-run against a simple source tree in
+    $ADTTMP, to avoid using Python modules from the autopkgtest source tree.
+    This spots grave bugs like in 3.2.1.
 
  -- Martin Pitt <mpitt@debian.org>  Mon, 21 Jul 2014 18:36:18 +0200
 
