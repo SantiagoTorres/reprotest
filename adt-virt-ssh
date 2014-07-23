@@ -98,6 +98,13 @@ def parse_args():
         adtlog.verbosity = 2
     adtlog.debug(str(args))
 
+    # shortcut for shipped scripts
+    if args.setup_script and not os.path.exists(args.setup_script):
+        shipped_script = os.path.join('/usr/share/autopkgtest/ssh-setup',
+                                      args.setup_script)
+        if os.path.exists(shipped_script):
+            args.setup_script = shipped_script
+
     # turn --password file path into the actual password
     if args.password and os.path.exists(args.password):
         with open(args.password) as f:

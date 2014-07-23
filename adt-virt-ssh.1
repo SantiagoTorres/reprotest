@@ -85,7 +85,11 @@ Passed verbatim to ssh; see man ssh_config
 .BI  -s " setup_script" " | --setup-script=" setup_script
 Setup script to prepare testbed and ssh connection (See
 .B SETUP SCRIPT
-below for more information)
+below for more information). File names
+will be searched in both the current directory and in
+.B /usr/share/autopkgtest/ssh-setup/
+so you do not need to give the full path for setup scripts shipped with
+autopkgtest.
 
 .TP
 .BI -- " [setup script arguments] "
