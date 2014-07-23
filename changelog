@@ -10,6 +10,9 @@ autopkgtest (3.3) UNRELEASED; urgency=medium
   * Fall back to searching for --setup-commands files in
     /usr/share/autopkgtest/setup-commands/ if they are specified without path,
     to reduce typing.
+  * Fall back to searching adt-virt-ssh's --setup-script in
+    /usr/share/autopkgtest/ssh-setup/ if they don't exist in the current
+    directory, to reduce typing.
 
   Bug fixes:
   * When running a test as user on a root testbed, run source extraction under
