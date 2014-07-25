@@ -529,7 +529,7 @@ def hook_capabilities():
     return caps
 
 
-def hook_shell(stdin, stdout, stderr, dir):
+def hook_shell(dir):
     global ssh_port, normal_user
 
     if ssh_port:
@@ -539,7 +539,7 @@ def hook_shell(stdin, stdout, stderr, dir):
     else:
         ssh = ''
 
-    with open(stdout, 'w') as f:
+    with open('/dev/tty', 'w') as f:
         f.write('''You can now log into the VM through the serial terminal.
 Depending on which terminal program you have installed, you can use one of
 
@@ -551,7 +551,7 @@ The tested source package is in %(dir)s
 
 Press Enter to resume adt-run.
 ''' % {'tty0': os.path.join(workdir, 'ttyS0'), 'dir': dir, 'ssh': ssh})
-    with open(stdin, 'r') as f:
+    with open('/dev/tty', 'r') as f:
         f.readline()
 
 

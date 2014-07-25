@@ -78,13 +78,5 @@ def hook_capabilities():
     return capabilities
 
 
-def hook_shell(stdin, stdout, stderr, dir):
-    with open(stdin, 'rb') as sin:
-        with open(stdout, 'wb') as sout:
-            with open(stderr, 'wb') as serr:
-                subprocess.call(['bash', '-i'], stdin=sin, stdout=sout,
-                                stderr=serr, cwd=dir)
-
-
 parse_args()
 VirtSubproc.main()

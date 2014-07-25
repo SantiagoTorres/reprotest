@@ -242,15 +242,5 @@ def hook_capabilities():
     return capabilities
 
 
-def hook_shell(stdin, stdout, stderr, dir):
-    argv = ['lxc-attach', '-n', lxc_container_name, '--', 'sh', '-c', 'cd %s; exec bash -i' % dir]
-    if args.sudo:
-        argv = ['sudo', '-E'] + argv
-    with open(stdin, 'rb') as sin:
-        with open(stdout, 'wb') as sout:
-            with open(stderr, 'wb') as serr:
-                subprocess.call(argv, stdin=sin, stdout=sout, stderr=serr)
-
-
 parse_args()
 VirtSubproc.main()

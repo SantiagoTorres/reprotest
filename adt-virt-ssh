@@ -327,13 +327,5 @@ def hook_capabilities():
     return capabilities
 
 
-def hook_shell(stdin, stdout, stderr, dir):
-    global sshcmd
-    with open(stdin, 'rb') as sin:
-        with open(stdout, 'wb') as sout:
-            with open(stderr, 'wb') as serr:
-                subprocess.call(sshcmd, stdin=sin, stdout=sout, stderr=serr)
-
-
 parse_args()
 VirtSubproc.main()
