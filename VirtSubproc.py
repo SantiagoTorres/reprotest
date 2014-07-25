@@ -499,19 +499,24 @@ def cmd_copyup(c, ce):
 
 
 def cmd_shell(c, ce):
-    cmdnumargs(c, ce, 1)
+    cmdnumargs(c, ce, 1, None)
     if not downtmp:
         bomb("`shell' when not open")
     # runners can provide a hook if they need a special treatment
     try:
-        caller.hook_shell(c[1])
+        caller.hook_shell(*c[1:])
     except AttributeError:
         adtlog.debug('cmd_shell: using default shell command, dir %s' % c[1])
+        cmd = 'cd "%s"; ' % c[1]
+        for e in c[2:]:
+            cmd += 'export "%s"; ' % e
+        cmd += 'bash -i'
         with open('/dev/tty', 'rb') as sin:
             with open('/dev/tty', 'wb') as sout:
                 with open('/dev/tty', 'wb') as serr:
-                    subprocess.call(auxverb + ['sh', '-c', 'cd %s; exec bash -i' % c[1]],
+                    subprocess.call(auxverb + ['sh', '-c', cmd],
                                     stdin=sin, stdout=sout, stderr=serr)
+
 
 def command():
     sys.stdout.flush()
