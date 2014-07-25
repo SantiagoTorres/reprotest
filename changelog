@@ -1,3 +1,10 @@
+autopkgtest (3.3.1) UNRELEASED; urgency=medium
+
+  * Accept comma separators in Tests:, Restrictions:, and Features: fields;
+    this is consistent with Depends: and avoids skipping tests. (LP: #1347958)
+
+ -- Martin Pitt <mpitt@debian.org>  Fri, 25 Jul 2014 07:12:28 +0200
+
 autopkgtest (3.3) unstable; urgency=medium
 
   Improvements:
