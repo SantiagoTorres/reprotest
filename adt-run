@@ -784,7 +784,7 @@ fi
         '''Run shell in testbed for debugging tests'''
 
         adtlog.info(' - - - - - - - - - - running shell - - - - - - - - - -')
-        self.command('shell', [cwd or '/'])
+        self.command('shell', [cwd or '/'] + self.install_tmp_env)
 
     def run_test(self, tree, test):
         '''Run given test in testbed
