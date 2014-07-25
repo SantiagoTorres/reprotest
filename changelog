@@ -4,6 +4,8 @@ autopkgtest (3.3.1) UNRELEASED; urgency=medium
     this is consistent with Depends: and avoids skipping tests. (LP: #1347958)
   * Generalize implementation of getting an interactive shell in testbeds.
     Most runners now don't need to provide a hook_shell() any more.
+  * Export install environment to interactive testbed shells, so that
+    unpacked test depends in the temp dir are accessible. (LP: #1339103)
 
  -- Martin Pitt <mpitt@debian.org>  Fri, 25 Jul 2014 07:12:28 +0200
 
