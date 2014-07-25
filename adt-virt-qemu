@@ -529,7 +529,7 @@ def hook_capabilities():
     return caps
 
 
-def hook_shell(dir):
+def hook_shell(dir, *extra_env):
     global ssh_port, normal_user
 
     if ssh_port:
