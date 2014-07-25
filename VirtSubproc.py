@@ -499,14 +499,19 @@ def cmd_copyup(c, ce):
 
 
 def cmd_shell(c, ce):
-    cmdnumargs(c, ce, 4)
+    cmdnumargs(c, ce, 1)
     if not downtmp:
         bomb("`shell' when not open")
+    # runners can provide a hook if they need a special treatment
     try:
-        caller.hook_shell(c[1], c[2], c[3], c[4])
+        caller.hook_shell(c[1])
     except AttributeError:
-        raise FailedCmd(['not supported by virt server'])
-
+        adtlog.debug('cmd_shell: using default shell command, dir %s' % c[1])
+        with open('/dev/tty', 'rb') as sin:
+            with open('/dev/tty', 'wb') as sout:
+                with open('/dev/tty', 'wb') as serr:
+                    subprocess.call(auxverb + ['sh', '-c', 'cd %s; exec bash -i' % c[1]],
+                                    stdin=sin, stdout=sout, stderr=serr)
 
 def command():
     sys.stdout.flush()
