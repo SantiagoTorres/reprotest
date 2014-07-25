@@ -312,11 +312,12 @@ def parse_debian_source(srcdir, testbed_caps, control_path=None):
     for record in parse_rfc822(control_path):
         command = None
         try:
-            restrictions = record.get('Restrictions', '').split()
-            features = record.get('Features', '').split()
+            restrictions = record.get('Restrictions', '').replace(
+                ',', ' ').split()
+            features = record.get('Features', '').replace(',', ' ').split()
 
             if 'Tests' in record:
-                test_names = record['Tests'].split()
+                test_names = record['Tests'].replace(',', ' ').split()
                 depends = _parse_debian_depends(test_names[0],
                                                 record.get('Depends', '@'),
                                                 srcdir)
