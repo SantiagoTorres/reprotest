@@ -6,6 +6,8 @@ autopkgtest (3.3.1) UNRELEASED; urgency=medium
     Most runners now don't need to provide a hook_shell() any more.
   * Export install environment to interactive testbed shells, so that
     unpacked test depends in the temp dir are accessible. (LP: #1339103)
+  * lxc: Don't fail on a nonexisting /etc/environment or /etc/default/locale.
+    (LP: #1348749)
 
  -- Martin Pitt <mpitt@debian.org>  Fri, 25 Jul 2014 07:12:28 +0200
 
