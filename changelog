@@ -8,6 +8,9 @@ autopkgtest (3.3.1) UNRELEASED; urgency=medium
     unpacked test depends in the temp dir are accessible. (LP: #1339103)
   * lxc: Don't fail on a nonexisting /etc/environment or /etc/default/locale.
     (LP: #1348749)
+  * adb ssh script: Add --apt-update option to run "apt-get update" (with
+    temporarily switching to r/w), to run tests on older development images.
+    (LP: #1342838)
 
  -- Martin Pitt <mpitt@debian.org>  Fri, 25 Jul 2014 07:12:28 +0200
 
