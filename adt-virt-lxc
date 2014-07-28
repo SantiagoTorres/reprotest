@@ -188,7 +188,9 @@ def hook_open():
         VirtSubproc.auxverb = [
             'lxc-attach', '-n', lxc_container_name, '--',
             'env', '-i', 'sh', '-ac',
-            '. /etc/environment 2>/dev/null; . /etc/default/locale 2>/dev/null; exec "$@"', '--'
+            '[ -r /etc/environment ] && . /etc/environment 2>/dev/null || true; '
+            '[ -r /etc/default/locale ] && . /etc/default/locale 2>/dev/null || true; '
+            'exec "$@"', '--'
         ]
         if args.sudo:
             VirtSubproc.auxverb = ['sudo', '-E'] + VirtSubproc.auxverb
