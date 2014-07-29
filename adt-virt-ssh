@@ -27,7 +27,6 @@
 import sys
 import os
 import argparse
-import subprocess
 import tempfile
 import shutil
 import pipes
