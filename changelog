@@ -11,6 +11,8 @@ autopkgtest (3.3.1) UNRELEASED; urgency=medium
   * adb ssh script: Add --apt-update option to run "apt-get update" (with
     temporarily switching to r/w), to run tests on older development images.
     (LP: #1342838)
+  * Drop the very short and unnecessary install timeouts from the NullRunner
+    tests.
 
  -- Martin Pitt <mpitt@debian.org>  Fri, 25 Jul 2014 07:12:28 +0200
 
