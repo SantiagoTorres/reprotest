@@ -1,3 +1,11 @@
+autopkgtest (3.3.2) UNRELEASED; urgency=medium
+
+  * When logging output to a file, properly close the "tee" processes' stdin
+    and wait for them to finish, instead of just killing them. This avoids
+    truncated logs on heavily loaded machines.
+
+ -- Martin Pitt <mpitt@debian.org>  Wed, 30 Jul 2014 10:34:27 +0200
+
 autopkgtest (3.3.1) unstable; urgency=medium
 
   * Accept comma separators in Tests:, Restrictions:, and Features: fields;
