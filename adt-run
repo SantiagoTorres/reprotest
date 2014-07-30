@@ -177,13 +177,20 @@ def setup_trace():
         err_tee = subprocess.Popen(['tee', fifo_log, '-a', '/dev/stderr'],
                                    stdin=subprocess.PIPE,
                                    stdout=open('/dev/null', 'wb'))
-        subprocess.Popen(['cat', fifo_log], stdout=open(opts.logfile, 'wb'))
+        log_cat = subprocess.Popen(['cat', fifo_log], stdout=open(opts.logfile, 'wb'))
         os.dup2(out_tee.stdin.fileno(), sys.stdout.fileno())
         os.dup2(err_tee.stdin.fileno(), sys.stderr.fileno())
-        atexit.register(out_tee.wait)
-        atexit.register(out_tee.terminate)
-        atexit.register(err_tee.wait)
-        atexit.register(err_tee.terminate)
+
+        def cleanup():
+            os.close(sys.stdout.fileno())
+            os.close(out_tee.stdin.fileno())
+            out_tee.wait()
+            os.close(sys.stderr.fileno())
+            os.close(err_tee.stdin.fileno())
+            err_tee.wait()
+            log_cat.wait()
+
+        atexit.register(cleanup)
 
     if opts.summary is not None:
         adtlog.summary_stream = open(opts.summary, 'wb', 0)
