@@ -86,7 +86,7 @@ def parse_args():
     if args.debug:
         adtlog.verbosity = 2
 
-    info = VirtSubproc.check_exec(['schroot', '--config', '-c', schroot],
+    info = VirtSubproc.check_exec(['schroot', '--config', '--chroot', schroot],
                                   downp=False, outp=True)
     cfg = {}
     ignore_re = re.compile('\#|\[|\s*$')
@@ -117,12 +117,14 @@ def parse_args():
 
 def hook_open():
     global schroot, sessid
-    sessid = VirtSubproc.check_exec(['schroot', '-qb', '-c', schroot] +
-                                    (sessid and ['-n', sessid] or []),
+    sessid = VirtSubproc.check_exec(['schroot', '--quiet', '--begin-session',
+                                     '--chroot', schroot] +
+                                    (sessid and ['--session-name', sessid] or []),
                                     outp=True)
-    VirtSubproc.auxverb = ['schroot', '-r', '-qd', '/', '-c', sessid]
+    VirtSubproc.auxverb = ['schroot', '--run-session', '--quiet',
+                           '--directory=/', '--chroot', sessid]
     if 'root-on-testbed' in capabilities:
-        VirtSubproc.auxverb += ['-u', 'root']
+        VirtSubproc.auxverb += ['--user=root']
     VirtSubproc.auxverb += ['--']
 
 
@@ -172,7 +174,7 @@ def hook_cleanup():
     retries = 10
     while retries > 0:
         if VirtSubproc.execute_timeout(
-                None, 30, ['schroot', '-qe', '-c', sessid])[0] == 0:
+                None, 30, ['schroot', '--quiet', '--end-session', '--chroot', sessid])[0] == 0:
             break
         retries -= 1
         adtlog.info('schroot --end-session failed, retrying')

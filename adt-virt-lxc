@@ -88,7 +88,7 @@ def sudoify(command):
 def check_for_eatmydata(container, template_name):
     with open('/dev/null', 'wb') as null:
         result = VirtSubproc.execute_timeout(
-            None, 10, sudoify(['lxc-attach', '-n', container, '--', 'sh', '-c',
+            None, 10, sudoify(['lxc-attach', '--name', container, '--', 'sh', '-c',
                                'type eatmydata']),
             close_fds=True, stdout=null, stderr=null)
     if result:
@@ -128,7 +128,7 @@ def wait_booted(lxc_name):
         timeout -= 1
         time.sleep(1)
         (rc, out, _) = VirtSubproc.execute_timeout(
-            None, 10, sudoify(['lxc-attach', '-n', lxc_name, 'runlevel']),
+            None, 10, sudoify(['lxc-attach', '--name', lxc_name, 'runlevel']),
             stdout=subprocess.PIPE)
         if rc != 0:
             adtlog.debug('wait_booted: lxc-attach failed, retrying...')
@@ -149,7 +149,7 @@ def determine_normal_user(lxc_name):
     global capabilities, normal_user
 
     # get the first UID >= 500
-    cmd = ['lxc-attach', '-n', lxc_name, '--', 'sh', '-c',
+    cmd = ['lxc-attach', '--name', lxc_name, '--', 'sh', '-c',
            'getent passwd | sort -t: -nk3 | '
            "awk -F: '{if ($3 >= 500) { print $1; exit } }'"]
     out = VirtSubproc.execute_timeout(None, 10, sudoify(cmd),
@@ -171,14 +171,15 @@ def hook_open():
     os.chmod(shared_dir, 0o755)
     if args.ephemeral:
         VirtSubproc.check_exec(sudoify(
-            ['lxc-start-ephemeral', '-n', lxc_container_name, '-k', '-d',
-             '--bdir', shared_dir, '-o', args.template]), outp=True)
+            ['lxc-start-ephemeral', '--name', lxc_container_name,
+             '--keep-data', '--daemon', '--bdir', shared_dir,
+             '--orig', args.template]), outp=True)
     else:
         VirtSubproc.check_exec(sudoify(
-            ['lxc-clone', '-n', lxc_container_name, '-o', args.template]), outp=True)
+            ['lxc-clone', '--name', lxc_container_name, '--orig', args.template]), outp=True)
         VirtSubproc.check_exec(sudoify(
-            ['lxc-start', '-n', lxc_container_name, '-d',
-             '-s', 'lxc.mount.entry=%s %s none bind,create=dir 0 0' % (shared_dir, shared_dir[1:])]))
+            ['lxc-start', '--name', lxc_container_name, '--daemon',
+             '--define', 'lxc.mount.entry=%s %s none bind,create=dir 0 0' % (shared_dir, shared_dir[1:])]))
     try:
         adtlog.debug('waiting for lxc guest start')
         wait_booted(lxc_container_name)
@@ -186,21 +187,21 @@ def hook_open():
         determine_normal_user(lxc_container_name)
         # provide a minimal and clean environment in the container
         VirtSubproc.auxverb = [
-            'lxc-attach', '-n', lxc_container_name, '--',
+            'lxc-attach', '--name', lxc_container_name, '--',
             'env', '-i', 'sh', '-ac',
             '[ -r /etc/environment ] && . /etc/environment 2>/dev/null || true; '
             '[ -r /etc/default/locale ] && . /etc/default/locale 2>/dev/null || true; '
             'exec "$@"', '--'
         ]
         if args.sudo:
-            VirtSubproc.auxverb = ['sudo', '-E'] + VirtSubproc.auxverb
+            VirtSubproc.auxverb = ['sudo', '--preserve-env'] + VirtSubproc.auxverb
         if args.eatmydata:
             check_for_eatmydata(lxc_container_name, args.template)
             VirtSubproc.auxverb.extend(['eatmydata', '--'])
     except:
         # Clean up on failure
-        VirtSubproc.check_exec(sudoify(['lxc-stop', '-n', lxc_container_name]))
-        VirtSubproc.check_exec(sudoify(['lxc-destroy', '-n', lxc_container_name]))
+        VirtSubproc.check_exec(sudoify(['lxc-stop', '--name', lxc_container_name]))
+        VirtSubproc.check_exec(sudoify(['lxc-destroy', '--name', lxc_container_name]))
         raise
 
 
@@ -232,8 +233,8 @@ def hook_cleanup():
         shutil.rmtree(shared_dir)
         shared_dir = None
 
-    VirtSubproc.check_exec(sudoify(['lxc-stop', '-n', lxc_container_name]))
-    VirtSubproc.check_exec(sudoify(['lxc-destroy', '-n', lxc_container_name]))
+    VirtSubproc.check_exec(sudoify(['lxc-stop', '--name', lxc_container_name]))
+    VirtSubproc.check_exec(sudoify(['lxc-destroy', '--name', lxc_container_name]))
 
 
 def hook_forked_inchild():
