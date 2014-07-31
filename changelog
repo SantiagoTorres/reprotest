@@ -5,6 +5,8 @@ autopkgtest (3.3.2) UNRELEASED; urgency=medium
     truncated logs on heavily loaded machines.
   * Fix NullRunnerNoRoot.test_tmp_install test if gir1.2-json-1.0 is already
     installed.
+  * Use long options for calling programs except for the most common ones, for
+    easier comprehension.
 
  -- Martin Pitt <mpitt@debian.org>  Wed, 30 Jul 2014 10:34:27 +0200
 
