@@ -203,7 +203,7 @@ def finalise_options():
         if 'root-on-testbed' not in testbed.caps:
             adtlog.warning('virtualisation system does not offer root on '
                            'testbed but --user option specified: failure likely')
-        opts.user_wrap = lambda x: "su -s /bin/sh %s -c 'set -e; %s'" % (opts.user, x)
+        opts.user_wrap = lambda x: "su --shell=/bin/sh %s -c 'set -e; %s'" % (opts.user, x)
     else:
         opts.user_wrap = lambda x: x
 
@@ -240,7 +240,7 @@ class Testbed:
         root_dir = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
         if os.path.exists(os.path.join(root_dir, '.git')):
             try:
-                head = subprocess.check_output(['git', 'show', '-s', '--oneline'],
+                head = subprocess.check_output(['git', 'show', '--no-patch', '--oneline'],
                                                cwd=root_dir, universal_newlines=True)
                 head = head.strip()
             except subprocess.CalledProcessError:
@@ -326,7 +326,7 @@ class Testbed:
         if not self._need_reset_apt:
             return
         self._need_reset_apt = False
-        self.check_exec(['sh', '-ec', '(apt-get -qy update || (sleep 15; apt-get -qy update)) 2>&1'],
+        self.check_exec(['sh', '-ec', '(apt-get --quiet update || (sleep 15; apt-get update)) 2>&1'],
                         kind='install')
         self.check_exec(['rm', '-f', '/etc/apt/apt.conf.d/90autopkgtest',
                          '/etc/apt/sources.list.d/autopkgtest.list',
@@ -574,13 +574,13 @@ Description: satisfy autopkgtest test dependencies
 
         # install it and its dependencies in the tb
         self.check_exec(['dpkg', '--unpack', deb.tb])
-        rc = self.execute(['apt-get', 'install', '-q', '-y', '-f',
+        rc = self.execute(['apt-get', 'install', '--quiet', '--assume-yes', '--fix-broken',
                            '-o', 'APT::Install-Recommends=%s' % recommends,
                            '-o', 'Debug::pkgProblemResolver=true'],
                           kind='install')[0]
         if rc != 0:
             bomb('failed to run apt-get to satisfy adt-satdep.deb dependencies')
-        rc = self.execute(['dpkg', '-s', 'adt-satdep'],
+        rc = self.execute(['dpkg', '--status', 'adt-satdep'],
                           stdout=subprocess.PIPE,
                           stderr=subprocess.PIPE)[0]
         if rc != 0:
@@ -622,7 +622,7 @@ Description: satisfy autopkgtest test dependencies
                            ', '.join(unsupported))
 
         # simulate installation, grab packages, and check constraints
-        (rc, out, _) = self.execute(['apt-get', '-qs', '--no-remove',
+        (rc, out, _) = self.execute(['apt-get', '--quiet', '--simulate', '--no-remove',
                                      '-o', 'Debug::pkgProblemResolver=true',
                                      '-o', 'Debug::NoLocking=true',
                                      '-o', 'APT::Install-Recommends=%s' % recommends,
@@ -682,7 +682,7 @@ Description: satisfy autopkgtest test dependencies
         script = '''d=%(t)s/deps
 mkdir -p $d; cd $d
 apt-get download %(pkgs)s >&2
-for p in *.deb; do dpkg-deb -x $p .; rm $p; done
+for p in *.deb; do dpkg-deb --extract $p .; rm $p; done
 
 # executables
 echo PATH=$d/sbin:$d/bin:$d/usr/sbin:$d/usr/bin:$d/usr/games:$PATH
@@ -1145,7 +1145,7 @@ class Binaries:
         else:
             self.genkey()
 
-        self.apt_get_cmd = ['apt-get', '-q',
+        self.apt_get_cmd = ['apt-get', '--quiet',
                             '-o', 'Debug::pkgProblemResolver=true ',
                             '-o', 'APT::Get::force-yes=true',
                             '-o', 'APT::Get::Assume-Yes=true']
@@ -1253,7 +1253,7 @@ Pin-Priority: 1002
   if [ "x`ls /var/lib/dpkg/updates`" != x ]; then
     echo >&2 "/var/lib/dpkg/updates contains some files, aargh"; exit 1
   fi
-  apt-get -q update 2>&1|| (sleep 15; apt-get update)
+  apt-get --quiet update 2>&1|| (sleep 15; apt-get update)
   cp /var/lib/dpkg/status %(o)s
   ''' % {'d': self.dir.tb, 'o': aptkey_out.tb}
         testbed.mungeing_apt()
