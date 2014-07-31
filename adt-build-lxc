@@ -82,39 +82,40 @@ setup() {
         echo "Acquire::http { Proxy \"$ADT_APT_PROXY\"; };" > $LXCDIR/$1/rootfs/etc/apt/apt.conf.d/01proxy
     fi
 
-    lxc-start -d -n $1
+    lxc-start --daemon --name=$1
     # wait until it is booted: lxc-attach works and we get a numeric runlevel
     timeout=60
     while [ $timeout -ge 0 ]; do
         timeout=$((timeout - 1))
         sleep 1
-        O=`lxc-attach -n $1 runlevel 2>/dev/null` || continue
+        O=`lxc-attach --name=$1 runlevel 2>/dev/null` || continue
         [ "$O" = "${O%[0-9]}" ] || break
     done
     [ $timeout -ge 0 ] || {
         echo "Timed out waiting for container to boot" >&2
-        lxc-stop -k -n $1 || true
-        lxc-destroy -n $1 || true
+        lxc-stop --kill --name=$1 || true
+        lxc-destroy --name=$1 || true
         exit 1
     }
 
-    lxc-attach -n $1 apt-get update
-    lxc-stop -n $1
+    lxc-attach --name=$1 apt-get update
+    lxc-stop --name=$1
 }
 
 proxy_detect
 
 if [ ! -e $LXCDIR/$NAME ]; then
     # first-time run: just create the container
-    lxc-create -n $NAME $LXC_ARGS
+    lxc-create --name=$NAME $LXC_ARGS
     setup $NAME
 else
     # remove LXC rootfs caches
     rm -rf /var/cache/lxc/$RELEASE /var/cache/lxc/$DISTRO/rootfs-$RELEASE*
     # create a new rootfs in a temp container
-    lxc-create -n ${NAME}.new $LXC_ARGS
+    lxc-create --name=${NAME}.new $LXC_ARGS
     setup ${NAME}.new
     # replace the original rootfs
-    rsync -aHAXS --numeric-ids --delete $LXCDIR/${NAME}.new/rootfs $LXCDIR/${NAME}/rootfs
-    lxc-destroy -n ${NAME}.new
+    rsync --archive --hard-links --acls --xattrs --sparse --numeric-ids \
+          --delete $LXCDIR/${NAME}.new/rootfs $LXCDIR/${NAME}/rootfs
+    lxc-destroy --name=${NAME}.new
 fi
