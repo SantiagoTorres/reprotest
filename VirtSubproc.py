@@ -252,7 +252,7 @@ def cmd_open(c, ce):
 
 
 def downtmp_mktemp():
-    d = check_exec(['mktemp', '-d', '/tmp/adt-run.XXXXXX'],
+    d = check_exec(['mktemp', '--directory', '/tmp/adt-run.XXXXXX'],
                    downp=True, outp=True)
     check_exec(['chmod', '1777', d], downp=True)
     return d
@@ -309,8 +309,8 @@ def copytree(src, dst):
 
     for f in os.listdir(src):
         fsrc = os.path.join(src, f)
-        subprocess.check_call(['cp', '-r', '--preserve=timestamps,links', '-t',
-                               dst, fsrc])
+        subprocess.check_call(['cp', '-r', '--preserve=timestamps,links',
+                               '--target-directory', dst, fsrc])
 
 
 def copyup_shareddir(tb, host, is_dir, downtmp_host):
@@ -435,7 +435,7 @@ def copyupdown(c, ce, upp):
     else:
         taropts = [None, None]
         taropts[isrc] = '-c .'
-        taropts[idst] = '-p -x --no-same-owner'
+        taropts[idst] = '--preserve-permissions --extract --no-same-owner'
 
         rune = 'cd %s; tar %s -f -' % (remfileq, taropts[iremote])
         if upp:
@@ -449,7 +449,7 @@ def copyupdown(c, ce, upp):
                 remfileq, remfileq)
             ) + rune
 
-        localcmdl = ['tar', '-C', sd[ilocal]] + (
+        localcmdl = ['tar', '--directory', sd[ilocal]] + (
             ('%s -f -' % taropts[ilocal]).split()
         )
     downcmdl = auxverb + ['sh', '-ec', rune]
