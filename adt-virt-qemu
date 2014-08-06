@@ -456,7 +456,7 @@ def hook_open():
             '-serial', 'unix:%s/ttyS1,server,nowait' % workdir,
             '-virtfs',
             'local,id=autopkgtest,path=%s,security_model=none,mount_tag=autopkgtest' % shareddir,
-            '-drive', 'file=%s,if=virtio,index=0' % overlay]
+            '-drive', 'file=%s,cache=unsafe,if=virtio,index=0' % overlay]
     for i, image in enumerate(args.image[1:]):
         argv.append('-drive')
         argv.append('file=%s,if=virtio,index=%i,readonly' % (image, i + 1))
