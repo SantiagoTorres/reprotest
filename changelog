@@ -1,3 +1,11 @@
+autopkgtest (3.3.3) UNRELEASED; urgency=medium
+
+  * ssh-setup/adb: Always parse options, so that $ADBOPTS is also defined for
+    operations other than "open". Fixes failure on close when multiple devices
+    are present.
+
+ -- Martin Pitt <mpitt@debian.org>  Wed, 06 Aug 2014 20:05:54 +0200
+
 autopkgtest (3.3.2) unstable; urgency=medium
 
   * When logging output to a file, properly close the "tee" processes' stdin
