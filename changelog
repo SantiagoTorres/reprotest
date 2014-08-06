@@ -13,6 +13,9 @@ autopkgtest (3.3.2) UNRELEASED; urgency=medium
   * qemu: Use "cache=unsafe" option to improve performance when the overlay is
     not on a tmpfs.
   * Further robustify cleaning up the chroots in the ChrootRunner tests.
+  * adt-build-lxc: When updating containers, move the new rootfs completely to
+    the original container. The rsync approach did not reliably update all
+    files.
 
  -- Martin Pitt <mpitt@debian.org>  Wed, 30 Jul 2014 10:34:27 +0200
 
