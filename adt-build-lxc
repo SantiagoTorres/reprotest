@@ -114,8 +114,11 @@ else
     # create a new rootfs in a temp container
     lxc-create --name=${NAME}.new $LXC_ARGS
     setup ${NAME}.new
-    # replace the original rootfs
-    rsync --archive --hard-links --acls --xattrs --sparse --numeric-ids \
-          --delete $LXCDIR/${NAME}.new/rootfs $LXCDIR/${NAME}/rootfs
+    # replace the original rootfs; can't make this more atomic unfortunately
+    mv $LXCDIR/${NAME}.new/rootfs $LXCDIR/${NAME}/rootfs.new
+    mv $LXCDIR/${NAME}/rootfs $LXCDIR/${NAME}/rootfs.old
+    mv $LXCDIR/${NAME}/rootfs.new $LXCDIR/${NAME}/rootfs
+    rm -rf $LXCDIR/${NAME}/rootfs.old
+    mkdir $LXCDIR/${NAME}.new/rootfs
     lxc-destroy --name=${NAME}.new
 fi
