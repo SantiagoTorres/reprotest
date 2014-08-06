@@ -184,9 +184,11 @@ touch /autopkgtest/done_shared
         flag = os.path.join(shared_dir, 'done_shared')
         while not os.path.exists(flag):
             time.sleep(0.2)
+    VirtSubproc.expect(term, b'#', 30)
 
     # ensure that root has $HOME set
     term.send(b'[ -n "$HOME" ] || export HOME=`getent passwd root|cut -f6 -d:`\n')
+    VirtSubproc.expect(term, b'#', 5)
 
 
 def setup_config(shared_dir):
@@ -209,6 +211,7 @@ def setup_config(shared_dir):
         if tz:
             adtlog.debug('Copying host timezone %s to VM' % tz.decode())
             term.send(b'echo ' + tz + b' > /etc/timezone\n')
+            VirtSubproc.expect(term, b'#', 5)
         else:
             adtlog.debug('Could not determine host timezone')
 
@@ -248,6 +251,7 @@ while not os.path.exists(fexit):
         break
 EOF
 ''')
+    VirtSubproc.expect(term, b'#', 5)
 
 
 def make_auxverb(shared_dir):
@@ -323,13 +327,23 @@ cmd = '/bin/eofcat %%(d)s/stdin_eof %%(d)s/exit.tmp < %%(d)s/stdin | ' \\
       'mv %%(d)s/exit.tmp %%(d)s/exit\\n' %% \\
        {'d': job_guest, 'c': ' '.join(map(pipes.quote, sys.argv[1:]))}
 s.send(cmd.encode())
-s.close()
 
 # wait until command has exited
 path_exit = os.path.join(job_host, 'exit')
 while not os.path.exists(path_exit) or os.path.getsize(path_exit) == 0:
     time.sleep(0.2)
 running = False
+
+# mop up terminal response
+while True:
+    try:
+        block = s.recv(4096, socket.MSG_DONTWAIT)
+        if not block:
+            break
+    except IOError:
+        break
+    time.sleep(0.05)
+s.close()
 
 with open(path_exit) as f:
     rc = int(f.read().strip())
