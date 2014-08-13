@@ -3,6 +3,7 @@ autopkgtest (3.3.3) UNRELEASED; urgency=medium
   * ssh-setup/adb: Always parse options, so that $ADBOPTS is also defined for
     operations other than "open". Fixes failure on close when multiple devices
     are present.
+  * adt-run manpage: Fix references to documentation. (Closes: #758016)
 
  -- Martin Pitt <mpitt@debian.org>  Wed, 06 Aug 2014 20:05:54 +0200
 
