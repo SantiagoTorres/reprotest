@@ -10,6 +10,9 @@ autopkgtest (3.3.3) UNRELEASED; urgency=medium
     with non-root adb.
   * ssh-setup/adb: Protect against failures of ssh-keygen when pruning the
     localhost fingerprint. It fails if ~/.ssh/known_hosts does not exist.
+  * When copying down, properly fail when there are unremovable files in an
+    existing directory, instead of ignoring them and making the subsequent
+    copytree() fail. This helps to get better error messages for #757396.
 
  -- Martin Pitt <mpitt@debian.org>  Wed, 06 Aug 2014 20:05:54 +0200
 
