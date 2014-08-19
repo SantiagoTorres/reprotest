@@ -8,6 +8,8 @@ autopkgtest (3.3.3) UNRELEASED; urgency=medium
     Testsuite: field automatically. Thanks to Guillem Jover!
   * ssh-setup/adb: Use PropertyService to enable ssh, for future compatibility
     with non-root adb.
+  * ssh-setup/adb: Protect against failures of ssh-keygen when pruning the
+    localhost fingerprint. It fails if ~/.ssh/known_hosts does not exist.
 
  -- Martin Pitt <mpitt@debian.org>  Wed, 06 Aug 2014 20:05:54 +0200
 
