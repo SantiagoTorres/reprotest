@@ -259,9 +259,10 @@ def downtmp_mktemp():
 
 
 def downtmp_remove():
-    global downtmp
+    global downtmp, auxverb
     if downtmp:
-        check_exec(['rm', '-rf', '--', downtmp], downp=True)
+        execute_timeout(None, copy_timeout,
+                        auxverb + ['rm', '-rf', '--', downtmp])
         downtmp = None
 
 
@@ -371,7 +372,20 @@ def copydown_shareddir(host, tb, is_dir, downtmp_host):
             host_tmp = os.path.join(downtmp_host, os.path.basename(tb))
             if is_dir:
                 if os.path.exists(host_tmp):
-                    shutil.rmtree(host_tmp)
+                    try:
+                        shutil.rmtree(host_tmp)
+                    except OSError as e:
+                        adtlog.warning('cannot remove old %s, moving it '
+                                       'instead: %s' % (host_tmp, e))
+                        # some undeletable files? hm, move it aside instead
+                        counter = 0
+                        while True:
+                            p = host_tmp + '.old%i' % counter
+                            if not os.path.exists(p):
+                                os.rename(host_tmp, p)
+                                break
+                            counter += 1
+
                 shutil.copytree(host, host_tmp, symlinks=True)
             else:
                 shutil.copy(host, host_tmp)
