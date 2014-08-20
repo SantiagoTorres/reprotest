@@ -403,11 +403,14 @@ def parse_click_manifest(manifest, testbed_caps, clickdeps):
         # autopilot special case: dict with extra depends
         if 'autopilot_module' in desc:
             desc['command'] = 'PYTHONPATH=tests/autopilot:$PYTHONPATH ' \
-                'python3 -m autopilot.run run ' + os.environ.get(
+                'python3 -m autopilot.run run -v -f subunit -o ' \
+                '$ADT_ARTIFACTS/%s.subunit ' % name + os.environ.get(
                     'ADT_AUTOPILOT_MODULE', desc['autopilot_module'])
             desc.setdefault('depends', []).insert(
                 0, 'ubuntu-ui-toolkit-autopilot')
             desc['depends'].insert(0, 'autopilot-touch')
+            if 'allow-stderr' not in desc.setdefault('restrictions', []):
+                desc['restrictions'].append('allow-stderr')
 
         try:
             test = Test(name, desc.get('path'), desc.get('command'),
