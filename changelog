@@ -16,6 +16,8 @@ autopkgtest (3.3.3) UNRELEASED; urgency=medium
   * Fix crash on undeletable files in source trees. (Closes: #757396)
   * ssh-setup/adb: If there is no default ssh key, create an
     ~/.ssh/id_autopkgtest and use that.
+  * Run autopilot tests with generating a subunit stream in
+    <output-dir>/artifacts/<testname>.subunit, and in verbose mode.
 
  -- Martin Pitt <mpitt@debian.org>  Wed, 06 Aug 2014 20:05:54 +0200
 
