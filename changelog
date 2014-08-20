@@ -13,6 +13,7 @@ autopkgtest (3.3.3) UNRELEASED; urgency=medium
   * When copying down, properly fail when there are unremovable files in an
     existing directory, instead of ignoring them and making the subsequent
     copytree() fail. This helps to get better error messages for #757396.
+  * Fix crash on undeletable files in source trees. (Closes: #757396)
 
  -- Martin Pitt <mpitt@debian.org>  Wed, 06 Aug 2014 20:05:54 +0200
 
