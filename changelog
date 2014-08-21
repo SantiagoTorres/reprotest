@@ -1,3 +1,9 @@
+autopkgtest (3.3.4) UNRELEASED; urgency=medium
+
+  * Produce a summary file by default when --output-dir is given.
+
+ -- Martin Pitt <mpitt@debian.org>  Thu, 21 Aug 2014 10:46:09 +0200
+
 autopkgtest (3.3.3) unstable; urgency=medium
 
   * ssh-setup/adb: Always parse options, so that $ADBOPTS is also defined for
