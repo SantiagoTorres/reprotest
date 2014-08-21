@@ -1,6 +1,7 @@
 autopkgtest (3.3.4) UNRELEASED; urgency=medium
 
   * Produce a summary file by default when --output-dir is given.
+  * ssh-setup/adb: Add missing $ADBOPTS for reverting to factory state.
 
  -- Martin Pitt <mpitt@debian.org>  Thu, 21 Aug 2014 10:46:09 +0200
 
