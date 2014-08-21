@@ -194,6 +194,8 @@ def setup_trace():
 
     if opts.summary is not None:
         adtlog.summary_stream = open(opts.summary, 'wb', 0)
+    elif opts.output_dir is not None:
+        adtlog.summary_stream = open(os.path.join(opts.output_dir, 'summary'), 'wb', 0)
 
 
 def finalise_options():
