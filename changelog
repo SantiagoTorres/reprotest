@@ -6,6 +6,8 @@ autopkgtest (3.4) UNRELEASED; urgency=medium
     x-source/vcs-bzr key) if --click-source is not given.
   * ssh-setup/adb: Use SystemImage D-BUS call for factory reset instead of
     direct recovery commands, to also work as user.
+  * ssh-setup/adb: Add --password/-p option to specify a different sudo
+    password than "phablet".
 
  -- Martin Pitt <mpitt@debian.org>  Thu, 21 Aug 2014 10:46:09 +0200
 
