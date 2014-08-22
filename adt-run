@@ -1543,11 +1543,6 @@ def process_actions():
         adtlog.info('@@@@@@@@@@@@@@@@@@@@ %s %s' % (kind, arg))
 
         if kind == 'click':
-            if pending_click_source is None:
-                raise NotImplementedError(
-                    'Downloading click source packages from manifest is not '
-                    'implemented. Specify --click-source explicitly.')
-
             if control_override:
                 # locally specified manifest
                 with open(control_override) as f:
@@ -1555,9 +1550,8 @@ def process_actions():
                 clicks = []
                 if os.path.exists(arg):
                     clicks.append(arg)
-                (tests, skipped) = testdesc.parse_click_manifest(
-                    manifest, testbed.caps, clicks)
-                srcdir = pending_click_source
+                (srcdir, tests, skipped) = testdesc.parse_click_manifest(
+                    manifest, testbed.caps, clicks, pending_click_source)
 
             elif os.path.exists(arg):
                 # local .click package file
@@ -1570,9 +1564,11 @@ def process_actions():
                 else:
                     u = []
                 manifest = testbed.check_exec(['click', 'info'] + u + [arg], stdout=True)
-                srcdir = pending_click_source
-                (tests, skipped) = testdesc.parse_click_manifest(
-                    manifest, testbed.caps, [])
+                (srcdir, tests, skipped) = testdesc.parse_click_manifest(
+                    manifest, testbed.caps, [], pending_click_source)
+
+            if not srcdir:
+                bomb('No click source available for %s' % arg)
 
             tests_tree = TestbedPath(
                 testbed, srcdir, os.path.join(testbed.scratch, 'tree'),
