@@ -25,6 +25,10 @@ import re
 import errno
 import os.path
 import json
+import subprocess
+import tempfile
+import atexit
+import shutil
 
 import debian.deb822
 import debian.debian_support
@@ -373,12 +377,9 @@ def parse_click_manifest(manifest, testbed_caps, clickdeps, srcdir=None):
 
     This may raise an InvalidControl exception.
     '''
-    if srcdir is None:
-        adtlog.error('Click source download from manifest is not implemented')
-
     try:
-        j = json.loads(manifest)
-        test_j = j.get('x-test', {})
+        manifest_j = json.loads(manifest)
+        test_j = manifest_j.get('x-test', {})
     except ValueError as e:
         raise InvalidControl(
             '*', 'click manifest is not valid JSON: %s' % str(e))
@@ -428,6 +429,28 @@ def parse_click_manifest(manifest, testbed_caps, clickdeps, srcdir=None):
         except Unsupported as u:
             u.report()
             some_skipped = True
+
+    if srcdir is None:
+        # do we have an x-source/vcs-bzr link?
+        if 'x-source' in manifest_j:
+            try:
+                repo = manifest_j['x-source']['vcs-bzr']
+                adtlog.info('checking out click source from %s' % repo)
+                d = tempfile.mkdtemp(prefix='adt.clicksrc.')
+                atexit.register(shutil.rmtree, d, ignore_errors=True)
+                try:
+                    subprocess.check_call(['bzr', 'checkout', '--lightweight',
+                                           repo, d])
+                    srcdir = d
+                except subprocess.CalledProcessError as e:
+                    adtlog.error('Failed to check out click source from %s: %s'
+                                 % (repo, str(e)))
+            except KeyError:
+                adtlog.error('Click source download from x-source only '
+                             'supports "vcs-bzr" repositories')
+        else:
+            adtlog.error('cannot download click source: manifest does not '
+                         'have "x-source"')
 
     return (srcdir, tests, some_skipped)
 

@@ -183,7 +183,8 @@ def parse_args(arglist=None):
         '--click', action=ActionArg, metavar='CLICKPKG or some/pkg.click',
         help='install click package into testbed (path to *.click) or '
         'use an already installed click package ("com.example.myapp") '
-        'and run its tests (from preceding --click-source)')
+        'and run its tests (from manifest\'s x-source or preceding '
+        '--click-source)')
     action_parser.add_argument(
         '--override-control', action=ActionArg,
         metavar='CONTROL', help='run tests from control file/manifest CONTROL'
