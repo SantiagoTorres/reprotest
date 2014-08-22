@@ -4,6 +4,8 @@ autopkgtest (3.4) UNRELEASED; urgency=medium
   * ssh-setup/adb: Add missing $ADBOPTS for reverting to factory state.
   * Add support for retrieving a click source from bzr (from the manifest's
     x-source/vcs-bzr key) if --click-source is not given.
+  * ssh-setup/adb: Use SystemImage D-BUS call for factory reset instead of
+    direct recovery commands, to also work as user.
 
  -- Martin Pitt <mpitt@debian.org>  Thu, 21 Aug 2014 10:46:09 +0200
 
