@@ -8,6 +8,7 @@ autopkgtest (3.4) UNRELEASED; urgency=medium
     direct recovery commands, to also work as user.
   * ssh-setup/adb: Add --password/-p option to specify a different sudo
     password than "phablet".
+  * adt-run: Fix $USER in tests if testbed does not have root.
 
  -- Martin Pitt <mpitt@debian.org>  Thu, 21 Aug 2014 10:46:09 +0200
 
