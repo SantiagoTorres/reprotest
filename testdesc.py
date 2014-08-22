@@ -355,20 +355,27 @@ def parse_debian_source(srcdir, testbed_caps, control_path=None):
 # Parsing for click packages
 #
 
-def parse_click_manifest(manifest, testbed_caps, clickdeps):
+def parse_click_manifest(manifest, testbed_caps, clickdeps, srcdir=None):
     '''Parse test descriptions from a click manifest.
 
     @manifest: String with the click manifest
     @testbed_caps: List of testbed capabilities
     @clickdeps: paths of click packages that these tests need
 
-    Return (list of Test objects, some_skipped). If this encounters any invalid
-    restrictions, fields, or test restrictions which cannot be met by the given
-    testbed capabilities, the test will be skipped (and reported so), and not
-    be included in the result.
+    Return (source_dir, list of Test objects, some_skipped). If this encounters
+    any invalid restrictions, fields, or test restrictions which cannot be met
+    by the given testbed capabilities, the test will be skipped (and reported
+    so), and not be included in the result.
+
+    If srcdir is given, use that as source for the click package, and return
+    that as first return value. Otherwise, locate and download the source from
+    the click's manifest into a temporary directory and use that.
 
     This may raise an InvalidControl exception.
     '''
+    if srcdir is None:
+        adtlog.error('Click source download from manifest is not implemented')
+
     try:
         j = json.loads(manifest)
         test_j = j.get('x-test', {})
@@ -422,7 +429,7 @@ def parse_click_manifest(manifest, testbed_caps, clickdeps):
             u.report()
             some_skipped = True
 
-    return (tests, some_skipped)
+    return (srcdir, tests, some_skipped)
 
 
 def parse_click(clickpath, testbed_caps, srcdir=None):
@@ -440,17 +447,10 @@ def parse_click(clickpath, testbed_caps, srcdir=None):
 
     This may raise an InvalidControl exception.
     '''
-    if srcdir is None:
-        raise NotImplementedError(
-            'Downloading click source packages from manifest is not '
-            'implemented. Specify --click-source explicitly.')
-
     pkg = debian.debfile.DebFile(clickpath)
     try:
         manifest = pkg.control.get_content('manifest').decode('UTF-8')
     finally:
         pkg.close()
 
-    (tests, skipped) = parse_click_manifest(manifest, testbed_caps,
-                                            [clickpath])
-    return (srcdir, tests, skipped)
+    return parse_click_manifest(manifest, testbed_caps, [clickpath], srcdir)
