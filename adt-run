@@ -865,7 +865,10 @@ fi
         else:
             test_cmd = "bash -ec '%s'" % test.command
 
-        script += 'touch %(o)s %(e)s; ' \
+        script += 'export USER=`id -nu`; ' \
+                  '. /etc/profile >/dev/null 2>&1 || true; ' \
+                  ' . ~/.profile >/dev/null 2>&1 || true; ' \
+                  'touch %(o)s %(e)s; ' \
                   '%(t)s 2> >(tee %(e)s >&2) > >(tee %(o)s) & TPID=$!; ' \
                   'trap "kill $TPID || true; rm -rf $ADTTMP" TERM; ' \
                   'wait $TPID;' \
@@ -877,12 +880,8 @@ fi
             # we don't want -l here which resets the environment from
             # self.execute(); so emulate the parts that we want
             # FIXME: move "run as user" as an argument of execute()/check_exec() and run with -l
-            script = ('export USER=%s;' % opts.user) + \
-                '. /etc/profile >/dev/null 2>&1 || true; ' \
-                ' . ~/.profile >/dev/null 2>&1 || true; ' + script
             test_argv = ['su', '-s', '/bin/bash', opts.user, '-c', script]
         else:
-            script = 'export USER=`id -nu`; ' + script
             test_argv = ['bash', '-c', script]
 
         # run test script
