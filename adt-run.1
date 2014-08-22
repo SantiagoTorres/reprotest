@@ -92,13 +92,20 @@ package.
 
 .TP
 .BR --click " " \fIclickpkg
-Run click package tests from the preceeding
-.BR --click-source .
 If
 .I clickpkg
 is a file (*.click), install given click package into testbed. If it is a click
 name (like "com.example.myapp"), assume it is already installed in the testbed
 and read the manifest from it.
+
+Run click package tests from the preceeding
+.BR --click-source .
+If a click source directory is not specified explicitly, it will be downloaded
+according to the manifest's
+.B x-source
+entry. Currently the only supported schema is
+.BR vcs-bzr .
+
 
 
 .TP
