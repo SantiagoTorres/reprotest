@@ -1,7 +1,9 @@
-autopkgtest (3.3.4) UNRELEASED; urgency=medium
+autopkgtest (3.4) UNRELEASED; urgency=medium
 
   * Produce a summary file by default when --output-dir is given.
   * ssh-setup/adb: Add missing $ADBOPTS for reverting to factory state.
+  * Add support for retrieving a click source from bzr (from the manifest's
+    x-source/vcs-bzr key) if --click-source is not given.
 
  -- Martin Pitt <mpitt@debian.org>  Thu, 21 Aug 2014 10:46:09 +0200
 
