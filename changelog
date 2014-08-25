@@ -14,6 +14,9 @@ autopkgtest (3.4) UNRELEASED; urgency=medium
   * ssh-setup/adb: Try common sudo passwords for CI ("phablet" and "0000"); if
     those do not work, and none is specified with --password, tests cannot run
     as root (which should be fine for most cases).
+  * ssh-setup/adb: Stop using system-image-cli to detect an Ubuntu phone, as
+    that does not work as user. Check for unity8 instead, like in other parts
+    of the code.
 
  -- Martin Pitt <mpitt@debian.org>  Thu, 21 Aug 2014 10:46:09 +0200
 
