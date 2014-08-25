@@ -17,6 +17,7 @@ autopkgtest (3.4) UNRELEASED; urgency=medium
   * ssh-setup/adb: Stop using system-image-cli to detect an Ubuntu phone, as
     that does not work as user. Check for unity8 instead, like in other parts
     of the code.
+  * ssh-setup/adb: Fix cleaning up of first-time wizard for non-root adb.
 
  -- Martin Pitt <mpitt@debian.org>  Thu, 21 Aug 2014 10:46:09 +0200
 
