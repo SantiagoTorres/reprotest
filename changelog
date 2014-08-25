@@ -11,6 +11,9 @@ autopkgtest (3.4) UNRELEASED; urgency=medium
   * adt-run: Fix $USER in tests if testbed does not have root.
   * adt-run: Source shell profiles if testbed does not have root. Fixes
     running click tests on Ubuntu Touch without a sudo password.
+  * ssh-setup/adb: Try common sudo passwords for CI ("phablet" and "0000"); if
+    those do not work, and none is specified with --password, tests cannot run
+    as root (which should be fine for most cases).
 
  -- Martin Pitt <mpitt@debian.org>  Thu, 21 Aug 2014 10:46:09 +0200
 
