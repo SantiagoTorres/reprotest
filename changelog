@@ -1,3 +1,10 @@
+autopkgtest (3.4.1) UNRELEASED; urgency=medium
+
+  * adt-buildvm-ubuntu-cloud: Use host's http[s] proxy in the VM, rewriting
+    localhost addresses accordingly.
+
+ -- Martin Pitt <mpitt@debian.org>  Thu, 28 Aug 2014 09:48:57 +0200
+
 autopkgtest (3.4) unstable; urgency=medium
 
   * Produce a summary file by default when --output-dir is given.
