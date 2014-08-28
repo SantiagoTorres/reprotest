@@ -834,9 +834,9 @@ fi
         # create script to run test
         test_artifacts = '%s/%s-artifacts' % (self.scratch, test.name)
         script = 'set -e; ' \
-                  'export USER=`id -nu`; ' \
-                  '. /etc/profile >/dev/null 2>&1 || true; ' \
-                  ' . ~/.profile >/dev/null 2>&1 || true; ' \
+                 'export USER=`id -nu`; ' \
+                 '. /etc/profile >/dev/null 2>&1 || true; ' \
+                 ' . ~/.profile >/dev/null 2>&1 || true; ' \
                  'buildtree="%(t)s"; ' \
                  'rm -rf "%(a)s"; mkdir -m 1777 -- "%(a)s"; ' \
                  'export ADT_ARTIFACTS="%(a)s"; ' \
