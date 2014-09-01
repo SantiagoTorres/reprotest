@@ -2,6 +2,8 @@ autopkgtest (3.4.1) UNRELEASED; urgency=medium
 
   * adt-buildvm-ubuntu-cloud: Use host's http[s] proxy in the VM, rewriting
     localhost addresses accordingly.
+  * qemu: Accept any runlevel between 2 and 5 as "booted", to also work with
+    systemd. (Closes: #760060)
 
  -- Martin Pitt <mpitt@debian.org>  Thu, 28 Aug 2014 09:48:57 +0200
 
