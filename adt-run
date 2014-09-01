@@ -1384,7 +1384,7 @@ def build_source(kind, arg, built_binaries):
         # below and just set the tests_tree and get the package version
         tests_tree = TestbedPath(testbed, arg, os.path.join(testbed.scratch, 'tree'), is_dir=True)
 
-        with open(os.path.join(arg, 'debian', 'changelog')) as f:
+        with open(os.path.join(arg, 'debian', 'changelog'), encoding='UTF-8') as f:
             (testpkg_name, testpkg_version, _) = f.readline().split(' ', 2)
             testpkg_version = testpkg_version[1:-1]  # chop off parentheses
 
