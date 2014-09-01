@@ -4,6 +4,7 @@ autopkgtest (3.4.1) UNRELEASED; urgency=medium
     localhost addresses accordingly.
   * qemu: Accept any runlevel between 2 and 5 as "booted", to also work with
     systemd. (Closes: #760060)
+  * adt-run: Read built tree changelogs with UTF-8 encoding. (Closes: #759752)
 
  -- Martin Pitt <mpitt@debian.org>  Thu, 28 Aug 2014 09:48:57 +0200
 
