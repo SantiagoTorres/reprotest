@@ -191,6 +191,7 @@ def hook_open():
             'env', '-i', 'sh', '-ac',
             '[ -r /etc/environment ] && . /etc/environment 2>/dev/null || true; '
             '[ -r /etc/default/locale ] && . /etc/default/locale 2>/dev/null || true; '
+            '[ -r /etc/profile ] && . /etc/profile 2>/dev/null || true; '
             'exec "$@"', '--'
         ]
         if args.sudo:
