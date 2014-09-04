@@ -386,7 +386,7 @@ class Testbed:
                      boot_dirs, self.scratch)])[0]
             if boot_affected:
                 adtlog.info('rebooting testbed after setup commands that affected boot')
-                self.scratch = self.command('reboot', (), 1)[0]
+                self.command('reboot', ())
 
     def reset(self, deps_new):
         '''Reset the testbed, if possible and necessary'''
