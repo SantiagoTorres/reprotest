@@ -34,6 +34,7 @@ import time
 import pipes
 import socket
 import shutil
+import tempfile
 
 import adtlog
 
@@ -286,10 +287,19 @@ def cmd_reboot(c, ce):
         bomb("`reboot' when not open")
     if 'reboot' not in caller.hook_capabilities():
         bomb("`reboot' when `reboot' not advertised")
+
+    # save current downtmp
+    downtmp_save = get_downtmp_host()
+    if downtmp_save is None:
+        td = tempfile.TemporaryDirectory(prefix='adt-downtmp-save.')
+        downtmp_save = td.name
+    copyupdown_internal('copyup', (downtmp + '/', downtmp_save + '/'), True)
+    adtlog.debug('cmd_reboot: saved current downtmp, rebooting')
     caller.hook_reboot()
-    downtmp = caller.hook_downtmp()
-    adtlog.debug("auxverb = %s, downtmp = %s" % (str(auxverb), downtmp))
-    return [downtmp]
+
+    # restore downtmp
+    copyupdown_internal('copydown', (downtmp_save + '/', downtmp + '/'), False)
+    adtlog.debug('cmd_reboot: saved current downtmp, rebooting')
 
 
 def get_downtmp_host():
@@ -406,14 +416,18 @@ def copydown_shareddir(host, tb, is_dir, downtmp_host):
 
 def copyupdown(c, ce, upp):
     cmdnumargs(c, ce, 2)
+    copyupdown_internal(ce[0], c[1:], upp)
+
+
+def copyupdown_internal(wh, sd, upp):
+    '''Copy up/down a file or dir.
+
+    wh: 'copyup' or 'copydown'
+    sd: (source, destination) paths
+    upp: True for copyup, False for copydown
+    '''
     if not downtmp:
-        bomb("`copyup'/`copydown' when not open")
-    isrc = 0
-    idst = 1
-    ilocal = 0 + upp
-    iremote = 1 - upp
-    wh = ce[0]
-    sd = c[1:]
+        bomb("%s when not open" % wh)
     if not sd[0] or not sd[1]:
         bomb("%s paths must be nonempty" % wh)
     dirsp = sd[0][-1] == '/'
@@ -433,6 +447,11 @@ def copyupdown(c, ce, upp):
         except Timeout:
             raise FailedCmd(['timeout'])
         return
+
+    isrc = 0
+    idst = 1
+    ilocal = 0 + upp
+    iremote = 1 - upp
 
     deststdout = devnull_read
     srcstdin = devnull_read
