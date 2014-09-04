@@ -320,6 +320,15 @@ class Testbed:
             self.check_exec(['sh', '-ec', "dpkg-query --show -f '${Package}\\t${Version}\\n' > %s" % pkglist.tb])
             pkglist.copyup()
 
+        # provide autopkgtest-reboot command, if reboot is supported
+        if 'reboot' in self.caps:
+            adtlog.debug('testbed supports reboot, creating /sbin/autopkgtest-reboot')
+            self.check_exec(['sh', '-ec', '''/bin/echo -e '#!/bin/sh -e\\n'''
+                             '''[ -n "$1" ] || { echo "Usage: $0 <mark>" >&2; exit 1; }\\n'''
+                             '''echo "$1" > /run/autopkgtest-reboot-mark\\n'''
+                             '''kill -PIPE $PPID\\n' > /sbin/autopkgtest-reboot;'''
+                             '''chmod 755 /sbin/autopkgtest-reboot'''])
+
     def mungeing_apt(self):
         if 'revert' not in self.caps:
             self._need_reset_apt = True
@@ -880,15 +889,39 @@ fi
             # we don't want -l here which resets the environment from
             # self.execute(); so emulate the parts that we want
             # FIXME: move "run as user" as an argument of execute()/check_exec() and run with -l
-            test_argv = ['su', '-s', '/bin/bash', opts.user, '-c', script]
+            test_argv = ['su', '-s', '/bin/bash', opts.user, '-c']
         else:
-            test_argv = ['bash', '-c', script]
+            test_argv = ['bash', '-c']
 
         # run test script
         if test.command:
             _info(test.command)
         _info('[-----------------------')
-        rc = self.execute(test_argv, kind='test')[0]
+
+        # tests may reboot, so we might need to run several times
+        reboot_marker = None
+        while True:
+            if reboot_marker:
+                script_prefix = 'export ADT_REBOOT_MARK="%s"; ' % reboot_marker
+            else:
+                script_prefix = ''
+            rc = self.execute(test_argv + [script_prefix + script], kind='test')[0]
+
+            # did the test invoke autopkgtest-reboot?
+            if os.WIFSIGNALED(rc) and os.WTERMSIG(rc) == signal.SIGPIPE and 'reboot' in self.caps:
+                adtlog.debug('test process SIGPIPEd, checking for reboot marker')
+                (code, reboot_marker, err) = self.execute(
+                    ['cat', '/run/autopkgtest-reboot-mark'],
+                    stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                if code == 0:
+                    reboot_marker = reboot_marker.strip()
+                    adtlog.info('test process requested reboot with marker %s' % reboot_marker)
+                    self.command('reboot', ())
+                    continue
+                else:
+                    adtlog.debug('no reboot marker, considering a failure')
+            break
+
         # give the setup_trace() cats some time to catch up
         sys.stdout.flush()
         sys.stderr.flush()
