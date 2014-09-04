@@ -1,4 +1,4 @@
-autopkgtest (3.4.1) UNRELEASED; urgency=medium
+autopkgtest (3.4.1) unstable; urgency=medium
 
   * adt-buildvm-ubuntu-cloud: Use host's http[s] proxy in the VM, rewriting
     localhost addresses accordingly.
@@ -8,7 +8,7 @@ autopkgtest (3.4.1) UNRELEASED; urgency=medium
   * adt-virt-lxc: Source /etc/profile as well, to get $PATH in Debian
     environments.
 
- -- Martin Pitt <mpitt@debian.org>  Thu, 28 Aug 2014 09:48:57 +0200
+ -- Martin Pitt <mpitt@debian.org>  Thu, 04 Sep 2014 07:52:12 +0200
 
 autopkgtest (3.4) unstable; urgency=medium
 
