@@ -34,7 +34,6 @@ import time
 import pipes
 import socket
 import shutil
-import tempfile
 
 import adtlog
 
@@ -289,16 +288,19 @@ def cmd_reboot(c, ce):
         bomb("`reboot' when `reboot' not advertised")
 
     # save current downtmp
-    downtmp_save = get_downtmp_host()
-    if downtmp_save is None:
-        td = tempfile.TemporaryDirectory(prefix='adt-downtmp-save.')
-        downtmp_save = td.name
-    copyupdown_internal('copyup', (downtmp + '/', downtmp_save + '/'), True)
+    check_exec(['sh', '-ec', '''rm -f /var/cache/autopkgtest/tmpdir.tar
+        mkdir -p /var/cache/autopkgtest/
+        tar --create --absolute-names -f /var/cache/autopkgtest/tmpdir.tar '%s'
+        ''' % downtmp], downp=True, timeout=copy_timeout)
     adtlog.debug('cmd_reboot: saved current downtmp, rebooting')
+
     caller.hook_reboot()
 
     # restore downtmp
-    copyupdown_internal('copydown', (downtmp_save + '/', downtmp + '/'), False)
+    check_exec(['sh', '-ec', '''
+        tar --extract --absolute-names -f /var/cache/autopkgtest/tmpdir.tar
+        rm -r /var/cache/autopkgtest/'''],
+               downp=True, timeout=copy_timeout)
     adtlog.debug('cmd_reboot: saved current downtmp, rebooting')
 
 
