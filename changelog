@@ -1,9 +1,12 @@
 autopkgtest (3.5) UNRELEASED; urgency=medium
 
+  Improvements:
   * VirtSubProc.cmd_reboot(): Save/restore downtmp instead of creating a new
     one. This is more useful for reboot scenarios within tests.
   * Support tests that want to reboot the testbed (for runners which support
     rebooting). Document this in doc/README.package-tests.rst.
+
+  Bug fixes:
   * qemu: Reconfigure tzdata after copying /etc/timezone, to make that change
     actually active.
   * qemu: Wait an additional 3 seconds after the login prompt appears on
