@@ -847,7 +847,7 @@ fi
                  '. /etc/profile >/dev/null 2>&1 || true; ' \
                  ' . ~/.profile >/dev/null 2>&1 || true; ' \
                  'buildtree="%(t)s"; ' \
-                 'rm -rf "%(a)s"; mkdir -m 1777 -- "%(a)s"; ' \
+                 'mkdir -p -m 1777 -- "%(a)s"; ' \
                  'export ADT_ARTIFACTS="%(a)s"; ' \
                  'export ADTTMP=$(mktemp -d --tmpdir adttmp.XXXXXX); ' \
                  'trap "rm -rf $ADTTMP" EXIT INT QUIT PIPE; '\
@@ -878,7 +878,7 @@ fi
             test_cmd = "bash -ec '%s'" % test.command
 
         script += 'touch %(o)s %(e)s; ' \
-                  '%(t)s 2> >(tee %(e)s >&2) > >(tee %(o)s) & TPID=$!; ' \
+                  '%(t)s 2> >(tee -a %(e)s >&2) > >(tee -a %(o)s) & TPID=$!; ' \
                   'trap "kill $TPID || true; rm -rf $ADTTMP" TERM; ' \
                   'wait $TPID;' \
                   % {'t': test_cmd, 'o': so.tb, 'e': se.tb}
