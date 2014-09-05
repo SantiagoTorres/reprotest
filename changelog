@@ -6,6 +6,10 @@ autopkgtest (3.5) UNRELEASED; urgency=medium
     rebooting). Document this in doc/README.package-tests.rst.
   * qemu: Reconfigure tzdata after copying /etc/timezone, to make that change
     actually active.
+  * qemu: Wait an additional 3 seconds after the login prompt appears on
+    ttyS0. Without that, the system time is wrong, causing bad file
+    timestamps. Unfortunately polling runlevel or the "hwclock" status file
+    doesn't help.
 
  -- Martin Pitt <mpitt@debian.org>  Thu, 04 Sep 2014 11:02:36 +0200
 
