@@ -210,7 +210,7 @@ def setup_config(shared_dir):
 
         if tz:
             adtlog.debug('Copying host timezone %s to VM' % tz.decode())
-            term.send(b'echo ' + tz + b' > /etc/timezone\n')
+            term.send(b'echo ' + tz + b' > /etc/timezone; DEBIAN_FRONTEND=noninteractive dpkg-reconfigure tzdata\n')
             VirtSubproc.expect(term, b'#', 5)
         else:
             adtlog.debug('Could not determine host timezone')
