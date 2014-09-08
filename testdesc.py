@@ -308,6 +308,37 @@ def _auto_debian_control_ruby(srcdir, tests):
                           depends, []))
 
 
+def _auto_debian_control_perl(srcdir, tests):
+    '''Add automatic test for Perl packages'''
+
+    if (os.path.exists(os.path.join(srcdir, 't')) and
+            (os.path.exists(os.path.join(srcdir, 'Makefile.PL')) or
+             os.path.exists(os.path.join(srcdir, 'Build.PL')))):
+
+        adtlog.info('Perl package detected')
+
+        command = '/usr/share/pkg-perl-autopkgtest/runner build-deps'
+        depends = _parse_debian_depends(command,
+                                        '@, @builddeps@, pkg-perl-autopkgtest',
+                                        srcdir)
+        tests.append(Test('auto-build-deps', None, command, [], [],
+                          depends, []))
+
+        command = '/usr/share/pkg-perl-autopkgtest/runner runtime-deps'
+        depends = _parse_debian_depends(command,
+                                        '@, pkg-perl-autopkgtest',
+                                        srcdir)
+        tests.append(Test('auto-runtime-deps', None, command, [], [],
+                          depends, []))
+
+        command = '/usr/share/pkg-perl-autopkgtest/runner heavy-deps'
+        depends = _parse_debian_depends(command,
+                                        '@, pkg-perl-autopkgtest-heavy',
+                                        srcdir)
+        tests.append(Test('auto-heavy-deps', None, command, [], [],
+                          depends, []))
+
+
 def _auto_debian_control(srcdir):
     '''Infer tests if there is no Debian test control file'''
 
@@ -315,6 +346,7 @@ def _auto_debian_control(srcdir):
     some_skipped = False
 
     _auto_debian_control_ruby(srcdir, tests)
+    _auto_debian_control_perl(srcdir, tests)
 
     return (tests, some_skipped)
 
