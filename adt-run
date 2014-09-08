@@ -834,6 +834,9 @@ fi
             os.unlink(pkglist.host)
 
         # ensure our tests are in the testbed
+        # adjust tree.tb if the testbed got reset since the last time
+        if not tree.tb.startswith(self.scratch):
+            tree.tb = os.path.join(self.scratch, os.path.basename(tree.tb))
         tree.copydown()
 
         # stdout/err files in testbed
