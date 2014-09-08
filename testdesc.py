@@ -302,8 +302,9 @@ def _auto_debian_control_ruby(srcdir, tests):
         adtlog.info('Ruby package detected')
 
         command = 'gem2deb-test-runner --autopkgtest 2>&1'
-        depends = _parse_debian_depends(command, '@, gem2deb-test-runner',
-                                        srcdir)
+        depends = _parse_debian_depends(command, '@, @builddeps@', srcdir)
+        depends = [d for d in depends if not d.startswith('gem2deb')]
+        depends.append('gem2deb-test-runner')
         tests.append(Test('auto-gem2deb', None, command, [], [],
                           depends, []))
 
