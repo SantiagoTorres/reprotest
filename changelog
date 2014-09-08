@@ -5,6 +5,7 @@ autopkgtest (3.5) UNRELEASED; urgency=medium
     one. This is more useful for reboot scenarios within tests.
   * Support tests that want to reboot the testbed (for runners which support
     rebooting). Document this in doc/README.package-tests.rst.
+  * tests/testdesc: Add test case for Debian packages without a test control.
 
   Bug fixes:
   * qemu: Reconfigure tzdata after copying /etc/timezone, to make that change
