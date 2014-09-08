@@ -6,6 +6,8 @@ autopkgtest (3.5) UNRELEASED; urgency=medium
   * Support tests that want to reboot the testbed (for runners which support
     rebooting). Document this in doc/README.package-tests.rst.
   * tests/testdesc: Add test case for Debian packages without a test control.
+  * If there is no Debian test control file, synthesize one for Ruby packages,
+    using gem2deb-test-runner. Thanks to Antonio Terceiro!
 
   Bug fixes:
   * qemu: Reconfigure tzdata after copying /etc/timezone, to make that change
