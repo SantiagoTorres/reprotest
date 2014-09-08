@@ -292,6 +292,33 @@ def _parse_debian_depends(testname, dep_str, srcdir):
     return deps
 
 
+def _auto_debian_control_ruby(srcdir, tests):
+    '''Add automatic gem2deb test for Ruby packages'''
+
+    if (any(map(lambda f: os.path.exists(os.path.join(srcdir, f)),
+                ['debian/ruby-tests.rake', 'debian/ruby-tests.rb',
+                 'debian/ruby-test-files.yaml']))):
+
+        adtlog.info('Ruby package detected')
+
+        command = 'gem2deb-test-runner --autopkgtest 2>&1'
+        depends = _parse_debian_depends(command, '@, gem2deb-test-runner',
+                                        srcdir)
+        tests.append(Test('auto-gem2deb', None, command, [], [],
+                          depends, []))
+
+
+def _auto_debian_control(srcdir):
+    '''Infer tests if there is no Debian test control file'''
+
+    tests = []
+    some_skipped = False
+
+    _auto_debian_control_ruby(srcdir, tests)
+
+    return (tests, some_skipped)
+
+
 def parse_debian_source(srcdir, testbed_caps, control_path=None):
     '''Parse test descriptions from a Debian DEP-8 source dir
 
@@ -312,6 +339,9 @@ def parse_debian_source(srcdir, testbed_caps, control_path=None):
         control_path = os.path.join(srcdir, control_path)
     else:
         control_path = os.path.join(srcdir, 'debian', 'tests', 'control')
+
+    if not os.path.exists(control_path):
+        return _auto_debian_control(srcdir)
 
     for record in parse_rfc822(control_path):
         command = None
