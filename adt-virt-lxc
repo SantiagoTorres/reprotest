@@ -180,7 +180,7 @@ def hook_open():
             timeout=30)
     else:
         VirtSubproc.check_exec(sudoify(
-            ['lxc-clone', '--name', lxc_container_name, '--orig', args.template]), outp=True)
+            ['lxc-clone', '--new', lxc_container_name, '--orig', args.template]), outp=True)
         VirtSubproc.check_exec(sudoify(
             ['lxc-start', '--name', lxc_container_name, '--daemon',
              '--define', 'lxc.mount.entry=%s %s none bind,create=dir 0 0' % (shared_dir, shared_dir[1:])]))
