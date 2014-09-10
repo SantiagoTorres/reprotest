@@ -19,6 +19,8 @@ autopkgtest (3.5) UNRELEASED; urgency=medium
     doesn't help.
   * After resetting testbed, copy test tree into current downtmp instead of
     the first one which does not exist any more.
+  * Keep a compatibility symlink with the original downtmp name after
+    resetting the testbed, as some built trees/tests use absolute path names.
   * Expand '@' to quasi-versioned (>= 0~) dependencies to avoid satisfying
     them by virtual packages. (Closes: #761003)
 
