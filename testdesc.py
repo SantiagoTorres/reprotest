@@ -209,9 +209,9 @@ def _debian_packages_from_source(srcdir):
             continue
         arch = st['Architecture']
         if arch in ('all', 'any'):
-            packages.append(st['Package'])
+            packages.append('%s (>= 0~)' % st['Package'])
         else:
-            packages.append('%s [%s]' % (st['Package'], arch))
+            packages.append('%s (>= 0~) [%s]' % (st['Package'], arch))
 
     return packages
 
@@ -279,7 +279,7 @@ def _parse_debian_depends(testname, dep_str, srcdir):
         if alt_group_str == '@':
             for d in _debian_packages_from_source(srcdir):
                 adtlog.debug('synthesised dependency %s' % d)
-                deps.append(d + ' (>= 0~)')
+                deps.append(d)
         elif alt_group_str == '@builddeps@':
             for d in _debian_build_deps_from_source(srcdir):
                 adtlog.debug('synthesised dependency %s' % d)
