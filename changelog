@@ -23,6 +23,9 @@ autopkgtest (3.5) UNRELEASED; urgency=medium
     resetting the testbed, as some built trees/tests use absolute path names.
   * Expand '@' to quasi-versioned (>= 0~) dependencies to avoid satisfying
     them by virtual packages. (Closes: #761003)
+  * Ensure that the build tree is world-readable. Fixes permission error when
+    running adt-run as non-root with a different --user and a tight umask.
+    (Closes: #761049)
 
  -- Martin Pitt <mpitt@debian.org>  Thu, 04 Sep 2014 11:02:36 +0200
 
