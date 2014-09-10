@@ -1451,9 +1451,9 @@ def build_source(kind, arg, built_binaries):
     # run create_command
     script = [
         'builddir=$(mktemp -d %s/build.XXX)' % testbed.scratch,
-        'chmod 755 $builddir',
         'cd $builddir',
         create_command,
+        'chmod -R a+rX .',
         'cd [a-z0-9]*/.',
         'pwd >&3',
         'sed -n "1 {s/).*//; s/ (/\\n/; p}" debian/changelog >&3',
