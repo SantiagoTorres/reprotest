@@ -279,7 +279,7 @@ def _parse_debian_depends(testname, dep_str, srcdir):
         if alt_group_str == '@':
             for d in _debian_packages_from_source(srcdir):
                 adtlog.debug('synthesised dependency %s' % d)
-                deps.append(d)
+                deps.append(d + ' (>= 0~)')
         elif alt_group_str == '@builddeps@':
             for d in _debian_build_deps_from_source(srcdir):
                 adtlog.debug('synthesised dependency %s' % d)
