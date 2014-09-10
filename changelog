@@ -26,6 +26,9 @@ autopkgtest (3.5) UNRELEASED; urgency=medium
   * Ensure that the build tree is world-readable. Fixes permission error when
     running adt-run as non-root with a different --user and a tight umask.
     (Closes: #761049)
+  * lxc: Ensure the container root directory is accessible to non-root users.
+    Works around lxc-start-ephemeral bug with tight umasks.
+    (https://launchpad.net/bugs/1367730)
 
  -- Martin Pitt <mpitt@debian.org>  Thu, 04 Sep 2014 11:02:36 +0200
 
