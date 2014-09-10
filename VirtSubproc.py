@@ -42,7 +42,8 @@ devnull_read = open('/dev/null', 'r')
 caller = __main__
 copy_timeout = int(os.getenv('ADT_VIRT_COPY_TIMEOUT', '300'))
 
-downtmp = None
+downtmp_open = None  # downtmp after opening testbed
+downtmp = None  # current downtmp (differs from downtmp_open after reset)
 auxverb = None  # prefix to run command argv in testbed
 cleaning = False
 in_mainloop = False
@@ -241,13 +242,14 @@ def expect(sock, search_bytes, timeout_sec, description=None):
 
 
 def cmd_open(c, ce):
-    global auxverb, downtmp
+    global auxverb, downtmp, downtmp_open
     cmdnumargs(c, ce)
     if downtmp:
         bomb("`open' when already open")
     caller.hook_open()
     adtlog.debug("auxverb = %s, downtmp = %s" % (str(auxverb), downtmp))
     downtmp = caller.hook_downtmp()
+    downtmp_open = downtmp
     return [downtmp]
 
 
@@ -259,15 +261,15 @@ def downtmp_mktemp():
 
 
 def downtmp_remove():
-    global downtmp, auxverb
+    global downtmp, downtmp_open, auxverb
     if downtmp:
         execute_timeout(None, copy_timeout,
-                        auxverb + ['rm', '-rf', '--', downtmp])
+                        auxverb + ['rm', '-rf', '--', downtmp, downtmp_open])
         downtmp = None
 
 
 def cmd_revert(c, ce):
-    global auxverb, downtmp
+    global auxverb, downtmp, downtmp_open
     cmdnumargs(c, ce)
     if not downtmp:
         bomb("`revert' when not open")
@@ -276,6 +278,17 @@ def cmd_revert(c, ce):
     caller.hook_revert()
     downtmp = caller.hook_downtmp()
     adtlog.debug("auxverb = %s, downtmp = %s" % (str(auxverb), downtmp))
+
+    # some packages keep absolute paths in their built tree; support that with
+    # a compatibility link for the previous downtmp
+    if downtmp != downtmp_open:
+        adtlog.debug('Creating compatibilty symlink %s -> %s' %
+                     (downtmp_open, downtmp))
+        check_exec(['mkdir', '--parents', os.path.dirname(downtmp_open)],
+                   downp=True, timeout=30)
+        check_exec(['ln', '-s', downtmp, downtmp_open],
+                   downp=True, timeout=30)
+
     return [downtmp]
 
 
@@ -603,7 +616,7 @@ def sethandlers(f):
 
 
 def cleanup():
-    global downtmp, cleaning
+    global downtmp, downtmp_open, cleaning
     adtlog.debug("cleanup...")
     sethandlers(signal.SIG_DFL)
     # avoid recursion if something bomb()s in hook_cleanup()
@@ -612,7 +625,7 @@ def cleanup():
         if downtmp:
             caller.hook_cleanup()
         cleaning = False
-        downtmp = False
+        downtmp = None
 
 
 def error_cleanup():
