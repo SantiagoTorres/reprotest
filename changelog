@@ -19,6 +19,8 @@ autopkgtest (3.5) UNRELEASED; urgency=medium
     doesn't help.
   * After resetting testbed, copy test tree into current downtmp instead of
     the first one which does not exist any more.
+  * Expand '@' to quasi-versioned (>= 0~) dependencies to avoid satisfying
+    them by virtual packages. (Closes: #761003)
 
  -- Martin Pitt <mpitt@debian.org>  Thu, 04 Sep 2014 11:02:36 +0200
 
