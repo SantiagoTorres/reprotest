@@ -1291,7 +1291,8 @@ Pin-Priority: 1002
   if [ "x`ls /var/lib/dpkg/updates`" != x ]; then
     echo >&2 "/var/lib/dpkg/updates contains some files, aargh"; exit 1
   fi
-  apt-get --quiet update 2>&1|| (sleep 15; apt-get update)
+  OPTS="--no-list-cleanup -o Dir::Etc::sourcelist=/etc/apt/sources.list.d/autopkgtest.list -o Dir::Etc::sourceparts=/dev/null"
+  apt-get --quiet $OPTS update 2>&1|| (sleep 15; apt-get $OPTS update)
   cp /var/lib/dpkg/status %(o)s
   ''' % {'d': self.dir.tb, 'o': aptkey_out.tb}
         testbed.mungeing_apt()
