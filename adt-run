@@ -341,11 +341,11 @@ class Testbed:
         if not self._need_reset_apt:
             return
         self._need_reset_apt = False
-        self.check_exec(['sh', '-ec', '(apt-get --quiet update || (sleep 15; apt-get update)) 2>&1'],
-                        kind='install')
         self.check_exec(['rm', '-f', '/etc/apt/apt.conf.d/90autopkgtest',
                          '/etc/apt/sources.list.d/autopkgtest.list',
                          '/etc/apt/preferences.d/90autopkgtest'])
+        self.check_exec(['sh', '-ec', '(apt-get --quiet update || (sleep 15; apt-get update)) 2>&1'],
+                        kind='install')
 
     def close(self):
         global shared_downtmp
