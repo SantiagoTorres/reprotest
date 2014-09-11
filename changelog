@@ -18,10 +18,10 @@ autopkgtest (3.5) UNRELEASED; urgency=medium
     ttyS0. Without that, the system time is wrong, causing bad file
     timestamps. Unfortunately polling runlevel or the "hwclock" status file
     doesn't help.
-  * After resetting testbed, copy test tree into current downtmp instead of
-    the first one which does not exist any more.
-  * Keep a compatibility symlink with the original downtmp name after
-    resetting the testbed, as some built trees/tests use absolute path names.
+  * Always keep the same downtmp even after resetting the testbed.  Some built
+    trees/tests use absolute path names and break when being moved around
+    after a reset. This already worked in most cases by accident due to a bug,
+    but now clean up the code to be explicit about it.
   * Expand '@' to quasi-versioned (>= 0~) dependencies to avoid satisfying
     them by virtual packages. (Closes: #761003)
   * Ensure that the build tree is world-readable. Fixes permission error when
