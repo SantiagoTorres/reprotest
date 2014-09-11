@@ -321,13 +321,17 @@ class Testbed:
             pkglist.copyup()
 
         # provide autopkgtest-reboot command, if reboot is supported
-        if 'reboot' in self.caps:
+        if 'reboot' in self.caps and 'root-on-testbed' in self.caps:
             adtlog.debug('testbed supports reboot, creating /sbin/autopkgtest-reboot')
-            self.check_exec(['sh', '-ec', '''/bin/echo -e '#!/bin/sh -e\\n'''
-                             '''[ -n "$1" ] || { echo "Usage: $0 <mark>" >&2; exit 1; }\\n'''
-                             '''echo "$1" > /run/autopkgtest-reboot-mark\\n'''
-                             '''kill -PIPE $PPID\\n' > /sbin/autopkgtest-reboot;'''
-                             '''chmod 755 /sbin/autopkgtest-reboot'''])
+            rc = self.execute(['sh', '-ec', '''/bin/echo -e '#!/bin/sh -e\\n'''
+                               '''[ -n "$1" ] || { echo "Usage: $0 <mark>" >&2; exit 1; }\\n'''
+                               '''echo "$1" > /run/autopkgtest-reboot-mark\\n'''
+                               '''kill -PIPE $PPID\\n' > /sbin/autopkgtest-reboot;'''
+                               '''chmod 755 /sbin/autopkgtest-reboot'''])[0]
+            if rc != 0:
+                adtlog.warning('testbed supports reboot and root-on-testbed, '
+                               'but creating /sbin/autopkgtest-reboot failed;'
+                               ' read-only fs?')
 
     def mungeing_apt(self):
         if 'revert' not in self.caps:
