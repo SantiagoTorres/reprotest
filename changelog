@@ -9,7 +9,6 @@ autopkgtest (3.5) UNRELEASED; urgency=medium
   * If there is no Debian test control file, synthesize one for Ruby and Perl
     packages, using gem2deb-test-runner and pkg-perl-autopkgtest. Thanks to
     Antonio Terceiro!
-  * Run tests under tight 077 umask to spot bugs like #761049.
 
   Bug fixes:
   * qemu: Reconfigure tzdata after copying /etc/timezone, to make that change
