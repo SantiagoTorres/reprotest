@@ -9,6 +9,7 @@ autopkgtest (3.5) UNRELEASED; urgency=medium
   * If there is no Debian test control file, synthesize one for Ruby and Perl
     packages, using gem2deb-test-runner and pkg-perl-autopkgtest. Thanks to
     Antonio Terceiro!
+  * ssh-setup/adb: Unlock the greeter before running tests.
 
   Bug fixes:
   * qemu: Reconfigure tzdata after copying /etc/timezone, to make that change
