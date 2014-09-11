@@ -43,7 +43,7 @@ caller = __main__
 copy_timeout = int(os.getenv('ADT_VIRT_COPY_TIMEOUT', '300'))
 
 downtmp_open = None  # downtmp after opening testbed
-downtmp = None  # current downtmp (differs from downtmp_open after reset)
+downtmp = None  # current downtmp (None after close)
 auxverb = None  # prefix to run command argv in testbed
 cleaning = False
 in_mainloop = False
@@ -248,23 +248,38 @@ def cmd_open(c, ce):
         bomb("`open' when already open")
     caller.hook_open()
     adtlog.debug("auxverb = %s, downtmp = %s" % (str(auxverb), downtmp))
-    downtmp = caller.hook_downtmp()
+    downtmp = caller.hook_downtmp(downtmp_open)
+    if downtmp_open and downtmp_open != downtmp:
+        bomb('virt-runner failed to restore downtmp path %s, gave %s instead'
+             % (downtmp_open, downtmp))
     downtmp_open = downtmp
     return [downtmp]
 
 
-def downtmp_mktemp():
-    d = check_exec(['mktemp', '--directory', '/tmp/adt-run.XXXXXX'],
-                   downp=True, outp=True)
-    check_exec(['chmod', '1777', d], downp=True)
-    return d
+def downtmp_mktemp(path):
+    '''Generate a downtmp
+
+    When a path is given, this is the downtmp that we created when opening the
+    testbed the first time. We always want to keep the same path between
+    resets, as built package trees sometimes refer to absolute paths and thus
+    fail if they get moved around.
+    '''
+    if path:
+        check_exec(['mkdir', '--mode=1777', '--parents', downtmp_open],
+                   downp=True)
+        return path
+    else:
+        d = check_exec(['mktemp', '--directory', '/tmp/adt-run.XXXXXX'],
+                       downp=True, outp=True)
+        check_exec(['chmod', '1777', d], downp=True)
+        return d
 
 
 def downtmp_remove():
-    global downtmp, downtmp_open, auxverb
+    global downtmp, auxverb
     if downtmp:
         execute_timeout(None, copy_timeout,
-                        auxverb + ['rm', '-rf', '--', downtmp, downtmp_open])
+                        auxverb + ['rm', '-rf', '--', downtmp])
         downtmp = None
 
 
@@ -276,18 +291,11 @@ def cmd_revert(c, ce):
     if 'revert' not in caller.hook_capabilities():
         bomb("`revert' when `revert' not advertised")
     caller.hook_revert()
-    downtmp = caller.hook_downtmp()
+    downtmp = caller.hook_downtmp(downtmp_open)
+    if downtmp_open and downtmp_open != downtmp:
+        bomb('virt-runner failed to restore downtmp path %s, gave %s instead'
+             % (downtmp_open, downtmp))
     adtlog.debug("auxverb = %s, downtmp = %s" % (str(auxverb), downtmp))
-
-    # some packages keep absolute paths in their built tree; support that with
-    # a compatibility link for the previous downtmp
-    if downtmp != downtmp_open:
-        adtlog.debug('Creating compatibilty symlink %s -> %s' %
-                     (downtmp_open, downtmp))
-        check_exec(['mkdir', '--parents', os.path.dirname(downtmp_open)],
-                   downp=True, timeout=30)
-        check_exec(['ln', '-s', downtmp, downtmp_open],
-                   downp=True, timeout=30)
 
     return [downtmp]
 
@@ -616,7 +624,7 @@ def sethandlers(f):
 
 
 def cleanup():
-    global downtmp, downtmp_open, cleaning
+    global downtmp, cleaning
     adtlog.debug("cleanup...")
     sethandlers(signal.SIG_DFL)
     # avoid recursion if something bomb()s in hook_cleanup()
@@ -648,9 +656,6 @@ def error_cleanup():
 
 
 def prepare():
-    global downtmp
-    downtmp = None
-
     def handler(sig, *any):
         cleanup()
         os.kill(os.getpid(), sig)
