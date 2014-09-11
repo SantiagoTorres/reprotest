@@ -332,6 +332,14 @@ def _auto_debian_control_perl(srcdir, tests):
         tests.append(Test('auto-runtime-deps', None, command, [], [],
                           depends, []))
 
+        command = '/usr/share/pkg-perl-autopkgtest/runner ' \
+                  'runtime-deps-and-recommends'
+        depends = _parse_debian_depends(command,
+                                        '@, pkg-perl-autopkgtest',
+                                        srcdir)
+        tests.append(Test('auto-runtime-deps-recommends', None, command,
+                          ['needs-recommends'], [], depends, []))
+
 
 def _auto_debian_control(srcdir):
     '''Infer tests if there is no Debian test control file'''
