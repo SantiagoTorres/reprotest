@@ -128,10 +128,10 @@ def hook_open():
     VirtSubproc.auxverb += ['--']
 
 
-def hook_downtmp():
+def hook_downtmp(path):
     global capabilities
 
-    d = VirtSubproc.downtmp_mktemp()
+    d = VirtSubproc.downtmp_mktemp(path)
 
     # determine mount location
     # FIXME: "schroot --location -c sessid" really ought to work, but fails; so

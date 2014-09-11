@@ -167,7 +167,11 @@ def hook_open():
 
     lxc_container_name = get_available_lxc_container_name()
     adtlog.debug('using container name %s' % lxc_container_name)
-    shared_dir = tempfile.mkdtemp(prefix='adt-virt-lxc.shared.')
+    if shared_dir is None:
+        shared_dir = tempfile.mkdtemp(prefix='adt-virt-lxc.shared.')
+    else:
+        # don't change the name between resets, to provide stable downtmp paths
+        os.makedirs(shared_dir)
     os.chmod(shared_dir, 0o755)
     if args.ephemeral:
         VirtSubproc.check_exec(sudoify(
@@ -210,7 +214,7 @@ def hook_open():
         raise
 
 
-def hook_downtmp():
+def hook_downtmp(path):
     global capabilities, shared_dir
 
     if shared_dir:
@@ -220,7 +224,7 @@ def hook_downtmp():
         VirtSubproc.check_exec(['mkdir', '-m', '777', d], downp=True)
         capabilities.append('downtmp-host=' + d)
     else:
-        d = VirtSubproc.downtmp_mktemp()
+        d = VirtSubproc.downtmp_mktemp(path)
     return d
 
 
@@ -236,7 +240,6 @@ def hook_cleanup():
     capabilities = [c for c in capabilities if not c.startswith('downtmp-host')]
     if shared_dir:
         shutil.rmtree(shared_dir)
-        shared_dir = None
 
     VirtSubproc.check_exec(sudoify(['lxc-stop', '--name', lxc_container_name]))
     VirtSubproc.check_exec(sudoify(['lxc-destroy', '--name', lxc_container_name]))

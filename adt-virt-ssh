@@ -293,9 +293,8 @@ exec %s -- %s $(printf '%%q ' "$@")
         raise
 
 
-def hook_downtmp():
-    d = VirtSubproc.downtmp_mktemp()
-    return d
+def hook_downtmp(path):
+    return VirtSubproc.downtmp_mktemp(path)
 
 
 def hook_forked_inchild():

@@ -78,9 +78,9 @@ def hook_open():
     pass
 
 
-def hook_downtmp():
+def hook_downtmp(path):
     global capabilities
-    d = VirtSubproc.downtmp_mktemp()
+    d = VirtSubproc.downtmp_mktemp(path)
     if chroot_dir:
         capabilities.append('downtmp-host=%s/%s' % (chroot_dir, d))
     return d

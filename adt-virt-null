@@ -54,10 +54,10 @@ def hook_open():
     VirtSubproc.auxverb = ['env']  # no-op, but must not be empty
 
 
-def hook_downtmp():
+def hook_downtmp(path):
     global capabilities
 
-    d = VirtSubproc.downtmp_mktemp()
+    d = VirtSubproc.downtmp_mktemp(path)
     capabilities.append('downtmp-host=' + d)
     return d
 

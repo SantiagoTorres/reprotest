@@ -496,13 +496,12 @@ def hook_open():
         raise
 
 
-def hook_downtmp():
+def hook_downtmp(path):
     # we would like to do this, but 9p is currently way too slow for big source
     # trees
     # downtmp = '/autopkgtest/tmp'
     # VirtSubproc.check_exec(['mkdir', '-m', '1777', downtmp], downp=True)
-    downtmp = VirtSubproc.downtmp_mktemp()
-    return downtmp
+    return VirtSubproc.downtmp_mktemp(path)
 
 
 def hook_revert():
