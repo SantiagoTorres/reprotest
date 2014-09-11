@@ -1,6 +1,8 @@
 autopkgtest (3.5.1) UNRELEASED; urgency=medium
 
   * Fix apt cleanup to remove configuration files before apt-get update.
+  * When using local binaries, tell apt-get to only download our
+    autopkgtest.list, not all apt lists again.
 
  -- Martin Pitt <mpitt@debian.org>  Thu, 11 Sep 2014 13:38:25 +0200
 
