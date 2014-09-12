@@ -8,6 +8,8 @@ autopkgtest (3.5.1) UNRELEASED; urgency=medium
     compatiblity.
   * Invoke gpg with --no-random-seed-file to avoid VCS noise when using
     tests/home/.
+  * run-from-checkout: Use --gnupg-home with our tests/home to avoid GPG key
+    generation.
 
  -- Martin Pitt <mpitt@debian.org>  Thu, 11 Sep 2014 13:38:25 +0200
 
