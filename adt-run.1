@@ -325,11 +325,11 @@ This results in tests and builds using the testbed's own normal
 
 .TP
 .BI --gnupg-home= dir
-Uses \fIdir\fR as the \fBGNUPGHOME\fR for local apt archive signing.
+Uses \fIdir\fR as the gnupg key directory for local apt archive signing.
 The specified directory should not contain keyrings containing other
 unrelated keys, since \fBadt-run\fR does not specify to \fBgpg\fR
 which keys to use.  The default is
-.BR $HOME/.autopkgtest .
+.BR $HOME/.cache/autopkgtest .
 
 .TP
 .BR \-h | \-\-help

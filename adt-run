@@ -216,8 +216,6 @@ def finalise_options():
     if opts.gainroot:
         dpkg_buildpackage += ' -r' + opts.gainroot
 
-    if opts.gnupghome.startswith('~/'):
-        opts.gnupghome = os.path.expanduser(opts.gnupghome)
 
 # ---------- testbed management - the Testbed class
 
@@ -1164,21 +1162,9 @@ class Binaries:
         # clean up an empty binaries output dir
         atexit.register(lambda: os.path.exists(self.dir.host) and (
             os.listdir(self.dir.host) or os.rmdir(self.dir.host)))
-        ok = False
-
-        if opts.gnupghome is None:
-            opts.gnupghome = tmp + '/gnupg'
 
         adtlog.debug('Binaries: initialising')
-        try:
-            for x in ['pubring', 'secring']:
-                os.stat(opts.gnupghome + '/' + x + '.gpg')
-            ok = True
-        except (IOError, OSError) as oe:
-            if oe.errno != errno.ENOENT:
-                raise
-
-        if ok:
+        if os.path.exists(os.path.join(opts.gnupghome, 'secring.gpg')):
             adtlog.debug('Binaries: no key generation needed')
         else:
             self.genkey()
@@ -1191,7 +1177,8 @@ class Binaries:
     def genkey(self):
         adtlog.debug('Binaries: preparing for key generation')
 
-        mkdir_okexist(os.path.dirname(opts.gnupghome), 0o2755)
+        if not os.path.exists(os.path.dirname(opts.gnupghome)):
+            os.makedirs(os.path.dirname(opts.gnupghome))
         mkdir_okexist(opts.gnupghome, 0o700)
 
         script = '''
