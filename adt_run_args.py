@@ -297,9 +297,14 @@ details.'''
 
     # misc
     g_misc = parser.add_argument_group('other options')
+    # keep backwards compatible path
+    gnupghome_default = '~/.autopkgtest/gpg'
+    if not os.path.isdir(os.path.expanduser(gnupghome_default)):
+        gnupghome_default = '~/.cache/autopkgtest'
     g_misc.add_argument(
-        '--gnupg-home', dest='gnupghome', default='~/.autopkgtest/gpg',
-        help='use GNUPGHOME rather than ~/.autopkgtest (for signing private '
+        '--gnupg-home', dest='gnupghome', metavar='DIR',
+        default=gnupghome_default,
+        help='use DIR rather than %(default)s (for signing private '
         'apt archive)')
     g_misc.add_argument(
         '-h', '--help', action='help', default=argparse.SUPPRESS,
@@ -365,5 +370,8 @@ details.'''
             parser.error('--copy host path %s does not exist' % host)
         copy_pairs.append((host, tb))
     args.copy = copy_pairs
+
+    if args.gnupghome.startswith('~/'):
+        args.gnupghome = os.path.expanduser(args.gnupghome)
 
     return (args, actions, virt_args)
