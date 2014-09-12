@@ -1193,7 +1193,7 @@ Name-Comment: do not trust this key
 Name-Email: autopkgtest@example.com
 END
   set -x
-  gpg --homedir="$1" --batch --gen-key key-gen-params
+  gpg --homedir="$1" --batch --no-random-seed-file --gen-key key-gen-params
 '''
         cmdl = ['sh', '-ec', script, 'x', opts.gnupghome]
         rc = script_out(cmdl, what='genkey', script=script)[0]
@@ -1257,8 +1257,8 @@ Pin-Priority: 1002
   gzip <Packages >Packages.gz
   apt-ftparchive release . >Release
   rm -f Release.gpg
-  gpg --homedir="$2" --batch --detach-sign --armour -o Release.gpg Release
-  gpg --homedir="$2" --batch --export >archive-key.pgp
+  gpg --homedir="$2" --batch --no-random-seed-file --detach-sign --armour -o Release.gpg Release
+  gpg --homedir="$2" --batch --no-random-seed-file --export >archive-key.pgp
 '''
         cmdl = ['sh', '-ec', script, 'x', self.dir.host, opts.gnupghome]
         rc = script_out(cmdl, what='ftparchive', script=script)[0]
