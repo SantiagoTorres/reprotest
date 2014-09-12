@@ -6,6 +6,8 @@ autopkgtest (3.5.1) UNRELEASED; urgency=medium
   * Move autopkgtest gpg directory from ~/.autopkgtest/gpg to
     ~/.cache/autopkgtest/. Check the former location for backwards
     compatiblity.
+  * Invoke gpg with --no-random-seed-file to avoid VCS noise when using
+    tests/home/.
 
  -- Martin Pitt <mpitt@debian.org>  Thu, 11 Sep 2014 13:38:25 +0200
 
