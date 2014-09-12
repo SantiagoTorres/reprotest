@@ -10,6 +10,9 @@ autopkgtest (3.5.1) UNRELEASED; urgency=medium
     tests/home/.
   * run-from-checkout: Use --gnupg-home with our tests/home to avoid GPG key
     generation.
+  * adt-run: Defer GPG key creation until binary publishing time. This avoids
+    key creation entirely for the common case of not using any local or built
+    binaries.
 
  -- Martin Pitt <mpitt@debian.org>  Thu, 11 Sep 2014 13:38:25 +0200
 
