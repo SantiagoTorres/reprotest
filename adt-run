@@ -1164,11 +1164,6 @@ class Binaries:
             os.listdir(self.dir.host) or os.rmdir(self.dir.host)))
 
         adtlog.debug('Binaries: initialising')
-        if os.path.exists(os.path.join(opts.gnupghome, 'secring.gpg')):
-            adtlog.debug('Binaries: no key generation needed')
-        else:
-            self.genkey()
-
         self.apt_get_cmd = ['apt-get', '--quiet',
                             '-o', 'Debug::pkgProblemResolver=true ',
                             '-o', 'APT::Get::force-yes=true',
@@ -1247,6 +1242,11 @@ Pin-Priority: 1002
         if not self.registered:
             adtlog.debug('Binaries: no registered binaries, not publishing anything')
             return
+
+        if os.path.exists(os.path.join(opts.gnupghome, 'secring.gpg')):
+            adtlog.debug('Binaries: no key generation needed')
+        else:
+            self.genkey()
 
         self._configure_apt(testbed)
 
