@@ -17,6 +17,10 @@ autopkgtest (3.5.1) UNRELEASED; urgency=medium
     only. (Closes: #761417)
   * When determining whether a testbed reset is necessary in between tests,
     also consider if recommends were/will be installed. (Closes: #761420)
+  * README.package-tests.rst: Packages with implicit test control (ruby/perl)
+    should use a different Testsuite: value, namely
+    autopkgtest-pkg-{ruby,perl}, to avoid breaking compatibility with the
+    specification and to other implementations like sadt.
 
  -- Martin Pitt <mpitt@debian.org>  Thu, 11 Sep 2014 13:38:25 +0200
 
