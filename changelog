@@ -15,6 +15,8 @@ autopkgtest (3.5.1) UNRELEASED; urgency=medium
     binaries.
   * tests: Use apt-doc instead of cpp-doc, as the latter is in Debian contrib
     only. (Closes: #761417)
+  * When determining whether a testbed reset is necessary in between tests,
+    also consider if recommends were/will be installed. (Closes: #761420)
 
  -- Martin Pitt <mpitt@debian.org>  Thu, 11 Sep 2014 13:38:25 +0200
 
