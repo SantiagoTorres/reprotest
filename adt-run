@@ -292,6 +292,7 @@ class Testbed:
 
         self.scratch = pl[0]
         self.deps_installed = []
+        self.recommends_installed = False
         self.exec_cmd = list(map(url_unquote, self.command('print-execute-command', (), 1)[0].split(',')))
         self.caps = self.command('capabilities', (), None)
         adtlog.debug('testbed capabilities: %s' % self.caps)
@@ -399,13 +400,15 @@ class Testbed:
                 adtlog.info('rebooting testbed after setup commands that affected boot')
                 self.command('reboot', ())
 
-    def reset(self, deps_new):
+    def reset(self, deps_new, with_recommends):
         '''Reset the testbed, if possible and necessary'''
 
-        adtlog.debug('testbed reset: modified=%s, deps_installed=%s, deps_new=%s' %
-                     (self.modified, self.deps_installed, deps_new))
+        adtlog.debug('testbed reset: modified=%s, deps_installed=%s(r: %s), deps_new=%s(r: %s)' %
+                     (self.modified, self.deps_installed, self.recommends_installed,
+                      deps_new, with_recommends))
         if 'revert' in self.caps and (
-                self.modified or [d for d in self.deps_installed if d not in deps_new]):
+                self.modified or self.recommends_installed != with_recommends or
+                [d for d in self.deps_installed if d not in deps_new]):
             adtlog.debug('testbed reset')
             pl = self.command('revert', (), 1)
             self._opened(pl)
@@ -420,6 +423,7 @@ class Testbed:
         binaries.publish()
 
         self.deps_installed = deps_new
+        self.recommends_installed = recommends
         if not deps_new:
             return
         self.satisfy_dependencies_string(', '.join(deps_new), 'install-deps', recommends)
@@ -427,7 +431,7 @@ class Testbed:
     def prepare(self, deps_new, recommends):
         '''Set up clean test bed with given dependencies'''
 
-        self.reset(deps_new)
+        self.reset(deps_new, recommends)
         self.install_deps(deps_new, recommends)
 
     def needs_reset(self):
@@ -1366,7 +1370,7 @@ def build_source(kind, arg, built_binaries):
     Return a TestbedPath to the unpacked tests tree.
     '''
     testbed.blame(arg)
-    testbed.reset([])
+    testbed.reset([], testbed.recommends_installed)
 
     def debug_b(m):
         adtlog.debug('build_source: <%s:%s> %s' % (kind, arg, m))
