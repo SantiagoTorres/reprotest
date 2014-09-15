@@ -13,6 +13,8 @@ autopkgtest (3.5.1) UNRELEASED; urgency=medium
   * adt-run: Defer GPG key creation until binary publishing time. This avoids
     key creation entirely for the common case of not using any local or built
     binaries.
+  * tests: Use apt-doc instead of cpp-doc, as the latter is in Debian contrib
+    only. (Closes: #761417)
 
  -- Martin Pitt <mpitt@debian.org>  Thu, 11 Sep 2014 13:38:25 +0200
 
