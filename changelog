@@ -26,6 +26,8 @@ autopkgtest (3.5.1) UNRELEASED; urgency=medium
   * Reorganize NullRunner tests so that most run also as normal user (and
     hence during package build); only keep four tests in NullRunnerRoot which
     actually do need root privileges.
+  * Improve NullRunner.test_timeout_no_output test case to ensure that the
+    test is properly killed after timing out.
 
  -- Martin Pitt <mpitt@debian.org>  Thu, 11 Sep 2014 13:38:25 +0200
 
