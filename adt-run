@@ -533,11 +533,13 @@ class Testbed:
         VirtSubproc.timeout_start(timeout)
         try:
             proc = subprocess.Popen(self.exec_cmd + argv, stdout=stdout,
-                                    stderr=stderr, universal_newlines=True)
+                                    stderr=stderr, universal_newlines=True,
+                                    preexec_fn=os.setpgrp)
             (out, err) = proc.communicate()
             VirtSubproc.timeout_stop()
         except VirtSubproc.Timeout:
-            proc.terminate()
+            os.killpg(proc.pid, signal.SIGTERM)
+            proc.wait()
             self.bomb('timed out on command "%s" (kind: %s)' % (' '.join(argv), kind))
 
         adtlog.debug('testbed command exited with code %i' % proc.returncode)
@@ -884,9 +886,7 @@ fi
             test_cmd = "bash -ec '%s'" % test.command
 
         script += 'touch %(o)s %(e)s; ' \
-                  '%(t)s 2> >(tee -a %(e)s >&2) > >(tee -a %(o)s) & TPID=$!; ' \
-                  'trap "kill $TPID || true; rm -rf $ADTTMP" TERM; ' \
-                  'wait $TPID;' \
+                  '%(t)s 2> >(tee -a %(e)s >&2) > >(tee -a %(o)s); ' \
                   % {'t': test_cmd, 'o': so.tb, 'e': se.tb}
 
         if 'needs-root' not in test.restrictions and opts.user is not None:
