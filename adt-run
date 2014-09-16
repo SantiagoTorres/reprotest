@@ -325,7 +325,7 @@ class Testbed:
             rc = self.execute(['sh', '-ec', '''/bin/echo -e '#!/bin/sh -e\\n'''
                                '''[ -n "$1" ] || { echo "Usage: $0 <mark>" >&2; exit 1; }\\n'''
                                '''echo "$1" > /run/autopkgtest-reboot-mark\\n'''
-                               '''kill -PIPE $PPID\\n' > /sbin/autopkgtest-reboot;'''
+                               '''kill -KILL $PPID\\n' > /sbin/autopkgtest-reboot;'''
                                '''chmod 755 /sbin/autopkgtest-reboot'''])[0]
             if rc != 0:
                 adtlog.warning('testbed supports reboot and root-on-testbed, '
@@ -914,8 +914,8 @@ fi
             rc = self.execute(test_argv + [script_prefix + script], kind='test')[0]
 
             # did the test invoke autopkgtest-reboot?
-            if os.WIFSIGNALED(rc) and os.WTERMSIG(rc) == signal.SIGPIPE and 'reboot' in self.caps:
-                adtlog.debug('test process SIGPIPEd, checking for reboot marker')
+            if os.WIFSIGNALED(rc) and os.WTERMSIG(rc) == signal.SIGKILL and 'reboot' in self.caps:
+                adtlog.debug('test process SIGKILLed, checking for reboot marker')
                 (code, reboot_marker, err) = self.execute(
                     ['cat', '/run/autopkgtest-reboot-mark'],
                     stdout=subprocess.PIPE, stderr=subprocess.PIPE)
