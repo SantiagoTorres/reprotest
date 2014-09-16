@@ -21,6 +21,8 @@ autopkgtest (3.5.1) UNRELEASED; urgency=medium
     should use a different Testsuite: value, namely
     autopkgtest-pkg-{ruby,perl}, to avoid breaking compatibility with the
     specification and to other implementations like sadt.
+  * autopkgtest-reboot: Switch from SIGPIPE to SIGKILL, as that is much more
+    reliable.
 
  -- Martin Pitt <mpitt@debian.org>  Thu, 11 Sep 2014 13:38:25 +0200
 
