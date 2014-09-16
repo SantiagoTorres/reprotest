@@ -23,6 +23,9 @@ autopkgtest (3.5.1) UNRELEASED; urgency=medium
     specification and to other implementations like sadt.
   * autopkgtest-reboot: Switch from SIGPIPE to SIGKILL, as that is much more
     reliable.
+  * Reorganize NullRunner tests so that most run also as normal user (and
+    hence during package build); only keep four tests in NullRunnerRoot which
+    actually do need root privileges.
 
  -- Martin Pitt <mpitt@debian.org>  Thu, 11 Sep 2014 13:38:25 +0200
 
