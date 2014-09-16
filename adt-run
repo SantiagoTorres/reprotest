@@ -217,6 +217,27 @@ def finalise_options():
         dpkg_buildpackage += ' -r' + opts.gainroot
 
 
+def child_ps(pid):
+    '''Get all child processes of pid'''
+
+    try:
+        out = subprocess.check_output(['ps', '-o', 'pid=', '--ppid', str(pid)],
+                                      universal_newlines=True)
+        return [int(p) for p in out.split()]
+    except subprocess.CalledProcessError:
+        return []
+
+
+def killtree(pid):
+    '''Recursively kill pid and all of its children'''
+
+    for child in child_ps(pid):
+        killtree(child)
+    try:
+        os.kill(pid, signal.SIGTERM)
+    except OSError:
+        pass
+
 # ---------- testbed management - the Testbed class
 
 
@@ -533,12 +554,11 @@ class Testbed:
         VirtSubproc.timeout_start(timeout)
         try:
             proc = subprocess.Popen(self.exec_cmd + argv, stdout=stdout,
-                                    stderr=stderr, universal_newlines=True,
-                                    preexec_fn=os.setpgrp)
+                                    stderr=stderr, universal_newlines=True)
             (out, err) = proc.communicate()
             VirtSubproc.timeout_stop()
         except VirtSubproc.Timeout:
-            os.killpg(proc.pid, signal.SIGTERM)
+            killtree(proc.pid)
             proc.wait()
             self.bomb('timed out on command "%s" (kind: %s)' % (' '.join(argv), kind))
 
