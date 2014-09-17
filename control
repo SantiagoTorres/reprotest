@@ -10,6 +10,7 @@ Build-Depends: debhelper (>= 8),
  python3-debian,
  python3-docutils,
  pyflakes,
+ procps,
  pep8
 Vcs-Git: git://git.debian.org/git/autopkgtest/autopkgtest.git
 Vcs-Browser: http://anonscm.debian.org/gitweb/?p=autopkgtest/autopkgtest.git
@@ -22,6 +23,7 @@ Depends: python3,
  python3-debian,
  apt-utils,
  libdpkg-perl,
+ procps,
  ${misc:Depends}
 Suggests: schroot, lxc, qemu-system, qemu-utils
 Description: automatic as-installed testing for Debian packages

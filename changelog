@@ -29,6 +29,7 @@ autopkgtest (3.5.1) UNRELEASED; urgency=medium
   * Improve NullRunner.test_timeout_no_output test case to ensure that the
     test is properly killed after timing out.
   * Fix invocation of tests so that they retain the default SIGINT handler.
+    This changes cleanup after a timeout, add new procps dependency for this.
     (Closes: #761596)
 
  -- Martin Pitt <mpitt@debian.org>  Thu, 11 Sep 2014 13:38:25 +0200
