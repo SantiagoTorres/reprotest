@@ -312,7 +312,8 @@ def _auto_debian_control_ruby(srcdir, tests):
 def _auto_debian_control_perl(srcdir, tests):
     '''Add automatic test for Perl packages'''
 
-    if (os.path.exists(os.path.join(srcdir, 't')) and
+    if ((os.path.exists(os.path.join(srcdir, 't')) or
+         os.path.exists(os.path.join(srcdir, 'test.pl'))) and
             (os.path.exists(os.path.join(srcdir, 'Makefile.PL')) or
              os.path.exists(os.path.join(srcdir, 'Build.PL')))):
 
