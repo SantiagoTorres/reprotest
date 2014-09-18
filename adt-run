@@ -612,8 +612,8 @@ Description: satisfy autopkgtest test dependencies
         deb.copydown()
 
         # install it and its dependencies in the tb
-        self.check_exec(['dpkg', '--unpack', deb.tb])
-        rc = self.execute(['apt-get', 'install', '--quiet', '--assume-yes', '--fix-broken',
+        self.check_exec(['dpkg', '--unpack', deb.tb], stdout=subprocess.PIPE)
+        rc = self.execute(['apt-get', 'install', '--quiet', '--quiet', '--assume-yes', '--fix-broken',
                            '-o', 'APT::Install-Recommends=%s' % recommends,
                            '-o', 'Debug::pkgProblemResolver=true'],
                           kind='install')[0]
@@ -1443,7 +1443,7 @@ def build_source(kind, arg, built_binaries):
         return tests_tree
 
     elif kind == 'apt-source':
-        create_command = 'apt-get source -qq --only-source ' + arg
+        create_command = 'apt-get source -qq --only-source %s >/dev/null' % arg
 
     else:
         bomb('unknown action kind for build_source: ' + kind)
