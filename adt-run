@@ -1467,12 +1467,11 @@ def build_source(kind, arg, built_binaries):
         'cd [a-z0-9]*/.',
         'pwd >&3',
         'sed -n "1 {s/).*//; s/ (/\\n/; p}" debian/changelog >&3',
-        'set +e; test -f debian/tests/control; echo $? >&3',
-        'grep -q "^Restrictions:.*\\bbuild-needed\\b" debian/tests/control; echo $? >&3'
+        'set +e; grep -q "^Restrictions:.*\\bbuild-needed\\b" debian/tests/control 2>/dev/null; echo $? >&3'
     ]
 
-    (result_pwd, testpkg_name, testpkg_version, control_test_rc, build_needed_rc) = \
-        source_rules_command(script, 'extract', results_lines=5)
+    (result_pwd, testpkg_name, testpkg_version, build_needed_rc) = \
+        source_rules_command(script, 'extract', results_lines=4)
 
     # record tested package version
     adtlog.info('testing package %s version %s' % (testpkg_name, testpkg_version))
