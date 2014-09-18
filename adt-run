@@ -1443,7 +1443,7 @@ def build_source(kind, arg, built_binaries):
         return tests_tree
 
     elif kind == 'apt-source':
-        create_command = 'apt-get source --only-source ' + arg
+        create_command = 'apt-get source -qq --only-source ' + arg
 
     else:
         bomb('unknown action kind for build_source: ' + kind)
