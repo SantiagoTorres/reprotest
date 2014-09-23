@@ -4,6 +4,8 @@ autopkgtest (3.5.2) UNRELEASED; urgency=medium
   * Make apt-get source and package unpack output a bit less verbose.
   * Avoid "grep: debian/tests/control: No such file or directory" warning for
     packages with implicit test control. (Closes: #762009)
+  * Adjust "unpack into temp dir" mode for multi-archified typelib locations
+    introduced in gobject-introspection 1.41.4-1.
 
   [ Niko Tyni ]
   * Test perl packages that include test.pl, not just t/. (Closes: #762013)
