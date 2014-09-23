@@ -741,9 +741,14 @@ done
 [ -z "$p" ] || echo PYTHONPATH=$p${PYTHONPATH:-}
 
 # gobject-introspection
+l=""
 if [ -d $d/usr/lib/girepository-1.0 ]; then
-    echo GI_TYPELIB_PATH=$d/usr/lib/girepository-1.0:${GI_TYPELIB_PATH:-}
+    l=$d/usr/lib/girepository-1.0
 fi
+for candidate in $(find $d -type d -path '*/usr/lib/*/girepository-*'); do
+    [ -z "$(ls $candidate/*.typelib 2>/dev/null)" ] || l="$candidate:$l"
+done
+[ -z "$l" ] || echo GI_TYPELIB_PATH="$l:${GI_TYPELIB_PATH:-}"
 ''' % {'t': self.scratch, 'pkgs': ' '.join(to_install)}
         (rc, out, _) = self.execute(['sh', '-euc', script],
                                     stdout=subprocess.PIPE)
