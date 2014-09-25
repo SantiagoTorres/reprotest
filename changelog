@@ -2,6 +2,8 @@ autopkgtest (3.5.3) UNRELEASED; urgency=medium
 
   * ssh-setup/adb: Use the new "phablet-config network" to save/restore wifi
     connections, which also works with non-root adb.
+  * Give adt-run's tee processes some time to catch up between printing
+    results and stderr, to avoid scrambled logs. (LP: #1373441)
 
  -- Martin Pitt <mpitt@debian.org>  Tue, 23 Sep 2014 09:38:17 +0200
 
