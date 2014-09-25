@@ -5,6 +5,7 @@ autopkgtest (3.5.3) UNRELEASED; urgency=medium
   * Give adt-run's tee processes some time to catch up between printing
     results and stderr, to avoid scrambled logs. (LP: #1373441)
   * Fix NullRunner.test_timeout_no_output for older Python versions.
+  * tests/pyflakes: Skip test if pyflakes3 is not available (for backports).
 
  -- Martin Pitt <mpitt@debian.org>  Tue, 23 Sep 2014 09:38:17 +0200
 
