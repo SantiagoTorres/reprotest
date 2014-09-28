@@ -767,8 +767,8 @@ done
         if 'ADT_CLICK_NO_FRAMEWORK_CHECK' in os.environ:
             # this is mostly for testing
             clickopts.append('--force-missing-framework')
-        rc = self.execute(['click', 'install'] + clickopts + [tp.tb],
-                          kind='install')[0]
+        rc = self.execute(['click', 'install', '--allow-unauthenticated']
+                          + clickopts + [tp.tb], kind='install')[0]
         if rc != 0:
             bomb('click install failed with status %i' % rc)
 
