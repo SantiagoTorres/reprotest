@@ -9,6 +9,8 @@ autopkgtest (3.5.3) UNRELEASED; urgency=medium
   * Bump Standards version to 3.9.6 (no changes necessary).
   * NullRunner.test_timeout_no_output: Slightly relax time bound to make
     failures less likely on loaded/slow machines.
+  * Install clicks with --allow-unauthenticated to support local developer
+    generated packages. (LP: #1372640)
 
  -- Martin Pitt <mpitt@debian.org>  Tue, 23 Sep 2014 09:38:17 +0200
 
