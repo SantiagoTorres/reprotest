@@ -1,3 +1,10 @@
+autopkgtest (3.5.4) UNRELEASED; urgency=medium
+
+  * adt-run: Make apt-get source calls again show what's being downloaded, but
+    not all the other noise around it.
+
+ -- Martin Pitt <mpitt@debian.org>  Tue, 30 Sep 2014 08:54:41 +0200
+
 autopkgtest (3.5.3) unstable; urgency=medium
 
   * ssh-setup/adb: Use the new "phablet-config network" to save/restore wifi
