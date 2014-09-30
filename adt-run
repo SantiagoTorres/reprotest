@@ -1450,7 +1450,8 @@ def build_source(kind, arg, built_binaries):
         return tests_tree
 
     elif kind == 'apt-source':
-        create_command = 'apt-get source -qq --only-source %s >/dev/null' % arg
+        # apt-get source is terribly noisy; only show what gets downloaded
+        create_command = 'OUT=$(apt-get source -q --only-source %s); echo "$OUT" | grep ^Get: || true' % arg
 
     else:
         bomb('unknown action kind for build_source: ' + kind)
