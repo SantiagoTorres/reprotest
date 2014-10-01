@@ -4,6 +4,9 @@ autopkgtest (3.5.4) UNRELEASED; urgency=medium
     not all the other noise around it.
   * ssh-setup/nova: Add -N/--net-id argument for OpenStack deployments which
     require setting an explicit --nic net-id.
+  * ssh-setup/nova: Stop using nova boot's --file option, it does not work any
+    more (see LP #1376176); use --user-data instead. Purge some unnecessary
+    packages to minimize the VM and set some go-faster apt options.
 
  -- Martin Pitt <mpitt@debian.org>  Tue, 30 Sep 2014 08:54:41 +0200
 
