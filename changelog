@@ -7,6 +7,7 @@ autopkgtest (3.5.4) UNRELEASED; urgency=medium
   * ssh-setup/nova: Stop using nova boot's --file option, it does not work any
     more (see LP #1376176); use --user-data instead. Purge some unnecessary
     packages to minimize the VM and set some go-faster apt options.
+  * ssh-setup/nova: Wait until ssh is available and cloud-init is done.
 
  -- Martin Pitt <mpitt@debian.org>  Tue, 30 Sep 2014 08:54:41 +0200
 
