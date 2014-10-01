@@ -13,6 +13,7 @@ autopkgtest (3.5.4) UNRELEASED; urgency=medium
   * ssh-setup/nova: Install linux-generic to get missing extra modules like
     scsi_debug, and haveged to avoid running out of entropy (similar to
     adt-buildvm-ubuntu-cloud).
+  * adt-virt-ssh: Implement reboot.
 
  -- Martin Pitt <mpitt@debian.org>  Tue, 30 Sep 2014 08:54:41 +0200
 
