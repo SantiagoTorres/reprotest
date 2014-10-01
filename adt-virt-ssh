@@ -305,6 +305,13 @@ def hook_revert():
     execute_setup_script('revert')
 
 
+def hook_reboot():
+    global sshcmd
+
+    execute_setup_script('reboot')
+    wait_for_ssh(sshcmd)
+
+
 def hook_cleanup():
     global capabilities, workdir, cleanup_paths
 
