@@ -867,7 +867,7 @@ done
             os.unlink(pkglist.host)
 
         # ensure our tests are in the testbed
-        tree.copydown()
+        tree.copydown(check_existing=True)
 
         # stdout/err files in testbed
         so = TempTestbedPath(self, test.name + '-stdout', autoclean=False)
@@ -1044,8 +1044,15 @@ class TestbedPath:
         self.tb = tb
         self.is_dir = is_dir
 
-    def copydown(self):
-        '''Copy file from the host to the testbed'''
+    def copydown(self, check_existing=False):
+        '''Copy file from the host to the testbed
+
+        If check_existing is True, don't copy if the testbed path already
+        exists.
+        '''
+        if check_existing and testbed.execute(['test', '-e', self.tb])[0] == 0:
+            adtlog.debug('copydown: tb path %s already exists' % self.tb)
+            return
 
         # create directory on testbed
         testbed.check_exec(['mkdir', '-p', os.path.dirname(self.tb)])
@@ -1065,8 +1072,15 @@ class TestbedPath:
                 # instead
                 testbed.check_exec(['chmod', '-R', 'go+rwX', '--', self.tb])
 
-    def copyup(self):
-        '''Copy file from the testbed to the host'''
+    def copyup(self, check_existing=False):
+        '''Copy file from the testbed to the host
+
+        If check_existing is True, don't copy if the host path already
+        exists.
+        '''
+        if check_existing and os.path.exists(self.host):
+            adtlog.debug('copyup: host path %s already exists' % self.host)
+            return
 
         mkdir_okexist(os.path.dirname(self.host))
         assert self.is_dir is not None
