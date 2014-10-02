@@ -18,6 +18,8 @@ autopkgtest (3.5.4) UNRELEASED; urgency=medium
   * Avoid copying down the tests tree into the testbed if it already exists
     there. This is the common case for the first test in unbuilt trees, and
     avoids one round of expensive large copying for the ssh and qemu runners.
+  * Fix relative --override-control paths: They should not be relative to the
+    source dir but relative to the current dir where adt-run is called.
 
  -- Martin Pitt <mpitt@debian.org>  Tue, 30 Sep 2014 08:54:41 +0200
 
