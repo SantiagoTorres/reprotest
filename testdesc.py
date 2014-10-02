@@ -358,7 +358,7 @@ def parse_debian_source(srcdir, testbed_caps, control_path=None):
     '''Parse test descriptions from a Debian DEP-8 source dir
 
     You can specify an alternative path for the control file (default:
-    debian/tests/control).
+    srcdir/debian/tests/control).
 
     Return (list of Test objects, some_skipped). If this encounters any invalid
     restrictions, fields, or test restrictions which cannot be met by the given
@@ -370,9 +370,7 @@ def parse_debian_source(srcdir, testbed_caps, control_path=None):
     some_skipped = False
     command_counter = 0
     tests = []
-    if control_path:
-        control_path = os.path.join(srcdir, control_path)
-    else:
+    if not control_path:
         control_path = os.path.join(srcdir, 'debian', 'tests', 'control')
 
     if not os.path.exists(control_path):
