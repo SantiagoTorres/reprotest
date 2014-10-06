@@ -31,6 +31,7 @@ import tempfile
 import shutil
 import pipes
 import time
+import subprocess
 
 try:
     our_base = os.environ['AUTOPKGTEST_BASE'] + '/lib'
@@ -58,6 +59,35 @@ sshopts = '-q -o BatchMode=yes -o UserKnownHostsFile=/dev/null '\
           '-o StrictHostKeyChecking=no -o CheckHostIP=no '\
           '-o ControlMaster=auto -o ControlPersist=60 '\
           '-o ControlPath=%s/ssh_control-%%r@%%h:%%p'
+
+
+# Tests or builds sometimes leak background processes which might still be
+# connected to ssh's stdout/err; we need to kill these after the main program
+# (build or test script) finishes, otherwise we get eternal hangs as ssh waits
+# until nothing is connected to its tty any more. So we run this in ssh,
+# wrapping the actual command.
+terminal_kill_wrapper = '''#!/bin/bash
+set -u
+PPPID=$(cut -f4 -d' ' /proc/$PPID/stat)
+"$@"; RC=$?
+set -e
+myout=$(readlink /proc/$$/fd/1)
+myerr=$(readlink /proc/$$/fd/2)
+KILL=""
+for fd in /proc/[0-9]*/fd/*; do
+    t="`readlink $fd`"
+    if [ "$t" = "$myout" -o "$t" = "$myerr" ]; then
+        pid=${fd#/proc/}; pid=${pid%%/*}
+        [ $pid -ne $$ ] && [ $pid -ne $PPID ] && [ $pid -ne $PPPID ] || continue
+        [ "$(< /proc/$pid/comm)" != sshd ] || continue
+        #echo "XXXadt-ssh-wrapper($$ $PPID $PPPID $myout $myerr): killing $pid (`cat /proc/$pid/cmdline`)" >&2
+        KILL="$KILL $pid"
+    fi
+done
+[ -z "$KILL" ] || kill -9 $KILL || true
+exit $RC
+'''
+
 
 cleanup_paths = []  # paths on the device which we created
 
@@ -280,9 +310,18 @@ def hook_open():
             if 'root-on-testbed' in capabilities:
                 capabilities.remove('root-on-testbed')
 
+        # create remote wrapper
+        rc = VirtSubproc.execute_timeout(
+            terminal_kill_wrapper, 30, sshcmd +
+            ['set -C; cat > /tmp/adt-run-wrapper; chmod 755 /tmp/adt-run-wrapper'],
+            stdin=subprocess.PIPE)[0]
+        if rc != 0:
+            VirtSubproc.bomb('Failed to create /tmp/adt-run-wrapper')
+
+        # create local auxverb script
         with open(auxverb, 'w') as f:
             f.write('''#!/bin/bash
-exec %s -- %s $(printf '%%q ' "$@")
+exec %s -- %s /tmp/adt-run-wrapper $(printf '%%q ' "$@")
 ''' % (" ".join(sshcmd), sudocmd or ''))
         os.chmod(auxverb, 0o755)
 
