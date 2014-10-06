@@ -21,6 +21,11 @@ autopkgtest (3.5.4) UNRELEASED; urgency=medium
     avoids one round of expensive large copying for the ssh and qemu runners.
   * Fix relative --override-control paths: They should not be relative to the
     source dir but relative to the current dir where adt-run is called.
+  * adt-virt-ssh: Tests or builds sometimes leak background processes which
+    might still be connected to ssh's stdout/err; create and use a wrapper
+    script that kills these after the main program (build or test script)
+    finishes, otherwise we get eternal hangs as ssh waits until nothing is
+    connected to its tty any more.
 
  -- Martin Pitt <mpitt@debian.org>  Tue, 30 Sep 2014 08:54:41 +0200
 
