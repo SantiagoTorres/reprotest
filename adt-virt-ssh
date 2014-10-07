@@ -295,7 +295,7 @@ def wait_for_ssh(ssh_cmd, timeout=300):
     # create remote wrapper
     rc = VirtSubproc.execute_timeout(
         terminal_kill_wrapper, 30, ssh_cmd +
-        ['set -C; cat > /tmp/adt-run-wrapper; chmod 755 /tmp/adt-run-wrapper'],
+        ['rm -f /tmp/adt-run-wrapper; set -C; cat > /tmp/adt-run-wrapper; chmod 755 /tmp/adt-run-wrapper'],
         stdin=subprocess.PIPE)[0]
     if rc != 0:
         VirtSubproc.bomb('Failed to create /tmp/adt-run-wrapper')
