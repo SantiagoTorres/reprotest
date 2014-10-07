@@ -282,14 +282,23 @@ def wait_for_ssh(ssh_cmd, timeout=300):
             rc = VirtSubproc.execute_timeout(None, 30, cmd)[0]
             if rc == 0:
                 adtlog.debug('ssh connection established.')
-                return
+                break
         except VirtSubproc.Timeout:
             pass
         adtlog.warning('ssh connection failed. Retrying in %d seconds...'
                        % delay)
         time.sleep(delay)
         elapsed = time.time() - start
-    VirtSubproc.bomb('Timed out on waiting for ssh connection')
+    else:
+        VirtSubproc.bomb('Timed out on waiting for ssh connection')
+
+    # create remote wrapper
+    rc = VirtSubproc.execute_timeout(
+        terminal_kill_wrapper, 30, ssh_cmd +
+        ['set -C; cat > /tmp/adt-run-wrapper; chmod 755 /tmp/adt-run-wrapper'],
+        stdin=subprocess.PIPE)[0]
+    if rc != 0:
+        VirtSubproc.bomb('Failed to create /tmp/adt-run-wrapper')
 
 
 def hook_open():
@@ -309,14 +318,6 @@ def hook_open():
         else:
             if 'root-on-testbed' in capabilities:
                 capabilities.remove('root-on-testbed')
-
-        # create remote wrapper
-        rc = VirtSubproc.execute_timeout(
-            terminal_kill_wrapper, 30, sshcmd +
-            ['set -C; cat > /tmp/adt-run-wrapper; chmod 755 /tmp/adt-run-wrapper'],
-            stdin=subprocess.PIPE)[0]
-        if rc != 0:
-            VirtSubproc.bomb('Failed to create /tmp/adt-run-wrapper')
 
         # create local auxverb script
         with open(auxverb, 'w') as f:
