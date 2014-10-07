@@ -75,7 +75,7 @@ myout=$(readlink /proc/$$/fd/1)
 myerr=$(readlink /proc/$$/fd/2)
 KILL=""
 for fd in /proc/[0-9]*/fd/*; do
-    t="`readlink $fd`"
+    t="`readlink $fd`" || continue
     if [ "$t" = "$myout" -o "$t" = "$myerr" ]; then
         pid=${fd#/proc/}; pid=${pid%%/*}
         [ $pid -ne $$ ] && [ $pid -ne $PPID ] && [ $pid -ne $PPPID ] || continue
