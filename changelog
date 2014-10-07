@@ -29,6 +29,9 @@ autopkgtest (3.5.4) UNRELEASED; urgency=medium
 
   Other fixes:
   * adt-buildvm-ubuntu-cloud: Purge more unnecessary packages.
+  * ssh-setup/adb: Drop the sudo'ing for unlocking the screen. It stopped
+    working and is not necessary, now that we don't have images with adb
+    running as root any more.
 
  -- Martin Pitt <mpitt@debian.org>  Tue, 30 Sep 2014 08:54:41 +0200
 
