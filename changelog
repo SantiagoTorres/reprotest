@@ -6,6 +6,8 @@ autopkgtest (3.5.5) UNRELEASED; urgency=medium
     update/refresh the ssh config. Often revert translates to close and
     re-open, which changes the IP. Update manpage and ssh-setup/SKELETON
     accordingly.
+  * ssh-setup/nova: Make parsing commands work with mawk too, to avoid
+    depending on gawk.
 
  -- Martin Pitt <mpitt@debian.org>  Wed, 08 Oct 2014 12:33:54 +0200
 
