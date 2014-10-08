@@ -29,6 +29,7 @@ autopkgtest (3.5.4) UNRELEASED; urgency=medium
     way to wait for the desktop to be started up, and also reliably unlocks
     the greeter.
   * During revert, don't fail if there are no configured networks.
+  * Add -b/--reboot option to reboot the device before running the test.
 
   adt-virt-ssh fixes:
   * Implement reboot.
