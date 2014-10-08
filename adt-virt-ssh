@@ -212,7 +212,7 @@ def host_setup():
         elif param == 'hostname':
             sshcmd += [sshconfig[param]]
         elif param == 'capabilities':
-            capabilities += sshconfig[param].split(',')
+            capabilities += sshconfig[param].replace(',', ' ').split()
             # Remove duplicates
             capabilities = list(set(capabilities))
         elif param == 'password':
