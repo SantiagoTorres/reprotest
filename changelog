@@ -2,6 +2,10 @@ autopkgtest (3.5.5) UNRELEASED; urgency=medium
 
   * adt-virt-ssh: Be more liberal when parsing the setup script's
     capabilities, accept spaces and commas.
+  * adt-virt-ssh: Refactor code so that setup script's "revert" commands can
+    update/refresh the ssh config. Often revert translates to close and
+    re-open, which changes the IP. Update manpage and ssh-setup/SKELETON
+    accordingly.
 
  -- Martin Pitt <mpitt@debian.org>  Wed, 08 Oct 2014 12:33:54 +0200
 
