@@ -50,7 +50,7 @@ Enable debugging output
 
 .TP
 .BI  -H  " hostname" " | --hostname=" hostname
-Connects and logs into the specified hostname
+Connects and logs into the specified hostname or IP address
 
 .TP
 .BI  -l " user" " | --login=" user
@@ -162,6 +162,7 @@ login: User name
 .IP * 4
 hostname: hostname or IP address
 
+.PP
 Optional fields:
 
 .IP * 4
@@ -193,9 +194,11 @@ all the options that open got called with, plus
 .BR extraopts .
 
 .SS command: revert
-If there is a more efficient way of resetting the testbed between tests than
-cleanup plus open, such as using VM snapshots, the script should put "revert"
-into the capabilities and implement this command.
+If there is a way to reset the testbed to its pristine state (such as using VM
+snapshots or rebuilding ephemeral testbeds), the script should put "revert"
+(and if appropriate, "revert-full-system") into the capabilities and implement
+this command. This can optionally output some or all of the ssh config keys
+from open() to update the configuration, in case the hostname/IP changes.
 
 .SS command: reboot
 If the testbed can be rebooted with keeping state, the script should put
