@@ -34,6 +34,9 @@ autopkgtest (3.5.4) UNRELEASED; urgency=medium
     running as root any more.
   * ssh-setup/adb: Fix unity8 restart after disabling first-time wizard to
     work on current Ubuntu Touch images.
+  * ssh-setup/adb: Wait until com.canonical.UnityGreeter becomes available.
+    This is a better way to wait for the desktop to be started up, and also
+    reliably unlocks the greeter.
 
  -- Martin Pitt <mpitt@debian.org>  Tue, 30 Sep 2014 08:54:41 +0200
 
