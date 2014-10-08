@@ -8,6 +8,9 @@ autopkgtest (3.5.5) UNRELEASED; urgency=medium
     accordingly.
   * ssh-setup/nova: Make parsing commands work with mawk too, to avoid
     depending on gawk.
+  * ssh-setup/nova: Implement a simple revert by a simple teardown/providing a
+    new instance. (This might become more efficient in the future with using
+    snapshots.)
 
  -- Martin Pitt <mpitt@debian.org>  Wed, 08 Oct 2014 12:33:54 +0200
 
