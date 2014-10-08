@@ -1,3 +1,10 @@
+autopkgtest (3.5.5) UNRELEASED; urgency=medium
+
+  * adt-virt-ssh: Be more liberal when parsing the setup script's
+    capabilities, accept spaces and commas.
+
+ -- Martin Pitt <mpitt@debian.org>  Wed, 08 Oct 2014 12:33:54 +0200
+
 autopkgtest (3.5.4) unstable; urgency=medium
 
   adt-run fixes:
