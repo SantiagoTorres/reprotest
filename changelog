@@ -30,6 +30,9 @@ autopkgtest (3.5.4) UNRELEASED; urgency=medium
     the greeter.
   * During revert, don't fail if there are no configured networks.
   * Add -b/--reboot option to reboot the device before running the test.
+  * Disable --reset option for now; it is broken as it does not restore the
+    password and developer mode. Point towards using --reboot, which should be
+    good enough for most cases in r/o mode.
 
   adt-virt-ssh fixes:
   * Implement reboot.
