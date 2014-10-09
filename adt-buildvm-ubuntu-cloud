@@ -171,65 +171,22 @@ DEFAULT_METADATA = 'instance-id: nocloud\nlocal-hostname: autopkgtest\n'
 DEFAULT_USERDATA = """#cloud-config
 locale: en_US.UTF-8
 timezone: %(tz)s
-
 password: ubuntu
 chpasswd: { expire: False }
 ssh_pwauth: True
 manage_etc_hosts: True
 apt_proxy: %(proxy)s
 apt_mirror: %(mirror)s
-apt_sources:
- - source: deb %(mirror)s %(rel)s restricted multiverse
- - source: deb-src %(mirror)s %(rel)s restricted multiverse
-
-apt_upgrade: %(upgr)s
-
-packages:
- - linux-generic
- - haveged
-
 runcmd:
- - echo 'Acquire::Languages "none";' > /etc/apt/apt.conf.d/90nolanguages
- - echo 'force-unsafe-io' > /etc/dpkg/dpkg.cfg.d/autopkgtest
- - echo '#!/bin/sh' > /etc/init.d/autopkgtest
- - echo '### BEGIN INIT INFO' >> /etc/init.d/autopkgtest
- - "echo '# Provides:          autopkgtest' >> /etc/init.d/autopkgtest"
- - "echo '# Required-Start:    $remote_fs $syslog' >> /etc/init.d/autopkgtest"
- - "echo '# Required-Stop:     $remote_fs $syslog' >> /etc/init.d/autopkgtest"
- - "echo '# Default-Start:     2 3 4 5' >> /etc/init.d/autopkgtest"
- - "echo '# Default-Stop:' >> /etc/init.d/autopkgtest"
- - "echo '# Short-Description: root shell on ttyS1 for autopkgtest control'
-     >> /etc/init.d/autopkgtest"
- - echo '### END INIT INFO' >> /etc/init.d/autopkgtest
- - "echo 'if [ $1 = start ]; then' >> /etc/init.d/autopkgtest"
- - "echo '    (setsid sh </dev/ttyS1 >/dev/ttyS1 2>&1) &' >>
-     /etc/init.d/autopkgtest"
- - echo 'fi' >> /etc/init.d/autopkgtest
- - [ chmod, 755, /etc/init.d/autopkgtest ]
- - [ ln, -s, ../init.d/autopkgtest , /etc/rc2.d/S99autopkgtest ]
- - if [ ! -e /etc/init/ttyS0.conf ]; then
-     sed 's/tty2/ttyS0/g; s! *exec.*$!exec /sbin/getty -L ttyS0 115200 vt102!'
-       /etc/init/tty2.conf > /etc/init/ttyS0.conf;
-   fi
- - for p in accountsservice apt-xapian-index cryptsetup landscape-client
-     landscape-common pollinate open-vm-tools w3m vim-runtime
-     aptitude-common command-not-found-data man-db
-     manpages ntfs-3g ubuntu-release-upgrader-core unattended-upgrades
-     sosreport; do
-     apt-get --auto-remove -y purge $p || true;
-   done
- - apt-get clean
- - if [ "$(dpkg --print-architecture)" = "i386" ]; then
-     echo 'GRUB_CMDLINE_LINUX_DEFAULT="console=ttyS0 vmalloc=512M"' >
-       /etc/default/grub.d/90-adt-vmalloc.cfg;
-     update-grub;
-   fi
+ - mount -r /dev/vdb /mnt
+ - env ADT_SETUP_VM_UPGRADE=%(upgr)s sh /mnt/adt-setup-vm
+ - umount /mnt
  - (while [ ! -e /var/lib/cloud/instance/boot-finished ]; do sleep 1; done;
     apt-get -y purge cloud-init; shutdown -P now) &
 """
 
 
-def build_seed(mirror, proxy, release, no_apt_upgrade, metadata_file=None,
+def build_seed(mirror, proxy, no_apt_upgrade, metadata_file=None,
                userdata_file=None):
     print('Building seed image...')
     if metadata_file:
@@ -244,8 +201,7 @@ def build_seed(mirror, proxy, release, no_apt_upgrade, metadata_file=None,
         userdata = open(userdata_file).read()
     else:
         userdata = DEFAULT_USERDATA % {'proxy': proxy or '', 'mirror': mirror,
-                                       'rel': release, 'upgr': upgr,
-                                       'tz': host_tz()}
+                                       'upgr': upgr, 'tz': host_tz()}
 
     # preserve proxy from host
     for v in ['http_proxy', 'https_proxy', 'no_proxy']:
@@ -262,9 +218,19 @@ def build_seed(mirror, proxy, release, no_apt_upgrade, metadata_file=None,
     with open(os.path.join(workdir, 'user-data'), 'w') as f:
         f.write(userdata)
 
+    # find adt-setup-vm, copy it into the VM via the cloud-init seed iso
+    for setup_vm in [os.path.join(os.path.dirname(__file__), 'adt-setup-vm'),
+                     '/usr/share/autopkgtest/adt-setup-vm']:
+        if os.path.exists(setup_vm):
+            shutil.copy(setup_vm, workdir)
+            break
+    else:
+        sys.stderr.write('\nCould not find adt-setup-vm\n')
+        sys.exit(1)
+
     genisoimage = subprocess.Popen(['genisoimage', '-output', 'adt.seed',
                                     '-volid', 'cidata', '-joliet', '-rock',
-                                    '-quiet', 'user-data', 'meta-data'],
+                                    '-quiet', 'user-data', 'meta-data', 'adt-setup-vm'],
                                    cwd=workdir)
     genisoimage.communicate()
     if genisoimage.returncode != 0:
@@ -340,7 +306,7 @@ def install_image(src, dest):
 args = parse_args()
 image = download_image(args.cloud_image_url, args.release, args.arch)
 resize_image(image, args.disk_size)
-seed = build_seed(args.mirror, args.proxy, args.release, args.no_apt_upgrade,
+seed = build_seed(args.mirror, args.proxy, args.no_apt_upgrade,
                   args.metadata, args.userdata)
 boot_image(image, seed, args.qemu_command, args.verbose)
 install_image(image, os.path.join(args.output_dir, 'adt-%s-%s-cloud.img' %
