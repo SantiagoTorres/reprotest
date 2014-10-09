@@ -18,6 +18,9 @@ autopkgtest (3.5.5) UNRELEASED; urgency=medium
     that vmdebootstrap generated VMs are functionally on par with the Ubuntu
     cloud images: Set up serial console, dpkg unsafe-io, install some
     additional packages, remove unnecessary packages, bump vmalloc on i386.
+  * adt-buildvm-ubuntu-cloud: Remove most of the setup steps from user-data,
+    and call adt-setup-vm instead. This keeps the knowledge of how to set up
+    VM testbeds in one single place.
 
  -- Martin Pitt <mpitt@debian.org>  Wed, 08 Oct 2014 12:33:54 +0200
 
