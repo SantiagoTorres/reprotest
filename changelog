@@ -14,6 +14,10 @@ autopkgtest (3.5.5) UNRELEASED; urgency=medium
   * adt-buildvm-ubuntu-cloud: Put vmalloc kernel commandline config into
     separate grub.d/ directory, to avoid subsequent cloud-init invocations
     overwriting it.
+  * tools/adt-setup-vm: Add setup steps that adt-buildvm-ubuntu-cloud does, so
+    that vmdebootstrap generated VMs are functionally on par with the Ubuntu
+    cloud images: Set up serial console, dpkg unsafe-io, install some
+    additional packages, remove unnecessary packages, bump vmalloc on i386.
 
  -- Martin Pitt <mpitt@debian.org>  Wed, 08 Oct 2014 12:33:54 +0200
 
