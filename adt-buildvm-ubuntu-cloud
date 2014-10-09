@@ -230,7 +230,8 @@ def build_seed(mirror, proxy, no_apt_upgrade, metadata_file=None,
 
     genisoimage = subprocess.Popen(['genisoimage', '-output', 'adt.seed',
                                     '-volid', 'cidata', '-joliet', '-rock',
-                                    '-quiet', 'user-data', 'meta-data', 'adt-setup-vm'],
+                                    '-quiet', 'user-data', 'meta-data',
+                                    'adt-setup-vm'],
                                    cwd=workdir)
     genisoimage.communicate()
     if genisoimage.returncode != 0:
