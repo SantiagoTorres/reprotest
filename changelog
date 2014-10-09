@@ -11,6 +11,9 @@ autopkgtest (3.5.5) UNRELEASED; urgency=medium
   * ssh-setup/nova: Implement a simple revert by a simple teardown/providing a
     new instance. (This might become more efficient in the future with using
     snapshots.)
+  * adt-buildvm-ubuntu-cloud: Put vmalloc kernel commandline config into
+    separate grub.d/ directory, to avoid subsequent cloud-init invocations
+    overwriting it.
 
  -- Martin Pitt <mpitt@debian.org>  Wed, 08 Oct 2014 12:33:54 +0200
 
