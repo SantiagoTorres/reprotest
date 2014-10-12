@@ -113,13 +113,18 @@ class ActionArg(argparse.Action):
                 parser.error('%s is invalid and does not contain Files:'
                              % value)
             dsc_dir = os.path.dirname(value)
+            act_bin = []
+            act_src = []
             for f in files.split():
                 if '.' in f and '_' in f:
                     fpath = os.path.join(dsc_dir, f)
                     if f.endswith('.deb'):
-                        actions.append(('binary', fpath, None))
+                        act_bin.append(('binary', fpath, None))
                     elif f.endswith('.dsc'):
-                        actions.append(('source', fpath, False))
+                        act_src.append(('source', fpath, False))
+
+            # we need to register the binaries before the source
+            actions += act_bin + act_src
             return
 
         if option_string in ('--apt-source', '--built-tree'):
