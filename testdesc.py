@@ -292,66 +292,29 @@ def _parse_debian_depends(testname, dep_str, srcdir):
     return deps
 
 
-def _auto_debian_control_ruby(srcdir, tests):
-    '''Add automatic gem2deb test for Ruby packages'''
+def _autodep8(srcdir):
+    '''Generate control file with autodep8'''
 
-    if (any(map(lambda f: os.path.exists(os.path.join(srcdir, f)),
-                ['debian/ruby-tests.rake', 'debian/ruby-tests.rb',
-                 'debian/ruby-test-files.yaml']))):
+    f = tempfile.NamedTemporaryFile(prefix='autodep8.')
+    try:
+        autodep8 = subprocess.Popen(['autodep8'], cwd=srcdir, stdout=f,
+                                    stderr=subprocess.PIPE)
+    except OSError as e:
+        adtlog.debug('autodep8 not available (%s)' % e)
+        return None
 
-        adtlog.info('Ruby package detected')
+    err = autodep8.communicate()[1].decode()
+    if autodep8.returncode == 0:
+        f.flush()
+        f.seek(0)
+        ctrl = f.read().decode()
+        adtlog.debug('autodep8 generated control: -----\n%s\n-------' % ctrl)
+        return f
 
-        command = 'gem2deb-test-runner --autopkgtest 2>&1'
-        depends = _parse_debian_depends(command, '@, @builddeps@', srcdir)
-        depends = [d for d in depends if not d.startswith('gem2deb')]
-        depends.append('gem2deb-test-runner')
-        tests.append(Test('auto-gem2deb', None, command, [], [],
-                          depends, []))
-
-
-def _auto_debian_control_perl(srcdir, tests):
-    '''Add automatic test for Perl packages'''
-
-    if ((os.path.exists(os.path.join(srcdir, 't')) or
-         os.path.exists(os.path.join(srcdir, 'test.pl'))) and
-            (os.path.exists(os.path.join(srcdir, 'Makefile.PL')) or
-             os.path.exists(os.path.join(srcdir, 'Build.PL')))):
-
-        adtlog.info('Perl package detected')
-
-        command = '/usr/share/pkg-perl-autopkgtest/runner build-deps'
-        depends = _parse_debian_depends(command,
-                                        '@, @builddeps@, pkg-perl-autopkgtest',
-                                        srcdir)
-        tests.append(Test('auto-build-deps', None, command, [], [],
-                          depends, []))
-
-        command = '/usr/share/pkg-perl-autopkgtest/runner runtime-deps'
-        depends = _parse_debian_depends(command,
-                                        '@, pkg-perl-autopkgtest',
-                                        srcdir)
-        tests.append(Test('auto-runtime-deps', None, command, [], [],
-                          depends, []))
-
-        command = '/usr/share/pkg-perl-autopkgtest/runner ' \
-                  'runtime-deps-and-recommends'
-        depends = _parse_debian_depends(command,
-                                        '@, pkg-perl-autopkgtest',
-                                        srcdir)
-        tests.append(Test('auto-runtime-deps-recommends', None, command,
-                          ['needs-recommends'], [], depends, []))
-
-
-def _auto_debian_control(srcdir):
-    '''Infer tests if there is no Debian test control file'''
-
-    tests = []
-    some_skipped = False
-
-    _auto_debian_control_ruby(srcdir, tests)
-    _auto_debian_control_perl(srcdir, tests)
-
-    return (tests, some_skipped)
+    f.close()
+    adtlog.debug('autodep8 failed to generate control (exit status %i): %s' %
+                 (autodep8.returncode, err))
+    return None
 
 
 def parse_debian_source(srcdir, testbed_caps, control_path=None):
@@ -374,7 +337,10 @@ def parse_debian_source(srcdir, testbed_caps, control_path=None):
         control_path = os.path.join(srcdir, 'debian', 'tests', 'control')
 
     if not os.path.exists(control_path):
-        return _auto_debian_control(srcdir)
+        control = _autodep8(srcdir)
+        if control is None:
+            return ([], False)
+        control_path = control.name
 
     for record in parse_rfc822(control_path):
         command = None
