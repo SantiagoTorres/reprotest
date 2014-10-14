@@ -1,4 +1,4 @@
-autopkgtest (3.5.6) UNRELEASED; urgency=medium
+autopkgtest (3.6) UNRELEASED; urgency=medium
 
   [ Antonio Terceiro ]
   * README.package-tests.rst: Make references to the control field consistent.
@@ -6,6 +6,8 @@ autopkgtest (3.5.6) UNRELEASED; urgency=medium
   [ Martin Pitt ]
   * When parsing .changes files, always register the debs before the dscs and
     stop assuming Files: having this order already. (Closes: #764795)
+  * Drop the builtin synthesis of Perl/Ruby tests and use autodep8 instead.
+    Update the spec accordingly, and add a Recommends: autodep8.
 
  -- Martin Pitt <mpitt@debian.org>  Sat, 11 Oct 2014 13:24:04 +0200
 
