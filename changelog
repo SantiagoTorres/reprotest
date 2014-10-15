@@ -9,6 +9,8 @@ autopkgtest (3.6) UNRELEASED; urgency=medium
   * Drop the builtin synthesis of Perl/Ruby tests and use autodep8 instead.
     Update the spec accordingly, and add a Recommends: autodep8.
     (Closes: #763847)
+  * adt-build-lxc: Implement LXC cache cleanup for btrfs by removing the image
+    snapshots instead of rm -r'ing the cache dir, as the latter will fail.
 
  -- Martin Pitt <mpitt@debian.org>  Sat, 11 Oct 2014 13:24:04 +0200
 
