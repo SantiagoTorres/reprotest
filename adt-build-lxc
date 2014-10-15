@@ -109,8 +109,16 @@ if [ ! -e $LXCDIR/$NAME ]; then
     lxc-create --name=$NAME $LXC_ARGS
     setup $NAME
 else
-    # remove LXC rootfs caches
-    rm -rf /var/cache/lxc/$RELEASE /var/cache/lxc/$DISTRO/rootfs-$RELEASE*
+    # remove LXC rootfs caches; on btrfs this might be a subvolume, otherwise
+    # rm it
+    subvols=$(btrfs subvolume list / 2>/dev/null | awk "/cache\/lxc.*utopic/ {print \$(NF)}") || true
+    if [ -n "$subvols" ]; then
+        for vol in $subvols; do
+            btrfs subvolume delete /$vol
+        done
+    else
+        rm -rf /var/cache/lxc/$RELEASE /var/cache/lxc/$DISTRO/rootfs-$RELEASE*
+    fi
     # create a new rootfs in a temp container
     lxc-create --name=${NAME}.new $LXC_ARGS
     setup ${NAME}.new
