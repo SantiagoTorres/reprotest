@@ -11,6 +11,8 @@ autopkgtest (3.6) UNRELEASED; urgency=medium
     (Closes: #763847)
   * adt-build-lxc: Implement LXC cache cleanup for btrfs by removing the image
     snapshots instead of rm -r'ing the cache dir, as the latter will fail.
+  * adt-setup-vm: Fix missing hashbang of generated /etc/init.d/autopkgtest.
+    (Regression from 3.5.5)
 
  -- Martin Pitt <mpitt@debian.org>  Sat, 11 Oct 2014 13:24:04 +0200
 
