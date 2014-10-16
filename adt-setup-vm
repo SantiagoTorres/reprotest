@@ -26,6 +26,7 @@ root=${1:-/}
 # set up init script for root shell on ttyS1; necessary for adt-virt-qemu local
 # images
 cat <<EOF > "$root/etc/init.d/autopkgtest"
+#!/bin/sh
 ### BEGIN INIT INFO
 # Provides:          autopkgtest
 # Required-Start:    mountkernfs \$local_fs
