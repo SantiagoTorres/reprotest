@@ -1,4 +1,4 @@
-autopkgtest (3.6) UNRELEASED; urgency=medium
+autopkgtest (3.6) unstable; urgency=medium
 
   [ Antonio Terceiro ]
   * README.package-tests.rst: Make references to the control field consistent.
@@ -14,7 +14,7 @@ autopkgtest (3.6) UNRELEASED; urgency=medium
   * adt-setup-vm: Fix missing hashbang of generated /etc/init.d/autopkgtest.
     (Regression from 3.5.5)
 
- -- Martin Pitt <mpitt@debian.org>  Sat, 11 Oct 2014 13:24:04 +0200
+ -- Martin Pitt <mpitt@debian.org>  Thu, 16 Oct 2014 16:36:11 +0200
 
 autopkgtest (3.5.5) unstable; urgency=medium
 
