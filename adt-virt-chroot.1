@@ -4,10 +4,6 @@ adt\-virt\-chroot \- autopkgtest virtualisation server using a chroot
 .SH SYNOPSYS
 .B adt\-virt\-chroot
 .RI [ options ]
-.BR = [\fBchroot\-name\fR]
-.br
-.B adt\-virt\-chroot
-.RI [ options ]
 .RI [\fB\-r\fR gain\-root\-cmd ]
 .I /path/to/chroot
 .SH DESCRIPTION
@@ -20,13 +16,8 @@ Normally
 will be invoked by
 .BR adt-run .
 
-The chroot to use must be specified.  If it starts with a
-.B =
-character then it is taken to be a chroot name known to
-.BR dchroot (8).
-Otherwise it must start with a
-.B /
-and will be taken to an absolute path.
+The chroot directory to use must be specified.
+
 .SH OPTIONS
 .TP
 .BR \-\-gain\-root | \-r " \fIgain\-root\-cmd\fR"
@@ -36,7 +27,7 @@ can become root (on the host) by prefixing its commands with
 .IR gain-root-cmd .
 The command may consist of several words separated by whitespace,
 in which case words other than the first are supplied as additional
-arguments to the command; other shell (or other) metacharacters in 
+arguments to the command; other shell (or other) metacharacters in
 .IR gain-root-cmd
 are not interpreted or modified by
 .BR adt-virt-chroot .

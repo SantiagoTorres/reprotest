@@ -48,23 +48,13 @@ def parse_args():
                         help='can become root by prefixing commands with COMMAND')
     parser.add_argument('-d', '--debug', action='store_true',
                         help='Enable debugging output')
-    parser.add_argument('chroot', metavar='=[dchroot]|/path/to/chroot')
+    parser.add_argument('chroot', metavar='/path/to/chroot')
     args = parser.parse_args()
     if args.debug:
         adtlog.verbosity = 2
 
-    if args.chroot == '=':
-        down = ['dchroot', '-q', '--']
-        # FIXME: figure out chroot_dir
-    elif args.chroot[0] == '=':
-        down = ['dchroot', '-q', '-c', args.chroot[1:], '--']
-        # FIXME: figure out chroot_dir
-    elif args.chroot[0] == '/':
-        down = ['chroot', args.chroot]
-        chroot_dir = args.chroot
-    else:
-        parser.error("chroot spec must be =[DCHROOT] or /PATH/TO/CHROOT")
-
+    chroot_dir = os.path.abspath(args.chroot)
+    down = ['chroot', chroot_dir]
     if args.gain_root:
         down = args.gain_root.split() + down
 
