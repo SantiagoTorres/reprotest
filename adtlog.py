@@ -23,16 +23,23 @@
 import sys
 import time
 import errno
+import os
 
 summary_stream = None
 verbosity = 1  # 0: quiet (warning/error only), 1: info, 2: debug
+enable_colors = None
 
 
-def log(message, level, prefix='', timestamp=False):
+def log(message, level, prefix='', timestamp=False, color=None):
     '''Write a log message to stderr'''
 
     if level > verbosity:
         return
+
+    # needs lazy initialization as adt-run may redirect it to tee
+    global enable_colors
+    if enable_colors is None:
+        enable_colors = os.isatty(sys.stderr.fileno())
 
     head = sys.argv[0].split('/')[-1]
     if timestamp:
@@ -44,6 +51,9 @@ def log(message, level, prefix='', timestamp=False):
         head += prefix + ': '
 
     out = (head + message + '\n').encode('UTF-8')
+
+    if color is not None and enable_colors:
+        out = b'\033[3' + chr(47 + color).encode() + b'm' + out + b'\033[0m'
 
     # we sometimes hit EAGAIN here, try a few times
     retries = 10
@@ -61,19 +71,19 @@ def log(message, level, prefix='', timestamp=False):
 
 
 def error(message):
-    log(message, 0, prefix='ERROR', timestamp=True)
+    log(message, 0, prefix='ERROR', timestamp=True, color=2)
 
 
 def warning(message):
-    log(message, 0, prefix='WARNING')
+    log(message, 0, prefix='WARNING', color=5)
 
 
 def info(message):
-    log(message, 1, timestamp=True)
+    log(message, 1, timestamp=True, color=4)
 
 
 def debug(message):
-    log(message, 2, prefix='DBG', timestamp=False)
+    log(message, 2, prefix='DBG', timestamp=False, color=8)
 
 
 def debug_subprocess(what, argv, script=None):
