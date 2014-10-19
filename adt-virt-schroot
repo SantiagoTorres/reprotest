@@ -134,17 +134,10 @@ def hook_downtmp(path):
     d = VirtSubproc.downtmp_mktemp(path)
 
     # determine mount location
-    # FIXME: "schroot --location -c sessid" really ought to work, but fails; so
-    # grep from --all-sessions until this gets fixed
-    out = VirtSubproc.check_exec(['schroot', '--location', '--all-sessions'],
+    location = VirtSubproc.check_exec(['schroot', '--location', '--chroot',
+                                       'session:' + sessid],
                                  downp=False, outp=True).strip()
-    for l in out.splitlines():
-        if sessid in l:
-            location = l
-            adtlog.debug('location of schroot session: %s' % location)
-            break
-    else:
-        VirtSubproc.bomb('could not find our session in "%s"' % out)
+    adtlog.debug('location of schroot session: %s' % location)
     downtmp_host = '%s/%s' % (location, d)
     if os.access(downtmp_host, os.W_OK):
         adtlog.debug('%s is writable, registering as downtmp_host' % downtmp_host)
