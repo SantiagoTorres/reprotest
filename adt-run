@@ -178,6 +178,7 @@ def setup_trace():
                                    stdin=subprocess.PIPE,
                                    stdout=open('/dev/null', 'wb'))
         log_cat = subprocess.Popen(['cat', fifo_log], stdout=open(opts.logfile, 'wb'))
+        adtlog.enable_colors = False
         os.dup2(out_tee.stdin.fileno(), sys.stdout.fileno())
         os.dup2(err_tee.stdin.fileno(), sys.stderr.fileno())
 
