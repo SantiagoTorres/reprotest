@@ -6,6 +6,9 @@ autopkgtest (3.7) UNRELEASED; urgency=medium
   * adt-virt-chroot: Drop support for dchroot arguments. dchroot has been
     obsoleted by schroot for a long time now, and isn't being tested by the
     developers. Allow relative chroot paths.
+  * adt-virt-ssh: Rewrite adt-ssh-wrapper to not call the readlink command on
+    every single /proc/*/fd/*. This is too slow on devices like Ubuntu Touch,
+    where it adds an extra ~ 5 seconds to every command.
 
  -- Martin Pitt <mpitt@debian.org>  Sun, 19 Oct 2014 08:08:27 -0400
 
