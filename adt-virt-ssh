@@ -73,17 +73,20 @@ PPPID=$(cut -f4 -d' ' /proc/$PPID/stat)
 set -e
 myout=$(readlink /proc/$$/fd/1)
 myerr=$(readlink /proc/$$/fd/2)
+myout="${myout/[/\\\\[}"; myout="${myout/]/\\\\]}"
+myerr="${myerr/[/\\\\[}"; myerr="${myerr/]/\\\\]}"
+
+# determine processes which have myout or myerr open
+PS=$(ls -l /proc/[0-9]*/fd/* 2>/dev/null | sed -nr '\#('"$myout"'|'"$myerr"')# { s#^.*/proc/([0-9]+)/.*$#\\1#; p}'|sort -u)
+
 KILL=""
-for fd in /proc/[0-9]*/fd/*; do
-    t="`readlink $fd`" || continue
-    if [ "$t" = "$myout" -o "$t" = "$myerr" ]; then
-        pid=${fd#/proc/}; pid=${pid%%/*}
-        [ $pid -ne $$ ] && [ $pid -ne $PPID ] && [ $pid -ne $PPPID ] || continue
-        [ "$(< /proc/$pid/comm)" != sshd ] || continue
-        #echo "XXXadt-ssh-wrapper($$ $PPID $PPPID $myout $myerr): killing $pid (`cat /proc/$pid/cmdline`)" >&2
-        KILL="$KILL $pid"
-    fi
+for pid in $PS; do
+    [ $pid -ne $$ ] && [ $pid -ne $PPID ] && [ $pid -ne $PPPID ] || continue
+    [ -r /proc/$pid/comm ] && [ "$(< /proc/$pid/comm)" != sshd ] || continue
+    #echo "XXXadt-ssh-wrapper($$ $PPID $PPPID $myout $myerr): killing $pid (`cat /proc/$pid/cmdline`)" >&2
+    KILL="$KILL $pid"
 done
+
 [ -z "$KILL" ] || kill -9 $KILL || true
 exit $RC
 '''
