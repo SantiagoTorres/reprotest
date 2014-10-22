@@ -22,6 +22,7 @@ autopkgtest (3.7) UNRELEASED; urgency=medium
   * adt-virt-ssh: Terminate the ssh connection muxer on cleanup. Fixes eternal
     hangs on waiting for tee with the --output-dir option, as the muxer
     inherits our stderr. (LP: #1384324)
+  * Fix crash when running from a git checkout, but git is not installed.
 
  -- Martin Pitt <mpitt@debian.org>  Sun, 19 Oct 2014 08:08:27 -0400
 
