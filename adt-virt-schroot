@@ -136,7 +136,7 @@ def hook_downtmp(path):
     # determine mount location
     location = VirtSubproc.check_exec(['schroot', '--location', '--chroot',
                                        'session:' + sessid],
-                                 downp=False, outp=True).strip()
+                                      downp=False, outp=True).strip()
     adtlog.debug('location of schroot session: %s' % location)
     downtmp_host = '%s/%s' % (location, d)
     if os.access(downtmp_host, os.W_OK):
