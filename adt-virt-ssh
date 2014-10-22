@@ -365,7 +365,7 @@ def hook_reboot():
 
 
 def hook_cleanup():
-    global capabilities, workdir, cleanup_paths
+    global capabilities, workdir, cleanup_paths, sshcmd
 
     VirtSubproc.downtmp_remove()
     if cleanup_paths:
@@ -374,6 +374,11 @@ def hook_cleanup():
     execute_setup_script('cleanup')
 
     capabilities = [c for c in capabilities if not c.startswith('downtmp-host')]
+
+    # terminate ssh connection muxer; it inherits our stderr (which causes an
+    # eternal hang of tee processes), and we are going to remove the socket dir
+    # anyway
+    VirtSubproc.execute_timeout(None, 10, sshcmd + ['-O', 'exit'])
 
     if workdir:
         shutil.rmtree(workdir)
