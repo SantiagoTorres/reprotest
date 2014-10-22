@@ -265,7 +265,7 @@ class Testbed:
                 head = subprocess.check_output(['git', 'show', '--no-patch', '--oneline'],
                                                cwd=root_dir, universal_newlines=True)
                 head = head.strip()
-            except subprocess.CalledProcessError:
+            except OSError:
                 head = 'cannot determine current HEAD'
             adtlog.info('git checkout: %s' % head)
         else:
