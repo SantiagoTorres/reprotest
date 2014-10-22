@@ -742,7 +742,7 @@ done
 [ -z "$p" ] || echo PYTHONPATH=$p${PYTHONPATH:-}
 
 # Perl modules
-for candidate in $d/usr/share/perl* $d/usr/lib/*/perl5/*; do
+for candidate in $d/usr/share/perl* $d/usr/lib/perl5 $d/usr/lib/*/perl5/*; do
     [ ! -d $candidate ] || p="$candidate:$p"
 done
 [ -z "$p" ] || echo PERL5LIB=$p${PERL5LIB:-}
