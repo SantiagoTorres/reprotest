@@ -17,6 +17,8 @@ autopkgtest (3.7) UNRELEASED; urgency=medium
   * Consider programs in the temp dir install tree for preparing the source
     package. This makes it possible to run --source or --apt-source tests in
     read-only environments without dpkg-dev installed. (LP: #1383878)
+  * With --apt-upgrade, retry apt-get update a third time after one minute.
+    With just a second try we still get occasional hash sum mismatches.
 
   Bug fixes:
   * adt-virt-ssh: Terminate the ssh connection muxer on cleanup. Fixes eternal
