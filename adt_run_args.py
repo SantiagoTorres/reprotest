@@ -249,7 +249,8 @@ details.'''
                          'containing the commands')
     g_setup.add_argument('-U', '--apt-upgrade', dest='setup_commands',
                          action='append_const',
-                         const='(apt-get update || (sleep 15; apt-get update))'
+                         const='(apt-get update || (sleep 15; apt-get update)'
+                         ' || (sleep 60; apt-get update))'
                          ' && apt-get dist-upgrade -y -o '
                          'Dpkg::Options::="--force-confnew"',
                          help='Run apt update/dist-upgrade before the tests')
