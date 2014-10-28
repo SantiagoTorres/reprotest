@@ -80,7 +80,7 @@ class Test:
     actions.
     '''
     def __init__(self, name, path, command, restrictions, features, depends,
-                 clicks):
+                 clicks, installed_clicks):
         '''Create new test description
 
         A test must have either "path" or "command", the respective other value
@@ -92,6 +92,7 @@ class Test:
         @restrictions, @features: string lists, as in README.package-tests
         @depends: string list of test dependencies (packages)
         @clicks: path list of click packages to install for this test
+        @installed_clicks: names of already installed clicks for this test
         '''
         if '/' in name:
             raise Unsupported(name, 'test name may not contain / character')
@@ -109,12 +110,14 @@ class Test:
         self.features = features
         self.depends = depends
         self.clicks = clicks
+        self.installed_clicks = installed_clicks
         # None while test hasn't run yet; True: pass, False: fail
         self.result = None
         adtlog.debug('Test defined: name %s path %s command "%s" '
-                     'restrictions %s features %s depends %s clicks %s' %
+                     'restrictions %s features %s depends %s clicks %s '
+                     'installed clicks %s' %
                      (name, path, command, restrictions, features, depends,
-                      clicks))
+                      clicks, installed_clicks))
 
     def passed(self):
         '''Mark test as passed'''
@@ -361,7 +364,7 @@ def parse_debian_source(srcdir, testbed_caps, control_path=None):
 
                 for n in test_names:
                     test = Test(n, os.path.join(test_dir, n), None,
-                                restrictions, features, depends, [])
+                                restrictions, features, depends, [], [])
                     test.check_testbed_compat(testbed_caps)
                     tests.append(test)
             elif 'Test-command' in record:
@@ -371,7 +374,7 @@ def parse_debian_source(srcdir, testbed_caps, control_path=None):
                                                 srcdir)
                 command_counter += 1
                 test = Test('command%i' % command_counter, None, command,
-                            restrictions, features, depends, [])
+                            restrictions, features, depends, [], [])
                 test.check_testbed_compat(testbed_caps)
                 tests.append(test)
             else:
@@ -388,12 +391,15 @@ def parse_debian_source(srcdir, testbed_caps, control_path=None):
 # Parsing for click packages
 #
 
-def parse_click_manifest(manifest, testbed_caps, clickdeps, srcdir=None):
+def parse_click_manifest(manifest, testbed_caps, clickdeps, use_installed,
+                         srcdir=None):
     '''Parse test descriptions from a click manifest.
 
     @manifest: String with the click manifest
     @testbed_caps: List of testbed capabilities
     @clickdeps: paths of click packages that these tests need
+    @use_installed: True if test expects the described click to be installed
+                    already
 
     Return (source_dir, list of Test objects, some_skipped). If this encounters
     any invalid restrictions, fields, or test restrictions which cannot be met
@@ -415,6 +421,10 @@ def parse_click_manifest(manifest, testbed_caps, clickdeps, srcdir=None):
     if not isinstance(test_j, dict):
         raise InvalidControl(
             '*', 'click manifest x-test key must be a dictionary')
+
+    installed_clicks = []
+    if use_installed:
+        installed_clicks.append(manifest_j.get('name'))
 
     some_skipped = False
     tests = []
@@ -452,7 +462,7 @@ def parse_click_manifest(manifest, testbed_caps, clickdeps, srcdir=None):
         try:
             test = Test(name, desc.get('path'), desc.get('command'),
                         desc.get('restrictions', []), desc.get('features', []),
-                        desc.get('depends', []), clickdeps)
+                        desc.get('depends', []), clickdeps, installed_clicks)
             test.check_testbed_compat(testbed_caps)
             tests.append(test)
         except Unsupported as u:
@@ -505,4 +515,5 @@ def parse_click(clickpath, testbed_caps, srcdir=None):
     finally:
         pkg.close()
 
-    return parse_click_manifest(manifest, testbed_caps, [clickpath], srcdir)
+    return parse_click_manifest(manifest, testbed_caps, [clickpath], False,
+                                srcdir)
