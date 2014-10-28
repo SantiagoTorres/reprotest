@@ -727,12 +727,25 @@ for p in *.deb; do dpkg-deb --extract $p .; rm $p; done
 # executables
 echo PATH=$d/sbin:$d/bin:$d/usr/sbin:$d/usr/bin:$d/usr/games:$PATH
 
-# shared libraries
+# shared libraries / Qt plugins
 l=""
+q=""
 for candidate in $(find $d -type d \( -name 'lib' -o -path '*/lib/*-linux-*' \)); do
     [ -z "$(ls $candidate/*.so $candidate/*.so.* 2>/dev/null)" ] || l="$candidate:$l"
+    [ -z "$(ls $candidate/lib*qt*.so* 2>/dev/null)" ] || q="$candidate:$q"
 done
 [ -z "$l" ] || echo LD_LIBRARY_PATH=$l${LD_LIBRARY_PATH:-}
+if [ -n "$q" ]; then
+    echo QT_PLUGIN_PATH="$q"
+    # also needs updated AppArmor rules
+    if type aa-clickhook >/dev/null 2>&1; then
+        cat <<EOF > /var/cache/apparmor/click-ap.rules
+dbus (receive, send) bus=session path=/com/canonical/Autopilot/**,
+$d/** r,
+EOF
+        aa-clickhook -f --include=/var/cache/apparmor/click-ap.rules
+    fi
+fi
 
 # Python modules
 p=""
