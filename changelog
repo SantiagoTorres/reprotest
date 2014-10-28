@@ -19,6 +19,8 @@ autopkgtest (3.7) UNRELEASED; urgency=medium
     read-only environments without dpkg-dev installed. (LP: #1383878)
   * With --apt-upgrade, retry apt-get update a third time after one minute.
     With just a second try we still get occasional hash sum mismatches.
+  * Recognize Qt plugins in the temp dir install tree, so that autopilot tests
+    work on images which don't have autopilot-qt installed any more.
 
   Bug fixes:
   * adt-virt-ssh: Terminate the ssh connection muxer on cleanup. Fixes eternal
