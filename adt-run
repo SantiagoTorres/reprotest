@@ -1644,10 +1644,12 @@ def process_actions():
                 with open(control_override) as f:
                     manifest = f.read()
                 clicks = []
+                use_installed = False
                 if os.path.exists(arg):
                     clicks.append(arg)
+                    use_installed = True
                 (srcdir, tests, skipped) = testdesc.parse_click_manifest(
-                    manifest, testbed.caps, clicks, pending_click_source)
+                    manifest, testbed.caps, clicks, use_installed, pending_click_source)
 
             elif os.path.exists(arg):
                 # local .click package file
@@ -1661,7 +1663,7 @@ def process_actions():
                     u = []
                 manifest = testbed.check_exec(['click', 'info'] + u + [arg], stdout=True)
                 (srcdir, tests, skipped) = testdesc.parse_click_manifest(
-                    manifest, testbed.caps, [], pending_click_source)
+                    manifest, testbed.caps, [], True, pending_click_source)
 
             if not srcdir:
                 bomb('No click source available for %s' % arg)
