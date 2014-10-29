@@ -21,6 +21,8 @@ autopkgtest (3.7) UNRELEASED; urgency=medium
     With just a second try we still get occasional hash sum mismatches.
   * Recognize Qt plugins in the temp dir install tree, so that autopilot tests
     work on images which don't have autopilot-qt installed any more.
+  * Remove the "adt-satdep" package after test installation finished, to avoid
+    tests being confused about an unexpected package.
 
   Bug fixes:
   * adt-virt-ssh: Terminate the ssh connection muxer on cleanup. Fixes eternal
