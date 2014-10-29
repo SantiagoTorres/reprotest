@@ -798,27 +798,27 @@ done
         if not clickpkgs and not installed_clicks:
             return
 
-        rules = 'dbus (receive, send) bus=session path=/com/canonical/Autopilot/**,\n'
+        rules = 'dbus (receive, send) bus=session path=/com/canonical/Autopilot/**,'
         for e in self.install_tmp_env:
             if e.startswith('QT_PLUGIN_PATH='):
                 for p in e.split('=', 1)[1].split(':'):
                     p = p.strip()
                     if p:
-                        rules += p + '/** r,\n'
+                        rules += ' %s/** r,' % p
                 break
 
         adtlog.info('Updating AppArmor rules to allow autopilot introspection')
-        script = '[ -d /var/cache/apparmor ] || exit; ' \
-            'type aa-clickhook >/dev/null 2>&1 || exit; ' \
-            'cat <<EOF > /var/cache/apparmor/click-ap.rules\n%s\nEOF\n' \
+        script = '[ -d /var/cache/apparmor -a -d /var/lib/apparmor/clicks ] || exit 0; ' \
+            'type aa-clickhook >/dev/null 2>&1 || exit 0; ' \
+            '''echo '%s' > /var/cache/apparmor/click-ap.rules; ''' \
             'for c in %s; do ' \
             '   info=$(click info %s $c); ' \
             ''' name=$(echo "$info" | sed -rn '/"name"/ {s/^.*: *"([^"]+)",/\\1/; p}'); ''' \
             ''' version=$(echo "$info" | sed -rn '/"version"/ {s/^.*: *"([^"]+)",/\\1/; p}'); ''' \
-            '   touch -h /var/lib/apparmor/clicks/${name}_*_${version}.json; '\
+            '   touch -h /var/lib/apparmor/clicks/${name}_*_${version}.json >/dev/null || true; '\
             'done; ' \
             'for c in %s; do ' \
-            '    touch -h /var/lib/apparmor/clicks/${c}_*.json; ' \
+            '    touch -h /var/lib/apparmor/clicks/${c}_*.json 2>/dev/null || true; ' \
             'done; ' \
             'aa-clickhook --include=/var/cache/apparmor/click-ap.rules' % (
                 rules,
