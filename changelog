@@ -33,6 +33,9 @@ autopkgtest (3.7) UNRELEASED; urgency=medium
     randomly.
   * ssh-setup/adb: Quiesce some noise from various phablet-config/gdbus/adb
     commands.
+  * ssh-setup/adb: If the welcome wizard is already running, just kill that
+    instead of the entire session. In particular, this avoids killing adb on
+    both the host and the device.
 
  -- Martin Pitt <mpitt@debian.org>  Sun, 19 Oct 2014 08:08:27 -0400
 
