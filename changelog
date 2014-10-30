@@ -1,4 +1,4 @@
-autopkgtest (3.7) UNRELEASED; urgency=medium
+autopkgtest (3.7) unstable; urgency=medium
 
   Improvements/cleanup:
   * When not logging to a file, colorize adt-run debug/info/warning/error
@@ -40,7 +40,7 @@ autopkgtest (3.7) UNRELEASED; urgency=medium
     instead of the entire session. In particular, this avoids killing adb on
     both the host and the device.
 
- -- Martin Pitt <mpitt@debian.org>  Sun, 19 Oct 2014 08:08:27 -0400
+ -- Martin Pitt <mpitt@debian.org>  Thu, 30 Oct 2014 10:47:16 +0100
 
 autopkgtest (3.6) unstable; urgency=medium
 
