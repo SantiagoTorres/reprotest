@@ -2,6 +2,7 @@ autopkgtest (3.7.1) UNRELEASED; urgency=medium
 
   * NullRunner.test_tmp_install_perl: Use a package from Ubuntu main, to fix
     FTBFS in Ubuntu's buildds.
+  * Fix AppArmor rule adjustment for a local click package.
 
  -- Martin Pitt <mpitt@debian.org>  Fri, 31 Oct 2014 11:58:46 +0100
 
