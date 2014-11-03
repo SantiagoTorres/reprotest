@@ -815,7 +815,7 @@ done
             'type aa-clickhook >/dev/null 2>&1 || exit 0; ' \
             '''echo '%s' > /var/cache/apparmor/click-ap.rules; ''' \
             'for c in %s; do ' \
-            '   info=$(click info %s $c); ' \
+            '   info=$(click info %s %s/$(basename "$c")); ' \
             ''' name=$(echo "$info" | sed -rn '/"name"/ {s/^.*: *"([^"]+)",/\\1/; p}'); ''' \
             ''' version=$(echo "$info" | sed -rn '/"version"/ {s/^.*: *"([^"]+)",/\\1/; p}'); ''' \
             '   touch -h /var/lib/apparmor/clicks/${name}_*_${version}.json >/dev/null || true; '\
@@ -827,6 +827,7 @@ done
                 rules,
                 ' '.join(clickpkgs),
                 opts.user and ('--user ' + opts.user) or '',
+                self.scratch,
                 ' '.join(installed_clicks))
         if self.execute(['sh', '-ec', script], kind='install')[0] != 0:
             if 'root-on-testbed' not in testbed.caps:
