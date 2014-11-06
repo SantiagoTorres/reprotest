@@ -560,7 +560,12 @@ class Testbed:
             VirtSubproc.timeout_stop()
         except VirtSubproc.Timeout:
             killtree(proc.pid)
-            proc.wait()
+            # This is a bit of a hack, but what can we do.. we can't kill/clean
+            # up sudo processes, we can only hope that they clean up themselves
+            # after we stop the testbed
+            adtlog.debug('timed out on %s %s (kind: %s)' % (self.exec_cmd, argv, kind))
+            if 'sudo' not in self.exec_cmd:
+                proc.wait()
             self.bomb('timed out on command "%s" (kind: %s)' % (' '.join(argv), kind))
 
         adtlog.debug('testbed command exited with code %i' % proc.returncode)
