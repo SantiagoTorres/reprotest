@@ -769,7 +769,7 @@ done
 [ -z "$l" ] || echo GI_TYPELIB_PATH="$l:${GI_TYPELIB_PATH:-}"
 ''' % {'t': self.scratch, 'pkgs': ' '.join(to_install)}
         (rc, out, _) = self.execute(['sh', '-euc', script],
-                                    stdout=subprocess.PIPE)
+                                    stdout=subprocess.PIPE, kind='install')
         if rc != 0:
             bomb('failed to download and unpack test dependencies')
         self.install_tmp_env = [l.strip() for l in out.splitlines() if l]
