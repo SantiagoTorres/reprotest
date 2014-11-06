@@ -11,6 +11,8 @@ autopkgtest (3.7.1) UNRELEASED; urgency=medium
   * Show "set -x" trace of AppArmor reconfiguration in debug mode.
   * Use "install" instead of "short" time out for downloading and unpacking
     dependencies in "temp dir" mode.
+  * ssh-setup/adb: Retry connecting with ssh a few times, the first time
+    doesn't always succeed immediately after enabling ssh.
 
  -- Martin Pitt <mpitt@debian.org>  Fri, 31 Oct 2014 11:58:46 +0100
 
