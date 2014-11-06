@@ -834,7 +834,7 @@ done
                 opts.user and ('--user ' + opts.user) or '',
                 self.scratch,
                 ' '.join(installed_clicks))
-        if self.execute(['sh', '-ec', script], kind='install')[0] != 0:
+        if self.execute(['sh', opts.verbosity >= 2 and '-exc' or '-ec', script], kind='install')[0] != 0:
             if 'root-on-testbed' not in testbed.caps:
                 bomb('Failed to update click AppArmor rules: no root privileges in testbed')
             else:
