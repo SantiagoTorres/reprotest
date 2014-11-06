@@ -9,6 +9,8 @@ autopkgtest (3.7.1) UNRELEASED; urgency=medium
     terminate themselves after we stop the testbed. Fixes non-working timeouts
     for LXC runner with the --sudo option.
   * Show "set -x" trace of AppArmor reconfiguration in debug mode.
+  * Use "install" instead of "short" time out for downloading and unpacking
+    dependencies in "temp dir" mode.
 
  -- Martin Pitt <mpitt@debian.org>  Fri, 31 Oct 2014 11:58:46 +0100
 
