@@ -3,6 +3,11 @@ autopkgtest (3.7.1) UNRELEASED; urgency=medium
   * NullRunner.test_tmp_install_perl: Use a package from Ubuntu main, to fix
     FTBFS in Ubuntu's buildds.
   * Fix AppArmor rule adjustment for a local click package.
+  * When executing a command in the testbed times out, don't wait for it
+    after killing if the auxverb includes "sudo". We can't kill those
+    processes, so we'd wait forever; we can only hope that they eventually
+    terminate themselves after we stop the testbed. Fixes non-working timeouts
+    for LXC runner with the --sudo option.
 
  -- Martin Pitt <mpitt@debian.org>  Fri, 31 Oct 2014 11:58:46 +0100
 
