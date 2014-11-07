@@ -13,6 +13,8 @@ autopkgtest (3.7.1) UNRELEASED; urgency=medium
     dependencies in "temp dir" mode.
   * ssh-setup/adb: Retry connecting with ssh a few times, the first time
     doesn't always succeed immediately after enabling ssh.
+  * tools/adt-setup-vm: Prevent subsequent cloud-init runs from modifying the
+    apt sources again.
 
  -- Martin Pitt <mpitt@debian.org>  Fri, 31 Oct 2014 11:58:46 +0100
 
