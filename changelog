@@ -1,4 +1,4 @@
-autopkgtest (3.7.1) UNRELEASED; urgency=medium
+autopkgtest (3.7.1) unstable; urgency=medium
 
   * NullRunner.test_tmp_install_perl: Use a package from Ubuntu main, to fix
     FTBFS in Ubuntu's buildds.
@@ -16,7 +16,7 @@ autopkgtest (3.7.1) UNRELEASED; urgency=medium
   * tools/adt-setup-vm: Prevent subsequent cloud-init runs from modifying the
     apt sources again.
 
- -- Martin Pitt <mpitt@debian.org>  Fri, 31 Oct 2014 11:58:46 +0100
+ -- Martin Pitt <mpitt@debian.org>  Tue, 11 Nov 2014 07:54:40 +0100
 
 autopkgtest (3.7) unstable; urgency=medium
 
