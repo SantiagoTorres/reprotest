@@ -309,6 +309,21 @@ class Testbed:
         pl = self.command('open', (), 1)
         self._opened(pl)
 
+    def post_boot_setup(self):
+        '''Setup after (re)booting the test bed'''
+
+        # provide autopkgtest-reboot command, if reboot is supported; /run is
+        # usually "noexec" and /[s]bin might be readonly, so create in /tmp
+        if 'reboot' in self.caps and 'root-on-testbed' in self.caps:
+            adtlog.debug('testbed supports reboot, creating /tmp/autopkgtest-reboot')
+            rc = self.execute(['sh', '-ecC', '''/bin/echo -e '#!/bin/sh -e\\n'''
+                               '''[ -n "$1" ] || { echo "Usage: $0 <mark>" >&2; exit 1; }\\n'''
+                               '''echo "$1" > /run/autopkgtest-reboot-mark\\n'''
+                               '''kill -KILL $PPID\\n' > /tmp/autopkgtest-reboot;'''
+                               '''chmod 755 /tmp/autopkgtest-reboot;'''
+                               '''[ -L /sbin/autopkgtest-reboot ] || ln -s '''
+                               '''  /tmp/autopkgtest-reboot /sbin/autopkgtest-reboot'''])[0]
+
     def _opened(self, pl):
         global shared_downtmp
 
@@ -341,18 +356,7 @@ class Testbed:
             self.check_exec(['sh', '-ec', "dpkg-query --show -f '${Package}\\t${Version}\\n' > %s" % pkglist.tb])
             pkglist.copyup()
 
-        # provide autopkgtest-reboot command, if reboot is supported
-        if 'reboot' in self.caps and 'root-on-testbed' in self.caps:
-            adtlog.debug('testbed supports reboot, creating /sbin/autopkgtest-reboot')
-            rc = self.execute(['sh', '-ec', '''/bin/echo -e '#!/bin/sh -e\\n'''
-                               '''[ -n "$1" ] || { echo "Usage: $0 <mark>" >&2; exit 1; }\\n'''
-                               '''echo "$1" > /run/autopkgtest-reboot-mark\\n'''
-                               '''kill -KILL $PPID\\n' > /sbin/autopkgtest-reboot;'''
-                               '''chmod 755 /sbin/autopkgtest-reboot'''])[0]
-            if rc != 0:
-                adtlog.warning('testbed supports reboot and root-on-testbed, '
-                               'but creating /sbin/autopkgtest-reboot failed;'
-                               ' read-only fs?')
+        self.post_boot_setup()
 
     def mungeing_apt(self):
         if 'revert' not in self.caps:
@@ -379,6 +383,12 @@ class Testbed:
             return
         self.command('close')
         shared_downtmp = None
+
+    def reboot(self):
+        '''Reboot the testbed'''
+
+        self.command('reboot', ())
+        self.post_boot_setup()
 
     def run_setup_commands(self):
         '''Run --setup-commmands and --copy'''
@@ -420,7 +430,7 @@ class Testbed:
                      boot_dirs, self.scratch)])[0]
             if boot_affected:
                 adtlog.info('rebooting testbed after setup commands that affected boot')
-                self.command('reboot', ())
+                self.reboot()
 
     def reset(self, deps_new, with_recommends):
         '''Reset the testbed, if possible and necessary'''
@@ -993,7 +1003,7 @@ done
                 if code == 0:
                     reboot_marker = reboot_marker.strip()
                     adtlog.info('test process requested reboot with marker %s' % reboot_marker)
-                    self.command('reboot', ())
+                    self.reboot()
                     continue
                 else:
                     adtlog.debug('no reboot marker, considering a failure')
