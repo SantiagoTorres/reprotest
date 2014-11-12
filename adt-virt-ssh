@@ -362,6 +362,7 @@ def hook_reboot():
 
     execute_setup_script('reboot')
     wait_for_ssh(sshcmd)
+    build_auxverb()
 
 
 def hook_cleanup():
