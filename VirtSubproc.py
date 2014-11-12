@@ -308,19 +308,23 @@ def cmd_reboot(c, ce):
     if 'reboot' not in caller.hook_capabilities():
         bomb("`reboot' when `reboot' not advertised")
 
-    # save current downtmp
-    check_exec(['sh', '-ec', '''rm -f /var/cache/autopkgtest/tmpdir.tar
-        mkdir -p /var/cache/autopkgtest/
-        tar --create --absolute-names -f /var/cache/autopkgtest/tmpdir.tar '%s'
-        ''' % downtmp], downp=True, timeout=copy_timeout)
+    # save current downtmp; try a few locations, as /var/cache might be r/o
+    # (argh Ubuntu touch)
+    directories = '/var/cache /home'
+    check_exec(['sh', '-ec', '''for d in %s; do if [ -w $d ]; then
+                    tar --create --absolute-names -f $d/autopkgtest-tmpdir.tar '%s'; exit 0;
+                 fi; done; exit 1
+        ''' % (directories, downtmp)], downp=True, timeout=copy_timeout)
     adtlog.debug('cmd_reboot: saved current downtmp, rebooting')
 
     caller.hook_reboot()
 
     # restore downtmp
-    check_exec(['sh', '-ec', '''
-        tar --extract --absolute-names -f /var/cache/autopkgtest/tmpdir.tar
-        rm -r /var/cache/autopkgtest/'''],
+    check_exec(['sh', '-ec', '''for d in %s; do
+        if [ -e $d/autopkgtest-tmpdir.tar ]; then
+           tar --extract --absolute-names -f $d/autopkgtest-tmpdir.tar;
+           rm $d/autopkgtest-tmpdir.tar; exit 0;
+        fi; done; exit 1''' % directories],
                downp=True, timeout=copy_timeout)
     adtlog.debug('cmd_reboot: saved current downtmp, rebooting')
 
