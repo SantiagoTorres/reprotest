@@ -1267,7 +1267,7 @@ class Binaries:
 
         adtlog.debug('Binaries: initialising')
         self.apt_get_cmd = ['apt-get', '--quiet',
-                            '-o', 'Debug::pkgProblemResolver=true ',
+                            '-o', 'Debug::pkgProblemResolver=true',
                             '-o', 'APT::Get::force-yes=true',
                             '-o', 'APT::Get::Assume-Yes=true']
 
