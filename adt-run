@@ -316,14 +316,14 @@ class Testbed:
         # usually "noexec" and /[s]bin might be readonly, so create in /tmp
         if 'reboot' in self.caps and 'root-on-testbed' in self.caps:
             adtlog.debug('testbed supports reboot, creating /tmp/autopkgtest-reboot')
-            rc = self.execute(['sh', '-ecC', '''[ ! -e /tmp/autopkgtest-reboot ] || exit 0; '''
-                               '''/bin/echo -e '#!/bin/sh -e\\n'''
-                               '''[ -n "$1" ] || { echo "Usage: $0 <mark>" >&2; exit 1; }\\n'''
-                               '''echo "$1" > /run/autopkgtest-reboot-mark\\n'''
-                               '''kill -KILL $PPID\\n' > /tmp/autopkgtest-reboot;'''
-                               '''chmod 755 /tmp/autopkgtest-reboot;'''
-                               '''[ -L /sbin/autopkgtest-reboot ] || ln -s '''
-                               '''  /tmp/autopkgtest-reboot /sbin/autopkgtest-reboot'''])[0]
+            self.execute(['sh', '-ecC', '''[ ! -e /tmp/autopkgtest-reboot ] || exit 0; '''
+                          '''/bin/echo -e '#!/bin/sh -e\\n'''
+                          '''[ -n "$1" ] || { echo "Usage: $0 <mark>" >&2; exit 1; }\\n'''
+                          '''echo "$1" > /run/autopkgtest-reboot-mark\\n'''
+                          '''kill -KILL $PPID\\n' > /tmp/autopkgtest-reboot;'''
+                          '''chmod 755 /tmp/autopkgtest-reboot;'''
+                          '''[ -L /sbin/autopkgtest-reboot ] || ln -s '''
+                          '''  /tmp/autopkgtest-reboot /sbin/autopkgtest-reboot'''])
 
     def _opened(self, pl):
         global shared_downtmp
