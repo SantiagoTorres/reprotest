@@ -312,8 +312,8 @@ def cmd_reboot(c, ce):
     # (argh Ubuntu touch)
     directories = '/var/cache /home'
     check_exec(['sh', '-ec', '''for d in %s; do if [ -w $d ]; then
-                    tar --create --absolute-names -f $d/autopkgtest-tmpdir.tar '%s'; exit 0;
-                 fi; done; exit 1
+              tar --create --absolute-names -f $d/autopkgtest-tmpdir.tar '%s';
+              exit 0; fi; done; exit 1
         ''' % (directories, downtmp)], downp=True, timeout=copy_timeout)
     adtlog.debug('cmd_reboot: saved current downtmp, rebooting')
 
