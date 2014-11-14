@@ -71,6 +71,8 @@ def parse_args():
                         'adt-run as normal user')
     parser.add_argument('template', help='LXC container name that will be '
                         'used as a template')
+    parser.add_argument('lxcargs', nargs=argparse.REMAINDER,
+                        help='Additional arguments to pass to lxc-start ')
     args = parser.parse_args()
     if args.debug:
         adtlog.verbosity = 2
@@ -177,7 +179,7 @@ def hook_open():
         VirtSubproc.check_exec(sudoify(
             ['lxc-start-ephemeral', '--name', lxc_container_name,
              '--keep-data', '--daemon', '--bdir', shared_dir,
-             '--orig', args.template]), outp=True)
+             '--orig', args.template] + args.lxcargs), outp=True)
         # work around https://launchpad.net/bugs/1367730
         VirtSubproc.check_exec(sudoify([
             'lxc-attach', '--name', lxc_container_name, '--', 'chmod', 'go+rx', '/']),
@@ -187,7 +189,8 @@ def hook_open():
             ['lxc-clone', '--new', lxc_container_name, '--orig', args.template]), outp=True)
         VirtSubproc.check_exec(sudoify(
             ['lxc-start', '--name', lxc_container_name, '--daemon',
-             '--define', 'lxc.mount.entry=%s %s none bind,create=dir 0 0' % (shared_dir, shared_dir[1:])]))
+             '--define', 'lxc.mount.entry=%s %s none bind,create=dir 0 0' % (shared_dir, shared_dir[1:])]
+            + args.lxcargs))
     try:
         adtlog.debug('waiting for lxc guest start')
         wait_booted(lxc_container_name)

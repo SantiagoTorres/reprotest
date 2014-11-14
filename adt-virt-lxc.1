@@ -6,6 +6,7 @@ adt\-virt\-lxc \- autopkgtest virtualisation server using LXC
 .B adt\-virt\-lxc
 .RI [ options ]
 .I lxc\-container
+.RI [ "-- extra lxc-start args..." ]
 
 .SH DESCRIPTION
 .B adt-virt-lxc
@@ -61,6 +62,12 @@ the test environment, it is not recommended for use in automation.
 .TP
 .BR \-d " | " \-\-debug
 Enables debugging output.
+
+.PP
+You can pass additional options to LXC: Anything after a
+.B --
+gets passed verbatim to
+.BR lxc-start / lxc-start-ephemeral .
 
 .SH INPUT, OUTPUT AND EXIT STATUS
 The behaviour of
