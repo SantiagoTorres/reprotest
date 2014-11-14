@@ -178,8 +178,8 @@ def hook_open():
     if args.ephemeral:
         VirtSubproc.check_exec(sudoify(
             ['lxc-start-ephemeral', '--name', lxc_container_name,
-             '--keep-data', '--daemon', '--bdir', shared_dir,
-             '--orig', args.template] + args.lxcargs), outp=True)
+             '--daemon', '--bdir', shared_dir, '--orig', args.template]
+            + args.lxcargs), outp=True)
         # work around https://launchpad.net/bugs/1367730
         VirtSubproc.check_exec(sudoify([
             'lxc-attach', '--name', lxc_container_name, '--', 'chmod', 'go+rx', '/']),
@@ -213,7 +213,7 @@ def hook_open():
     except:
         # Clean up on failure
         VirtSubproc.check_exec(sudoify(['lxc-stop', '--name', lxc_container_name]))
-        VirtSubproc.check_exec(sudoify(['lxc-destroy', '--name', lxc_container_name]))
+        VirtSubproc.execute_timeout(None, 30, sudoify(['lxc-destroy', '--name', lxc_container_name]))
         raise
 
 
@@ -245,7 +245,13 @@ def hook_cleanup():
         shutil.rmtree(shared_dir)
 
     VirtSubproc.check_exec(sudoify(['lxc-stop', '--name', lxc_container_name]))
-    VirtSubproc.check_exec(sudoify(['lxc-destroy', '--name', lxc_container_name]))
+    # ephemeral containers don't exist at this point any more, so make failure
+    # non-fatal
+    (s, o, e) = VirtSubproc.execute_timeout(
+        None, 30, sudoify(['lxc-destroy', '--name', lxc_container_name]),
+        stderr=subprocess.PIPE)
+    if s != 0 and e and 'not defined' not in e:
+        sys.stderr.write(e)
 
 
 def hook_forked_inchild():
