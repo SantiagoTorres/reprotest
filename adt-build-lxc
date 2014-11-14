@@ -82,6 +82,10 @@ setup() {
         echo "Acquire::http { Proxy \"$ADT_APT_PROXY\"; };" > $LXCDIR/$1/rootfs/etc/apt/apt.conf.d/01proxy
     fi
 
+    # go-faster apt/dpkg
+    echo "Acquire::Languages \"none\";" > $LXCDIR/$1/rootfs/etc/apt/apt.conf.d/90nolanguages
+    echo 'force-unsafe-io' > $LXCDIR/$1/rootfs/etc/dpkg/dpkg.cfg.d/autopkgtest
+
     lxc-start --daemon --name=$1
     # wait until it is booted: lxc-attach works and we get a numeric runlevel
     timeout=60
