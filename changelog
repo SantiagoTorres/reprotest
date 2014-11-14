@@ -8,6 +8,10 @@ autopkgtest (3.8) UNRELEASED; urgency=medium
     $packages_template (which is ssh,vim).
   * adt-virt-lxc: Pass any additional options/arguments (after --) verbatim to
     lxc-start{,-ephemeral}.
+  * adt-virt-lxc: Stop running ephemeral containers with --keep-data by
+    default, as this makes them unnecessarily slow due to running on disk.
+    Environments with little RAM are instead advised to explicitly supply this
+    or --storage-type as extra arguments.
 
   Bug fixes:
   * Create autopkgtest-reboot command in /tmp, as /sbin/ might be read-only
