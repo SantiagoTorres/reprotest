@@ -111,7 +111,7 @@ if [ ! -e $LXCDIR/$NAME ]; then
 else
     # remove LXC rootfs caches; on btrfs this might be a subvolume, otherwise
     # rm it
-    subvols=$(btrfs subvolume list / 2>/dev/null | awk "/cache\/lxc.*utopic/ {print \$(NF)}") || true
+    subvols=$(btrfs subvolume list / 2>/dev/null | awk "/cache\/lxc.*$RELEASE/ {print \$(NF)}") || true
     if [ -n "$subvols" ]; then
         for vol in $subvols; do
             btrfs subvolume delete /$vol
