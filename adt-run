@@ -796,8 +796,12 @@ done
         if 'ADT_CLICK_NO_FRAMEWORK_CHECK' in os.environ:
             # this is mostly for testing
             clickopts.append('--force-missing-framework')
-        rc = self.execute(['click', 'install', '--allow-unauthenticated']
-                          + clickopts + [tp.tb], kind='install')[0]
+        if 'root-on-testbed' in self.caps:
+            rc = self.execute(['click', 'install', '--allow-unauthenticated']
+                              + clickopts + [tp.tb], kind='install')[0]
+        else:
+            rc = self.execute(['pkcon', 'install-local', '--allow-untrusted',
+                               tp.tb], kind='install')[0]
         if rc != 0:
             bomb('click install failed with status %i' % rc)
 
@@ -815,6 +819,12 @@ done
         '''Update AppArmor rules for click tests'''
 
         if not clickpkgs and not installed_clicks:
+            return
+
+        if 'root-on-testbed' not in self.caps:
+            adtlog.warning('Cannot adjust AppArmor rules without root/sudo '
+                           'privileges; Autopilot tests will fail and test '
+                           'dependencies will not be available!')
             return
 
         rules = 'dbus (receive, send) bus=session path=/com/canonical/Autopilot/**,'
