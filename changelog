@@ -1,4 +1,4 @@
-autopkgtest (3.8) UNRELEASED; urgency=medium
+autopkgtest (3.8) unstable; urgency=medium
 
   Improvements:
   * adt-build-lxc: Configure unsafe dpkg I/O and disable apt's download of
@@ -27,7 +27,7 @@ autopkgtest (3.8) UNRELEASED; urgency=medium
   * adt-build-lxc: Fix hardcoded "utopic" release name for cache cleanup on
     btrfs, use the actual release name from the command line. (LP: #1392589)
 
- -- Martin Pitt <mpitt@debian.org>  Wed, 12 Nov 2014 15:15:42 +0100
+ -- Martin Pitt <mpitt@debian.org>  Fri, 14 Nov 2014 08:40:28 +0100
 
 autopkgtest (3.7.1) unstable; urgency=medium
 
