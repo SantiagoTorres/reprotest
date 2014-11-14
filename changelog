@@ -6,6 +6,8 @@ autopkgtest (3.8) UNRELEASED; urgency=medium
   * adt-build-lxc: Use eatmydata for lxc-create if available, and install
     eatmydata into containers. For Ubuntu, stop installing the default
     $packages_template (which is ssh,vim).
+  * adt-virt-lxc: Pass any additional options/arguments (after --) verbatim to
+    lxc-start{,-ephemeral}.
 
   Bug fixes:
   * Create autopkgtest-reboot command in /tmp, as /sbin/ might be read-only
