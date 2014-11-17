@@ -635,6 +635,8 @@ Description: satisfy autopkgtest test dependencies
                            '-o', 'Debug::pkgProblemResolver=true'],
                           kind='install')[0]
         if rc != 0:
+            if opts.shell_fail:
+                testbed.run_shell()
             bomb('failed to run apt-get to satisfy adt-satdep.deb dependencies')
         rc = self.execute(['dpkg', '--status', 'adt-satdep'],
                           stdout=subprocess.PIPE,
