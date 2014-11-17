@@ -4,6 +4,7 @@ autopkgtest (3.8.1) UNRELEASED; urgency=medium
     password), install click packages with pkcon and skip the AppArmor rule
     adjustment. This makes non-root click tests at least work for
     non-Autopilot cases. (LP: #1384417)
+  * Make --shell-fail also apply to test dependency installation failure.
 
  -- Martin Pitt <mpitt@debian.org>  Fri, 14 Nov 2014 12:09:03 +0100
 
