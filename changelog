@@ -5,6 +5,8 @@ autopkgtest (3.8.1) UNRELEASED; urgency=medium
     adjustment. This makes non-root click tests at least work for
     non-Autopilot cases. (LP: #1384417)
   * Make --shell-fail also apply to test dependency installation failure.
+  * Run root tests through "su" as well (if possible), to ensure that these
+    also get a proper PAM/logind session with all runners. (LP: #1393474)
 
  -- Martin Pitt <mpitt@debian.org>  Fri, 14 Nov 2014 12:09:03 +0100
 
