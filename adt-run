@@ -991,7 +991,13 @@ done
             # FIXME: move "run as user" as an argument of execute()/check_exec() and run with -l
             test_argv = ['su', '-s', '/bin/bash', opts.user, '-c']
         else:
-            test_argv = ['bash', '-c']
+            # this ensures that we have a PAM/logind session for root tests as
+            # well; with some interfaces like ttyS1 or lxc_attach we don't log
+            # in to the testbed
+            if 'root-on-testbed' in self.caps:
+                test_argv = ['su', '-s', '/bin/bash', 'root', '-c']
+            else:
+                test_argv = ['bash', '-c']
 
         # run test script
         if test.command:
