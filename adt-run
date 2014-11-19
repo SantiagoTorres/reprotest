@@ -169,7 +169,9 @@ def setup_trace():
 
     if opts.logfile is not None:
         # tee stdout/err into log file
-        fifo_log = os.path.join(tmp, 'fifo_log')
+        (fd, fifo_log) = tempfile.mkstemp(prefix='adt-fifo-log.')
+        os.close(fd)
+        os.unlink(fifo_log)
         os.mkfifo(fifo_log)
         atexit.register(os.unlink, fifo_log)
         out_tee = subprocess.Popen(['tee', fifo_log],
