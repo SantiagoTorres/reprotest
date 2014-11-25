@@ -18,6 +18,7 @@ autopkgtest (3.8.1) UNRELEASED; urgency=medium
     which aren't just minimal environments.
   * adt-setup-vm: Drop bogus "X-Start-Before" line in generated init.d script.
     (Closes: #770517)
+  * Respect DEB_BUILD_OPTIONS=nocheck (side issue in #769687)
 
  -- Martin Pitt <mpitt@debian.org>  Fri, 14 Nov 2014 12:09:03 +0100
 

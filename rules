@@ -34,11 +34,13 @@ override_dh_auto_install:
 	sed -i 's/@version@/$(VERSION)/' debian/autopkgtest/usr/bin/adt-run
 
 override_dh_auto_test:
+ifeq (, $(findstring nocheck, $(DEB_BUILD_OPTIONS)))
 	if type pyflakes3 >/dev/null 2>&1; then tests/pyflakes; else echo "pyflakes3 not available, skipping"; fi
 	tests/pep8 || true
 	tests/testdesc
 	tests/run_args
 	env NO_PKG_MANGLE=1 tests/adt-run NullRunner
+endif
 
 # necessary until we move to compat level 9
 override_dh_pysupport:
