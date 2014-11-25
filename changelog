@@ -16,6 +16,8 @@ autopkgtest (3.8.1) UNRELEASED; urgency=medium
     tree itself. (LP: #1393426)
   * adt-setup-vm: Don't purge man-db. It uninstalls way too much on images
     which aren't just minimal environments.
+  * adt-setup-vm: Drop bogus "X-Start-Before" line in generated init.d script.
+    (Closes: #770517)
 
  -- Martin Pitt <mpitt@debian.org>  Fri, 14 Nov 2014 12:09:03 +0100
 
