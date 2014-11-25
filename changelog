@@ -14,6 +14,8 @@ autopkgtest (3.8.1) UNRELEASED; urgency=medium
   * Don't put the log FIFO into the output directory. This avoids keeping it
     in --output-dir, which fails if the output dir happens to be in the tested
     tree itself. (LP: #1393426)
+  * adt-setup-vm: Don't purge man-db. It uninstalls way too much on images
+    which aren't just minimal environments.
 
  -- Martin Pitt <mpitt@debian.org>  Fri, 14 Nov 2014 12:09:03 +0100
 
