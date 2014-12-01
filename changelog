@@ -1,3 +1,9 @@
+autopkgtest (3.8.2) UNRELEASED; urgency=medium
+
+  * tools/adt-setup-vm: Avoid debconf prompts during dist-upgrade.
+
+ -- Martin Pitt <mpitt@debian.org>  Mon, 01 Dec 2014 06:54:45 +0100
+
 autopkgtest (3.8.1) unstable; urgency=medium
 
   * If the testbed does not have root privileges (e. g. missing sudo
