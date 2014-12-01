@@ -92,7 +92,7 @@ fi
 
 # upgrade, install some necessary packages
 chroot "$root" apt-get update
-[ "${ADT_SETUP_VM_UPGRADE:-}" = false ] || chroot "$root" apt-get -y dist-upgrade
+[ "${ADT_SETUP_VM_UPGRADE:-}" = false ] || DEBIAN_FRONTEND=noninteractive chroot "$root" apt-get -y dist-upgrade
 
 if [ "${mirror_rel%ubuntu*}" != "$mirror_rel" ]; then
     # provides kmods like scsi_debug or mac80211_hwsim
