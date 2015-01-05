@@ -203,8 +203,9 @@ def host_setup(command):
             workdir = tempfile.mkdtemp(prefix='adt-virt-ssh.')
             os.chmod(workdir, 0o755)
         execute_setup_script(command)
-        build_auxverb()
+        build_sshcmd()
         wait_for_ssh(sshcmd)
+        build_auxverb()
     except:
         # Clean up on failure
         hook_cleanup()
@@ -212,8 +213,8 @@ def host_setup(command):
     adtlog.debug('host set up for %s; ssh command: %s' % (command, sshcmd))
 
 
-def build_auxverb():
-    '''Generate sshcmd and auxverb from sshconfig'''
+def build_sshcmd():
+    '''Generate sshcmd from sshconfig'''
 
     global sshconfig, sshcmd, capabilities, workdir
 
@@ -248,6 +249,36 @@ def build_auxverb():
         else:
             adtlog.warning('Ignoring invalid parameter: %s' % param)
 
+
+def wait_for_ssh(ssh_cmd, timeout=300):
+    '''Wait until testbed responds to ssh'''
+
+    cmd = ssh_cmd + ['/bin/true']
+    start = time.time()
+    elapsed = 0
+    delay = 3
+
+    while elapsed < timeout:
+        try:
+            rc = VirtSubproc.execute_timeout(None, 30, cmd)[0]
+            if rc == 0:
+                adtlog.debug('ssh connection established.')
+                break
+        except VirtSubproc.Timeout:
+            pass
+        adtlog.warning('ssh connection failed. Retrying in %d seconds...'
+                       % delay)
+        time.sleep(delay)
+        elapsed = time.time() - start
+    else:
+        VirtSubproc.bomb('Timed out on waiting for ssh connection')
+
+
+def build_auxverb():
+    '''Generate auxverb from sshconfig'''
+
+    global sshconfig, sshcmd, capabilities, workdir
+
     if sshconfig['login'] != 'root':
         sudocmd = can_sudo(sshcmd)
     if sudocmd:
@@ -256,6 +287,14 @@ def build_auxverb():
     else:
         if 'root-on-testbed' in capabilities:
             capabilities.remove('root-on-testbed')
+
+    # create remote wrapper
+    rc = VirtSubproc.execute_timeout(
+        terminal_kill_wrapper, 30, sshcmd +
+        ['rm -f /tmp/adt-run-wrapper; set -C; cat > /tmp/adt-run-wrapper; chmod 755 /tmp/adt-run-wrapper'],
+        stdin=subprocess.PIPE)[0]
+    if rc != 0:
+        VirtSubproc.bomb('Failed to create /tmp/adt-run-wrapper')
 
     # create local auxverb script
     auxverb = os.path.join(workdir, 'runcmd')
@@ -311,36 +350,6 @@ def can_sudo(ssh_cmd):
     return None
 
 
-def wait_for_ssh(ssh_cmd, timeout=300):
-    cmd = ssh_cmd + ['/bin/true']
-    start = time.time()
-    elapsed = 0
-    delay = 3
-
-    while elapsed < timeout:
-        try:
-            rc = VirtSubproc.execute_timeout(None, 30, cmd)[0]
-            if rc == 0:
-                adtlog.debug('ssh connection established.')
-                break
-        except VirtSubproc.Timeout:
-            pass
-        adtlog.warning('ssh connection failed. Retrying in %d seconds...'
-                       % delay)
-        time.sleep(delay)
-        elapsed = time.time() - start
-    else:
-        VirtSubproc.bomb('Timed out on waiting for ssh connection')
-
-    # create remote wrapper
-    rc = VirtSubproc.execute_timeout(
-        terminal_kill_wrapper, 30, ssh_cmd +
-        ['rm -f /tmp/adt-run-wrapper; set -C; cat > /tmp/adt-run-wrapper; chmod 755 /tmp/adt-run-wrapper'],
-        stdin=subprocess.PIPE)[0]
-    if rc != 0:
-        VirtSubproc.bomb('Failed to create /tmp/adt-run-wrapper')
-
-
 def hook_open():
     host_setup('open')
 
@@ -361,7 +370,8 @@ def hook_reboot():
     global sshcmd
 
     execute_setup_script('reboot')
-    wait_for_ssh(sshcmd)
+    build_sshcmd()
+    wait_for_ssh()
     build_auxverb()
 
 
