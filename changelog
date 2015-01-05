@@ -1,5 +1,12 @@
-autopkgtest (3.8.2) UNRELEASED; urgency=medium
+autopkgtest (3.9) UNRELEASED; urgency=medium
 
+  Improvements:
+  * Add "snappy" ssh setup script to run tests in an Ubuntu Snappy
+    (http://www.ubuntu.com/snappy) testbed in QEMU. This uses a given image
+    with -i/--image, or constructs a temporary one using ubuntu-device-flash
+    (which caches its downloads and is fast).
+
+  Bug fixes:
   * tools/adt-setup-vm: Avoid debconf prompts during dist-upgrade.
   * adt-virt-ssh: Wait for ssh to become available before checking for sudo.
     Fixes root capability detection for setup scripts which don't already wait
