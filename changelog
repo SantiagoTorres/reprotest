@@ -7,6 +7,9 @@ autopkgtest (3.9) UNRELEASED; urgency=medium
     (which caches its downloads and is fast).
   * adt-run autopkgtest: Install ubuntu-device-flash and qemu-kvm if
     available, to run the snappy ssh script tests under autopkgtest in Ubuntu.
+  * ssh setup script "reboot" commands can now simply "exit 10" if they want
+    adt-run to just call "reboot" through ssh, instead of having a custom
+    implementation.
 
   Bug fixes:
   * tools/adt-setup-vm: Avoid debconf prompts during dist-upgrade.
