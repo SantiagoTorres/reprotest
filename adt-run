@@ -1538,14 +1538,16 @@ def build_source(kind, arg, built_binaries):
         # below and just set the tests_tree and get the package version
         tests_tree = TestbedPath(testbed, arg, os.path.join(testbed.scratch, 'tree'), is_dir=True)
 
-        with open(os.path.join(arg, 'debian', 'changelog'), encoding='UTF-8') as f:
-            (testpkg_name, testpkg_version, _) = f.readline().split(' ', 2)
-            testpkg_version = testpkg_version[1:-1]  # chop off parentheses
+        changelog = os.path.join(arg, 'debian', 'changelog')
+        if os.path.exists(changelog):
+            with open(changelog, encoding='UTF-8') as f:
+                (testpkg_name, testpkg_version, _) = f.readline().split(' ', 2)
+                testpkg_version = testpkg_version[1:-1]  # chop off parentheses
 
-        adtlog.info('testing package %s version %s' % (testpkg_name, testpkg_version))
-        if opts.output_dir:
-            with open(os.path.join(tmp, 'testpkg-version'), 'w') as f:
-                f.write('%s %s\n' % (testpkg_name, testpkg_version))
+            adtlog.info('testing package %s version %s' % (testpkg_name, testpkg_version))
+            if opts.output_dir:
+                with open(os.path.join(tmp, 'testpkg-version'), 'w') as f:
+                    f.write('%s %s\n' % (testpkg_name, testpkg_version))
         return tests_tree
 
     elif kind == 'apt-source':
