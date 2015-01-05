@@ -1,6 +1,9 @@
 autopkgtest (3.8.2) UNRELEASED; urgency=medium
 
   * tools/adt-setup-vm: Avoid debconf prompts during dist-upgrade.
+  * adt-virt-ssh: Wait for ssh to become available before checking for sudo.
+    Fixes root capability detection for setup scripts which don't already wait
+    for ssh themselves.
 
  -- Martin Pitt <mpitt@debian.org>  Mon, 01 Dec 2014 06:54:45 +0100
 
