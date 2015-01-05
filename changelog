@@ -13,6 +13,8 @@ autopkgtest (3.9) UNRELEASED; urgency=medium
   * adt-virt-ssh: Wait for ssh to become available before checking for sudo.
     Fixes root capability detection for setup scripts which don't already wait
     for ssh themselves.
+  * VirtSubproc.cmd_reboot: Avoid multi-line shell command so that this also
+    gets along with the ssh runner.
 
  -- Martin Pitt <mpitt@debian.org>  Mon, 01 Dec 2014 06:54:45 +0100
 
