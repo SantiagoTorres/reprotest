@@ -1,4 +1,4 @@
-autopkgtest (3.9) UNRELEASED; urgency=medium
+autopkgtest (3.9) unstable; urgency=medium
 
   Improvements:
   * Add "snappy" ssh setup script to run tests in an Ubuntu Snappy
@@ -21,7 +21,7 @@ autopkgtest (3.9) UNRELEASED; urgency=medium
   * Fix FileNotFoundError if built tree does not have a debian/changelog file.
     Simply skip detection of source package version in this case.
 
- -- Martin Pitt <mpitt@debian.org>  Mon, 01 Dec 2014 06:54:45 +0100
+ -- Martin Pitt <mpitt@debian.org>  Mon, 05 Jan 2015 18:09:03 +0100
 
 autopkgtest (3.8.1) unstable; urgency=medium
 
