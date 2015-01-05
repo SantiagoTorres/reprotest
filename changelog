@@ -18,6 +18,8 @@ autopkgtest (3.9) UNRELEASED; urgency=medium
     for ssh themselves.
   * VirtSubproc.cmd_reboot: Avoid multi-line shell command so that this also
     gets along with the ssh runner.
+  * Fix FileNotFoundError if built tree does not have a debian/changelog file.
+    Simply skip detection of source package version in this case.
 
  -- Martin Pitt <mpitt@debian.org>  Mon, 01 Dec 2014 06:54:45 +0100
 
