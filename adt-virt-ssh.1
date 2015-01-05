@@ -202,7 +202,8 @@ from open() to update the configuration, in case the hostname/IP changes.
 
 .SS command: reboot
 If the testbed can be rebooted with keeping state, the script should put
-"reboot" into the capabilities and implement this command.
+"reboot" into the capabilities and implement this command. If calling "reboot"
+through ssh works, this can just exit with code 10.
 
 .SS Included scripts
 
