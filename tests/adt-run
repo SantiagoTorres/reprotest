@@ -1,0 +1,9 @@
+#!/bin/sh
+set -e
+
+# on Ubuntu, also install ubuntu-device-flash to check the snappy script
+if apt-cache show ubuntu-device-flash >/dev/null 2>&1; then
+    apt-get install -y ubuntu-device-flash qemu-kvm 2>&1
+fi
+
+exec tests/adt-run

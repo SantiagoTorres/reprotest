@@ -5,6 +5,8 @@ autopkgtest (3.9) UNRELEASED; urgency=medium
     (http://www.ubuntu.com/snappy) testbed in QEMU. This uses a given image
     with -i/--image, or constructs a temporary one using ubuntu-device-flash
     (which caches its downloads and is fast).
+  * adt-run autopkgtest: Install ubuntu-device-flash and qemu-kvm if
+    available, to run the snappy ssh script tests under autopkgtest in Ubuntu.
 
   Bug fixes:
   * tools/adt-setup-vm: Avoid debconf prompts during dist-upgrade.

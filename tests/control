@@ -1,7 +1,6 @@
 Tests: adt-run
 Depends: autopkgtest, build-essential, debhelper (>= 7)
 Restrictions: needs-root
-Tests-Directory: tests
 
 Tests: pyflakes
 Depends: pyflakes
