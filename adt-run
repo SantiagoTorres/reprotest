@@ -1561,7 +1561,7 @@ def build_source(kind, arg, built_binaries):
         testbed.install_deps([], False)
         if testbed.execute(['which', 'dpkg-source'],
                            stdout=subprocess.PIPE,
-                           stderr=subprocess.PIPE) != 0:
+                           stderr=subprocess.PIPE)[0] != 0:
             adtlog.debug('dpkg-source not available in testbed, installing dpkg-dev')
             # Install dpkg-source for unpacking .dsc
             testbed.satisfy_dependencies_string('dpkg-dev',
