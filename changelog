@@ -1,7 +1,11 @@
 autopkgtest (3.9.1) UNRELEASED; urgency=medium
 
+  [ Martin Pitt ]
   * Revert installation of ubuntu-device-flash in adt-run autopkgtest, it's
     too unstable (timeouts and grub errors due to qemu in qemu).
+
+  [ Christian Kastner ]
+  * adt-run: Fix detection of dpkg-dev in the testbed. (Closes: #775073)
 
  -- Martin Pitt <mpitt@debian.org>  Tue, 06 Jan 2015 07:48:26 +0100
 
