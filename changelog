@@ -10,6 +10,8 @@ autopkgtest (3.9.1) UNRELEASED; urgency=medium
     read generated files. (Closes: #775075)
   * adt-setup-vm: Modify guest's dpkg config for enabling force-unsafe-io, not
     host's, when a root directory is specified as argument. (Closes: #775076)
+  * adt-setup-vm: Make sure $proxy variable exists before using it. Fixes
+    crash when apt is not configured to use a proxy. (Closes: #775092)
 
  -- Martin Pitt <mpitt@debian.org>  Tue, 06 Jan 2015 07:48:26 +0100
 
