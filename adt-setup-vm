@@ -85,11 +85,13 @@ echo 'force-unsafe-io' > "$root"/etc/dpkg/dpkg.cfg.d/autopkgtest
 # auto-detect apt-cacher-ng
 if [ -z "${ADT_APT_PROXY:-}" ]; then
     RES=`apt-config shell proxy Acquire::http::Proxy`
-    eval $RES
-    if echo "$proxy" | egrep -q '(localhost|127\.0\.0\.[0-9]*):3142'; then
-        ADT_APT_PROXY="http://10.0.2.2:3142"
-        # set http_proxy for the initial apt-get update
-        export http_proxy="$proxy"
+    if [ -n "$RES" ]; then
+        eval $RES
+        if echo "$proxy" | egrep -q '(localhost|127\.0\.0\.[0-9]*):3142'; then
+            ADT_APT_PROXY="http://10.0.2.2:3142"
+            # set http_proxy for the initial apt-get update
+            export http_proxy="$proxy"
+        fi
     fi
 fi
 
