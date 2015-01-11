@@ -15,6 +15,9 @@
 
 set -eu
 
+# Created files should be readable by user adt (this script is called as root)
+umask 0022
+
 if [ "${1:-}" = "--help" ]; then
     echo "Usage: $0 [chroot dir]"
     echo "if chroot dir is not given, run on the main system (for running in VMs)"
