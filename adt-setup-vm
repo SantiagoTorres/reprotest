@@ -80,7 +80,7 @@ fi
 
 # go-faster apt/dpkg
 echo "Acquire::Languages \"none\";" > "$root"/etc/apt/apt.conf.d/90nolanguages
-echo 'force-unsafe-io' > /etc/dpkg/dpkg.cfg.d/autopkgtest
+echo 'force-unsafe-io' > "$root"/etc/dpkg/dpkg.cfg.d/autopkgtest
 
 # auto-detect apt-cacher-ng
 if [ -z "${ADT_APT_PROXY:-}" ]; then
