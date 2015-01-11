@@ -6,6 +6,8 @@ autopkgtest (3.9.1) UNRELEASED; urgency=medium
 
   [ Christian Kastner ]
   * adt-run: Fix detection of dpkg-dev in the testbed. (Closes: #775073)
+  * adt-setup-vm: Set umask to 0022 so that ordinary users in the testbed can
+    read generated files. (Closes: #775075)
 
  -- Martin Pitt <mpitt@debian.org>  Tue, 06 Jan 2015 07:48:26 +0100
 
