@@ -1,3 +1,10 @@
+autopkgtest (3.9.2) UNRELEASED; urgency=medium
+
+  * adt-setup-vm: Fix all other places which operated on the host instead of
+    the guest file system when specifying a directory argument.
+
+ -- Martin Pitt <mpitt@debian.org>  Sun, 11 Jan 2015 13:13:26 +0100
+
 autopkgtest (3.9.1) unstable; urgency=medium
 
   [ Martin Pitt ]
