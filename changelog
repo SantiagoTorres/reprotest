@@ -1,4 +1,4 @@
-autopkgtest (3.9.1) UNRELEASED; urgency=medium
+autopkgtest (3.9.1) unstable; urgency=medium
 
   [ Martin Pitt ]
   * Revert installation of ubuntu-device-flash in adt-run autopkgtest, it's
@@ -13,7 +13,7 @@ autopkgtest (3.9.1) UNRELEASED; urgency=medium
   * adt-setup-vm: Make sure $proxy variable exists before using it. Fixes
     crash when apt is not configured to use a proxy. (Closes: #775092)
 
- -- Martin Pitt <mpitt@debian.org>  Tue, 06 Jan 2015 07:48:26 +0100
+ -- Martin Pitt <mpitt@debian.org>  Sun, 11 Jan 2015 12:53:18 +0100
 
 autopkgtest (3.9) unstable; urgency=medium
 
