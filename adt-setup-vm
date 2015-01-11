@@ -69,12 +69,12 @@ deb-src $mirror_rel main contrib non-free
 EOF
 fi
 # prevent subsequent cloud-init runs from modifying the apt sources again
-if [ -e /etc/cloud/cloud.cfg ]; then
-    echo 'apt_preserve_sources_list: true' >> /etc/cloud/cloud.cfg
+if [ -e "$root/etc/cloud/cloud.cfg" ]; then
+    echo 'apt_preserve_sources_list: true' >> "$root/etc/cloud/cloud.cfg"
 fi
 
 # set up networking
-if ! grep -qr eth0 /etc/network/interfaces /etc/network/interfaces.d/; then
+if ! grep -qr eth0 "$root/etc/network/interfaces" "$root/etc/network/interfaces.d/"; then
     /bin/echo -e '\nauto eth0\niface eth0 inet dhcp' >> "$root"/etc/network/interfaces
 fi
 
