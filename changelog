@@ -1,3 +1,10 @@
+autopkgtest (3.9.4) UNRELEASED; urgency=medium
+
+  * Recognize modern "Package-Type:" control field in addition to
+    XC-Package-Type.
+
+ -- Martin Pitt <mpitt@debian.org>  Tue, 27 Jan 2015 13:07:32 +0100
+
 autopkgtest (3.9.3) unstable; urgency=medium
 
   [ Christian Kastner ]
