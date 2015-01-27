@@ -2,6 +2,8 @@ autopkgtest (3.9.4) UNRELEASED; urgency=medium
 
   * Recognize modern "Package-Type:" control field in addition to
     XC-Package-Type.
+  * ssh-setup/adb: Guard adb wait-for-device with a 5 min timeout.
+    (LP: #1414939)
 
  -- Martin Pitt <mpitt@debian.org>  Tue, 27 Jan 2015 13:07:32 +0100
 
