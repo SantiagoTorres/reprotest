@@ -963,11 +963,11 @@ done
             script += 'chown -R %s "$buildtree"; ' % opts.user
         if opts.set_lang is not False:
             script += 'export LANG=%s; ' % opts.set_lang
-        # there's no way to tell su to not reset $PATH, for install-tmp mode
+        # there's no way to tell su to not reset $PATH, for install-tmp mode;
+        # we also need it to amend fixed values in /etc/environment
+        adtlog.warning("XXXX exporting %s" % self.install_tmp_env)
         for e in self.install_tmp_env:
-            if e.startswith('PATH='):
-                script += 'export %s; ' % e
-                break
+            script += 'export %s; ' % e
         # if we have an user upstart session, poke the environment into it
         if self.install_tmp_env:
             script += 'if [ -n "$UPSTART_SESSION" ]; then '
