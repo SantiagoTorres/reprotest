@@ -1,4 +1,4 @@
-autopkgtest (3.9.4) UNRELEASED; urgency=medium
+autopkgtest (3.9.4) unstable; urgency=medium
 
   * Recognize modern "Package-Type:" control field in addition to
     XC-Package-Type.
@@ -19,7 +19,7 @@ autopkgtest (3.9.4) UNRELEASED; urgency=medium
     the environment from a recent upstart version) when calling initctl, to
     fix querying the session D-BUS address. (LP: #1415514)
 
- -- Martin Pitt <mpitt@debian.org>  Tue, 27 Jan 2015 13:07:32 +0100
+ -- Martin Pitt <mpitt@debian.org>  Thu, 29 Jan 2015 19:01:41 +0100
 
 autopkgtest (3.9.3) unstable; urgency=medium
 
