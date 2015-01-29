@@ -15,6 +15,9 @@ autopkgtest (3.9.4) UNRELEASED; urgency=medium
   * setup-commands/ubuntu-touch-session: Ensure that /dev/uinput is always
     accessible, as we don't necessarily have local logind sessions during
     tests. (part of LP #1415514)
+  * setup-commands/ubuntu-touch-session: Unset UPSTART_JOB (which crept into
+    the environment from a recent upstart version) when calling initctl, to
+    fix querying the session D-BUS address. (LP: #1415514)
 
  -- Martin Pitt <mpitt@debian.org>  Tue, 27 Jan 2015 13:07:32 +0100
 
