@@ -5,6 +5,10 @@ autopkgtest (3.9.4) UNRELEASED; urgency=medium
   * ssh-setup/adb: Guard adb wait-for-device with a 5 min timeout.
     (LP: #1414939)
   * README.running-tests.rst: Fix mis-spelled ro-apt setup command.
+  * Add setup-commands/ro-apt-update: Shortcut for temporarily mounting a
+    readonly root file system writable and run apt-get. This allows tests to
+    download/unpack test dependencies on older images whose apt indexes are
+    out of date. (LP: #1408350)
 
  -- Martin Pitt <mpitt@debian.org>  Tue, 27 Jan 2015 13:07:32 +0100
 
