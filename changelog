@@ -12,6 +12,9 @@ autopkgtest (3.9.4) UNRELEASED; urgency=medium
   * Export temp dir install mode variables in the test run script instead of
     merely running it under that environment, so that we trump non-extending
     LD_LIBRARY_PATHs in /etc/environment. (LP: #1407949)
+  * setup-commands/ubuntu-touch-session: Ensure that /dev/uinput is always
+    accessible, as we don't necessarily have local logind sessions during
+    tests. (part of LP #1415514)
 
  -- Martin Pitt <mpitt@debian.org>  Tue, 27 Jan 2015 13:07:32 +0100
 
