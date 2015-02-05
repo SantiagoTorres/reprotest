@@ -2,6 +2,8 @@ autopkgtest (3.9.5) UNRELEASED; urgency=medium
 
   * adt-run install_tmp(): If we have Python and Perl modules, don't specify
     the Python modules in $PERL5LIB.
+  * Recognize udev rules from packages in temp dir install mode. Copy them to
+    /run/udev/rules.d/ and trigger them. (LP: #1417966)
 
  -- Martin Pitt <mpitt@debian.org>  Thu, 05 Feb 2015 09:03:23 +0100
 
