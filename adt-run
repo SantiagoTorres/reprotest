@@ -783,6 +783,14 @@ for candidate in $(find $d -type d -path '*/usr/lib/*/girepository-*'); do
     [ -z "$(ls $candidate/*.typelib 2>/dev/null)" ] || l="$candidate:$l"
 done
 [ -z "$l" ] || echo GI_TYPELIB_PATH="$l:${GI_TYPELIB_PATH:-}"
+
+# udev rules
+if [ -n "$(ls $d/lib/udev/rules.d/*.rules 2>/dev/null)" ] && [ -w /run/udev ]; then
+    mkdir -p /run/udev/rules.d
+    cp $d/lib/udev/rules.d/*.rules /run/udev/rules.d/
+    udevadm control --reload
+    udevadm trigger || true
+fi
 ''' % {'t': self.scratch, 'pkgs': ' '.join(to_install)}
         (rc, out, _) = self.execute(['sh', '-euc', script],
                                     stdout=subprocess.PIPE, kind='install')
