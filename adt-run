@@ -768,6 +768,7 @@ done
 [ -z "$p" ] || echo PYTHONPATH=$p${PYTHONPATH:-}
 
 # Perl modules
+p=""
 for candidate in $d/usr/share/perl* $d/usr/lib/perl5 $d/usr/lib/*/perl5/*; do
     [ ! -d $candidate ] || p="$candidate:$p"
 done
