@@ -1,4 +1,4 @@
-autopkgtest (3.9.5) UNRELEASED; urgency=medium
+autopkgtest (3.9.5) unstable; urgency=medium
 
   * adt-run install_tmp(): If we have Python and Perl modules, don't specify
     the Python modules in $PERL5LIB.
@@ -14,7 +14,7 @@ autopkgtest (3.9.5) UNRELEASED; urgency=medium
   * Support temp dir install mode for python[3]-wand's really broken way of
     finding the imagemagick shared libraries. (LP: #1419024)
 
- -- Martin Pitt <mpitt@debian.org>  Thu, 05 Feb 2015 09:03:23 +0100
+ -- Martin Pitt <mpitt@debian.org>  Tue, 10 Feb 2015 16:53:01 +0100
 
 autopkgtest (3.9.4) unstable; urgency=medium
 
