@@ -6,6 +6,11 @@ autopkgtest (3.9.5) UNRELEASED; urgency=medium
     /run/udev/rules.d/ and trigger them. (LP: #1417966)
   * setup-commands/ubuntu-touch-session: Don't fail on udevadm failure, which
     cannot work in schroots.
+  * adt-virt-qemu: Ensure that python3 or python is available (which is
+    required for the auxverb helper) and exit with a meaningful error message
+    if it isn't. Adjust the manpage accordingly. Fix adt-setup-vm to install
+    python3-minimal if no Python is already installed. Thanks to Christian
+    Kastner for the initial patch! (Closes: #777478)
 
  -- Martin Pitt <mpitt@debian.org>  Thu, 05 Feb 2015 09:03:23 +0100
 
