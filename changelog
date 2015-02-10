@@ -4,6 +4,8 @@ autopkgtest (3.9.5) UNRELEASED; urgency=medium
     the Python modules in $PERL5LIB.
   * Recognize udev rules from packages in temp dir install mode. Copy them to
     /run/udev/rules.d/ and trigger them. (LP: #1417966)
+  * setup-commands/ubuntu-touch-session: Don't fail on udevadm failure, which
+    cannot work in schroots.
 
  -- Martin Pitt <mpitt@debian.org>  Thu, 05 Feb 2015 09:03:23 +0100
 
