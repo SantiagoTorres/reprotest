@@ -11,6 +11,8 @@ autopkgtest (3.9.5) UNRELEASED; urgency=medium
     if it isn't. Adjust the manpage accordingly. Fix adt-setup-vm to install
     python3-minimal if no Python is already installed. Thanks to Christian
     Kastner for the initial patch! (Closes: #777478)
+  * Support temp dir install mode for python[3]-wand's really broken way of
+    finding the imagemagick shared libraries. (LP: #1419024)
 
  -- Martin Pitt <mpitt@debian.org>  Thu, 05 Feb 2015 09:03:23 +0100
 
