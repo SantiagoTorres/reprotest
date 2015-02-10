@@ -106,6 +106,11 @@ fi
 # some tests use a lot of /dev/random, avoid hangs
 chroot "$root" apt-get install -y haveged
 
+# we need Python to run the auxverb helper
+if ! chroot "$root" sh -c 'type python3 >/dev/null 2>&1 || type python >/dev/null 2>&1'; then
+    chroot "$root" apt-get install -y --no-install-recommends python3-minimal
+fi
+
 # clean up some unnecessary packages
 for p in accountsservice apt-xapian-index cryptsetup landscape-client \
     landscape-common open-vm-tools w3m vim-runtime aptitude-common \
