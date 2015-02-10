@@ -30,13 +30,17 @@ primary image, and add all other images as read-only.
 .B adt-virt-qemu
 assumes that you have already prepared a suitable Debian based QEMU image (see
 .B BUILDING IMAGES
-below for how to create them). but you can use any VM which satisfies one of:
+below for how to create them). But you can use any VM which has
+.B python3
+or
+.B python
+installed and either
 
 .IP * 4
-They open a root shell on ttyS1, or
+opens a root shell on ttyS1, or
 
 .IP * 4
-They have a serial console on ttyS0 where you can log in (getty or similar)
+has a serial console on ttyS0 where you can log in (getty or similar)
 with specified user and password. This will then be used to start a root
 shell on ttyS1, to reduce this to the first case and to not assume that
 ttyS0 stays operational throughout the whole test.

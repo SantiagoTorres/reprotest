@@ -219,6 +219,14 @@ def setup_config(shared_dir):
         else:
             adtlog.debug('Could not determine host timezone')
 
+    # ensure that we have Python for our the auxverb helpers
+    term.send(b'type python3 2>/dev/null || type python 2>/dev/null\n')
+    try:
+        VirtSubproc.expect(term, b'/python', 5)
+    except VirtSubproc.Timeout:
+        VirtSubproc.bomb('Neither python3 nor python is installed in the VM, '
+                         'one of them is required by autopkgtest')
+
     # create helper for runcmd: cat data from its stdin (from a file) to stdout
     # eternally (like tail -f), but stop once either an "EOF" file exists and
     # we copied at least as many bytes as given in that EOF file (the first
