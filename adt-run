@@ -760,6 +760,18 @@ done
 [ -z "$l" ] || echo LD_LIBRARY_PATH=$l${LD_LIBRARY_PATH:-}
 [ -z "$q" ] || echo QT_PLUGIN_PATH="$q"
 
+# ImageMagick needs some hacks to make python[3]-wand find its library
+l=""
+for ml in $(ls usr/lib/*-linux-*/libMagick*.so.* 2>/dev/null); do
+    if [ -L $ml ]; then continue; fi
+    l=$(dirname $ml)
+    ln -sf $(basename "$ml") "${ml%%.so.*}.so"
+done
+if [ -n "$l" ]; then
+    [ -d "$l/lib" ] || ln -sf . "$l/lib"
+    echo MAGICK_HOME="$d/$l"
+fi
+
 # Python modules
 p=""
 for candidate in $d/usr/lib/python3*/dist-packages; do
