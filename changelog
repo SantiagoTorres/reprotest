@@ -2,6 +2,9 @@ autopkgtest (3.9.6) UNRELEASED; urgency=medium
 
   * Skip test_tmp_install_imagemagick test case if python3-wand is not
     available.
+  * adt-virt-ssh: Ignore errors when cleaning up the work dir. This races with
+    sshd cleaning up its control socket, don't stumble over that.
+    (LP: #1420355)
 
  -- Martin Pitt <mpitt@debian.org>  Wed, 11 Feb 2015 07:09:41 +0100
 
