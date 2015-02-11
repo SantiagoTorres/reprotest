@@ -5,6 +5,8 @@ autopkgtest (3.9.6) UNRELEASED; urgency=medium
   * adt-virt-ssh: Ignore errors when cleaning up the work dir. This races with
     sshd cleaning up its control socket, don't stumble over that.
     (LP: #1420355)
+  * Implement --timeout-factor, which was forgotten with the rewrite in
+    version 3.2. (LP: #1420540)
 
  -- Martin Pitt <mpitt@debian.org>  Wed, 11 Feb 2015 07:09:41 +0100
 
