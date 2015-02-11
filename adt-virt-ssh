@@ -415,7 +415,7 @@ def hook_cleanup():
     VirtSubproc.execute_timeout(None, 10, sshcmd + ['-O', 'exit'])
 
     if workdir:
-        shutil.rmtree(workdir)
+        shutil.rmtree(workdir, ignore_errors=True)
         workdir = None
 
 
