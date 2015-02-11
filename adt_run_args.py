@@ -286,8 +286,8 @@ details.'''
     for k in timeouts:
         g_time.add_argument(
             '--timeout-' + k, type=int, dest='timeout_' + k, metavar='T',
-            default=timeouts[k],
-            help='set %s timeout to T seconds (default: %%(default)s)' % k)
+            help='set %s timeout to T seconds (default: %us)' %
+            (k, timeouts[k]))
     g_time.add_argument(
         '--timeout-factor', type=float, metavar='FACTOR', default=1.0,
         help='multiply all default timeouts by FACTOR')
@@ -346,6 +346,12 @@ details.'''
         parser.error('You must specify --- <virt-server>...')
 
     action_parser.parse_args(action_args)
+
+    # set (possibly adjusted) timeout defaults
+    for k in timeouts:
+        if getattr(args, 'timeout_' + k) is None:
+            setattr(args, 'timeout_' + k,
+                    int(timeouts[k] * args.timeout_factor))
 
     # this timeout is for adt-virt-*, so pass it down via environment
     os.environ['ADT_VIRT_COPY_TIMEOUT'] = str(args.timeout_copy)
