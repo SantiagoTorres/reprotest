@@ -11,6 +11,9 @@ autopkgtest (3.9.6) UNRELEASED; urgency=medium
     timeout to 5 seconds, and fix retry loop to time out afer 5 minutes of
     real time instead of a fixed number of retries (as the duration of the
     D-Bus call is not very reliable).
+  * virt-subproc/adt-virt-ssh: Don't try to exit the ssh muxer if we don't
+    have a ssh command yet. This happens when the setup script fails to open
+    the testbed.
 
  -- Martin Pitt <mpitt@debian.org>  Wed, 11 Feb 2015 07:09:41 +0100
 
