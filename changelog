@@ -1,4 +1,4 @@
-autopkgtest (3.9.6) UNRELEASED; urgency=medium
+autopkgtest (3.9.6) unstable; urgency=medium
 
   * Skip test_tmp_install_imagemagick test case if python3-wand is not
     available.
@@ -15,7 +15,7 @@ autopkgtest (3.9.6) UNRELEASED; urgency=medium
     have a ssh command yet. This happens when the setup script fails to open
     the testbed.
 
- -- Martin Pitt <mpitt@debian.org>  Wed, 11 Feb 2015 07:09:41 +0100
+ -- Martin Pitt <mpitt@debian.org>  Fri, 13 Feb 2015 12:55:29 +0100
 
 autopkgtest (3.9.5) unstable; urgency=medium
 
