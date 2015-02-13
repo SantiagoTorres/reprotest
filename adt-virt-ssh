@@ -412,7 +412,8 @@ def hook_cleanup():
     # terminate ssh connection muxer; it inherits our stderr (which causes an
     # eternal hang of tee processes), and we are going to remove the socket dir
     # anyway
-    VirtSubproc.execute_timeout(None, 10, sshcmd + ['-O', 'exit'])
+    if sshcmd:
+        VirtSubproc.execute_timeout(None, 10, sshcmd + ['-O', 'exit'])
 
     if workdir:
         shutil.rmtree(workdir, ignore_errors=True)
