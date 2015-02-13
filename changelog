@@ -7,6 +7,10 @@ autopkgtest (3.9.6) UNRELEASED; urgency=medium
     (LP: #1420355)
   * Implement --timeout-factor, which was forgotten with the rewrite in
     version 3.2. (LP: #1420540)
+  * ssh-setup/adb: Fix waiting for the desktop to boot: Lower D-Bus call
+    timeout to 5 seconds, and fix retry loop to time out afer 5 minutes of
+    real time instead of a fixed number of retries (as the duration of the
+    D-Bus call is not very reliable).
 
  -- Martin Pitt <mpitt@debian.org>  Wed, 11 Feb 2015 07:09:41 +0100
 
