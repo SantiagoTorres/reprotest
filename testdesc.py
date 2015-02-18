@@ -208,7 +208,8 @@ def _debian_packages_from_source(srcdir):
             # source stanza
             continue
         # filter out udebs and similar stuff which aren't "real" debs
-        if 'Xc-package-type' in st or 'Package-type' in st:
+        if st.get('Xc-package-type', 'deb') != 'deb' or \
+                st.get('Package-type', 'deb') != 'deb':
             continue
         arch = st['Architecture']
         if arch in ('all', 'any'):
