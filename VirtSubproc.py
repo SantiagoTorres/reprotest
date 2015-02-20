@@ -225,7 +225,7 @@ def get_unix_socket(path):
     return s
 
 
-def expect(sock, search_bytes, timeout_sec, description=None):
+def expect(sock, search_bytes, timeout_sec, description=None, echo=False):
     adtlog.debug('expect: "%s"' % search_bytes.decode())
     what = '"%s"' % (description or search_bytes or 'data')
     out = b''
@@ -236,7 +236,8 @@ def expect(sock, search_bytes, timeout_sec, description=None):
             if not block:
                 time.sleep(0.1)
                 continue
-            # adtlog.debug('expect: got block: %s' % block)
+            if echo:
+                sys.stderr.buffer.write(block)
             out += block
             if search_bytes is None or search_bytes in out:
                 adtlog.debug('expect: found "%s"' % what)
