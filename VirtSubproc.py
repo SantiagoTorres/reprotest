@@ -232,8 +232,10 @@ def expect(sock, search_bytes, timeout_sec, description=None):
     with timeout(timeout_sec,
                  description and ('timed out waiting for %s' % what) or None):
         while True:
-            time.sleep(0.1)
             block = sock.recv(4096)
+            if not block:
+                time.sleep(0.1)
+                continue
             # adtlog.debug('expect: got block: %s' % block)
             out += block
             if search_bytes is None or search_bytes in out:
