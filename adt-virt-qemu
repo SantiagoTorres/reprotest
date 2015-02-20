@@ -178,7 +178,7 @@ def setup_shared(shared_dir):
 
     term = VirtSubproc.get_unix_socket(os.path.join(workdir, 'ttyS1'))
 
-    term.send(b'''mkdir -m 1777 /autopkgtest
+    term.send(b'''mkdir -p -m 1777 /autopkgtest
 mount -t 9p -o trans=virtio,access=any autopkgtest /autopkgtest
 chmod 1777 /autopkgtest
 touch /autopkgtest/done_shared
@@ -533,6 +533,7 @@ def hook_cleanup():
 
 def hook_reboot():
     global workdir
+    VirtSubproc.check_exec(['rm', '-f', '/autopkgtest/done_shared'], downp=True, timeout=5)
     VirtSubproc.check_exec(['reboot'], downp=True, timeout=5)
     wait_boot()
     shareddir = os.path.join(workdir, 'shared')
