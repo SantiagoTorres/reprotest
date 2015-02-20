@@ -74,6 +74,8 @@ def parse_args():
                         help='Number of (virtual) CPUs in the VM (default: %(default)s)')
     parser.add_argument('--ram-size', type=int, default=1024,
                         help='VM RAM size in MiB (default: %(default)s)')
+    parser.add_argument('--show-boot', action='store_true',
+                        help='Show boot messages from serial console')
     parser.add_argument('-d', '--debug', action='store_true',
                         help='Enable debugging output')
     parser.add_argument('--qemu-options',
@@ -105,7 +107,8 @@ def prepare_overlay():
 
 def wait_boot():
     term = VirtSubproc.get_unix_socket(os.path.join(workdir, 'ttyS0'))
-    VirtSubproc.expect(term, b' login: ', 300, 'login prompt on ttyS0')
+    VirtSubproc.expect(term, b' login: ', 300, 'login prompt on ttyS0',
+                       echo=args.show_boot)
     # this is really ugly, but runlevel, "service status hwclock" etc. all
     # don't help to determine if the system is *really* booted; running
     # commands too early causes the system time to be all wrong
