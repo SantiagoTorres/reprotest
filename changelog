@@ -6,6 +6,9 @@ autopkgtest (3.9.7) UNRELEASED; urgency=medium
   * VirtSubProc.expect(): Read data without delay as long as we have some.
   * adt-virt-qemu: Add --show-boot option to show boot messages from serial
     console.
+  * adt-setup-vm: Configure "console=ttyS0" boot option in grub on non-i386
+    architectures too, to fix serial consoles with systemd images. Create
+    /etc/default/grub.d/ if necessary.
 
  -- Martin Pitt <mpitt@debian.org>  Wed, 18 Feb 2015 16:03:28 +0100
 
