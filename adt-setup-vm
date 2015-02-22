@@ -55,15 +55,17 @@ fi
 
 # serial console for systemd
 # bump vmalloc on i386, necessary for tests like udisks2
-mkdir -p "$root/etc/default/grub.d/"
-if [ "$(chroot "$root" dpkg --print-architecture)" = "i386" ]; then
-    echo 'GRUB_CMDLINE_LINUX_DEFAULT="console=ttyS0 vmalloc=512M"' > \
-        "$root/etc/default/grub.d/90-autopkgtest.cfg"
-else
-    echo 'GRUB_CMDLINE_LINUX_DEFAULT="console=ttyS0"' > \
-        "$root/etc/default/grub.d/90-autopkgtest.cfg"
+if chroot "$root" which update-grub >/dev/null 2>&1; then
+    mkdir -p "$root/etc/default/grub.d/"
+    if [ "$(chroot "$root" dpkg --print-architecture)" = "i386" ]; then
+        echo 'GRUB_CMDLINE_LINUX_DEFAULT="console=ttyS0 vmalloc=512M"' > \
+            "$root/etc/default/grub.d/90-autopkgtest.cfg"
+    else
+        echo 'GRUB_CMDLINE_LINUX_DEFAULT="console=ttyS0"' > \
+            "$root/etc/default/grub.d/90-autopkgtest.cfg"
+    fi
+    chroot "$root" update-grub
 fi
-chroot "$root" update-grub
 
 # set up apt sources
 mirror_rel=`awk '/^deb .*(debian|ubuntu)/ { print $2,$3; exit }' "$root/etc/apt/sources.list"`
