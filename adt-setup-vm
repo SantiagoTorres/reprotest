@@ -53,6 +53,18 @@ if [ -e "$root/etc/init/tty2.conf" -a ! -e "$root/etc/init/ttyS0.conf" ]; then
         "$root/etc/init/tty2.conf" > "$root/etc/init/ttyS0.conf"
 fi
 
+# serial console for systemd
+# bump vmalloc on i386, necessary for tests like udisks2
+mkdir -p "$root/etc/default/grub.d/"
+if [ "$(chroot "$root" dpkg --print-architecture)" = "i386" ]; then
+    echo 'GRUB_CMDLINE_LINUX_DEFAULT="console=ttyS0 vmalloc=512M"' > \
+        "$root/etc/default/grub.d/90-autopkgtest.cfg"
+else
+    echo 'GRUB_CMDLINE_LINUX_DEFAULT="console=ttyS0"' > \
+        "$root/etc/default/grub.d/90-autopkgtest.cfg"
+fi
+chroot "$root" update-grub
+
 # set up apt sources
 mirror_rel=`awk '/^deb .*(debian|ubuntu)/ { print $2,$3; exit }' "$root/etc/apt/sources.list"`
 if [ "${mirror_rel%ubuntu*}" != "$mirror_rel" ]; then
@@ -124,11 +136,4 @@ chroot "$root" apt-get clean
 # so don't run the previous apt-get with that already)
 if [ -n "${ADT_APT_PROXY:-}" ]; then
     echo "Acquire::http { Proxy \"$ADT_APT_PROXY\"; };" > "$root"/etc/apt/apt.conf.d/01proxy
-fi
-
-# bump vmalloc on i386, necessary for tests like udisks2
-if [ "$(chroot "$root" dpkg --print-architecture)" = "i386" ]; then
-    echo 'GRUB_CMDLINE_LINUX_DEFAULT="console=ttyS0 vmalloc=512M"' > \
-        "$root/etc/default/grub.d/90-adt-vmalloc.cfg"
-    chroot "$root" update-grub
 fi
