@@ -242,7 +242,8 @@ def hook_reboot():
     adtlog.debug('hook_reboot: waiting for container to shut down...')
     VirtSubproc.execute_timeout(None, 65, sudoify(
         ['lxc-wait', '-n', lxc_container_name, '-s', 'STOPPED', '-t', '60']))
-    adtlog.debug('hook_reboot: container shut down for reboot')
+    adtlog.debug('hook_reboot: container shut down, waiting for reboot')
+    wait_booted(lxc_container_name)
 
 
 def hook_cleanup():
