@@ -330,7 +330,7 @@ def cmd_reboot(c, ce):
                 ' rm $d/autopkgtest-tmpdir.tar; exit 0; '
                 'fi; done; exit 1' % directories],
                downp=True, timeout=copy_timeout)
-    adtlog.debug('cmd_reboot: saved current downtmp, rebooting')
+    adtlog.debug('cmd_reboot: restored downtmp after reboot')
 
 
 def get_downtmp_host():
