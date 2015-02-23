@@ -93,12 +93,10 @@ def check_for_eatmydata(container, template_name):
         result = VirtSubproc.execute_timeout(
             None, 10, sudoify(['lxc-attach', '--name', container, '--', 'sh', '-c',
                                'type eatmydata']),
-            close_fds=True, stdout=null, stderr=null)
-    if result:
-        raise RuntimeError(
-            ('Container %s does not contain eatmydata, which is required '
-             'for the --eatmydata option.' % repr(template_name))
-        )
+            close_fds=True, stdout=null, stderr=null)[0]
+    if result != 0:
+        VirtSubproc.bomb('Container %s does not contain eatmydata, which is '
+                         'required for the --eatmydata option' % template_name)
 
 
 def get_available_lxc_container_name():
