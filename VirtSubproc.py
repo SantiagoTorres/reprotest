@@ -243,6 +243,8 @@ def expect(sock, search_bytes, timeout_sec, description=None, echo=False):
                 adtlog.debug('expect: found "%s"' % what)
                 break
 
+    return out
+
 
 def cmd_open(c, ce):
     global auxverb, downtmp, downtmp_open
