@@ -538,7 +538,7 @@ def hook_reboot():
     global workdir
     VirtSubproc.check_exec(['rm', '-f', '/autopkgtest/done_shared'], downp=True, timeout=5)
     VirtSubproc.check_exec(['/bin/sh', '-ec', '[ -d /run/systemd/system ] && systemctl --force reboot || reboot'],
-                           downp=True, timeout=30)
+                           downp=True, timeout=60)
     wait_boot()
     shareddir = os.path.join(workdir, 'shared')
     setup_shared(shareddir)
