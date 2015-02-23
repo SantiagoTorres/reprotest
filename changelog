@@ -7,6 +7,9 @@ autopkgtest (3.10) UNRELEASED; urgency=medium
 
   Bug fixes:
   * VirtSubproc.py, cmd_reboot(): Fix debug message.
+  * tests/adt-run: Avoid re-downloading ubuntu-device-flash images by
+    symlinking ~/.cache/ubuntuimages from the temp $HOME into the real user's
+    $HOME.
 
  -- Martin Pitt <mpitt@debian.org>  Mon, 23 Feb 2015 09:27:18 +0100
 
