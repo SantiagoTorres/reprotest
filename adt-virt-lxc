@@ -237,7 +237,7 @@ def hook_revert():
 
 
 def hook_reboot():
-    VirtSubproc.check_exec(['/bin/sh', '-ec', '[ -d /run/systemd/system ] && systemctl --force reboot || reboot'],
+    VirtSubproc.check_exec(['/bin/sh', '-ec', '(sleep 3; reboot) &'],
                            downp=True, timeout=30)
     adtlog.debug('hook_reboot: waiting for container to shut down...')
     VirtSubproc.execute_timeout(None, 65, sudoify(
