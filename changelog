@@ -11,6 +11,7 @@ autopkgtest (3.10) UNRELEASED; urgency=medium
     symlinking ~/.cache/ubuntuimages from the temp $HOME into the real user's
     $HOME.
   * adt-virt-lxc: Fix check for eatmydata when using --eatmydata.
+  * adt-virt-qemu: Increase reboot timeout to 1 min.
 
  -- Martin Pitt <mpitt@debian.org>  Mon, 23 Feb 2015 09:27:18 +0100
 
