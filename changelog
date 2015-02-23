@@ -12,6 +12,7 @@ autopkgtest (3.10) UNRELEASED; urgency=medium
     $HOME.
   * adt-virt-lxc: Fix check for eatmydata when using --eatmydata.
   * adt-virt-qemu: Increase reboot timeout to 1 min.
+  * adt-virt-qemu: Synchronize ttyS0 output before writing eofcat.
 
  -- Martin Pitt <mpitt@debian.org>  Mon, 23 Feb 2015 09:27:18 +0100
 
