@@ -2,6 +2,7 @@ autopkgtest (3.9.8) UNRELEASED; urgency=medium
 
   * adt-virt-qemu: When running under systemd, use "systemctl --force reboot"
     for faster rebooting.
+  * VirtSubproc.py, cmd_reboot(): Fix debug message.
 
  -- Martin Pitt <mpitt@debian.org>  Mon, 23 Feb 2015 09:27:18 +0100
 
