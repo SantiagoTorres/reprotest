@@ -65,7 +65,8 @@ def parse_args():
                         help='Use eatmydata inside the container to improve performance')
     parser.add_argument('-e', '--ephemeral', action='store_true',
                         help='Use ephemeral overlays instead of cloning (much '
-                        'faster, but might cause errors in some corner cases)')
+                        'faster, but does not support reboot and might cause '
+                        'errors in some corner cases)')
     parser.add_argument('-s', '--sudo', action='store_true',
                         help='Run lxc-* commands with sudo; use if you run '
                         'adt-run as normal user')
@@ -191,6 +192,7 @@ def hook_open():
             ['lxc-start', '--name', lxc_container_name, '--daemon',
              '--define', 'lxc.mount.entry=%s %s none bind,create=dir 0 0' % (shared_dir, shared_dir[1:])]
             + args.lxcargs))
+        capabilities.append('reboot')
     try:
         adtlog.debug('waiting for lxc guest start')
         wait_booted(lxc_container_name)
@@ -234,6 +236,15 @@ def hook_downtmp(path):
 def hook_revert():
     hook_cleanup()
     hook_open()
+
+
+def hook_reboot():
+    VirtSubproc.check_exec(['/bin/sh', '-ec', '[ -d /run/systemd/system ] && systemctl --force reboot || reboot'],
+                           downp=True, timeout=30)
+    adtlog.debug('hook_reboot: waiting for container to shut down...')
+    VirtSubproc.execute_timeout(None, 65, sudoify(
+        ['lxc-wait', '-n', lxc_container_name, '-s', 'STOPPED', '-t', '60']))
+    adtlog.debug('hook_reboot: container shut down for reboot')
 
 
 def hook_cleanup():

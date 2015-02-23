@@ -34,12 +34,15 @@ See \fBlxc-create\fR(1) for how to create containers.
 .TP
 .BR -e " | " \-\-ephemeral
 This option makes use of lxc-start-ephemeral to create temporary container
-overlays, instead of the default behaviour of cloning your containers. This can
-be used to dramatically improve performance, although you may see issues due to
-the overlayfs filesystem as used by lxc-start-ephemeral not being completely
-transparent (e. g. seen with tar failing when running LXC within Qemu). Before
-using this option in automation you should ensure that tests that involve large
-I/O work as expected.
+overlays, instead of the default behaviour of cloning your containers.
+
+This can be used to dramatically improve performance, although you may see
+issues due to the overlayfs filesystem as used by lxc-start-ephemeral not being
+completely transparent (e. g. seen with tar failing when running LXC within
+Qemu). Before using this option in automation you should ensure that tests that
+involve large I/O work as expected.
+
+Also, ephemeral containers do not support rebooting.
 
 .TP
 .BR \-s " | " \-\-sudo
