@@ -2,6 +2,8 @@ autopkgtest (3.10) UNRELEASED; urgency=medium
 
   Improvements:
   * adt-virt-lxc: Add reboot support for non-ephemeral containers.
+  * tests/run-parallel: Don't run all test classes in parallel, it creates too
+    much load. Serialize test classes which use the same runner.
 
   Bug fixes:
   * VirtSubproc.py, cmd_reboot(): Fix debug message.
