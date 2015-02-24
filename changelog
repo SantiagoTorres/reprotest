@@ -1,8 +1,6 @@
 autopkgtest (3.10) UNRELEASED; urgency=medium
 
   Improvements:
-  * adt-virt-qemu: When running under systemd, use "systemctl --force reboot"
-    for faster rebooting.
   * adt-virt-lxc: Add reboot support for non-ephemeral containers.
 
   Bug fixes:
