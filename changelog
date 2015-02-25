@@ -2,6 +2,11 @@ autopkgtest (3.10.1) UNRELEASED; urgency=medium
 
   * Restore click AppArmor profiles after a test, if we modified them before
     the test.
+  * When running a deb test in a click+AppArmor environment, update AppArmor
+    rules for all clicks for introspectability and temporary test
+    dependencies. This takes about a minute before the test, and another one
+    after the test, but is necessary for use cases like ubuntu-sanity-tests.
+    (LP: #1424889)
 
  -- Martin Pitt <mpitt@debian.org>  Wed, 25 Feb 2015 12:21:35 +0100
 
