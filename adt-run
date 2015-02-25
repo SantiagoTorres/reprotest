@@ -841,16 +841,24 @@ fi
             '[ -z "$UPSTART_SESSION" ] || /sbin/initctl --user start click-user-hooks')])
 
     def apparmor_click(self, clickpkgs, installed_clicks):
-        '''Update AppArmor rules for click tests'''
+        '''Update AppArmor rules for click tests
 
-        if not clickpkgs and not installed_clicks:
-            return
+        Return True if anything was modified and apparmor_restore_click()
+        needs to be called.
+        '''
+        # check if we are in a click+AppArmor environment
+        if self.execute(['sh', '-ec',
+                         '[ -d /var/cache/apparmor -a -d /var/lib/apparmor/clicks ] && '
+                         'type aa-clickhook >/dev/null 2>&1'])[0] != 0:
+            adtlog.debug('testbed does not have AppArmor/click, no need to adjust rules')
+            return False
+        adtlog.debug('testbed has AppArmor/click')
 
         if 'root-on-testbed' not in self.caps:
             adtlog.warning('Cannot adjust AppArmor rules without root/sudo '
                            'privileges; Autopilot tests will fail and test '
                            'dependencies will not be available!')
-            return
+            return False
 
         rules = 'dbus (receive, send) bus=session path=/com/canonical/Autopilot/**,'
         for e in self.install_tmp_env:
@@ -861,41 +869,40 @@ fi
                         rules += ' %s/** r,' % p
                 break
 
-        adtlog.info('Updating AppArmor rules to allow autopilot introspection')
-        script = '[ -d /var/cache/apparmor -a -d /var/lib/apparmor/clicks ] || exit 0; ' \
-            'type aa-clickhook >/dev/null 2>&1 || exit 0; ' \
-            '''echo '%s' > /var/cache/apparmor/click-ap.rules; ''' \
-            'for c in %s; do ' \
-            '   info=$(click info %s %s/$(basename "$c")); ' \
-            ''' name=$(echo "$info" | sed -rn '/"name"/ {s/^.*: *"([^"]+)",/\\1/; p}'); ''' \
-            ''' version=$(echo "$info" | sed -rn '/"version"/ {s/^.*: *"([^"]+)",/\\1/; p}'); ''' \
-            '   touch -h /var/lib/apparmor/clicks/${name}_*_${version}.json >/dev/null || true; '\
-            'done; ' \
-            'for c in %s; do ' \
-            '    touch -h /var/lib/apparmor/clicks/${c}_*.json 2>/dev/null || true; ' \
-            'done; ' \
-            'aa-clickhook --include=/var/cache/apparmor/click-ap.rules' % (
-                rules,
-                ' '.join(clickpkgs),
-                opts.user and ('--user ' + opts.user) or '',
-                self.scratch,
-                ' '.join(installed_clicks))
+        script = '''echo '%s' > /var/cache/apparmor/click-ap.rules; ''' % rules
+
+        if clickpkgs or installed_clicks:
+            adtlog.info('Updating AppArmor rules to allow autopilot introspection for tested clicks')
+            script += 'for c in %s; do ' \
+                '   info=$(click info %s %s/$(basename "$c")); ' \
+                ''' name=$(echo "$info" | sed -rn '/"name"/ {s/^.*: *"([^"]+)",/\\1/; p}'); ''' \
+                ''' version=$(echo "$info" | sed -rn '/"version"/ {s/^.*: *"([^"]+)",/\\1/; p}'); ''' \
+                '   touch -h /var/lib/apparmor/clicks/${name}_*_${version}.json >/dev/null || true; '\
+                'done; ' \
+                'for c in %s; do ' \
+                '    touch -h /var/lib/apparmor/clicks/${c}_*.json 2>/dev/null || true; ' \
+                'done; ' \
+                'aa-clickhook --include=/var/cache/apparmor/click-ap.rules' % (
+                    ' '.join(clickpkgs),
+                    opts.user and ('--user ' + opts.user) or '',
+                    self.scratch,
+                    ' '.join(installed_clicks))
+        else:
+            adtlog.info('Updating AppArmor rules to allow autopilot introspection for all clicks (will take a minute)...')
+            script += 'aa-clickhook --force --include=/var/cache/apparmor/click-ap.rules'
+
         if self.execute(['sh', opts.verbosity >= 2 and '-exc' or '-ec', script], kind='install')[0] != 0:
             bomb('Failed to update click AppArmor rules')
+
+        return True
 
     def apparmor_restore_click(self, clickpkgs, installed_clicks):
         '''Restore AppArmor rules after click tests'''
 
-        if not clickpkgs and not installed_clicks:
-            return
-        if 'root-on-testbed' not in self.caps:
-            return
-
         adtlog.info('Restoring click package AppArmor rules')
-        script = '[ -d /var/cache/apparmor -a -d /var/lib/apparmor/clicks ] || exit 0; ' \
-            'type aa-clickhook >/dev/null 2>&1 || exit 0; ' \
-            'rm /var/cache/apparmor/click-ap.rules; ' \
-            'aa-clickhook --force'
+        # if we only modified some clicks above, --force will be fast, so it's
+        # ok to always do that
+        script = 'rm /var/cache/apparmor/click-ap.rules; aa-clickhook --force'
         if self.execute(['sh', opts.verbosity >= 2 and '-exc' or '-ec', script], kind='install')[0] != 0:
             bomb('Failed to update click AppArmor rules')
 
@@ -953,7 +960,7 @@ fi
         self.prepare(test.depends, 'needs-recommends' in test.restrictions)
         for c in test.clicks:
             testbed.install_click(c)
-        self.apparmor_click(test.clicks, test.installed_clicks)
+        need_click_restore = self.apparmor_click(test.clicks, test.installed_clicks)
 
         # record installed package versions
         if opts.output_dir:
@@ -1136,7 +1143,10 @@ fi
         if opts.shell or (opts.shell_fail and not test.result):
             self.run_shell(tree.tb)
 
-        self.apparmor_restore_click(test.clicks, test.installed_clicks)
+        if need_click_restore:
+            self.apparmor_restore_click(test.clicks, test.installed_clicks)
+        else:
+            adtlog.debug('no need to restore click AppArmor profiles')
 
 
 class TestbedPath:
