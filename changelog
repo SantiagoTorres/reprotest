@@ -1,3 +1,10 @@
+autopkgtest (3.10.1) UNRELEASED; urgency=medium
+
+  * Restore click AppArmor profiles after a test, if we modified them before
+    the test.
+
+ -- Martin Pitt <mpitt@debian.org>  Wed, 25 Feb 2015 12:21:35 +0100
+
 autopkgtest (3.10) unstable; urgency=medium
 
   Improvements:
