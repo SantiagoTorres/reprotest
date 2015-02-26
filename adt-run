@@ -1722,12 +1722,16 @@ def process_actions():
     binaries = Binaries(testbed)
     binaries.reset()
     control_override = None
+    testname = None
     pending_click_source = None
 
     for (kind, arg, built_binaries) in actions:
         # non-tests/build actions
         if kind == 'override-control':
             control_override = arg
+            continue
+        if kind == 'testname':
+            testname = arg
             continue
         if kind == 'binary':
             testbed.blame('arg:' + arg)
@@ -1786,6 +1790,17 @@ def process_actions():
 
         if skipped:
             errorcode |= 2
+
+        if testname:
+            adtlog.debug('filtering testname %s for package %s %s' %
+                         (testname, kind, arg))
+            tests = [t for t in tests if t.name == testname]
+            if not tests:
+                adtlog.error('%s %s has no test matching --testname %s' %
+                             (kind, arg, testname))
+                # error code will be set later
+            testname = None
+
         control_override = None
         run_tests(tests, tests_tree)
 
