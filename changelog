@@ -1,5 +1,10 @@
-autopkgtest (3.10.1) UNRELEASED; urgency=medium
+autopkgtest (3.11) UNRELEASED; urgency=medium
 
+  Improvements:
+  * Add action argument --testname to run only one individual test from the
+    next package.
+
+  Bug fixes:
   * Restore click AppArmor profiles after a test, if we modified them before
     the test.
   * When running a deb test in a click+AppArmor environment, update AppArmor
