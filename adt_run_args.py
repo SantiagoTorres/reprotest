@@ -104,7 +104,7 @@ built_binaries = None
 
 
 class ActionArg(argparse.Action):
-    def __call__(self, parser, args, value, option_string=None):
+    def __call__(self, parser, args, value, option_string):
         global actions, built_binaries
         if option_string == '--changes':
             try:
@@ -193,7 +193,10 @@ def parse_args(arglist=None):
     action_parser.add_argument(
         '--override-control', action=ActionArg,
         metavar='CONTROL', help='run tests from control file/manifest CONTROL'
-        ' instead, (applies to next Debian/click test suite only)')
+        ' instead in the next package')
+    action_parser.add_argument(
+        '--testname', action=ActionArg,
+        help='run only given test name in the next package')
     action_parser.add_argument(
         '-B', '--no-built-binaries', nargs=0, action=BinariesArg,
         help='do not use any binaries from subsequent --source or '
