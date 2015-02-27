@@ -2,6 +2,8 @@ autopkgtest (3.11.1) UNRELEASED; urgency=medium
 
   * Fix autopkgtest-reboot to also work when being called through sudo, and
     for forking test scripts.
+  * Avoid failure if /var/cache/apparmor/click-ap.rules does not exist any
+    more after a reboot, like on snappy.
 
  -- Martin Pitt <mpitt@debian.org>  Fri, 27 Feb 2015 16:12:33 +0100
 
