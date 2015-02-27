@@ -1,3 +1,10 @@
+autopkgtest (3.11.1) UNRELEASED; urgency=medium
+
+  * Fix autopkgtest-reboot to also work when being called through sudo, and
+    for forking test scripts.
+
+ -- Martin Pitt <mpitt@debian.org>  Fri, 27 Feb 2015 16:12:33 +0100
+
 autopkgtest (3.11) unstable; urgency=medium
 
   Improvements:
