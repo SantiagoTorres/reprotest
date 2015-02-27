@@ -1,4 +1,4 @@
-autopkgtest (3.11) UNRELEASED; urgency=medium
+autopkgtest (3.11) unstable; urgency=medium
 
   Improvements:
   * Add action argument --testname to run only one individual test from the
@@ -13,7 +13,7 @@ autopkgtest (3.11) UNRELEASED; urgency=medium
     after the test, but is necessary for use cases like ubuntu-sanity-tests.
     (LP: #1424889)
 
- -- Martin Pitt <mpitt@debian.org>  Wed, 25 Feb 2015 12:21:35 +0100
+ -- Martin Pitt <mpitt@debian.org>  Fri, 27 Feb 2015 07:02:52 +0100
 
 autopkgtest (3.10) unstable; urgency=medium
 
