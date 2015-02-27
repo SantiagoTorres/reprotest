@@ -322,7 +322,10 @@ class Testbed:
                           '''/bin/echo -e '#!/bin/sh -e\\n'''
                           '''[ -n "$1" ] || { echo "Usage: $0 <mark>" >&2; exit 1; }\\n'''
                           '''echo "$1" > /run/autopkgtest-reboot-mark\\n'''
-                          '''kill -KILL $PPID\\n' > /tmp/autopkgtest-reboot;'''
+                          '''test_script_pid=$(cat /tmp/adt_test_script_pid)\\n'''
+                          '''p=$PPID; while true; do read _ c _ pp _ < /proc/$p/stat;'''
+                          '''  [ $pp -ne $test_script_pid ] || break; p=$pp; done\\n'''
+                          '''kill -KILL $p\\n' > /tmp/autopkgtest-reboot;'''
                           '''chmod 755 /tmp/autopkgtest-reboot;'''
                           '''[ -L /sbin/autopkgtest-reboot ] || ln -s '''
                           '''  /tmp/autopkgtest-reboot /sbin/autopkgtest-reboot'''])
@@ -995,6 +998,7 @@ fi
                  'mkdir -p -m 1777 -- "%(a)s"; ' \
                  'export ADT_ARTIFACTS="%(a)s"; ' \
                  'export ADTTMP=$(mktemp -d --tmpdir adttmp.XXXXXX); ' \
+                 'rm -f /tmp/adt_test_script_pid; set -C; echo $$ > /tmp/adt_test_script_pid; set +C; ' \
                  'trap "rm -rf $ADTTMP" EXIT INT QUIT PIPE; '\
                  'chmod 755 $ADTTMP; '\
                  'cd "$buildtree"; '\
