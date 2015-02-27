@@ -905,7 +905,7 @@ fi
         adtlog.info('Restoring click package AppArmor rules')
         # if we only modified some clicks above, --force will be fast, so it's
         # ok to always do that
-        script = 'rm /var/cache/apparmor/click-ap.rules; aa-clickhook --force'
+        script = 'rm -f /var/cache/apparmor/click-ap.rules; aa-clickhook --force'
         if self.execute(['sh', opts.verbosity >= 2 and '-exc' or '-ec', script], kind='install')[0] != 0:
             bomb('Failed to update click AppArmor rules')
 
