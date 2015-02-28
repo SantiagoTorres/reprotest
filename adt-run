@@ -999,7 +999,7 @@ fi
                  'export ADT_ARTIFACTS="%(a)s"; ' \
                  'export ADTTMP=$(mktemp -d --tmpdir adttmp.XXXXXX); ' \
                  'rm -f /tmp/adt_test_script_pid; set -C; echo $$ > /tmp/adt_test_script_pid; set +C; ' \
-                 'trap "rm -rf $ADTTMP" EXIT INT QUIT PIPE; '\
+                 'trap "rm -rf $ADTTMP /tmp/adt_test_script_pid" EXIT INT QUIT PIPE; '\
                  'chmod 755 $ADTTMP; '\
                  'cd "$buildtree"; '\
                  % {'t': tree.tb, 'a': test_artifacts}
