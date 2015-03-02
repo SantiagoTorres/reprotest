@@ -326,9 +326,7 @@ class Testbed:
                           '''p=$PPID; while true; do read _ c _ pp _ < /proc/$p/stat;'''
                           '''  [ $pp -ne $test_script_pid ] || break; p=$pp; done\\n'''
                           '''kill -KILL $p\\n' > /tmp/autopkgtest-reboot;'''
-                          '''chmod 755 /tmp/autopkgtest-reboot;'''
-                          '''[ -L /sbin/autopkgtest-reboot ] || ln -s '''
-                          '''  /tmp/autopkgtest-reboot /sbin/autopkgtest-reboot'''])
+                          '''chmod 755 /tmp/autopkgtest-reboot;'''])
 
     def _opened(self, pl):
         global shared_downtmp
