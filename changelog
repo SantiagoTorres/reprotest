@@ -4,6 +4,8 @@ autopkgtest (3.11.1) UNRELEASED; urgency=medium
     for forking test scripts.
   * Avoid failure if /var/cache/apparmor/click-ap.rules does not exist any
     more after a reboot, like on snappy.
+  * Drop /sbin/autopkgtest-reboot symlink. It doesn't work on read-only
+    testbeds and has been obsolete for a while.
 
  -- Martin Pitt <mpitt@debian.org>  Fri, 27 Feb 2015 16:12:33 +0100
 
