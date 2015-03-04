@@ -11,6 +11,8 @@ autopkgtest (3.11.1) UNRELEASED; urgency=medium
     cloud-init from user-data, and avoids killing apt/dpkg underneath us. This
     needs a cleaner solution, but is a good enough workaround for now.
     (LP: #1427999)
+  * adt-buildvm-ubuntu-cloud: Don't wait between serial console reads whille
+    we have data. Provides faster/smoother output in --verbose mode.
 
  -- Martin Pitt <mpitt@debian.org>  Fri, 27 Feb 2015 16:12:33 +0100
 
