@@ -647,7 +647,10 @@ Description: satisfy autopkgtest test dependencies
                           stdout=subprocess.PIPE,
                           stderr=subprocess.PIPE)[0]
         if rc != 0:
-            bomb('test dependencies are unsatisfiable')
+            bomb('Test dependencies are unsatisfiable. A common reason is '
+                 'that your testbed is out of date with respect to the '
+                 'archive, and you need to use a current testbed or run '
+                 'apt-get update or use -U.')
 
         # remove adt-satdep to avoid confusing tests
         self.execute(['dpkg', '--purge', 'adt-satdep'])
@@ -696,7 +699,10 @@ Description: satisfy autopkgtest test dependencies
                                      'install'] + list(pkg_constraints),
                                     stdout=subprocess.PIPE)
         if rc != 0:
-            bomb('test dependencies are unsatisfiable')
+            bomb('Test dependencies are unsatisfiable. A common reason is '
+                 'that your testbed is out of date with respect to the '
+                 'archive, and you need to use a current testbed, or '
+                 'try "--setup-commands ro-apt-update".')
 
         def check_constraint(pkg, ver):
             constraint = pkg_constraints.get(pkg, (None, None))
