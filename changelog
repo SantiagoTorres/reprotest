@@ -4,8 +4,6 @@ autopkgtest (3.11.1) UNRELEASED; urgency=medium
     for forking test scripts.
   * Avoid failure if /var/cache/apparmor/click-ap.rules does not exist any
     more after a reboot, like on snappy.
-  * Drop /sbin/autopkgtest-reboot symlink. It doesn't work on read-only
-    testbeds and has been obsolete for a while.
   * adt-buildvm-ubuntu-cloud: Avoid cloud-init's prerm stopping cloud-init's
     services while we are still running them. This makes it possible to purge
     cloud-init from user-data, and avoids killing apt/dpkg underneath us. This
