@@ -18,6 +18,8 @@ autopkgtest (3.11.1) UNRELEASED; urgency=medium
   * adt-run: Suggest common reason for unsatisfiable test dependencies.
     Suggest using a current image, or run apt-get update/-U (for apt-get) or
     --setup-commands ro-apt-update (for temp dir install mode). (LP: #1425682)
+  * Quiesce confusing "failed to create symbolic link
+    /sbin/autopkgtest-reboot" warning on read-only testbeds.
 
  -- Martin Pitt <mpitt@debian.org>  Fri, 27 Feb 2015 16:12:33 +0100
 
