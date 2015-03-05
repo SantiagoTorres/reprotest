@@ -1,3 +1,9 @@
+autopkgtest (3.11.2) UNRELEASED; urgency=medium
+
+  * ssh-setup/adb: Re-enable ssh after reboot, in case an upgrade disables it.
+
+ -- Martin Pitt <mpitt@debian.org>  Thu, 05 Mar 2015 16:24:01 +0100
+
 autopkgtest (3.11.1) unstable; urgency=medium
 
   * Fix autopkgtest-reboot to also work when being called through sudo, and
