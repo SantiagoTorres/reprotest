@@ -9,7 +9,7 @@ autopkgtest (3.11.1) UNRELEASED; urgency=medium
     cloud-init from user-data, and avoids killing apt/dpkg underneath us. This
     needs a cleaner solution, but is a good enough workaround for now.
     (LP: #1427999)
-  * adt-buildvm-ubuntu-cloud: Don't wait between serial console reads whille
+  * adt-buildvm-ubuntu-cloud: Don't wait between serial console reads while
     we have data. Provides faster/smoother output in --verbose mode.
   * ssh-setup/nova: Fix error message on missing keypair, the command is
     "keypair-add", not "keypair-create". Thanks Thomi Richards! (LP: #1428433)
