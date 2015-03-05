@@ -328,7 +328,7 @@ class Testbed:
                           '''kill -KILL $p\\n' > /tmp/autopkgtest-reboot;'''
                           '''chmod 755 /tmp/autopkgtest-reboot;'''
                           '''[ -L /sbin/autopkgtest-reboot ] || ln -s '''
-                          '''  /tmp/autopkgtest-reboot /sbin/autopkgtest-reboot'''])
+                          '''  /tmp/autopkgtest-reboot /sbin/autopkgtest-reboot 2>/dev/null || true'''])
 
     def _opened(self, pl):
         global shared_downtmp
