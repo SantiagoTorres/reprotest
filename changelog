@@ -1,4 +1,4 @@
-autopkgtest (3.11.1) UNRELEASED; urgency=medium
+autopkgtest (3.11.1) unstable; urgency=medium
 
   * Fix autopkgtest-reboot to also work when being called through sudo, and
     for forking test scripts.
@@ -21,7 +21,7 @@ autopkgtest (3.11.1) UNRELEASED; urgency=medium
   * Quiesce confusing "failed to create symbolic link
     /sbin/autopkgtest-reboot" warning on read-only testbeds.
 
- -- Martin Pitt <mpitt@debian.org>  Fri, 27 Feb 2015 16:12:33 +0100
+ -- Martin Pitt <mpitt@debian.org>  Thu, 05 Mar 2015 13:33:12 +0100
 
 autopkgtest (3.11) unstable; urgency=medium
 
