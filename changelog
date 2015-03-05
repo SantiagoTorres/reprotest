@@ -15,6 +15,8 @@ autopkgtest (3.11.1) UNRELEASED; urgency=medium
     we have data. Provides faster/smoother output in --verbose mode.
   * ssh-setup/nova: Fix error message on missing keypair, the command is
     "keypair-add", not "keypair-create". Thanks Thomi Richards! (LP: #1428433)
+  * adt-buildvm-ubuntu-cloud: Add workaround for recent cloud-init regression
+    that disables ssh (LP #1428495)
 
  -- Martin Pitt <mpitt@debian.org>  Fri, 27 Feb 2015 16:12:33 +0100
 
