@@ -15,6 +15,9 @@ autopkgtest (3.11.1) UNRELEASED; urgency=medium
     "keypair-add", not "keypair-create". Thanks Thomi Richards! (LP: #1428433)
   * adt-buildvm-ubuntu-cloud: Add workaround for recent cloud-init regression
     that disables ssh (LP #1428495)
+  * adt-run: Suggest common reason for unsatisfiable test dependencies.
+    Suggest using a current image, or run apt-get update/-U (for apt-get) or
+    --setup-commands ro-apt-update (for temp dir install mode). (LP: #1425682)
 
  -- Martin Pitt <mpitt@debian.org>  Fri, 27 Feb 2015 16:12:33 +0100
 
