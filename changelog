@@ -13,6 +13,8 @@ autopkgtest (3.11.1) UNRELEASED; urgency=medium
     (LP: #1427999)
   * adt-buildvm-ubuntu-cloud: Don't wait between serial console reads whille
     we have data. Provides faster/smoother output in --verbose mode.
+  * ssh-setup/nova: Fix error message on missing keypair, the command is
+    "keypair-add", not "keypair-create". Thanks Thomi Richards! (LP: #1428433)
 
  -- Martin Pitt <mpitt@debian.org>  Fri, 27 Feb 2015 16:12:33 +0100
 
