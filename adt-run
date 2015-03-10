@@ -727,7 +727,12 @@ Description: satisfy autopkgtest test dependencies
                 continue
             fields = line.split()
             pkg = fields[1]
-            ver = fields[2][1:]  # chop off '('
+            if fields[2].startswith('('):
+                ver = fields[2][1:]
+            elif fields[3].startswith('('):
+                ver = fields[2][1:]
+            else:
+                raise ValueError('Cannot parse line: %s' % line)
             # ignore Python 2 stuff, with PYTHONPATH we can only support one
             # Python major version (3)
             if pkg.startswith('python-') or pkg.startswith('libpython-') or \
