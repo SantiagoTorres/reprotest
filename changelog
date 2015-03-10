@@ -5,6 +5,7 @@ autopkgtest (3.11.2) UNRELEASED; urgency=medium
     rebooting without human interaction.
   * Fix apt-get install --simulate version parsing with third-party sources.
     (LP: #1430017)
+  * ssh-setup-nova: Add --security-groups option. (LP: #1429862)
 
  -- Martin Pitt <mpitt@debian.org>  Thu, 05 Mar 2015 16:24:01 +0100
 
