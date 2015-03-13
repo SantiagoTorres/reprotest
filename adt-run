@@ -132,7 +132,7 @@ def script_out(argv, what=None, script=None, **kwargs):
     if what:
         adtlog.debug_subprocess(what, argv, script=script)
 
-    process = subprocess.Popen(argv, universal_newlines=True, **kwargs)
+    process = subprocess.Popen(argv, **kwargs)
     output = process.communicate()[0]
     return (process.returncode, output)
 
@@ -1504,15 +1504,15 @@ def deb_package_name(deb):
     (rc, output) = script_out(cmd, stdout=subprocess.PIPE)
     if rc:
         badpkg('failed to parse binary package, code %d' % rc)
-    pkg_re = re.compile('^\s*Package\s*:\s*([0-9a-z][-+.0-9a-z]*)\s*$')
+    pkg_re = re.compile(b'^\s*Package\s*:\s*([0-9a-z][-+.0-9a-z]*)\s*$')
     result = None
-    for l in output.split('\n'):
+    for l in output.split(b'\n'):
         m = pkg_re.match(l)
         if not m:
             continue
         if result:
             badpkg('two Package: lines in control file')
-        result = m.groups()[0]
+        result = m.groups()[0].decode('ASCII')
     if not result:
         badpkg('no good Package: line in control file')
     return result
