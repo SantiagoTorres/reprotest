@@ -1,4 +1,4 @@
-autopkgtest (3.12) UNRELEASED; urgency=medium
+autopkgtest (3.12) unstable; urgency=medium
 
   * ssh-setup/adb: Re-enable ssh after reboot, in case an upgrade disables it.
   * ssh-setup/adb: Try to create /userdata/.adb_onlock, to get adb after
@@ -13,7 +13,7 @@ autopkgtest (3.12) UNRELEASED; urgency=medium
   * adt-virt-ssh: Export $SUDO_ASKPASS to tests if sudo is available.
     (LP: #1431421)
 
- -- Martin Pitt <mpitt@debian.org>  Thu, 05 Mar 2015 16:24:01 +0100
+ -- Martin Pitt <mpitt@debian.org>  Fri, 13 Mar 2015 12:52:49 +0100
 
 autopkgtest (3.11.1) unstable; urgency=medium
 
