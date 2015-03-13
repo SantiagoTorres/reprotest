@@ -281,11 +281,7 @@ def boot_image(image, seed, qemu_command, verbose):
         with VirtSubproc.timeout(3600, 'timed out on cloud-init'):
             while qemu.poll() is None:
                 if verbose:
-                    try:
-                        block = tty.recv(4096, socket.MSG_DONTWAIT)
-                        sys.stdout.buffer.raw.write(block)
-                    except BlockingIOError:
-                        time.sleep(0.1)
+                    sys.stdout.buffer.raw.write(tty.recv(4096))
                 else:
                     time.sleep(1)
     finally:
