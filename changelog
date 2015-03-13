@@ -9,6 +9,7 @@ autopkgtest (3.11.2) UNRELEASED; urgency=medium
   * adt-buildvm-ubuntu-cloud: Avoid non-blocking reads from the socket in
     verbose mode, this sometimes causes hangs. Go back to blocking reads, but
     don't wait between them.
+  * Fix UnicodeDecodeError on .deb package name reading. (LP: #1430773)
 
  -- Martin Pitt <mpitt@debian.org>  Thu, 05 Mar 2015 16:24:01 +0100
 
