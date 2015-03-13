@@ -69,6 +69,7 @@ sshopts = '-q -o BatchMode=yes -o UserKnownHostsFile=/dev/null '\
 terminal_kill_wrapper = '''#!/bin/bash
 set -u
 PPPID=$(cut -f4 -d' ' /proc/$PPID/stat)
+%s
 "$@"; RC=$?
 set -e
 myout=$(readlink /proc/$$/fd/1)
@@ -295,7 +296,7 @@ def build_auxverb():
     global sshconfig, sshcmd, capabilities, workdir
 
     if sshconfig['login'] != 'root':
-        sudocmd = can_sudo(sshcmd)
+        (sudocmd, askpass) = can_sudo(sshcmd)
     if sudocmd:
         if 'root-on-testbed' not in capabilities:
             capabilities.append('root-on-testbed')
@@ -303,9 +304,13 @@ def build_auxverb():
         if 'root-on-testbed' in capabilities:
             capabilities.remove('root-on-testbed')
 
+    extra_cmd = ''
+    if askpass:
+        extra_cmd += 'export SUDO_ASKPASS=%s\n' % askpass
+
     # create remote wrapper
     rc = VirtSubproc.execute_timeout(
-        terminal_kill_wrapper, 30, sshcmd +
+        terminal_kill_wrapper % extra_cmd, 30, sshcmd +
         ['rm -f /tmp/adt-run-wrapper; set -C; cat > /tmp/adt-run-wrapper; chmod 755 /tmp/adt-run-wrapper'],
         stdin=subprocess.PIPE)[0]
     if rc != 0:
@@ -325,7 +330,7 @@ def can_sudo(ssh_cmd):
     '''Determine if the user can sudo
 
     :param ssh_cmd: ssh command to connect to the host
-    :returns: sudo command or None if user cannot sudo
+    :returns: (sudo_command, askpass_path); (None, None) if user cannot sudo
     '''
     global cleanup_paths
 
@@ -347,7 +352,7 @@ def can_sudo(ssh_cmd):
         rc = VirtSubproc.execute_timeout(None, 30, cmd)[0]
         if rc == 0:
             adtlog.debug('can_sudo: askpass works')
-            return sudocmd
+            return (sudocmd, askpass)
         else:
             adtlog.warning('specified sudo password fails, no root available')
             pass
@@ -358,11 +363,11 @@ def can_sudo(ssh_cmd):
     rc = VirtSubproc.execute_timeout(None, 30, cmd)[0]
     if rc == 0:
         adtlog.debug('can_sudo: sudo without password works')
-        return sudocmd
+        return (sudocmd, None)
     else:
         adtlog.debug('can_sudo: sudo without password does not work')
 
-    return None
+    return (None, None)
 
 
 def hook_open():

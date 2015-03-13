@@ -68,10 +68,13 @@ but you might consider using a different key for tests.
 Specifies the sudo password on the remote host.
 
 It can be the password in clear text or a file containing the password. This
-password will be used to setup SUDO_ASKPASS in the case sudo requires a
+password will be used to setup $SUDO_ASKPASS in the case sudo requires a
 password. The runner will check if the user has sudo access with and without a
 password. If the check fails, the capability "root-on-testbed" will not be
-available.
+available. If sudo works, then tests that run as user will have
+$SUDO_ASKPASS in their environment so that they can run
+.B sudo -A
+if needed.
 
 .TP
 .BI  -p " port" " | --port=" port
