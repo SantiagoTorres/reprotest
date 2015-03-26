@@ -1,3 +1,11 @@
+autopkgtest (3.12.1) UNRELEASED; urgency=medium
+
+  [ Didier Roche ]
+  * setup-commands/ubuntu-touch-session: Use "upstart" instead of "init".
+    (LP: #1422681)
+
+ -- Martin Pitt <mpitt@debian.org>  Thu, 26 Mar 2015 06:43:27 +0100
+
 autopkgtest (3.12) unstable; urgency=medium
 
   * ssh-setup/adb: Re-enable ssh after reboot, in case an upgrade disables it.
