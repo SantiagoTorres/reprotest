@@ -136,6 +136,11 @@ else
     mv $LXCDIR/${NAME}.new/rootfs $LXCDIR/${NAME}/rootfs.new
     mv $LXCDIR/${NAME}/rootfs $LXCDIR/${NAME}/rootfs.old
     mv $LXCDIR/${NAME}/rootfs.new $LXCDIR/${NAME}/rootfs
+    # old rootfs might contain btrfs subvolumes, remove them
+    subvols=$(btrfs subvolume list -o $LXCDIR/${NAME}/rootfs.old 2>/dev/null | awk "/\/rootfs.old/ {print \$(NF)}") || true
+    for vol in $subvols; do
+        btrfs subvolume delete "/${vol#@}"
+    done
     rm -rf $LXCDIR/${NAME}/rootfs.old
     mkdir $LXCDIR/${NAME}.new/rootfs
     lxc-destroy --name=${NAME}.new
