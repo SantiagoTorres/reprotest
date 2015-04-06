@@ -13,6 +13,8 @@ autopkgtest (3.12.1) UNRELEASED; urgency=medium
     (LP: #1434543)
   * adt-buildvm-ubuntu-cloud: Drop workaround for LP #1428495, it got fixed in
     cloud-init a while ago.
+  * adt-buildvm-ubuntu-cloud: Fix cloud-init's prerm hacking to apply after
+    dist-upgrades.
 
  -- Martin Pitt <mpitt@debian.org>  Thu, 26 Mar 2015 06:43:27 +0100
 
