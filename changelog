@@ -7,6 +7,8 @@ autopkgtest (3.12.1) UNRELEASED; urgency=medium
   [ Martin Pitt ]
   * adt-build-lxc: When removing the old root file system, remove btrfs
     subvolumes in it.
+  * README.package-tests.rst: Document that '#' can be used for comments.
+    (Part of LP #1434543)
 
  -- Martin Pitt <mpitt@debian.org>  Thu, 26 Mar 2015 06:43:27 +0100
 
