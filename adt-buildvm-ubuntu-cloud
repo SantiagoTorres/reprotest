@@ -182,6 +182,7 @@ runcmd:
  - mount -r /dev/vdb /mnt
  - env ADT_SETUP_VM_UPGRADE=%(upgr)s sh /mnt/adt-setup-vm
  - umount /mnt
+ - sed -i 's/deb-systemd-invoke/true/' /var/lib/dpkg/info/cloud-init.prerm
  - (while [ ! -e /var/lib/cloud/instance/boot-finished ]; do sleep 1; done;
     apt-get -y purge cloud-init; shutdown -P now) &
 """
