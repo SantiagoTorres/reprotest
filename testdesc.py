@@ -200,6 +200,14 @@ def parse_rfc822(path):
         yield r
 
 
+def _debian_check_unknown_fields(name, record):
+    unknown_keys = set(record.keys()).difference(
+        {'Tests', 'Test-command', 'Restrictions', 'Features',
+         'Depends', 'Tests-directory', 'Classes'})
+    if unknown_keys:
+        raise Unsupported(name, 'unknown field %s' % unknown_keys.pop())
+
+
 def _debian_packages_from_source(srcdir):
     packages = []
 
@@ -363,6 +371,7 @@ def parse_debian_source(srcdir, testbed_caps, control_path=None):
                                          '"Test-Command" may be given')
                 test_dir = record.get('Tests-directory', 'debian/tests')
 
+                _debian_check_unknown_fields(test_names[0], record)
                 for n in test_names:
                     test = Test(n, os.path.join(test_dir, n), None,
                                 restrictions, features, depends, [], [])
@@ -374,8 +383,10 @@ def parse_debian_source(srcdir, testbed_caps, control_path=None):
                                                 record.get('Depends', '@'),
                                                 srcdir)
                 command_counter += 1
-                test = Test('command%i' % command_counter, None, command,
-                            restrictions, features, depends, [], [])
+                name = 'command%i' % command_counter
+                _debian_check_unknown_fields(name, record)
+                test = Test(name, None, command, restrictions, features,
+                            depends, [], [])
                 test.check_testbed_compat(testbed_caps)
                 tests.append(test)
             else:
