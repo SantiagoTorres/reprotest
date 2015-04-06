@@ -178,7 +178,6 @@ manage_etc_hosts: True
 apt_proxy: %(proxy)s
 apt_mirror: %(mirror)s
 runcmd:
- - rm -f /etc/ssh/sshd_not_to_be_run  # LP #1428495
  - sed -i 's/deb-systemd-invoke/true/' /var/lib/dpkg/info/cloud-init.prerm
  - mount -r /dev/vdb /mnt
  - env ADT_SETUP_VM_UPGRADE=%(upgr)s sh /mnt/adt-setup-vm
