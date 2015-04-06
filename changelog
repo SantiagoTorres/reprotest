@@ -9,6 +9,8 @@ autopkgtest (3.12.1) UNRELEASED; urgency=medium
     subvolumes in it.
   * README.package-tests.rst: Document that '#' can be used for comments.
     (Part of LP #1434543)
+  * Ignore debian/tests/control stanzas with unknown fields, as documented.
+    (LP: #1434543)
 
  -- Martin Pitt <mpitt@debian.org>  Thu, 26 Mar 2015 06:43:27 +0100
 
