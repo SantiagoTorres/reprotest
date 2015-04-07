@@ -1,4 +1,4 @@
-autopkgtest (3.12.1) UNRELEASED; urgency=medium
+autopkgtest (3.12.1) unstable; urgency=medium
 
   [ Didier Roche ]
   * setup-commands/ubuntu-touch-session: Use "upstart" instead of "init".
@@ -16,7 +16,7 @@ autopkgtest (3.12.1) UNRELEASED; urgency=medium
   * adt-buildvm-ubuntu-cloud: Fix cloud-init's prerm hacking to apply after
     dist-upgrades.
 
- -- Martin Pitt <mpitt@debian.org>  Thu, 26 Mar 2015 06:43:27 +0100
+ -- Martin Pitt <mpitt@debian.org>  Tue, 07 Apr 2015 07:26:27 +0200
 
 autopkgtest (3.12) unstable; urgency=medium
 
