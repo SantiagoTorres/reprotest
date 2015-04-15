@@ -112,6 +112,8 @@ def parse_args():
                         help='cloud images URL (default: %(default)s)')
     parser.add_argument('--no-apt-upgrade', action='store_true',
                         help='Do not run apt-get dist-upgrade')
+    parser.add_argument('--post-command',
+                        help='Run shell command in VM after setup')
     parser.add_argument('--metadata', metavar='METADATA_FILE',
                         help='Custom metadata file for cloud-init.')
     parser.add_argument('--userdata', metavar='USERDATA_FILE',
@@ -180,7 +182,7 @@ apt_mirror: %(mirror)s
 runcmd:
  - sed -i 's/deb-systemd-invoke/true/' /var/lib/dpkg/info/cloud-init.prerm
  - mount -r /dev/vdb /mnt
- - env ADT_SETUP_VM_UPGRADE=%(upgr)s sh /mnt/adt-setup-vm
+ - env ADT_SETUP_VM_UPGRADE=%(upgr)s ADT_SETUP_VM_POST_COMMAND='%(postcmd)s' sh /mnt/adt-setup-vm
  - umount /mnt
  - sed -i 's/deb-systemd-invoke/true/' /var/lib/dpkg/info/cloud-init.prerm
  - (while [ ! -e /var/lib/cloud/instance/boot-finished ]; do sleep 1; done;
@@ -189,7 +191,7 @@ runcmd:
 
 
 def build_seed(mirror, proxy, no_apt_upgrade, metadata_file=None,
-               userdata_file=None):
+               userdata_file=None, post_command=None):
     print('Building seed image...')
     if metadata_file:
         metadata = open(metadata_file).read()
@@ -203,7 +205,8 @@ def build_seed(mirror, proxy, no_apt_upgrade, metadata_file=None,
         userdata = open(userdata_file).read()
     else:
         userdata = DEFAULT_USERDATA % {'proxy': proxy or '', 'mirror': mirror,
-                                       'upgr': upgr, 'tz': host_tz()}
+                                       'upgr': upgr, 'tz': host_tz(),
+                                       'postcmd': post_command}
 
     # preserve proxy from host
     for v in ['http_proxy', 'https_proxy', 'no_proxy']:
@@ -310,7 +313,7 @@ args = parse_args()
 image = download_image(args.cloud_image_url, args.release, args.arch)
 resize_image(image, args.disk_size)
 seed = build_seed(args.mirror, args.proxy, args.no_apt_upgrade,
-                  args.metadata, args.userdata)
+                  args.metadata, args.userdata, args.post_command)
 boot_image(image, seed, args.qemu_command, args.verbose)
 install_image(image, os.path.join(args.output_dir, 'adt-%s-%s-cloud.img' %
                                   (args.release, args.arch)))

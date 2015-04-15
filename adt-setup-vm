@@ -132,6 +132,12 @@ for p in accountsservice apt-xapian-index cryptsetup landscape-client \
     ubuntu-release-upgrader-core; do
     chroot "$root" apt-get --auto-remove -y purge $p || true
 done
+
+# run post-install commands
+if [ -n "$ADT_SETUP_VM_POST_COMMAND" ]; then
+    chroot "$root" sh -ec "$ADT_SETUP_VM_POST_COMMAND"
+fi
+
 chroot "$root" apt-get clean
 
 # set up apt proxy, if given (this might be an IP which only works in the VM,
