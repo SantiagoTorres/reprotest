@@ -182,7 +182,8 @@ apt_mirror: %(mirror)s
 runcmd:
  - sed -i 's/deb-systemd-invoke/true/' /var/lib/dpkg/info/cloud-init.prerm
  - mount -r /dev/vdb /mnt
- - env ADT_SETUP_VM_UPGRADE=%(upgr)s ADT_SETUP_VM_POST_COMMAND='%(postcmd)s' sh /mnt/adt-setup-vm
+ - env ADT_SETUP_VM_UPGRADE=%(upgr)s ADT_SETUP_VM_POST_COMMAND='%(postcmd)s'
+     sh /mnt/adt-setup-vm
  - umount /mnt
  - sed -i 's/deb-systemd-invoke/true/' /var/lib/dpkg/info/cloud-init.prerm
  - (while [ ! -e /var/lib/cloud/instance/boot-finished ]; do sleep 1; done;
