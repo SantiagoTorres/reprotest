@@ -461,7 +461,7 @@ def parse_click_manifest(manifest, testbed_caps, clickdeps, use_installed,
 
         # autopilot special case: dict with extra depends
         if 'autopilot_module' in desc:
-            desc['command'] = 'PYTHONPATH=tests/autopilot:$PYTHONPATH ' \
+            desc['command'] = 'PYTHONPATH=app/tests/autopilot:tests/autopilot:$PYTHONPATH ' \
                 'python3 -m autopilot.run run -v -f subunit -o ' \
                 '$ADT_ARTIFACTS/%s.subunit ' % name + os.environ.get(
                     'ADT_AUTOPILOT_MODULE', desc['autopilot_module'])
