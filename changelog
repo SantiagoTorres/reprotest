@@ -1,4 +1,4 @@
-autopkgtest (3.13) UNRELEASED; urgency=medium
+autopkgtest (3.13) unstable; urgency=medium
 
   * ssh-setup/adb: Add --keep-screen-active option to keep
    "powerd-cli display" running after the tests. Use with caution!
@@ -10,7 +10,7 @@ autopkgtest (3.13) UNRELEASED; urgency=medium
     explicit path is given. This is the default location of the Ubuntu cmake
     templates.
 
- -- Martin Pitt <mpitt@debian.org>  Thu, 09 Apr 2015 09:55:10 +0200
+ -- Martin Pitt <mpitt@debian.org>  Wed, 22 Apr 2015 11:50:18 +0100
 
 autopkgtest (3.12.1) unstable; urgency=medium
 
