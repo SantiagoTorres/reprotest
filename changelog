@@ -6,6 +6,9 @@ autopkgtest (3.13) UNRELEASED; urgency=medium
   * adt-buildvm-ubuntu-cloud: Add --post-command for running a shell command
     after setup for additional customization.
   * ssh-setup/adb: Quote tr arguments.
+  * click tests: Look into app/tests/autopilot/ for tests as well if no
+    explicit path is given. This is the default location of the Ubuntu cmake
+    templates.
 
  -- Martin Pitt <mpitt@debian.org>  Thu, 09 Apr 2015 09:55:10 +0200
 
