@@ -12,7 +12,7 @@ Build-Depends: debhelper (>= 8),
  pyflakes,
  procps,
  pep8
-Vcs-Git: git://git.debian.org/git/autopkgtest/autopkgtest.git
+Vcs-Git: git://anonscm.debian.org/autopkgtest/autopkgtest.git
 Vcs-Browser: http://anonscm.debian.org/gitweb/?p=autopkgtest/autopkgtest.git
 XS-Testsuite: autopkgtest
 X-Python3-Version: >= 3.1

@@ -1,3 +1,9 @@
+autopkgtest (3.13.1) UNRELEASED; urgency=medium
+
+  * Update Vcs-Git: field for anonscm.debian.org.
+
+ -- Martin Pitt <mpitt@debian.org>  Tue, 28 Apr 2015 17:51:43 +0200
+
 autopkgtest (3.13) unstable; urgency=medium
 
   * ssh-setup/adb: Add --keep-screen-active option to keep
