@@ -1,6 +1,7 @@
 autopkgtest (3.13.1) UNRELEASED; urgency=medium
 
   * Update Vcs-Git: field for anonscm.debian.org.
+  * Drop obsolete XS-Testsuite: control field.
 
  -- Martin Pitt <mpitt@debian.org>  Tue, 28 Apr 2015 17:51:43 +0200
 
