@@ -2,6 +2,7 @@ autopkgtest (3.13.1) UNRELEASED; urgency=medium
 
   * Update Vcs-Git: field for anonscm.debian.org.
   * Drop obsolete XS-Testsuite: control field.
+  * adt-setup-vm: Fix script error if $ADT_SETUP_VM_POST_COMMAND is not set.
 
  -- Martin Pitt <mpitt@debian.org>  Tue, 28 Apr 2015 17:51:43 +0200
 
