@@ -134,7 +134,7 @@ for p in accountsservice apt-xapian-index cryptsetup landscape-client \
 done
 
 # run post-install commands
-if [ -n "$ADT_SETUP_VM_POST_COMMAND" ]; then
+if [ -n "${ADT_SETUP_VM_POST_COMMAND:-}" ]; then
     chroot "$root" sh -ec "$ADT_SETUP_VM_POST_COMMAND"
 fi
 
