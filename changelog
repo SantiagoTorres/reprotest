@@ -6,6 +6,8 @@ autopkgtest (3.13.1) UNRELEASED; urgency=medium
   * README.click-tests.rst: Describe x-source manifest entry.
   * Mark test dependencies as manually installed, so that they don't go away
     if a test calls "apt-get autoremove".
+  * Set DEBIAN_FRONTEND=noninteractive for tests. This avoids stderr messages
+    about "unable to open stdin" and similar when tests call apt-get install.
 
  -- Martin Pitt <mpitt@debian.org>  Tue, 28 Apr 2015 17:51:43 +0200
 
