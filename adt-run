@@ -669,7 +669,11 @@ Description: satisfy autopkgtest test dependencies
         if test_deps:
             adtlog.debug('Marking test dependencies as manually installed: %s' %
                          ' '.join(test_deps))
-            self.check_exec(['apt-mark', 'manual'] + test_deps)
+            # avoid overly long command lines
+            batch = 0
+            while batch < len(test_deps):
+                self.check_exec(['apt-mark', 'manual', '-qq'] + test_deps[batch:batch+20])
+                batch += 20
 
         self.execute(['dpkg', '--purge', 'adt-satdep'])
 
