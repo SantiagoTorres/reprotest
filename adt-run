@@ -1027,6 +1027,7 @@ fi
                  'mkdir -p -m 1777 -- "%(a)s"; ' \
                  'export ADT_ARTIFACTS="%(a)s"; ' \
                  'export ADTTMP=$(mktemp -d --tmpdir adttmp.XXXXXX); ' \
+                 'export DEBIAN_FRONTEND=noninteractive; ' \
                  'rm -f /tmp/adt_test_script_pid; set -C; echo $$ > /tmp/adt_test_script_pid; set +C; ' \
                  'trap "rm -rf $ADTTMP /tmp/adt_test_script_pid" EXIT INT QUIT PIPE; '\
                  'chmod 755 $ADTTMP; '\
