@@ -323,7 +323,9 @@ def cmd_reboot(c, ce):
                downp=True, timeout=copy_timeout)
     adtlog.debug('cmd_reboot: saved current downtmp, rebooting')
 
-    caller.hook_reboot()
+    # reboot
+    execute_timeout(None, 30, auxverb + ['reboot'])
+    caller.hook_wait_reboot()
 
     # restore downtmp
     check_exec(['sh', '-ec', 'for d in %s; do '
