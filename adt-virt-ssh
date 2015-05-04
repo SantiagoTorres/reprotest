@@ -3,9 +3,11 @@
 # adt-virt-ssh is part of autopkgtest
 # autopkgtest is a tool for testing Debian binary packages
 #
-# autopkgtest is Copyright (C) 2006-2014 Canonical Ltd.
+# autopkgtest is Copyright (C) 2006-2015 Canonical Ltd.
 #
-# Author: Jean-Baptiste Lallement <jean-baptiste.lallement@canonical.com>
+# Authors:
+#    Jean-Baptiste Lallement <jean-baptiste.lallement@canonical.com>
+#    Martin Pitt <martin.pitt@ubuntu.com>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -32,6 +34,7 @@ import shutil
 import pipes
 import time
 import subprocess
+import socket
 
 try:
     our_base = os.environ['AUTOPKGTEST_BASE'] + '/lib'
@@ -120,6 +123,8 @@ def parse_args():
                         help='ssh port to use to connect to the host')
     parser.add_argument('-o', '--options',
                         help='Passed verbatim to ssh; see man ssh_config')
+    parser.add_argument('-r', '--reboot', action='store_true',
+                        help='Indicate that testbed supports reboot')
     parser.add_argument('-s', '--setup-script',
                         help='Setup script to prepare testbed and ssh connection')
     parser.add_argument('scriptargs', nargs=argparse.REMAINDER,
@@ -142,6 +147,9 @@ def parse_args():
     if args.password and os.path.exists(args.password):
         with open(args.password) as f:
             args.password = f.read().strip()
+
+    if args.reboot:
+        capabilities.append('reboot')
 
 
 def execute_setup_script(command, fail_ok=False):
@@ -389,12 +397,36 @@ def hook_revert():
 def hook_reboot():
     global sshcmd
 
-    rc = execute_setup_script('reboot', fail_ok=True)
+    if args.setup_script:
+        rc = execute_setup_script('reboot', fail_ok=True)
+    else:
+        # if we don't have a setup script, use the standard reboot
+        rc = 10
+
     if rc != 0:
         if rc == 10:
             adtlog.debug('setup script reboot exited with 10, calling reboot')
             VirtSubproc.execute_timeout(None, 300, VirtSubproc.auxverb +
-                                        ['sh', '-c', 'reboot; sleep 300'])
+                                        ['reboot'])
+            # wait for ssh/the machine to go down; we can't just call ssh sleep
+            # for this, this often hangs when sshd is being shut down
+            VirtSubproc.timeout_start(300)
+            try:
+                if sshconfig['port'] is not None:
+                    port = int(sshconfig['port'])
+                else:
+                    port = 22
+                while True:
+                    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                    res = s.connect_ex((sshconfig['hostname'], port))
+                    s.close()
+                    if res != 0:
+                        adtlog.debug('ssh port down')
+                        break
+                    time.sleep(0.1)
+                VirtSubproc.timeout_stop()
+            except VirtSubproc.Timeout:
+                VirtSubproc.bomb('timed out waiting for testbed to reboot')
         else:
             VirtSubproc.bomb('setup script reboot failed with code %i' % rc)
 

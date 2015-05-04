@@ -85,6 +85,13 @@ ssh port to use to connect to the host
 Passed verbatim to ssh; see man ssh_config
 
 .TP
+.BR -r | --reboot
+Indicate that
+.B reboot
+can be used in the testbed. This is useful when running rebooting tests without
+a setup script (which can already declare capabilities).
+
+.TP
 .BI  -s " setup_script" " | --setup-script=" setup_script
 Setup script to prepare testbed and ssh connection (See
 .B SETUP SCRIPT
