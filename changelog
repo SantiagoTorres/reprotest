@@ -4,6 +4,12 @@ autopkgtest (3.14) UNRELEASED; urgency=medium
   * adt-virt-ssh: Add --reboot option to indicate that testbed can be
     rebooted. This is useful when running without a setup script (which can
     already declare capabilities).
+  * Simplify reboot implementation: Just call "reboot" as root in the testbed
+    to trigger rebooting, and replace the former hook_reboot() in adt-virt-*
+    with hook_wait_reboot() which merely waits for the testbed to go down and
+    come back up. This also replaces the "reboot" command for ssh setup
+    scripts to "wait-reboot" and in most cases it is not needed to implement
+    this at all (except for the "adb" script).
 
   Bug fixes:
   * Update Vcs-Git: field for anonscm.debian.org.
