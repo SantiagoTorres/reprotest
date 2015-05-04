@@ -1,5 +1,11 @@
-autopkgtest (3.13.1) UNRELEASED; urgency=medium
+autopkgtest (3.14) UNRELEASED; urgency=medium
 
+  Improvements:
+  * adt-virt-ssh: Add --reboot option to indicate that testbed can be
+    rebooted. This is useful when running without a setup script (which can
+    already declare capabilities).
+
+  Bug fixes:
   * Update Vcs-Git: field for anonscm.debian.org.
   * Drop obsolete XS-Testsuite: control field.
   * adt-setup-vm: Fix script error if $ADT_SETUP_VM_POST_COMMAND is not set.
