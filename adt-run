@@ -672,7 +672,7 @@ Description: satisfy autopkgtest test dependencies
             # avoid overly long command lines
             batch = 0
             while batch < len(test_deps):
-                self.check_exec(['apt-mark', 'manual', '-qq'] + test_deps[batch:batch+20])
+                self.check_exec(['apt-mark', 'manual', '-qq'] + test_deps[batch:batch + 20])
                 batch += 20
 
         self.execute(['dpkg', '--purge', 'adt-satdep'])
