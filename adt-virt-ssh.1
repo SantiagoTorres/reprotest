@@ -190,6 +190,9 @@ port: SSH port on hostname, if different than 22
 capabilities: extra testbed capabilities such as "isolation-machine" or
 "revert", see README.virtualisation-server.rst
 
+If the testbed can be rebooted with keeping state, the script should advertise
+"reboot".
+
 .IP * 4
 options: passed verbatim to ssh, see man ssh_config
 
@@ -210,10 +213,11 @@ snapshots or rebuilding ephemeral testbeds), the script should put "revert"
 this command. This can optionally output some or all of the ssh config keys
 from open() to update the configuration, in case the hostname/IP changes.
 
-.SS command: reboot
-If the testbed can be rebooted with keeping state, the script should put
-"reboot" into the capabilities and implement this command. If calling "reboot"
-through ssh works, this can just exit with code 10.
+.SS command: wait-reboot
+This can be implemented if capabilities advertise "reboot" and you need to do
+something more elaborate than just waiting for the ssh port to go down and come
+back up after calling "reboot". This needs to wait for testbed to shut down,
+boot, and re-prepare the testbed for ssh login.
 
 .SS Included scripts
 

@@ -417,33 +417,28 @@ def wait_port_down(host, port, timeout):
     VirtSubproc.timeout_stop()
 
 
-def hook_reboot():
+def hook_wait_reboot():
     global sshcmd
 
     if args.setup_script:
-        rc = execute_setup_script('reboot', fail_ok=True)
+        rc = execute_setup_script('wait-reboot', fail_ok=True)
     else:
-        # if we don't have a setup script, use the standard reboot
-        rc = 10
+        # if we don't have a setup script, use the fallback below
+        rc = 1
 
     if rc != 0:
-        if rc == 10:
-            adtlog.debug('setup script reboot exited with 10, calling reboot')
-            VirtSubproc.execute_timeout(None, 300, VirtSubproc.auxverb +
-                                        ['reboot'])
-            VirtSubproc.execute_timeout(None, 10, sshcmd + ['-O', 'exit'])
-            # wait for ssh/the machine to go down; we can't just call ssh sleep
-            # for this, this often hangs when sshd is being shut down
-            if sshconfig['port'] is not None:
-                port = int(sshconfig['port'])
-            else:
-                port = 22
-            try:
-                wait_port_down(sshconfig['hostname'], port, 300)
-            except VirtSubproc.Timeout:
-                VirtSubproc.bomb('timed out waiting for testbed to reboot')
+        adtlog.debug('setup script wait-reboot failed, waiting for ssh to go down...')
+        VirtSubproc.execute_timeout(None, 10, sshcmd + ['-O', 'exit'])
+        # wait for ssh/the machine to go down; we can't just call ssh sleep
+        # for this, this often hangs when sshd is being shut down
+        if sshconfig['port'] is not None:
+            port = int(sshconfig['port'])
         else:
-            VirtSubproc.bomb('setup script reboot failed with code %i' % rc)
+            port = 22
+        try:
+            wait_port_down(sshconfig['hostname'], port, 300)
+        except VirtSubproc.Timeout:
+            VirtSubproc.bomb('timed out waiting for testbed to reboot')
 
     build_sshcmd()
     wait_for_ssh(sshcmd)

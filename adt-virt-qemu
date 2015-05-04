@@ -536,14 +536,11 @@ def hook_cleanup():
         workdir = None
 
 
-def hook_reboot():
+def hook_wait_reboot():
     global workdir
-    VirtSubproc.check_exec(['rm', '-f', '/autopkgtest/done_shared'],
-                           downp=True, timeout=5)
-    VirtSubproc.check_exec(['/bin/sh', '-ec', '(sleep 3; reboot ) &'],
-                           downp=True, timeout=5)
-    wait_boot()
     shareddir = os.path.join(workdir, 'shared')
+    os.unlink(os.path.join(shareddir, 'done_shared'))
+    wait_boot()
     setup_shared(shareddir)
 
 
