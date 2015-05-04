@@ -394,6 +394,29 @@ def hook_revert():
     host_setup('revert')
 
 
+def wait_port_down(host, port, timeout):
+    '''Wait until host:port stops responding'''
+
+    VirtSubproc.timeout_start(timeout)
+    while True:
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        try:
+            res = s.connect_ex((host, port))
+            if res != 0:
+                break
+            # connect might succeed with port forwarding (e. g. QEMU)
+            try:
+                r = s.recv(1, socket.MSG_WAITALL)
+                if not r:
+                    break
+            except OSError:
+                break
+            time.sleep(0.1)
+        finally:
+            s.close()
+    VirtSubproc.timeout_stop()
+
+
 def hook_reboot():
     global sshcmd
 
@@ -408,23 +431,15 @@ def hook_reboot():
             adtlog.debug('setup script reboot exited with 10, calling reboot')
             VirtSubproc.execute_timeout(None, 300, VirtSubproc.auxverb +
                                         ['reboot'])
+            VirtSubproc.execute_timeout(None, 10, sshcmd + ['-O', 'exit'])
             # wait for ssh/the machine to go down; we can't just call ssh sleep
             # for this, this often hangs when sshd is being shut down
-            VirtSubproc.timeout_start(300)
+            if sshconfig['port'] is not None:
+                port = int(sshconfig['port'])
+            else:
+                port = 22
             try:
-                if sshconfig['port'] is not None:
-                    port = int(sshconfig['port'])
-                else:
-                    port = 22
-                while True:
-                    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                    res = s.connect_ex((sshconfig['hostname'], port))
-                    s.close()
-                    if res != 0:
-                        adtlog.debug('ssh port down')
-                        break
-                    time.sleep(0.1)
-                VirtSubproc.timeout_stop()
+                wait_port_down(sshconfig['hostname'], port, 300)
             except VirtSubproc.Timeout:
                 VirtSubproc.bomb('timed out waiting for testbed to reboot')
         else:
