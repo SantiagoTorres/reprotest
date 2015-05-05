@@ -307,7 +307,7 @@ def cmd_revert(c, ce):
 
 def cmd_reboot(c, ce):
     global downtmp
-    cmdnumargs(c, ce)
+    cmdnumargs(c, ce, 0, 1)
     if not downtmp:
         bomb("`reboot' when not open")
     if 'reboot' not in caller.hook_capabilities():
@@ -318,13 +318,16 @@ def cmd_reboot(c, ce):
     directories = '/var/cache /home'
     check_exec(['sh', '-ec', 'for d in %s; do if [ -w $d ]; then '
                 'tar --create --absolute-names -f $d/autopkgtest-tmpdir.tar'
-                ''' '%s'; exit 0; fi; done; exit 1''' %
-                (directories, downtmp)],
+                ''' '%s'; rm -f /run/autopkgtest-reboot-prepare-mark; '''
+                '  exit 0; fi; done; exit 1''' % (directories, downtmp)],
                downp=True, timeout=copy_timeout)
     adtlog.debug('cmd_reboot: saved current downtmp, rebooting')
 
     # reboot
-    execute_timeout(None, 30, auxverb + ['reboot'])
+    if len(c) > 1 and c[1] == 'prepare-only':
+        adtlog.info('state saved, waiting for testbed to reboot...')
+    else:
+        execute_timeout(None, 30, auxverb + ['reboot'])
     caller.hook_wait_reboot()
 
     # restore downtmp
