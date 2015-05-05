@@ -10,6 +10,11 @@ autopkgtest (3.14) UNRELEASED; urgency=medium
     come back up. This also replaces the "reboot" command for ssh setup
     scripts to "wait-reboot" and in most cases it is not needed to implement
     this at all (except for the "adb" script).
+  * Add /tmp/autopkgtest-reboot-prepare script for testbeds which support
+    rebooting. This saves the current state but leaves the actual reboot to
+    the test itself. This is useful if rebooting should happen with unusual
+    means (e. g. kexec) or as part of testing something else (like a system
+    upgrade). (LP: #1445819)
 
   Bug fixes:
   * Update Vcs-Git: field for anonscm.debian.org.
