@@ -1,4 +1,4 @@
-autopkgtest (3.14) UNRELEASED; urgency=medium
+autopkgtest (3.14) unstable; urgency=medium
 
   Improvements:
   * adt-virt-ssh: Add --reboot option to indicate that testbed can be
@@ -29,7 +29,7 @@ autopkgtest (3.14) UNRELEASED; urgency=medium
   * Set DEBIAN_FRONTEND=noninteractive for tests. This avoids stderr messages
     about "unable to open stdin" and similar when tests call apt-get install.
 
- -- Martin Pitt <mpitt@debian.org>  Tue, 28 Apr 2015 17:51:43 +0200
+ -- Martin Pitt <mpitt@debian.org>  Tue, 05 May 2015 10:14:23 +0200
 
 autopkgtest (3.13) unstable; urgency=medium
 
