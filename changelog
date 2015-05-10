@@ -3,6 +3,7 @@ autopkgtest (3.14.1) UNRELEASED; urgency=medium
   * Go back to using the backgrounded reboot command as we had before 3.14.
     Just calling "reboot" is prone to hangs and timeouts in case reboot is too
     fast and shuts down our communication channel.
+  * Fix --override-control option in adt-run(1). (LP: #1453495)
 
  -- Martin Pitt <martin.pitt@ubuntu.com>  Tue, 05 May 2015 11:14:07 +0200
 
