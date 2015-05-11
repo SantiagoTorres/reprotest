@@ -8,8 +8,9 @@ autopkgtest (3.14.1) UNRELEASED; urgency=medium
     (LP: #1453503)
   * ssh-setup/snappy: Add -b/--show-boot option to direct boot and console
     messages to stdout. (LP: #1453154)
+  * adt-virt-qemu.1: Document --show-boot option.
 
- -- Martin Pitt <martin.pitt@ubuntu.com>  Tue, 05 May 2015 11:14:07 +0200
+ -- Martin Pitt <mpitt@debian.org>  Tue, 05 May 2015 11:14:07 +0200
 
 autopkgtest (3.14) unstable; urgency=medium
 
