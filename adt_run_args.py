@@ -103,6 +103,19 @@ actions = None
 built_binaries = None
 
 
+class ArgumentParser(argparse.ArgumentParser):
+    '''autopkgtest ArgumentParser
+
+    It enables include files with '@' and trims whitespace from their lines.
+    '''
+    def __init__(self, **kwargs):
+        super(ArgumentParser, self).__init__(fromfile_prefix_chars='@',
+                                             **kwargs)
+
+    def convert_arg_line_to_args(self, arg_line):
+        return [arg_line.strip()]
+
+
 class ActionArg(argparse.Action):
     def __call__(self, parser, args, value, option_string):
         global actions, built_binaries
@@ -320,8 +333,7 @@ details.'''
         help='show this help message and exit')
 
     # first, expand argument files
-    file_parser = argparse.ArgumentParser(fromfile_prefix_chars='@',
-                                          add_help=False)
+    file_parser = ArgumentParser(add_help=False)
     arglist = file_parser.parse_known_args(arglist)[1]
 
     # split off virt-server args
