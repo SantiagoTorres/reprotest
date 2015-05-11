@@ -6,6 +6,8 @@ autopkgtest (3.14.1) UNRELEASED; urgency=medium
   * Fix --override-control option in adt-run(1). (LP: #1453495)
   * Fail with an error if --override-control file does not exist.
     (LP: #1453503)
+  * ssh-setup/snappy: Add -b/--show-boot option to direct boot and console
+    messages to stdout. (LP: #1453154)
 
  -- Martin Pitt <martin.pitt@ubuntu.com>  Tue, 05 May 2015 11:14:07 +0200
 
