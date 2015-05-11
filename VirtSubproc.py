@@ -327,7 +327,8 @@ def cmd_reboot(c, ce):
     if len(c) > 1 and c[1] == 'prepare-only':
         adtlog.info('state saved, waiting for testbed to reboot...')
     else:
-        execute_timeout(None, 30, auxverb + ['sh', '-c', '(sleep 3; reboot) &'])
+        execute_timeout(None, 30,
+                        auxverb + ['sh', '-c', '(sleep 3; reboot) &'])
     caller.hook_wait_reboot()
 
     # restore downtmp
