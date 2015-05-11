@@ -348,11 +348,11 @@ def parse_debian_source(srcdir, testbed_caps, control_path=None):
     if not control_path:
         control_path = os.path.join(srcdir, 'debian', 'tests', 'control')
 
-    if not os.path.exists(control_path):
-        control = _autodep8(srcdir)
-        if control is None:
-            return ([], False)
-        control_path = control.name
+        if not os.path.exists(control_path):
+            control = _autodep8(srcdir)
+            if control is None:
+                return ([], False)
+            control_path = control.name
 
     for record in parse_rfc822(control_path):
         command = None
