@@ -1791,6 +1791,8 @@ def process_actions():
         # non-tests/build actions
         if kind == 'override-control':
             control_override = arg
+            if not os.access(control_override, os.R_OK):
+                bomb('cannot read ' + control_override)
             continue
         if kind == 'testname':
             testname = arg
