@@ -43,6 +43,7 @@ except KeyError:
 sys.path.insert(1, our_base)
 
 import VirtSubproc
+from adt_run_args import ArgumentParser
 import adtlog
 
 capabilities = []
@@ -102,7 +103,7 @@ cleanup_paths = []  # paths on the device which we created
 def parse_args():
     global args
 
-    parser = argparse.ArgumentParser(fromfile_prefix_chars='@')
+    parser = ArgumentParser()
 
     parser.add_argument('-d', '--debug', action='store_true',
                         help='Enable debugging output')

@@ -30,7 +30,6 @@ import os
 import subprocess
 import tempfile
 import shutil
-import argparse
 import time
 import socket
 import errno
@@ -43,6 +42,7 @@ except KeyError:
 sys.path.insert(1, our_base)
 
 import VirtSubproc
+from adt_run_args import ArgumentParser
 import adtlog
 
 
@@ -57,7 +57,7 @@ normal_user = None
 def parse_args():
     global args
 
-    parser = argparse.ArgumentParser(fromfile_prefix_chars='@')
+    parser = ArgumentParser()
 
     qemu_cmd_default = 'qemu-system-' + os.uname()[4]
 
