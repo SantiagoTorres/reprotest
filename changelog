@@ -9,6 +9,7 @@ autopkgtest (3.14.1) UNRELEASED; urgency=medium
   * ssh-setup/snappy: Add -b/--show-boot option to direct boot and console
     messages to stdout. (LP: #1453154)
   * adt-virt-qemu.1: Document --show-boot option.
+  * Add test case for using a @ command line include file for a virt runner.
 
  -- Martin Pitt <mpitt@debian.org>  Tue, 05 May 2015 11:14:07 +0200
 
