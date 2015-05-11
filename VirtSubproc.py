@@ -470,7 +470,7 @@ def copyupdown_internal(wh, sd, upp):
         bomb("%s paths must be nonempty" % wh)
     dirsp = sd[0][-1] == '/'
     if dirsp != (sd[1][-1] == '/'):
-        bomb("% paths must agree about directoryness"
+        bomb("%s paths must agree about directoryness"
              " (presence or absence of trailing /)" % wh)
 
     # if we have a shared directory, we just need to copy it from/to there; in
