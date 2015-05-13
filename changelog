@@ -1,4 +1,4 @@
-autopkgtest (3.14.1) UNRELEASED; urgency=medium
+autopkgtest (3.14.1) unstable; urgency=medium
 
   * Go back to using the backgrounded reboot command as we had before 3.14.
     Just calling "reboot" is prone to hangs and timeouts in case reboot is too
@@ -13,7 +13,7 @@ autopkgtest (3.14.1) UNRELEASED; urgency=medium
   * Strip leading and trailing space from argument lines in '@' included
     command line argument files. (LP: #1453498)
 
- -- Martin Pitt <mpitt@debian.org>  Tue, 05 May 2015 11:14:07 +0200
+ -- Martin Pitt <mpitt@debian.org>  Wed, 13 May 2015 14:45:43 +0200
 
 autopkgtest (3.14) unstable; urgency=medium
 
