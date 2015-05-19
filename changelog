@@ -1,3 +1,10 @@
+autopkgtest (3.14.2) UNRELEASED; urgency=medium
+
+  * Add tests/testpkg-{simple,reboot,reboot-prepare}: Very simple stub
+    packages for manual testing.
+
+ -- Martin Pitt <mpitt@debian.org>  Tue, 19 May 2015 12:07:09 +0200
+
 autopkgtest (3.14.1) unstable; urgency=medium
 
   * Go back to using the backgrounded reboot command as we had before 3.14.
