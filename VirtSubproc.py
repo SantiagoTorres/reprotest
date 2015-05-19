@@ -328,7 +328,7 @@ def cmd_reboot(c, ce):
         adtlog.info('state saved, waiting for testbed to reboot...')
     else:
         execute_timeout(None, 30,
-                        auxverb + ['sh', '-c', '(sleep 3; reboot) &'])
+                        auxverb + ['sh', '-c', '(sleep 3; reboot) >/dev/null 2>&1 &'])
     caller.hook_wait_reboot()
 
     # restore downtmp
