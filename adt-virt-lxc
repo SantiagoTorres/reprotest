@@ -169,16 +169,21 @@ def hook_open():
     lxc_container_name = get_available_lxc_container_name()
     adtlog.debug('using container name %s' % lxc_container_name)
     if shared_dir is None:
-        shared_dir = tempfile.mkdtemp(prefix='adt-virt-lxc.shared.')
+        # shared bind mount works poorly for unprivileged containers due to
+        # mapped UIDs
+        if args.sudo or os.geteuid() == 0:
+            shared_dir = tempfile.mkdtemp(prefix='adt-virt-lxc.shared.')
     else:
         # don't change the name between resets, to provide stable downtmp paths
         os.makedirs(shared_dir)
-    os.chmod(shared_dir, 0o755)
+    if shared_dir:
+        os.chmod(shared_dir, 0o755)
     if args.ephemeral:
-        VirtSubproc.check_exec(sudoify(
-            ['lxc-start-ephemeral', '--name', lxc_container_name,
-             '--daemon', '--bdir', shared_dir, '--orig', args.template]
-            + args.lxcargs), outp=True)
+        argv = ['lxc-start-ephemeral', '--name', lxc_container_name, '--daemon']
+        if shared_dir:
+            argv += ['--bdir', shared_dir]
+        argv += ['--orig', args.template] + args.lxcargs
+        VirtSubproc.check_exec(sudoify(argv), outp=True)
         # work around https://launchpad.net/bugs/1367730
         VirtSubproc.check_exec(sudoify([
             'lxc-attach', '--name', lxc_container_name, '--', 'chmod', 'go+rx', '/']),
@@ -186,10 +191,11 @@ def hook_open():
     else:
         VirtSubproc.check_exec(sudoify(
             ['lxc-clone', '--new', lxc_container_name, '--orig', args.template]), outp=True)
-        VirtSubproc.check_exec(sudoify(
-            ['lxc-start', '--name', lxc_container_name, '--daemon',
-             '--define', 'lxc.mount.entry=%s %s none bind,create=dir 0 0' % (shared_dir, shared_dir[1:])]
-            + args.lxcargs))
+        argv = ['lxc-start', '--name', lxc_container_name, '--daemon']
+        if shared_dir:
+            argv += ['--define', 'lxc.mount.entry=%s %s none bind,create=dir 0 0' % (shared_dir, shared_dir[1:])]
+        argv += args.lxcargs
+        VirtSubproc.check_exec(sudoify(argv))
         capabilities.append('reboot')
     try:
         adtlog.debug('waiting for lxc guest start')
