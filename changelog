@@ -3,6 +3,8 @@ autopkgtest (3.14.3) UNRELEASED; urgency=medium
   * adt-virt-lxc: Don't try to set up a shared downtmp with unprivileged
     (user) containers. This is full of permission errors due to the mapped
     UIDs.
+  * tests/adt-run LxcRunner: Use $ADT_TEST_LXC as unprivileged user container
+    if it exists.
 
  -- Martin Pitt <mpitt@debian.org>  Tue, 26 May 2015 12:46:04 +0200
 
