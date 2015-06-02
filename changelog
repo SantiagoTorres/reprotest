@@ -5,6 +5,8 @@ autopkgtest (3.14.3) UNRELEASED; urgency=medium
     UIDs.
   * tests/adt-run LxcRunner: Use $ADT_TEST_LXC as unprivileged user container
     if it exists.
+  * adt-buildvm-ubuntu-cloud: Check at the beginning if QEMU command is
+    available and exit with proper error message if not. (LP: #1460066)
 
  -- Martin Pitt <mpitt@debian.org>  Tue, 26 May 2015 12:46:04 +0200
 
