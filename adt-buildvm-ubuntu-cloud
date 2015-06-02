@@ -119,7 +119,15 @@ def parse_args():
     parser.add_argument('--userdata', metavar='USERDATA_FILE',
                         help='Custom userdata file for cloud-init.')
 
-    return parser.parse_args()
+    args = parser.parse_args()
+
+    if subprocess.call(['which', args.qemu_command], stdout=subprocess.PIPE,
+                       stderr=subprocess.STDOUT) != 0:
+        sys.stderr.write('ERROR: QEMU command %s not found\n' %
+                         args.qemu_command)
+        sys.exit(1)
+
+    return args
 
 
 def download_image(cloud_img_url, release, arch):
