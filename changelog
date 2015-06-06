@@ -1,4 +1,4 @@
-autopkgtest (3.14.3) UNRELEASED; urgency=medium
+autopkgtest (3.14.3) unstable; urgency=medium
 
   * adt-virt-lxc: Don't try to set up a shared downtmp with unprivileged
     (user) containers. This is full of permission errors due to the mapped
@@ -11,7 +11,7 @@ autopkgtest (3.14.3) UNRELEASED; urgency=medium
     failure of auxverb/the testbed itself, not of the program run under it.
     (As specified in doc/README.virtualisation-server.rst) (LP: #1462540)
 
- -- Martin Pitt <mpitt@debian.org>  Tue, 26 May 2015 12:46:04 +0200
+ -- Martin Pitt <mpitt@debian.org>  Sat, 06 Jun 2015 13:09:50 +0200
 
 autopkgtest (3.14.2) unstable; urgency=medium
 
