@@ -7,6 +7,9 @@ autopkgtest (3.14.3) UNRELEASED; urgency=medium
     if it exists.
   * adt-buildvm-ubuntu-cloud: Check at the beginning if QEMU command is
     available and exit with proper error message if not. (LP: #1460066)
+  * If auxverb fails with exit code 126, 127, 254, or 255, consider this a
+    failure of auxverb/the testbed itself, not of the program run under it.
+    (As specified in doc/README.virtualisation-server.rst) (LP: #1462540)
 
  -- Martin Pitt <mpitt@debian.org>  Tue, 26 May 2015 12:46:04 +0200
 
