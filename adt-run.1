@@ -161,8 +161,9 @@ or the Click manifest for the following test.
 .BI -o " dir" " | --output-dir=" dir
 Specifies that test artifacts (stderr and stdout from the tests, the log file,
 built binary packages etc.) should be placed in the given directory.
-\fIdir\fR will be created if necessary, and \fIemptied of all of its contents\fR
-before \fBadt-run\fR starts.
+\fIdir\fR must not exist yet or be empty, otherwise
+.B adt-run
+will refuse to use it.
 
 .TP
 .BI -l " logfile" " | --log-file=" logfile

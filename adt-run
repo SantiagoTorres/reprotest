@@ -157,8 +157,9 @@ def setup_trace():
     global tmp
 
     if opts.output_dir is not None:
-        rmtree('tmp(specified)', opts.output_dir)
         mkdir_okexist(opts.output_dir, 0o755)
+        if os.listdir(opts.output_dir):
+            bomb('--output-dir "%s" is not empty' % opts.output_dir)
         tmp = opts.output_dir
     else:
         assert(tmp is None)
