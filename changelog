@@ -6,6 +6,11 @@ autopkgtest (3.15) UNRELEASED; urgency=medium
     is safer, to avoid accidentally using the home directory or similarly
     precious data. (LP: #1463561)
 
+  Bug fixes:
+  * adt-setup-vm: Print a warning if calling update-grub fails, instead of
+    aborting. This fixes vmdebootstrap --grub, as that installs grub after
+    running the customization script.
+
  -- Martin Pitt <martin.pitt@ubuntu.com>  Thu, 11 Jun 2015 16:02:07 +0200
 
 autopkgtest (3.14.3) unstable; urgency=medium
