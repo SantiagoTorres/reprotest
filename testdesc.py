@@ -185,8 +185,13 @@ def parse_rfc822(path):
         # completely ignore ^# as that breaks continuation lines
         if l.startswith('#'):
             continue
-        # filter out comments which don't start on first column
-        l = l.split('#', 1)[0]
+        # filter out comments which don't start on first column (Debian
+        # #743174); entirely remove line if all that's left is whitespace, as
+        # that again breaks continuation lines
+        if '#' in l:
+            l = l.split('#', 1)[0]
+            if not l.strip():
+                continue
         lines.append(l)
     f.close()
 
