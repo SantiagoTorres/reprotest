@@ -334,6 +334,12 @@ which keys to use.  The default is
 .BR $HOME/.cache/autopkgtest .
 
 .TP
+.BI --no-auto-control
+Disable automatic test generation with autodep8, even if it is installed. In
+that case, packages without tests will exit with code 8 ("No tests in this
+package") just like without autodep8.
+
+.TP
 .BR \-h | \-\-help
 Show command line help and exit.
 

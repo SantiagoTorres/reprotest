@@ -1854,7 +1854,8 @@ def process_actions():
         else:
             tests_tree = build_source(kind, arg, built_binaries)
             (tests, skipped) = testdesc.parse_debian_source(
-                tests_tree.host, testbed.caps, control_path=control_override)
+                tests_tree.host, testbed.caps, control_path=control_override,
+                auto_control=opts.auto_control)
 
         if skipped:
             errorcode |= 2
