@@ -9,7 +9,8 @@ autopkgtest (3.15) UNRELEASED; urgency=medium
   Bug fixes:
   * adt-setup-vm: Print a warning if calling update-grub fails, instead of
     aborting. This fixes vmdebootstrap --grub, as that installs grub after
-    running the customization script.
+    running the customization script. Adjust adt-virt-qemu.1 manpage to
+    recommend the --grub option of vmdebootstrap.
 
  -- Martin Pitt <martin.pitt@ubuntu.com>  Thu, 11 Jun 2015 16:02:07 +0200
 
