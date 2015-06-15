@@ -11,6 +11,9 @@ autopkgtest (3.15) UNRELEASED; urgency=medium
     aborting. This fixes vmdebootstrap --grub, as that installs grub after
     running the customization script. Adjust adt-virt-qemu.1 manpage to
     recommend the --grub option of vmdebootstrap.
+  * testdesc.py, parse_rfc822(): Entirely ignore lines which only contain
+    whitespace after filtering out intra-line comments. They break
+    continuation line parsing in python-debian >= 0.1.23. (Closes: #784942)
 
  -- Martin Pitt <martin.pitt@ubuntu.com>  Thu, 11 Jun 2015 16:02:07 +0200
 
