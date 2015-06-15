@@ -329,6 +329,10 @@ details.'''
         help='use DIR rather than %(default)s (for signing private '
         'apt archive)')
     g_misc.add_argument(
+        '--no-auto-control', dest='auto_control', action='store_false',
+        default=True,
+        help='Disable automatic test generation with autodep8')
+    g_misc.add_argument(
         '-h', '--help', action='help', default=argparse.SUPPRESS,
         help='show this help message and exit')
 
