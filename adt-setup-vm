@@ -64,7 +64,7 @@ if chroot "$root" which update-grub >/dev/null 2>&1; then
         echo 'GRUB_CMDLINE_LINUX_DEFAULT="console=ttyS0"' > \
             "$root/etc/default/grub.d/90-autopkgtest.cfg"
     fi
-    chroot "$root" update-grub
+    chroot "$root" update-grub || echo "WARNING: update-grub failed!"
 fi
 
 # set up apt sources
