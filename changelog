@@ -15,8 +15,11 @@ autopkgtest (3.15) UNRELEASED; urgency=medium
   * testdesc.py, parse_rfc822(): Entirely ignore lines which only contain
     whitespace after filtering out intra-line comments. They break
     continuation line parsing in python-debian >= 0.1.23. (Closes: #784942)
+  * adt-setup-vm: Add inclusion of interfaces.d/ to /etc/network/interfaces.
+    This belongs into vmdebootstrap (#788792), but fix that locally for the
+    time being.
 
- -- Martin Pitt <martin.pitt@ubuntu.com>  Thu, 11 Jun 2015 16:02:07 +0200
+ -- Martin Pitt <mpitt@debian.org>  Thu, 11 Jun 2015 16:02:07 +0200
 
 autopkgtest (3.14.3) unstable; urgency=medium
 
