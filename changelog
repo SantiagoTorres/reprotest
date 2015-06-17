@@ -18,6 +18,7 @@ autopkgtest (3.15) UNRELEASED; urgency=medium
   * adt-setup-vm: Add inclusion of interfaces.d/ to /etc/network/interfaces.
     This belongs into vmdebootstrap (#788792), but fix that locally for the
     time being.
+  * adt-run.1: Document --testname.
 
  -- Martin Pitt <mpitt@debian.org>  Thu, 11 Jun 2015 16:02:07 +0200
 
