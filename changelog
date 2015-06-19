@@ -6,6 +6,8 @@ autopkgtest (3.15) UNRELEASED; urgency=medium
     is safer, to avoid accidentally using the home directory or similarly
     precious data. (LP: #1463561)
   * Add --no-auto-control option to disable autodep8. (Closes: #788659)
+  * ssh-setup/nova: Add -e/--env option to append to /etc/environment. This is
+    mostly useful to configure $http_proxy and friends.
 
   Bug fixes:
   * adt-setup-vm: Print a warning if calling update-grub fails, instead of
