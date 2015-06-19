@@ -8,6 +8,7 @@ autopkgtest (3.15) UNRELEASED; urgency=medium
   * Add --no-auto-control option to disable autodep8. (Closes: #788659)
   * ssh-setup/nova: Add -e/--env option to append to /etc/environment. This is
     mostly useful to configure $http_proxy and friends.
+  * ssh-setup/nova: Add --mirror option.
 
   Bug fixes:
   * adt-setup-vm: Print a warning if calling update-grub fails, instead of
