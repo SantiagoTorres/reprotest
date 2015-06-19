@@ -88,7 +88,7 @@ if [ -e "$root/etc/cloud/cloud.cfg" ]; then
 fi
 
 # work around https://bugs.debian.org/788792
-if ! grep -q 'source-directory /etc/network/interfaces.d' "$root/etc/network/interfaces"; then
+if ! grep -q 'source.*interfaces.d' "$root/etc/network/interfaces"; then
     echo "Applying local fix for vmdebootstrap bug https://bugs.debian.org/788792..."
     printf "\nsource-directory /etc/network/interfaces.d\n" >> "$root/etc/network/interfaces"
 fi
