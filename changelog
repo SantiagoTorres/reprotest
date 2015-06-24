@@ -9,6 +9,9 @@ autopkgtest (3.15) UNRELEASED; urgency=medium
   * ssh-setup/nova: Add -e/--env option to append to /etc/environment. This is
     mostly useful to configure $http_proxy and friends.
   * ssh-setup/nova: Add --mirror option.
+  * Add setup-commands/cloud-vm-setup: --setup-commands script for cloud
+    instances to prepare them for running autopkgtests. This is similar to
+    adt-setup-vm, but won't configure serial console or networking.
 
   Bug fixes:
   * adt-setup-vm: Print a warning if calling update-grub fails, instead of
