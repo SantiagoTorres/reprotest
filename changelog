@@ -1,4 +1,4 @@
-autopkgtest (3.15) UNRELEASED; urgency=medium
+autopkgtest (3.15) unstable; urgency=medium
 
   Behaviour changes and improvements:
   * The specified --output-dir now must not exist or be empty. If it is
@@ -26,7 +26,7 @@ autopkgtest (3.15) UNRELEASED; urgency=medium
     time being.
   * adt-run.1: Document --testname.
 
- -- Martin Pitt <mpitt@debian.org>  Thu, 11 Jun 2015 16:02:07 +0200
+ -- Martin Pitt <mpitt@debian.org>  Sun, 28 Jun 2015 11:55:34 +0200
 
 autopkgtest (3.14.3) unstable; urgency=medium
 
