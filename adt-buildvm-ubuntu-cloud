@@ -121,10 +121,18 @@ def parse_args():
 
     args = parser.parse_args()
 
+    # check our dependencies
     if subprocess.call(['which', args.qemu_command], stdout=subprocess.PIPE,
                        stderr=subprocess.STDOUT) != 0:
         sys.stderr.write('ERROR: QEMU command %s not found\n' %
                          args.qemu_command)
+        sys.exit(1)
+    if subprocess.call(['which', 'genisoimage'], stdout=subprocess.PIPE,
+                       stderr=subprocess.STDOUT) != 0:
+        sys.stderr.write('ERROR: genisoimage not found\n')
+        sys.exit(1)
+    if not os.access('/dev/kvm', os.W_OK):
+        sys.stderr.write('ERROR: no permission to write /dev/kvm\n')
         sys.exit(1)
 
     return args
