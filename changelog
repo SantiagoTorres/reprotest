@@ -1,4 +1,4 @@
-autopkgtest (3.15.1) UNRELEASED; urgency=medium
+autopkgtest (3.15.1) unstable; urgency=medium
 
   * adt-buildvm-ubuntu-cloud: Fix lsb_release fallback if python3-distro-info
     is not available.
@@ -11,7 +11,7 @@ autopkgtest (3.15.1) UNRELEASED; urgency=medium
     (LP: #1469647)
   * Adjust NullRunner.test_tmp_install test case to work with pygobject 3.16.
 
- -- Martin Pitt <mpitt@debian.org>  Mon, 29 Jun 2015 10:42:38 +0200
+ -- Martin Pitt <mpitt@debian.org>  Mon, 29 Jun 2015 13:07:34 +0200
 
 autopkgtest (3.15) unstable; urgency=medium
 
