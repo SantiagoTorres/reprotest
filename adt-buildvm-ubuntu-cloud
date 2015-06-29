@@ -63,7 +63,7 @@ def get_default_release():
         sys.stderr.write('WARNING: python-distro-info not installed, falling '
                          'back to determining default release from currently '
                          'installed release\n')
-    if subprocess.call(['which', 'distro-info'], stdout=subprocess.PIPE) == 0:
+    if subprocess.call(['which', 'lsb_release'], stdout=subprocess.PIPE) == 0:
         return subprocess.check_output(['lsb_release', '-cs'],
                                        universal_newlines=True).strip()
 
