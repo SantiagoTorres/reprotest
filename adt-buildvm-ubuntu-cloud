@@ -301,7 +301,7 @@ def boot_image(image, seed, qemu_command, verbose):
             qemu.terminate()
         if qemu.wait() != 0:
             sys.stderr.write('qemu failed with status %i\n' % qemu.returncode)
-            # sys.exit(1)
+            sys.exit(1)
 
 
 def install_image(src, dest):
