@@ -372,7 +372,7 @@ class Testbed:
         adtlog.info('testbed dpkg architecture: ' + self.dpkg_arch)
 
         # record package versions of pristine testbed
-        if opts.output_dir:
+        if opts.output_dir and testbed.execute(['which', 'dpkg-query'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)[0] == 0:
             pkglist = TempTestbedPath(testbed, 'testbed-packages', autoclean=False)
             self.check_exec(['sh', '-ec', "dpkg-query --show -f '${Package}\\t${Version}\\n' > %s" % pkglist.tb])
             pkglist.copyup()
@@ -1017,7 +1017,7 @@ fi
         need_click_restore = self.apparmor_click(test.clicks, test.installed_clicks)
 
         # record installed package versions
-        if opts.output_dir:
+        if opts.output_dir and testbed.execute(['which', 'dpkg-query'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)[0] == 0:
             pkglist = TempTestbedPath(self, test.name + '-packages.all', autoclean=False)
             self.check_exec([
                 'sh', '-ec', "dpkg-query --show -f '${Package}\\t${Version}\\n' > %s" % pkglist.tb])
