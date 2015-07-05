@@ -131,7 +131,7 @@ def parse_args():
                        stderr=subprocess.STDOUT) != 0:
         sys.stderr.write('ERROR: genisoimage not found\n')
         sys.exit(1)
-    if not os.access('/dev/kvm', os.W_OK):
+    if os.path.exists('/dev/kvm') and not os.access('/dev/kvm', os.W_OK):
         sys.stderr.write('ERROR: no permission to write /dev/kvm\n')
         sys.exit(1)
 
@@ -284,15 +284,19 @@ def boot_image(image, seed, qemu_command, verbose):
 
     tty_sock = os.path.join(workdir, 'ttyS0')
 
-    qemu = subprocess.Popen([qemu_command, '-enable-kvm', '-m', '512',
-                             '-localtime', '-nographic',
-                             '-monitor', 'null',
-                             '-net', 'user',
-                             '-net', 'nic,model=virtio',
-                             '-serial', 'unix:%s,server,nowait' % tty_sock,
-                             '-drive', 'file=%s,if=virtio' % image,
-                             '-drive', 'file=%s,if=virtio,readonly' % seed])
+    argv = [qemu_command, '-m', '512',
+            '-localtime', '-nographic',
+            '-monitor', 'null',
+            '-net', 'user',
+            '-net', 'nic,model=virtio',
+            '-serial', 'unix:%s,server,nowait' % tty_sock,
+            '-drive', 'file=%s,if=virtio' % image,
+            '-drive', 'file=%s,if=virtio,readonly' % seed]
 
+    if os.path.exists('/dev/kvm'):
+        argv.append('-enable-kvm')
+
+    qemu = subprocess.Popen(argv)
     try:
         if verbose:
             tty = VirtSubproc.get_unix_socket(tty_sock)
