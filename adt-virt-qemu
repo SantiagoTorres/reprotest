@@ -461,7 +461,6 @@ def hook_open():
 
     # start QEMU
     argv = [args.qemu_command,
-            '-enable-kvm',
             '-m', str(args.ram_size),
             '-smp', str(args.cpus),
             '-localtime',
@@ -477,6 +476,9 @@ def hook_open():
     for i, image in enumerate(args.image[1:]):
         argv.append('-drive')
         argv.append('file=%s,if=virtio,index=%i,readonly' % (image, i + 1))
+
+    if os.path.exists('/dev/kvm'):
+        argv.append('-enable-kvm')
 
     # pass through option to qemu
     if args.qemu_options:
