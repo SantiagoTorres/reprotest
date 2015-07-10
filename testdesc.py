@@ -233,19 +233,28 @@ def _debian_packages_from_source(srcdir):
     return packages
 
 
-def _debian_build_deps_from_source(srcdir):
-    deps = []
+def _debian_build_deps_from_source(srcdir, testbed_arch):
+    deps = ''
     for st in parse_rfc822(os.path.join(srcdir, 'debian/control')):
         if 'Build-depends' in st:
-            for d in st['Build-depends'].split(','):
-                dp = d.strip()
-                if dp:
-                    deps.append(dp)
+            deps += st['Build-depends']
         if 'Build-depends-indep' in st:
-            for d in st['Build-depends-indep'].split(','):
-                dp = d.strip()
-                if dp:
-                    deps.append(dp)
+            deps += ', ' + st['Build-depends-indep']
+
+    # resolve arch specific dependencies and build profiles
+    perl = subprocess.Popen(['perl', '-'], stdin=subprocess.PIPE,
+                            stdout=subprocess.PIPE)
+    code = '''use Dpkg::Deps;
+              $dep = deps_parse('%s', reduce_arch => 1, reduce_profiles => 1,
+                                build_dep => 1, host_arch => '%s');
+              print $dep->output(), "\\n";
+              ''' % (deps, testbed_arch)
+    deps = perl.communicate(code.encode('UTF-8'))[0].decode('UTF-8').strip()
+    if perl.returncode != 0:
+        raise InvalidControl('source', 'Invalid build dependencies')
+
+    deps = [d.strip() for d in deps.split(',')]
+
     # @builddeps@ should always imply build-essential
     deps.append('build-essential')
     return deps
@@ -277,7 +286,7 @@ def _debian_check_dep(testname, dep):
             pass
 
 
-def _parse_debian_depends(testname, dep_str, srcdir):
+def _parse_debian_depends(testname, dep_str, srcdir, testbed_arch):
     '''Parse Depends: line in a Debian package
 
     Split dependencies (comma separated), validate their syntax, and expand @
@@ -298,7 +307,7 @@ def _parse_debian_depends(testname, dep_str, srcdir):
                 adtlog.debug('synthesised dependency %s' % d)
                 deps.append(d)
         elif alt_group_str == '@builddeps@':
-            for d in _debian_build_deps_from_source(srcdir):
+            for d in _debian_build_deps_from_source(srcdir, testbed_arch):
                 adtlog.debug('synthesised dependency %s' % d)
                 deps.append(d)
         else:
@@ -334,7 +343,7 @@ def _autodep8(srcdir):
     return None
 
 
-def parse_debian_source(srcdir, testbed_caps, control_path=None,
+def parse_debian_source(srcdir, testbed_caps, testbed_arch, control_path=None,
                         auto_control=True):
     '''Parse test descriptions from a Debian DEP-8 source dir
 
@@ -375,7 +384,8 @@ def parse_debian_source(srcdir, testbed_caps, control_path=None,
                 test_names = record['Tests'].replace(',', ' ').split()
                 depends = _parse_debian_depends(test_names[0],
                                                 record.get('Depends', '@'),
-                                                srcdir)
+                                                srcdir,
+                                                testbed_arch)
                 if 'Test-command' in record:
                     raise InvalidControl('*', 'Only one of "Tests" or '
                                          '"Test-Command" may be given')
@@ -391,7 +401,8 @@ def parse_debian_source(srcdir, testbed_caps, control_path=None,
                 command = record['Test-command']
                 depends = _parse_debian_depends(command,
                                                 record.get('Depends', '@'),
-                                                srcdir)
+                                                srcdir,
+                                                testbed_arch)
                 command_counter += 1
                 name = 'command%i' % command_counter
                 _debian_check_unknown_fields(name, record)
