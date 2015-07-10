@@ -317,8 +317,9 @@ def cmd_reboot(c, ce):
     # (argh Ubuntu touch)
     directories = '/var/cache /home'
     check_exec(['sh', '-ec', 'for d in %s; do if [ -w $d ]; then '
-                'tar --warning=none --create --absolute-names -f $d/autopkgtest-tmpdir.tar'
-                ''' '%s'; rm -f /run/autopkgtest-reboot-prepare-mark; '''
+                '  tar --warning=none --create --absolute-names '
+                '''    -f $d/autopkgtest-tmpdir.tar '%s'; '''
+                '  rm -f /run/autopkgtest-reboot-prepare-mark; '
                 '  exit 0; fi; done; exit 1''' % (directories, downtmp)],
                downp=True, timeout=copy_timeout)
     adtlog.debug('cmd_reboot: saved current downtmp, rebooting')
@@ -334,7 +335,8 @@ def cmd_reboot(c, ce):
     # restore downtmp
     check_exec(['sh', '-ec', 'for d in %s; do '
                 'if [ -e $d/autopkgtest-tmpdir.tar ]; then '
-                ' tar --warning=none --extract --absolute-names -f $d/autopkgtest-tmpdir.tar;'
+                ' tar --warning=none --extract --absolute-names '
+                '     -f $d/autopkgtest-tmpdir.tar;'
                 ' rm $d/autopkgtest-tmpdir.tar; exit 0; '
                 'fi; done; exit 1' % directories],
                downp=True, timeout=copy_timeout)
@@ -508,7 +510,8 @@ def copyupdown_internal(wh, sd, upp):
     else:
         taropts = [None, None]
         taropts[isrc] = '--warning=none -c .'
-        taropts[idst] = '--warning=none --preserve-permissions --extract --no-same-owner'
+        taropts[idst] = '--warning=none --preserve-permissions --extract ' \
+                        '--no-same-owner'
 
         rune = 'cd %s; tar %s -f -' % (remfileq, taropts[iremote])
         if upp:
