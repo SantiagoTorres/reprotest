@@ -960,7 +960,7 @@ fi
         if self.execute(['sh', opts.verbosity >= 2 and '-exc' or '-ec', script], kind='install')[0] != 0:
             bomb('Failed to update click AppArmor rules')
 
-    def satisfy_dependencies_string(self, deps, what, recommends=False):
+    def satisfy_dependencies_string(self, deps, what, recommends=False, build_dep=False):
         '''Install dependencies from a string into the testbed'''
 
         adtlog.debug('%s: satisfying %s' % (what, deps))
@@ -972,12 +972,16 @@ fi
 
         # resolve arch specific dependencies; don't use universal_newlines
         # here, it's broken for stdin on Python 3.2
+        if build_dep:
+            extra_args = ', reduce_profiles => 1, build_dep => 1'
+        else:
+            extra_args = ''
         perl = subprocess.Popen(['perl', '-'], stdin=subprocess.PIPE,
                                 stdout=subprocess.PIPE)
         code = '''use Dpkg::Deps;
-                  $dep = deps_parse('%s', reduce_arch => 1, host_arch => '%s');
+                  $dep = deps_parse('%s', reduce_arch => 1, host_arch => '%s' %s);
                   print $dep->output(), "\\n";
-                  ''' % (deps, self.dpkg_arch)
+                  ''' % (deps, self.dpkg_arch, extra_args)
         deps = perl.communicate(code.encode('UTF-8'))[0].decode('UTF-8').strip()
         if perl.returncode != 0:
             bomb('failed to run perl for parsing dependencies')
@@ -1702,7 +1706,8 @@ def build_source(kind, arg, built_binaries):
             d = deb822.Deb822(sequence=f)
             bd = d.get('Build-Depends', '')
             bdi = d.get('Build-Depends-Indep', '')
-        testbed.satisfy_dependencies_string(bd + ', ' + bdi + ', ' + ', '.join(build_essential), arg)
+        testbed.satisfy_dependencies_string(bd + ', ' + bdi + ', ' + ', '.join(build_essential), arg,
+                                            build_dep=True)
 
         source_rules_command([dpkg_buildpackage], 'build', cwd=result_pwd)
 
