@@ -7,6 +7,7 @@ autopkgtest (3.16) UNRELEASED; urgency=medium
   * Drop gpg-signing local archive and mark it as [trusted=yes] instead. This
     gets rid of the requirement to generate a gpg key on first run. Drop
     corresponding --gnupg-home option. (LP: #1472691)
+  * Drop long-obsolete --tmp-dir backwards compat option.
 
   Bug fixes:
   * ssh-setup/nova: Silence "invalid command wait-reboot" warning.
