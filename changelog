@@ -28,6 +28,9 @@ autopkgtest (3.16) UNRELEASED; urgency=medium
     "@builddeps@". This handles build profiles. (Closes: #787093)
   * Resolve build profiles when installing build dependencies to build tested
     package.
+  * Adjust NullRunner.test_tmp_install_perl test case to use
+    libtest-requires-perl instead of libtest-tester-perl; the latter got
+    removed from Debian.
 
  -- Martin Pitt <mpitt@debian.org>  Tue, 30 Jun 2015 11:14:30 +0200
 
