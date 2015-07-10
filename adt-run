@@ -1405,32 +1405,6 @@ class Binaries:
                             '-o', 'APT::Get::force-yes=true',
                             '-o', 'APT::Get::Assume-Yes=true']
 
-    def genkey(self):
-        adtlog.debug('Binaries: preparing for key generation')
-
-        if not os.path.exists(os.path.dirname(opts.gnupghome)):
-            os.makedirs(os.path.dirname(opts.gnupghome))
-        mkdir_okexist(opts.gnupghome, 0o700)
-
-        script = '''
-  exec >&2
-  cd "$1"
-  cat <<"END" >key-gen-params
-Key-Type: DSA
-Key-Length: 1024
-Key-Usage: sign
-Name-Real: autopkgtest per-run key
-Name-Comment: do not trust this key
-Name-Email: autopkgtest@example.com
-END
-  set -x
-  gpg --homedir="$1" --batch --no-random-seed-file --gen-key key-gen-params
-'''
-        cmdl = ['sh', '-ec', script, 'x', opts.gnupghome]
-        rc = script_out(cmdl, what='genkey', script=script)[0]
-        if rc:
-            bomb('key generation failed, code %d' % rc)
-
     def _configure_apt(self, tb):
         prefs = TestbedPath(testbed, os.path.join(tmp, 'apt-prefs'),
                             '/etc/apt/preferences.d/90autopkgtest')
@@ -1479,11 +1453,6 @@ Pin-Priority: 1002
             adtlog.debug('Binaries: no registered binaries, not publishing anything')
             return
 
-        if os.path.exists(os.path.join(opts.gnupghome, 'secring.gpg')):
-            adtlog.debug('Binaries: no key generation needed')
-        else:
-            self.genkey()
-
         self._configure_apt(testbed)
 
         script = '''
@@ -1492,11 +1461,8 @@ Pin-Priority: 1002
   apt-ftparchive packages . >Packages
   gzip <Packages >Packages.gz
   apt-ftparchive release . >Release
-  rm -f Release.gpg
-  gpg --homedir="$2" --batch --no-random-seed-file --detach-sign --armour -o Release.gpg Release
-  gpg --homedir="$2" --batch --no-random-seed-file --export >archive-key.pgp
 '''
-        cmdl = ['sh', '-ec', script, 'x', self.dir.host, opts.gnupghome]
+        cmdl = ['sh', '-ec', script, 'x', self.dir.host]
         rc = script_out(cmdl, what='ftparchive', script=script)[0]
         if rc:
             bomb('apt-ftparchive or signature failed, code %d' % rc)
@@ -1507,26 +1473,25 @@ Pin-Priority: 1002
         testbed.check_exec(['rm', '-rf', self.dir.tb])
         self.dir.copydown()
 
-        aptkey_out = TempTestbedPath(testbed, 'apt-key.out')
+        aptupdate_out = TempTestbedPath(testbed, 'apt-update.out')
         script = '''
-  apt-key add %(d)s/archive-key.pgp
-  echo "deb file://%(d)s /" >/etc/apt/sources.list.d/autopkgtest.list
+  echo "deb [trusted=yes] file://%(d)s /" >/etc/apt/sources.list.d/autopkgtest.list
   if [ "x`ls /var/lib/dpkg/updates`" != x ]; then
     echo >&2 "/var/lib/dpkg/updates contains some files, aargh"; exit 1
   fi
   apt-get --quiet --no-list-cleanup -o Dir::Etc::sourcelist=/etc/apt/sources.list.d/autopkgtest.list -o Dir::Etc::sourceparts=/dev/null update 2>&1
   cp /var/lib/dpkg/status %(o)s
-  ''' % {'d': self.dir.tb, 'o': aptkey_out.tb}
+  ''' % {'d': self.dir.tb, 'o': aptupdate_out.tb}
         testbed.mungeing_apt()
         testbed.check_exec(['sh', '-ec', script], kind='install')
         testbed.blamed += self.blamed
 
-        aptkey_out.copyup()
+        aptupdate_out.copyup()
 
         adtlog.debug('Binaries: publish reinstall checking...')
         pkgs_reinstall = set()
         pkg = None
-        for l in open(aptkey_out.host, encoding='UTF-8'):
+        for l in open(aptupdate_out.host, encoding='UTF-8'):
             if l.startswith('Package: '):
                 pkg = l[9:].rstrip()
             elif l.startswith('Status: install '):
