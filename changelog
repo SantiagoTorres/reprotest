@@ -23,6 +23,8 @@ autopkgtest (3.16) UNRELEASED; urgency=medium
     too late.
   * Use Dpkg::Deps to evaluate/reduce build dependencies for expanding
     "@builddeps@". This handles build profiles. (Closes: #787093)
+  * Resolve build profiles when installing build dependencies to build tested
+    package.
 
  -- Martin Pitt <mpitt@debian.org>  Tue, 30 Jun 2015 11:14:30 +0200
 
