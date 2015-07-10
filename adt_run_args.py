@@ -240,10 +240,6 @@ details.'''
     g_log.add_argument('-o', '--output-dir',
                        help='Write test artifacts (stdout/err, log, debs, etc)'
                        ' to OUTPUT-DIR (must not exist or be empty)')
-    # backwards compatible alias
-    g_log.add_argument('--tmp-dir', dest='output_dir',
-                       help='Alias for --output-dir for backwards '
-                       'compatibility')
     g_log.add_argument('-l', '--log-file', dest='logfile',
                        help='Write the log LOGFILE, emptying it beforehand,'
                        ' instead of using OUTPUT-DIR/log')
