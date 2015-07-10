@@ -8,6 +8,9 @@ autopkgtest (3.16) UNRELEASED; urgency=medium
     gets rid of the requirement to generate a gpg key on first run. Drop
     corresponding --gnupg-home option. (LP: #1472691)
   * Drop long-obsolete --tmp-dir backwards compat option.
+  * ssh-setup/snappy: Adjust ubuntu-device-flash arguments to new
+    release/channel structure from Ubuntu 15.10, and default to rolling/edge.
+    Add new --release option.
 
   Bug fixes:
   * ssh-setup/nova: Silence "invalid command wait-reboot" warning.
