@@ -403,11 +403,13 @@ def wait_port_down(host, port, timeout):
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         try:
             res = s.connect_ex((host, port))
+            adtlog.debug('wait_port_down() connect: %s' % os.strerror(res))
             if res != 0:
                 break
             # connect might succeed with port forwarding (e. g. QEMU)
             try:
                 r = s.recv(1, socket.MSG_WAITALL)
+                adtlog.debug('wait_port_down() recv: "%s"' % str(r))
                 if not r:
                     break
             except OSError:
