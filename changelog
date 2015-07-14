@@ -8,6 +8,8 @@ autopkgtest (3.16.1) UNRELEASED; urgency=medium
   * doc/README.package-tests.rst: Document that "Tests:" and similar fields
     can be comma separated too, like everywhere else in Debian's control
     files.
+  * ssh-setup/nova: Show name of created nova instance, so that it's easier to
+    map instances to a test.
 
  -- Martin Pitt <mpitt@debian.org>  Tue, 14 Jul 2015 06:21:13 +0200
 
