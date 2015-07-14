@@ -10,6 +10,8 @@ autopkgtest (3.16.1) UNRELEASED; urgency=medium
     files.
   * ssh-setup/nova: Show name of created nova instance, so that it's easier to
     map instances to a test.
+  * run-from-checkout: Exec adt-run to avoid keeping the shell wrapper process
+    around.
 
  -- Martin Pitt <mpitt@debian.org>  Tue, 14 Jul 2015 06:21:13 +0200
 
