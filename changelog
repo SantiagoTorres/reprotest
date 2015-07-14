@@ -3,6 +3,8 @@ autopkgtest (3.16.1) UNRELEASED; urgency=medium
   * setup-commands/cloud-vm-setup: Fix installation of linux-generic on
     Ubuntu.
   * ssh-setup/nova: Clean up userdata temp file on failed nova boot.
+  * If the test fails with exit code 127 (usually "command not found"),
+    consider this a test failure (code 4), not a testbed failure (code 16).
 
  -- Martin Pitt <mpitt@debian.org>  Tue, 14 Jul 2015 06:21:13 +0200
 
