@@ -12,6 +12,8 @@ autopkgtest (3.16.1) UNRELEASED; urgency=medium
     map instances to a test.
   * run-from-checkout: Exec adt-run to avoid keeping the shell wrapper process
     around.
+  * ssh-setup/snappy: Fix check whether --image and --channel are specified
+    together. (LP: #1474735)
 
  -- Martin Pitt <mpitt@debian.org>  Tue, 14 Jul 2015 06:21:13 +0200
 
