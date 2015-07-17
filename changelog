@@ -8,6 +8,8 @@ autopkgtest (3.16.2) UNRELEASED; urgency=medium
   * Exit with code 12 ("erroneous package") and a proper error message if
     debian/tests/<testname> does not exist, instead of code 20 and a confusing
     message about chmod failing and *-stderr missing.
+  * Exit with code 12 ("erroneous package") instead of 20 if test dependency
+    package install fails.
 
  -- Martin Pitt <mpitt@debian.org>  Fri, 17 Jul 2015 12:02:39 +0200
 
