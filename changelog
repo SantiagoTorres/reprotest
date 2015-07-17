@@ -1,4 +1,4 @@
-autopkgtest (3.16.2) UNRELEASED; urgency=medium
+autopkgtest (3.16.2) unstable; urgency=medium
 
   * Exit with code 4 ("test failure") if a test times out, instead of 16
     ("testbed failure").
@@ -15,7 +15,7 @@ autopkgtest (3.16.2) UNRELEASED; urgency=medium
     something with the connection failed. This avoids considering ordinary
     test failures as temporary testbed failures. (LP: #1475679)
 
- -- Martin Pitt <mpitt@debian.org>  Fri, 17 Jul 2015 12:02:39 +0200
+ -- Martin Pitt <mpitt@debian.org>  Fri, 17 Jul 2015 17:08:03 +0200
 
 autopkgtest (3.16.1) unstable; urgency=medium
 
