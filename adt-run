@@ -1015,6 +1015,9 @@ fi
         def _info(m):
             adtlog.info('test %s: %s' % (test.name, m))
 
+        if test.path and not os.path.exists(os.path.join(tree.host, test.path)):
+            badpkg('%s does not exist' % test.path)
+
         _info('preparing')
         self.prepare(test.depends, 'needs-recommends' in test.restrictions)
         for c in test.clicks:
