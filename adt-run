@@ -666,10 +666,10 @@ Description: satisfy autopkgtest test dependencies
                           stdout=subprocess.PIPE,
                           stderr=subprocess.PIPE)[0]
         if rc != 0:
-            bomb('Test dependencies are unsatisfiable. A common reason is '
-                 'that your testbed is out of date with respect to the '
-                 'archive, and you need to use a current testbed or run '
-                 'apt-get update or use -U.')
+            badpkg('Test dependencies are unsatisfiable. A common reason is '
+                   'that your testbed is out of date with respect to the '
+                   'archive, and you need to use a current testbed or run '
+                   'apt-get update or use -U.')
 
         # remove adt-satdep to avoid confusing tests, but avoid marking our
         # test dependencies for auto-removal
@@ -740,10 +740,10 @@ Description: satisfy autopkgtest test dependencies
                                      'install'] + list(pkg_constraints),
                                     stdout=subprocess.PIPE)
         if rc != 0:
-            bomb('Test dependencies are unsatisfiable. A common reason is '
-                 'that your testbed is out of date with respect to the '
-                 'archive, and you need to use a current testbed, or '
-                 'try "--setup-commands ro-apt-update".')
+            badpkg('Test dependencies are unsatisfiable. A common reason is '
+                   'that your testbed is out of date with respect to the '
+                   'archive, and you need to use a current testbed, or '
+                   'try "--setup-commands ro-apt-update".')
 
         def check_constraint(pkg, ver):
             constraint = pkg_constraints.get(pkg, (None, None))
@@ -782,8 +782,8 @@ Description: satisfy autopkgtest test dependencies
                                'supported in unpack only mode' % pkg)
                 continue
             if not check_constraint(pkg, ver):
-                bomb('test dependency %s (%s %s) is unsatisfiable: available version %s' %
-                     (pkg, pkg_constraints[pkg][0], pkg_constraints[pkg][1], ver))
+                badpkg('test dependency %s (%s %s) is unsatisfiable: available version %s' %
+                       (pkg, pkg_constraints[pkg][0], pkg_constraints[pkg][1], ver))
             to_install.append(pkg)
 
         adtlog.debug('install_tmp: packages to install: %s' % ' '.join(to_install))
