@@ -498,11 +498,11 @@ class Testbed:
         adtlog.debug('blame += %s' % m)
         self.blamed.append(m)
 
-    def bomb(self, m):
+    def bomb(self, m, exitcode=16):
         adtlog.debug('bomb %s' % m)
         self.reset_apt()
         self.stop()
-        raise Quit(16, 'testbed failed: %s' % m)
+        raise Quit(exitcode, 'testbed failed: %s' % m)
 
     def send(self, string):
         try:
@@ -597,7 +597,8 @@ class Testbed:
             adtlog.debug('timed out on %s %s (kind: %s)' % (self.exec_cmd, argv, kind))
             if 'sudo' not in self.exec_cmd:
                 proc.wait()
-            self.bomb('timed out on command "%s" (kind: %s)' % (' '.join(argv), kind))
+            exitcode = (kind == 'test' and 4 or 16)
+            self.bomb('timed out on command "%s" (kind: %s)' % (' '.join(argv), kind), exitcode)
 
         adtlog.debug('testbed command exited with code %i' % proc.returncode)
 
