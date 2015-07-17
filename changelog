@@ -1,4 +1,4 @@
-autopkgtest (3.16.1) UNRELEASED; urgency=medium
+autopkgtest (3.16.1) unstable; urgency=medium
 
   * setup-commands/cloud-vm-setup: Fix installation of linux-generic on
     Ubuntu.
@@ -16,7 +16,7 @@ autopkgtest (3.16.1) UNRELEASED; urgency=medium
     together. (LP: #1474735)
   * ssh-setup/nova: Allow selecting net IDs by name.
 
- -- Martin Pitt <mpitt@debian.org>  Tue, 14 Jul 2015 06:21:13 +0200
+ -- Martin Pitt <mpitt@debian.org>  Fri, 17 Jul 2015 11:11:36 +0200
 
 autopkgtest (3.16) unstable; urgency=medium
 
