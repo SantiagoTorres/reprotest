@@ -661,7 +661,7 @@ Description: satisfy autopkgtest test dependencies
         if rc != 0:
             if opts.shell_fail:
                 testbed.run_shell()
-            bomb('failed to run apt-get to satisfy adt-satdep.deb dependencies')
+            badpkg('failed to run apt-get to satisfy adt-satdep.deb dependencies')
         rc = self.execute(['dpkg', '--status', 'adt-satdep'],
                           stdout=subprocess.PIPE,
                           stderr=subprocess.PIPE)[0]
