@@ -70,6 +70,8 @@ sshopts = '-q -o BatchMode=yes -o UserKnownHostsFile=/dev/null '\
 # (build or test script) finishes, otherwise we get eternal hangs as ssh waits
 # until nothing is connected to its tty any more. So we run this in ssh,
 # wrapping the actual command.
+# We also want to avoid exiting with 255 as that's ssh's exit code if something
+# with the connection failed; so we translate that to 253.
 terminal_kill_wrapper = '''#!/bin/bash
 set -u
 PPPID=$(cut -f4 -d' ' /proc/$PPID/stat)
@@ -93,6 +95,7 @@ for pid in $PS; do
 done
 
 [ -z "$KILL" ] || kill -9 $KILL || true
+[ $RC != 255 ] || RC=253
 exit $RC
 '''
 
