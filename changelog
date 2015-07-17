@@ -2,6 +2,9 @@ autopkgtest (3.16.2) UNRELEASED; urgency=medium
 
   * Exit with code 4 ("test failure") if a test times out, instead of 16
     ("testbed failure").
+  * Exit with code 12 ("erroneous package") if test dependencies are
+    unsatisfiable and put badpkg/blame into summary, instead of exiting with
+    code 20 ("other unexpected failures including bad usage").
 
  -- Martin Pitt <mpitt@debian.org>  Fri, 17 Jul 2015 12:02:39 +0200
 
