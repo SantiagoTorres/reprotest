@@ -285,7 +285,7 @@ def boot_image(image, seed, qemu_command, verbose):
     tty_sock = os.path.join(workdir, 'ttyS0')
 
     argv = [qemu_command, '-m', '512',
-            '-localtime', '-nographic',
+            '-nographic',
             '-monitor', 'null',
             '-net', 'user',
             '-net', 'nic,model=virtio',
