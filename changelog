@@ -2,6 +2,8 @@ autopkgtest (3.16.3) UNRELEASED; urgency=medium
 
   * adt-setup-vm: Use /etc/cloud.cfg.d/ to avoid conffile prompts on upgrades.
     (LP: #1477626)
+  * Don't invoke QEMU with -localtime. QEMU defaults to and Linux prefers the
+    hw clock in UTC. This avoids large time jumps when doing NTP.
 
  -- Martin Pitt <mpitt@debian.org>  Sun, 26 Jul 2015 12:04:32 +0200
 
