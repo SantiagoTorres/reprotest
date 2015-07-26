@@ -4,6 +4,9 @@ autopkgtest (3.16.3) UNRELEASED; urgency=medium
     (LP: #1477626)
   * Don't invoke QEMU with -localtime. QEMU defaults to and Linux prefers the
     hw clock in UTC. This avoids large time jumps when doing NTP.
+  * adt-setup-vm: Start autopkgtest shell after all other SysV init
+    scripts/facilities, to avoid a too early start of tests while boot is
+    still in progress.
 
  -- Martin Pitt <mpitt@debian.org>  Sun, 26 Jul 2015 12:04:32 +0200
 
