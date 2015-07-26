@@ -84,7 +84,8 @@ EOF
 fi
 # prevent subsequent cloud-init runs from modifying the apt sources again
 if [ -e "$root/etc/cloud/cloud.cfg" ]; then
-    echo 'apt_preserve_sources_list: true' >> "$root/etc/cloud/cloud.cfg"
+    mkdir -p "$root/etc/cloud/cloud.cfg.d"
+    echo 'apt_preserve_sources_list: true' >> "$root/etc/cloud/cloud.cfg.d/01_autopkgtest.cfg"
 fi
 
 # work around https://bugs.debian.org/788792
