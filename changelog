@@ -1,3 +1,10 @@
+autopkgtest (3.16.3) UNRELEASED; urgency=medium
+
+  * adt-setup-vm: Use /etc/cloud.cfg.d/ to avoid conffile prompts on upgrades.
+    (LP: #1477626)
+
+ -- Martin Pitt <mpitt@debian.org>  Sun, 26 Jul 2015 12:04:32 +0200
+
 autopkgtest (3.16.2) unstable; urgency=medium
 
   * Exit with code 4 ("test failure") if a test times out, instead of 16
