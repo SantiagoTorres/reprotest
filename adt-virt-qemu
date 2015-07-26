@@ -463,7 +463,6 @@ def hook_open():
     argv = [args.qemu_command,
             '-m', str(args.ram_size),
             '-smp', str(args.cpus),
-            '-localtime',
             '-nographic',
             '-net', 'user',
             '-net', 'nic,model=virtio',
