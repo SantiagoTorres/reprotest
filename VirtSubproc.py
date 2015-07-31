@@ -176,7 +176,7 @@ def check_exec(argv, downp=False, outp=False, timeout=0):
         stdout = None
 
     (status, out, err) = execute_timeout(None, timeout, real_argv,
-                                         stdout=stdout)
+                                         stdout=stdout, stderr=subprocess.PIPE)
 
     if status:
         bomb("%s%s failed (exit status %d)" %
