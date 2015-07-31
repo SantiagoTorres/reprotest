@@ -361,8 +361,11 @@ def can_sudo(ssh_cmd):
 
         sudocmd = 'SUDO_ASKPASS=%s sudo -A' % askpass
         cmd = ssh_cmd + ['--'] + sudocmd.split() + ['/bin/true']
-        rc = VirtSubproc.execute_timeout(None, 30, cmd)[0]
+        (rc, _, err) = VirtSubproc.execute_timeout(None, 30, cmd,
+                                                   stderr=subprocess.PIPE)
         if rc == 0:
+            if err:
+                VirtSubproc.bomb('sudo failed with stderr: "%s"' % err)
             adtlog.debug('can_sudo: askpass works')
             return (sudocmd, askpass)
         else:
@@ -372,8 +375,11 @@ def can_sudo(ssh_cmd):
     # otherwise, test if we can do it without password (NOPASSWD sudo option)
     sudocmd = "sudo -n"
     cmd = ssh_cmd + ['--'] + sudocmd.split() + ['/bin/true']
-    rc = VirtSubproc.execute_timeout(None, 30, cmd)[0]
+    (rc, _, err) = VirtSubproc.execute_timeout(None, 30, cmd,
+                                               stderr=subprocess.PIPE)
     if rc == 0:
+        if err:
+            VirtSubproc.bomb('sudo failed with stderr: "%s"' % err)
         adtlog.debug('can_sudo: sudo without password works')
         return (sudocmd, None)
     else:
