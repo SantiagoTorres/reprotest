@@ -8,6 +8,7 @@ autopkgtest (3.16.3) UNRELEASED; urgency=medium
     scripts/facilities, to avoid a too early start of tests while boot is
     still in progress.
   * doc/README.package-tests.rst: Use comma separator in examples.
+  * VirtSubproc.check_exec(): Actually error out on stderr as documented.
 
  -- Martin Pitt <mpitt@debian.org>  Sun, 26 Jul 2015 12:04:32 +0200
 
