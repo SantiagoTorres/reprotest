@@ -9,6 +9,9 @@ autopkgtest (3.16.3) UNRELEASED; urgency=medium
     still in progress.
   * doc/README.package-tests.rst: Use comma separator in examples.
   * VirtSubproc.check_exec(): Actually error out on stderr as documented.
+  * adt-virt-ssh: Verify that sudo does not write errors, as that
+    interferes with auxverbs and generally is a sign of host mis-configuration
+    (typically wrong hostname).
 
  -- Martin Pitt <mpitt@debian.org>  Sun, 26 Jul 2015 12:04:32 +0200
 
