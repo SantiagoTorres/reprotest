@@ -17,6 +17,8 @@ autopkgtest (3.16.3) UNRELEASED; urgency=medium
   * ssh-setup/nova: Fix parsing of IP address from "nova show" to avoid
     tripping over instance names containing "network". (LP: #1481574)
   * Fix error message and code for "invalid test depends" errors.
+  * tests/pep8: Ignore E402 ("module level import not at top of file"), as
+    that's impossible to satisfy; we have to set sys.path before.
 
  -- Martin Pitt <mpitt@debian.org>  Sun, 26 Jul 2015 12:04:32 +0200
 
