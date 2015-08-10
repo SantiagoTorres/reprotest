@@ -1827,10 +1827,13 @@ def process_actions():
             pending_click_source = None
         else:
             tests_tree = build_source(kind, arg, built_binaries)
-            (tests, skipped) = testdesc.parse_debian_source(
-                tests_tree.host, testbed.caps, testbed.dpkg_arch,
-                control_path=control_override,
-                auto_control=opts.auto_control)
+            try:
+                (tests, skipped) = testdesc.parse_debian_source(
+                    tests_tree.host, testbed.caps, testbed.dpkg_arch,
+                    control_path=control_override,
+                    auto_control=opts.auto_control)
+            except testdesc.InvalidControl as e:
+                badpkg(str(e))
 
         if skipped:
             errorcode |= 2
