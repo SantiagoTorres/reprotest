@@ -16,6 +16,7 @@ autopkgtest (3.16.3) UNRELEASED; urgency=medium
     from defaulting to nova instance names (which can be very long).
   * ssh-setup/nova: Fix parsing of IP address from "nova show" to avoid
     tripping over instance names containing "network". (LP: #1481574)
+  * Fix error message and code for "invalid test depends" errors.
 
  -- Martin Pitt <mpitt@debian.org>  Sun, 26 Jul 2015 12:04:32 +0200
 
