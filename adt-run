@@ -877,8 +877,8 @@ fi
             # this is mostly for testing
             clickopts.append('--force-missing-framework')
         if 'root-on-testbed' in self.caps:
-            rc = self.execute(['click', 'install', '--allow-unauthenticated']
-                              + clickopts + [tp.tb], kind='install')[0]
+            rc = self.execute(['click', 'install', '--allow-unauthenticated'] +
+                              clickopts + [tp.tb], kind='install')[0]
         else:
             rc = self.execute(['pkcon', 'install-local', '--allow-untrusted',
                                tp.tb], kind='install')[0]
