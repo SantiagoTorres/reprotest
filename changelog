@@ -21,6 +21,8 @@ autopkgtest (3.16.3) UNRELEASED; urgency=medium
     that's impossible to satisfy; we have to set sys.path before.
   * ssh-setup/nova: In cleanup(), wait until the instance gets deleted. This
     avoids name collisions and instance quota overflow.
+  * adt-run: Always show summary at the end, which is particularly helpful for
+    multiple tests. (LP: #1484991)
 
  -- Martin Pitt <mpitt@debian.org>  Sun, 26 Jul 2015 12:04:32 +0200
 
