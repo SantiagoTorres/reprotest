@@ -198,9 +198,9 @@ def setup_trace():
         atexit.register(cleanup)
 
     if opts.summary is not None:
-        adtlog.summary_stream = open(opts.summary, 'wb', 0)
-    elif opts.output_dir is not None:
-        adtlog.summary_stream = open(os.path.join(opts.output_dir, 'summary'), 'wb', 0)
+        adtlog.summary_stream = open(opts.summary, 'w+b', 0)
+    else:
+        adtlog.summary_stream = open(os.path.join(tmp, 'summary'), 'w+b', 0)
 
 
 def finalise_options():
@@ -1850,6 +1850,13 @@ def process_actions():
 
         control_override = None
         run_tests(tests, tests_tree)
+
+        adtlog.summary_stream.flush()
+        if adtlog.verbosity >= 1:
+            adtlog.summary_stream.seek(0)
+            adtlog.info('@@@@@@@@@@@@@@@@@@@@ summary')
+            sys.stderr.buffer.write(adtlog.summary_stream.read())
+        adtlog.summary_stream.close()
 
 
 def main():
