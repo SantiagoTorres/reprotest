@@ -23,6 +23,8 @@ autopkgtest (3.16.3) UNRELEASED; urgency=medium
     avoids name collisions and instance quota overflow.
   * adt-run: Always show summary at the end, which is particularly helpful for
     multiple tests. (LP: #1484991)
+  * adt-run.1: Clarify that without any logging options adt-run only logs to
+    stderr. (LP: #1485661)
 
  -- Martin Pitt <mpitt@debian.org>  Sun, 26 Jul 2015 12:04:32 +0200
 
