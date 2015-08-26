@@ -31,6 +31,8 @@ autopkgtest (3.16.3) UNRELEASED; urgency=medium
     temporary testbed failures.
   * adt-run: Show host name, to more easily identify hosts with frequent
     failures.
+  * adt-virt-lxc: Always call lxc-stop with --kill, as the containers are not
+    precious and normal shutdown might hang.
 
  -- Martin Pitt <mpitt@debian.org>  Sun, 26 Jul 2015 12:04:32 +0200
 
