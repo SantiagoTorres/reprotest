@@ -276,7 +276,8 @@ class Testbed:
             adtlog.info('version @version@')
 
         # log command line invocation for the log
-        adtlog.info('command line: %s' % ' '.join([pipes.quote(w) for w in sys.argv]))
+        adtlog.info('host %s; command line: %s' % (
+            os.uname()[1], ' '.join([pipes.quote(w) for w in sys.argv])))
 
         # vserver can be given without "adt-virt-" prefix
         if '/' not in vserver_args[0] and not vserver_args[0].startswith('adt-virt-'):
