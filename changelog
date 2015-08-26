@@ -29,6 +29,8 @@ autopkgtest (3.16.3) UNRELEASED; urgency=medium
     253 in the auxverb wrapper, as 255 is the exit code for failures of the
     auxverb itself. This avoids considering ordinary test failures as
     temporary testbed failures.
+  * adt-run: Show host name, to more easily identify hosts with frequent
+    failures.
 
  -- Martin Pitt <mpitt@debian.org>  Sun, 26 Jul 2015 12:04:32 +0200
 
