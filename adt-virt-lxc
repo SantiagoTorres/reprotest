@@ -222,7 +222,7 @@ def hook_open():
             VirtSubproc.auxverb.extend(['eatmydata', '--'])
     except:
         # Clean up on failure
-        VirtSubproc.check_exec(sudoify(['lxc-stop', '--name', lxc_container_name]))
+        VirtSubproc.check_exec(sudoify(['lxc-stop', '--kill', '--name', lxc_container_name]))
         VirtSubproc.execute_timeout(None, 30, sudoify(['lxc-destroy', '--name', lxc_container_name]))
         raise
 
@@ -262,7 +262,7 @@ def hook_cleanup():
     if shared_dir:
         shutil.rmtree(shared_dir)
 
-    VirtSubproc.check_exec(sudoify(['lxc-stop', '--name', lxc_container_name]))
+    VirtSubproc.check_exec(sudoify(['lxc-stop', '--kill', '--name', lxc_container_name]))
     # ephemeral containers don't exist at this point any more, so make failure
     # non-fatal
     (s, o, e) = VirtSubproc.execute_timeout(
