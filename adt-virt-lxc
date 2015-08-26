@@ -259,8 +259,6 @@ def hook_cleanup():
 
     VirtSubproc.downtmp_remove()
     capabilities = [c for c in capabilities if not c.startswith('downtmp-host')]
-    if shared_dir:
-        shutil.rmtree(shared_dir)
 
     VirtSubproc.check_exec(sudoify(['lxc-stop', '--kill', '--name', lxc_container_name]))
     # ephemeral containers don't exist at this point any more, so make failure
@@ -271,6 +269,8 @@ def hook_cleanup():
     if s != 0 and e and 'not defined' not in e:
         sys.stderr.write(e)
 
+    if shared_dir:
+        shutil.rmtree(shared_dir, ignore_errors=True)
 
 def hook_forked_inchild():
     pass
