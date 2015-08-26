@@ -25,6 +25,10 @@ autopkgtest (3.16.3) UNRELEASED; urgency=medium
     multiple tests. (LP: #1484991)
   * adt-run.1: Clarify that without any logging options adt-run only logs to
     stderr. (LP: #1485661)
+  * adt-virt-lxc: If the executed command exits with 255, translate that to
+    253 in the auxverb wrapper, as 255 is the exit code for failures of the
+    auxverb itself. This avoids considering ordinary test failures as
+    temporary testbed failures.
 
  -- Martin Pitt <mpitt@debian.org>  Sun, 26 Jul 2015 12:04:32 +0200
 
