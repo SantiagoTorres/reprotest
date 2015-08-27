@@ -1,4 +1,4 @@
-autopkgtest (3.16.3) UNRELEASED; urgency=medium
+autopkgtest (3.16.3) unstable; urgency=medium
 
   * adt-setup-vm: Use /etc/cloud.cfg.d/ to avoid conffile prompts on upgrades.
     (LP: #1477626)
@@ -39,7 +39,7 @@ autopkgtest (3.16.3) UNRELEASED; urgency=medium
   * ssh-setup/nova: Add missing apt sources for -updates/-security
     restricted/multiverse pockets.
 
- -- Martin Pitt <mpitt@debian.org>  Sun, 26 Jul 2015 12:04:32 +0200
+ -- Martin Pitt <mpitt@debian.org>  Thu, 27 Aug 2015 19:54:51 +0200
 
 autopkgtest (3.16.2) unstable; urgency=medium
 
