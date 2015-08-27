@@ -272,6 +272,7 @@ def hook_cleanup():
     if shared_dir:
         shutil.rmtree(shared_dir, ignore_errors=True)
 
+
 def hook_forked_inchild():
     pass
 
