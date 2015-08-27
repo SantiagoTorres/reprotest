@@ -36,6 +36,8 @@ autopkgtest (3.16.3) UNRELEASED; urgency=medium
   * adt-virt-lxc: In cleanup, stop LXC container before removing the shared
     downtmp, to ensure that we always clean up the running container. Also
     don't fail on errors. (LP: #1488879)
+  * ssh-setup/nova: Add missing apt sources for -updates/-security
+    restricted/multiverse pockets.
 
  -- Martin Pitt <mpitt@debian.org>  Sun, 26 Jul 2015 12:04:32 +0200
 
