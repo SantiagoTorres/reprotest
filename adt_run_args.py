@@ -273,6 +273,9 @@ details.'''
                          action='append', default=[],
                          help='Copy file or dir from host into testbed after '
                          'opening')
+    g_setup.add_argument('--env', metavar='VAR=value',
+                         action='append', default=[],
+                         help='Set arbitrary environment variable for a test')
 
     # privileges
     g_priv = parser.add_argument_group('user/privilege handling options')
@@ -352,6 +355,11 @@ details.'''
         parser.error('You must specify --- <virt-server>...')
 
     action_parser.parse_args(action_args)
+
+    # verify --env validity
+    for e in args.env:
+        if '=' not in e:
+            parser.error('--env must be KEY=value')
 
     # set (possibly adjusted) timeout defaults
     for k in timeouts:
