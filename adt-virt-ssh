@@ -131,6 +131,9 @@ def parse_args():
                         help='Indicate that testbed supports reboot')
     parser.add_argument('-s', '--setup-script',
                         help='Setup script to prepare testbed and ssh connection')
+    parser.add_argument('--timeout-ssh', metavar='SECS', type=int, default=300,
+                        help='Timeout for waiting for the ssh connection, in '
+                        'seconds (default: %(default)s)')
     parser.add_argument('scriptargs', nargs=argparse.REMAINDER,
                         help='Additional arguments to pass to the setup '
                         'script for configuration')
@@ -232,7 +235,7 @@ def host_setup(command):
             os.chmod(workdir, 0o755)
         execute_setup_script(command)
         build_sshcmd()
-        wait_for_ssh(sshcmd)
+        wait_for_ssh(sshcmd, timeout=args.timeout_ssh)
         build_auxverb()
     except:
         # Clean up on failure
@@ -453,7 +456,7 @@ def hook_wait_reboot():
             VirtSubproc.bomb('timed out waiting for testbed to reboot')
 
     build_sshcmd()
-    wait_for_ssh(sshcmd)
+    wait_for_ssh(sshcmd, timeout=args.timeout_ssh)
     build_auxverb()
 
 

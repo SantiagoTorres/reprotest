@@ -102,6 +102,10 @@ so you do not need to give the full path for setup scripts shipped with
 autopkgtest.
 
 .TP
+.BI  "--timeout-ssh=" secs
+Timeout for waiting for ssh connection, in seconds. Default is 300.
+
+.TP
 .BI -- " [setup script arguments] "
 All the remaining arguments following \fB--\fR will be passed verbatim to the setup
 script to configure the host.
