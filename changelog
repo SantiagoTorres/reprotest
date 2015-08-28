@@ -1,3 +1,10 @@
+autopkgtest (3.16.4) UNRELEASED; urgency=medium
+
+  * setup-commands/cloud-vm-setup: Provide fallback for Ubuntu 12.04 which
+    does not yet have /etc/default/grub.cfg.d/.
+
+ -- Martin Pitt <mpitt@debian.org>  Fri, 28 Aug 2015 05:29:25 +0200
+
 autopkgtest (3.16.3) unstable; urgency=medium
 
   * adt-setup-vm: Use /etc/cloud.cfg.d/ to avoid conffile prompts on upgrades.
