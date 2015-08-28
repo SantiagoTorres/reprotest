@@ -2,6 +2,8 @@ autopkgtest (3.16.4) UNRELEASED; urgency=medium
 
   * setup-commands/cloud-vm-setup: Provide fallback for Ubuntu 12.04 which
     does not yet have /etc/default/grub.cfg.d/.
+  * adt-virt-ssh: Add --timeout-ssh option. Thanks Leo Arias for the initial
+    patch. (LP: #1488358)
 
  -- Martin Pitt <mpitt@debian.org>  Fri, 28 Aug 2015 05:29:25 +0200
 
