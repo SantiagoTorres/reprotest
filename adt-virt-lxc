@@ -205,15 +205,32 @@ def hook_open():
         # provide a minimal and clean environment in the container
         # We also want to avoid exiting with 255 as that's auxverb's exit code
         # if the auxverb itself failed; so we translate that to 253.
+        # Tests or builds sometimes leak background processes which might still
+        # be connected to lxc-attach's stdout/err; we need to kill these after the
+        # main program (build or test script) finishes, otherwise we get
+        # eternal hangs.
         VirtSubproc.auxverb = [
             'lxc-attach', '--name', lxc_container_name, '--',
-            'env', '-i', 'sh', '-c',
+            'env', '-i', 'bash', '-c',
             'set -a; '
             '[ -r /etc/environment ] && . /etc/environment 2>/dev/null || true; '
             '[ -r /etc/default/locale ] && . /etc/default/locale 2>/dev/null || true; '
             '[ -r /etc/profile ] && . /etc/profile 2>/dev/null || true; '
             'set +a;'
-            '"$@"; RC=$?; [ $RC != 255 ] || RC=253; exit $RC', '--'
+            '"$@"; RC=$?; [ $RC != 255 ] || RC=253; '
+            'set -e;'
+            'myout=$(readlink /proc/$$/fd/1);'
+            'myerr=$(readlink /proc/$$/fd/2);'
+            'myout="${myout/[/\\\\[}"; myout="${myout/]/\\\\]}";'
+            'myerr="${myerr/[/\\\\[}"; myerr="${myerr/]/\\\\]}";'
+            'PS=$(ls -l /proc/[0-9]*/fd/* 2>/dev/null | sed -nr \'\#(\'"$myout"\'|\'"$myerr"\')# { s#^.*/proc/([0-9]+)/.*$#\\1#; p}\'|sort -u);'
+            'KILL="";'
+            'for pid in $PS; do'
+            '    [ $pid -ne $$ ] && [ $pid -ne $PPID ] || continue;'
+            '    KILL="$KILL $pid";'
+            'done;'
+            '[ -z "$KILL" ] || kill -9 $KILL >/dev/null 2>&1 || true;'
+            'exit $RC', '--'
         ]
         if args.sudo:
             VirtSubproc.auxverb = ['sudo', '--preserve-env'] + VirtSubproc.auxverb
