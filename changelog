@@ -6,6 +6,9 @@ autopkgtest (3.17) UNRELEASED; urgency=medium
     patch. (LP: #1488358)
   * adt-run: Add --env option to pass arbitrary environment variables to the
     test.
+  * adt-virt-lxc: In the auxverb, clean up leaked background processes which
+    share the same stdout/stderr, to avoid eternal hangs. (LXC half of
+    LP #1488359)
 
  -- Martin Pitt <mpitt@debian.org>  Fri, 28 Aug 2015 05:29:25 +0200
 
