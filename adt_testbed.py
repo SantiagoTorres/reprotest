@@ -38,12 +38,14 @@ from debian import debian_support
 import adtlog
 import VirtSubproc
 
-# FIXME: this should be converted to ctor parameters
-opts = None
+
+timeouts = {'short': 100, 'copy': 300, 'install': 3000, 'test': 10000,
+            'build': 100000}
 
 
 class Testbed:
-    def __init__(self, vserver_argv, output_dir, user):
+    def __init__(self, vserver_argv, output_dir, user,
+                 setup_commands=[], add_apt_pockets=[], copy_files=[]):
         self.sp = None
         self.lastsend = None
         self.scratch = None
@@ -58,6 +60,10 @@ class Testbed:
         self.vserver_argv = vserver_argv
         self.install_tmp_env = []
         self.user = user
+        self.setup_commands = setup_commands
+        self.add_apt_pockets = add_apt_pockets
+        self.copy_files = copy_files
+
         adtlog.debug('testbed init')
 
     def start(self):
@@ -205,15 +211,15 @@ class Testbed:
     def run_setup_commands(self):
         '''Run --setup-commmands and --copy'''
 
-        if not opts.setup_commands and not opts.apt_pocket and not opts.copy:
+        if not self.setup_commands and not self.add_apt_pockets and not self.copy_files:
             return
 
         adtlog.info('@@@@@@@@@@@@@@@@@@@@ test bed setup')
-        for (host, tb) in opts.copy:
+        for (host, tb) in self.copy_files:
             adtlog.debug('Copying file %s to testbed %s' % (host, tb))
             Path(self, host, tb, os.path.isdir(host)).copydown()
 
-        for p in opts.apt_pocket:
+        for p in self.add_apt_pockets:
             script = '''awk '/^deb(-src)? .*(ubuntu.com|debian.org|ftpmaster)/ { if ($3 !~ /-/) { $3 = $3"-%s"; print }}' ''' \
                 '''/etc/apt/sources.list `ls /etc/apt/sources.list.d/*.list 2>/dev/null|| true` ''' \
                 ''' > /etc/apt/sources.list.d/%s.list''' % (p, p)
@@ -229,12 +235,12 @@ class Testbed:
         if self.user:
             xenv.append('ADT_NORMAL_USER=' + self.user)
 
-        for c in opts.setup_commands:
+        for c in self.setup_commands:
             rc = self.execute(['sh', '-ec', c], xenv=xenv, kind='install')[0]
             if rc:
                 self.bomb('testbed setup commands failed with status %i' % rc)
 
-        if opts.setup_commands and 'reboot' in self.caps:
+        if self.setup_commands and 'reboot' in self.caps:
             boot_affected = self.execute(
                 ['bash', '-ec', '[ ! -e /run/autopkgtest_no_reboot.stamp ] || exit 0;'
                  'for d in %s; do s=%s/${d//\//_}.stamp;'
@@ -350,15 +356,11 @@ class Testbed:
         Return (exit code, stdout, stderr). stdout/err will be None when output
         is not redirected.
         '''
-        timeout = getattr(opts, 'timeout_' + kind)
-
         env = list(xenv)  # copy
         if kind == 'install':
             env.append('DEBIAN_FRONTEND=noninteractive')
             env.append('APT_LISTBUGS_FRONTEND=none')
             env.append('APT_LISTCHANGES_FRONTEND=none')
-        if opts.set_lang is not False:
-            env.append('LANG=%s' % opts.set_lang)
         env += self.install_tmp_env
 
         adtlog.debug('testbed command %s, kind %s, sout %s, serr %s, env %s' %
@@ -368,7 +370,7 @@ class Testbed:
         if env:
             argv = ['env'] + env + argv
 
-        VirtSubproc.timeout_start(timeout)
+        VirtSubproc.timeout_start(timeouts[kind])
         try:
             proc = subprocess.Popen(self.exec_cmd + argv, stdout=stdout,
                                     stderr=stderr, universal_newlines=True)
@@ -415,7 +417,7 @@ class Testbed:
                       adtlog.AutopkgtestError)
         return out
 
-    def install_apt(self, deps, recommends=False):
+    def install_apt(self, deps, recommends=False, shell_on_failure=False):
         '''Install dependencies with apt-get into testbed
 
         This requires root privileges and a writable file system.
@@ -450,7 +452,7 @@ Description: satisfy autopkgtest test dependencies
                            '-o', 'Debug::pkgProblemResolver=true'],
                           kind='install')[0]
         if rc != 0:
-            if opts.shell_fail:
+            if shell_on_failure:
                 self.run_shell()
             self.badpkg('failed to run apt-get to satisfy adt-satdep.deb dependencies')
         rc = self.execute(['dpkg', '--status', 'adt-satdep'],
@@ -737,7 +739,7 @@ fi
             adtlog.info('Updating AppArmor rules to allow autopilot introspection for all clicks (will take a minute)...')
             script += 'aa-clickhook --force --include=/var/cache/apparmor/click-ap.rules'
 
-        if self.execute(['sh', opts.verbosity >= 2 and '-exc' or '-ec', script], kind='install')[0] != 0:
+        if self.execute(['sh', adtlog.verbosity >= 2 and '-exc' or '-ec', script], kind='install')[0] != 0:
             self.bomb('Failed to update click AppArmor rules')
 
         return True
@@ -749,10 +751,11 @@ fi
         # if we only modified some clicks above, --force will be fast, so it's
         # ok to always do that
         script = 'rm -f /var/cache/apparmor/click-ap.rules; aa-clickhook --force'
-        if self.execute(['sh', opts.verbosity >= 2 and '-exc' or '-ec', script], kind='install')[0] != 0:
+        if self.execute(['sh', adtlog.verbosity >= 2 and '-exc' or '-ec', script], kind='install')[0] != 0:
             self.bomb('Failed to update click AppArmor rules')
 
-    def satisfy_dependencies_string(self, deps, what, recommends=False, build_dep=False):
+    def satisfy_dependencies_string(self, deps, what, recommends=False,
+                                    build_dep=False, shell_on_failure=False):
         '''Install dependencies from a string into the testbed'''
 
         adtlog.debug('%s: satisfying %s' % (what, deps))
@@ -788,7 +791,7 @@ fi
         adtlog.debug('can use apt-get on testbed: %s' % can_apt_get)
 
         if can_apt_get:
-            self.install_apt(deps, recommends)
+            self.install_apt(deps, recommends, shell_on_failure)
         else:
             self.install_tmp(deps, recommends)
 
@@ -798,7 +801,7 @@ fi
         adtlog.info(' - - - - - - - - - - running shell - - - - - - - - - -')
         self.command('shell', [cwd or '/'] + self.install_tmp_env)
 
-    def run_test(self, tree, test):
+    def run_test(self, tree, test, extra_env=[], shell_on_failure=False, shell=False):
         '''Run given test in testbed
 
         tree (a Path) is the source tree root.
@@ -848,6 +851,10 @@ fi
                  'export ADT_ARTIFACTS="%(a)s"; ' \
                  'export ADTTMP=$(mktemp -d --tmpdir adttmp.XXXXXX); ' \
                  'export DEBIAN_FRONTEND=noninteractive; ' \
+                 'export LANG=C.UTF-8; ' \
+                 'unset LANGUAGE LC_CTYPE LC_NUMERIC LC_TIME LC_COLLATE '\
+                 '  LC_MONETARY LC_MESSAGES LC_PAPER LC_NAME LC_ADDRESS '\
+                 '  LC_TELEPHONE LC_MEASUREMENT LC_IDENTIFICATION LC_ALL;' \
                  'rm -f /tmp/adt_test_script_pid; set -C; echo $$ > /tmp/adt_test_script_pid; set +C; ' \
                  'trap "rm -rf $ADTTMP /tmp/adt_test_script_pid" EXIT INT QUIT PIPE; '\
                  'chmod 755 $ADTTMP; '\
@@ -856,12 +863,7 @@ fi
 
         if self.user and 'rw-build-tree' in test.restrictions:
             script += 'chown -R %s "$buildtree"; ' % self.user
-        if opts.set_lang is not False:
-            script += 'export LANG=%s; ' % opts.set_lang
-            script += 'unset LANGUAGE LC_CTYPE LC_NUMERIC LC_TIME LC_COLLATE '\
-                'LC_MONETARY LC_MESSAGES LC_PAPER LC_NAME LC_ADDRESS '\
-                'LC_TELEPHONE LC_MEASUREMENT LC_IDENTIFICATION LC_ALL;'
-        for e in opts.env:
+        for e in extra_env:
             script += 'export \'%s\'; ' % e
         # there's no way to tell su to not reset $PATH, for install-tmp mode;
         # we also need it to amend fixed values in /etc/environment
@@ -1011,7 +1013,7 @@ fi
         # clean up artifacts dirs
         self.check_exec(['rm', '-rf', test_artifacts])
 
-        if opts.shell or (opts.shell_fail and not test.result):
+        if shell or (shell_on_failure and not test.result):
             self.run_shell(tree.tb)
 
         if need_click_restore:

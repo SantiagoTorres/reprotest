@@ -27,12 +27,9 @@ from glob import glob
 
 import adtlog
 import testdesc
+import adt_testbed
 
 __all__ = ['parse_args']
-
-
-timeouts = {'short': 100, 'copy': 300, 'install': 3000, 'test': 10000,
-            'build': 100000}
 
 
 def is_click_src(path):
@@ -298,20 +295,20 @@ details.'''
 
     # timeouts
     g_time = parser.add_argument_group('timeout options')
-    for k in timeouts:
+    for k, v in adt_testbed.timeouts.items():
         g_time.add_argument(
             '--timeout-' + k, type=int, dest='timeout_' + k, metavar='T',
             help='set %s timeout to T seconds (default: %us)' %
-            (k, timeouts[k]))
+            (k, v))
     g_time.add_argument(
         '--timeout-factor', type=float, metavar='FACTOR', default=1.0,
         help='multiply all default timeouts by FACTOR')
 
     # locale
     g_loc = parser.add_argument_group('locale options')
-    g_loc.add_argument('--set-lang', metavar='LANGVAL', default='C.UTF-8',
+    g_loc.add_argument('--set-lang', metavar='LANGVAL',
                        help='set LANG on testbed to LANGVAL '
-                       '(default: %(default)s)')
+                       '(default: C.UTF-8')
 
     # misc
     g_misc = parser.add_argument_group('other options')
@@ -358,14 +355,19 @@ details.'''
         if '=' not in e:
             parser.error('--env must be KEY=value')
 
+    if args.set_lang:
+        args.env.append('LANG=' + args.set_lang)
+
     # set (possibly adjusted) timeout defaults
-    for k in timeouts:
-        if getattr(args, 'timeout_' + k) is None:
-            setattr(args, 'timeout_' + k,
-                    int(timeouts[k] * args.timeout_factor))
+    for k in adt_testbed.timeouts:
+        v = getattr(args, 'timeout_' + k)
+        if v is None:
+            adt_testbed.timeouts[k] = int(adt_testbed.timeouts[k] * args.timeout_factor)
+        else:
+            adt_testbed.timeouts[k] = v
 
     # this timeout is for adt-virt-*, so pass it down via environment
-    os.environ['ADT_VIRT_COPY_TIMEOUT'] = str(args.timeout_copy)
+    os.environ['ADT_VIRT_COPY_TIMEOUT'] = str(adt_testbed.timeouts['copy'])
 
     if not actions:
         parser.error('You must specify at least one action')
