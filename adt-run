@@ -149,18 +149,10 @@ def setup_trace():
 
 
 def finalise_options():
-    global opts, testbed, build_essential, dpkg_buildpackage
-
-    if opts.user:
-        if 'root-on-testbed' not in testbed.caps:
-            adtlog.warning('virtualisation system does not offer root on '
-                           'testbed but --user option specified: failure likely')
-        opts.user_wrap = lambda x: "su --shell=/bin/sh %s -c 'set -e; %s'" % (opts.user, x)
-    else:
-        opts.user_wrap = lambda x: x
+    global testbed, build_essential, dpkg_buildpackage
 
     if opts.gainroot is None:
-        if opts.user or 'root-on-testbed' not in testbed.caps:
+        if testbed.user or 'root-on-testbed' not in testbed.caps:
             opts.gainroot = 'fakeroot'
             build_essential += ['fakeroot']
     if opts.gainroot:
@@ -404,11 +396,16 @@ def source_rules_command(script, which, cwd=None, results_lines=0):
                 script = ['export ' + e] + script
                 break
 
-    if opts.verbosity > 1:
+    if adtlog.verbosity > 1:
         script = ['exec 3>&1 >&2', 'set -x', 'cd ' + cwd] + script
     else:
         script = ['exec 3>&1 >&2', 'cd ' + cwd] + script
-    script = opts.user_wrap('; '.join(script))
+    script = '; '.join(script)
+
+    # run command as user, if available
+    if testbed.user and 'root-on-testbed' in testbed.caps:
+        script = "su --shell=/bin/sh %s -c 'set -e; %s'" % (testbed.user, script)
+
     (rc, out, _) = testbed.execute(['sh', '-ec', script],
                                    stdout=subprocess.PIPE,
                                    kind='build')
@@ -661,8 +658,8 @@ def process_actions():
                     arg, testbed.caps, srcdir=pending_click_source)
             else:
                 # already installed click package name
-                if opts.user:
-                    u = ['--user', opts.user]
+                if testbed.user:
+                    u = ['--user', testbed.user]
                 else:
                     u = []
                 manifest = testbed.check_exec(['click', 'info'] + u + [arg], stdout=True)
@@ -731,7 +728,9 @@ def main():
 
     try:
         setup_trace()
-        testbed = adt_testbed.Testbed(vserver_args, tmp)
+        testbed = adt_testbed.Testbed(vserver_argv=vserver_args,
+                                      output_dir=tmp,
+                                      user=opts.user)
         testbed.start()
         testbed.open()
         finalise_options()
