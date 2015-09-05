@@ -147,7 +147,7 @@ def run_tests(tests, tree):
         binaries.publish()
         testbed.install_deps(t.depends, 'needs-recommends' in t.restrictions)
 
-        testbed.run_test(tree, t)
+        testbed.run_test(tree, t, opts.env, opts.shell_fail, opts.shell)
         if not t.result:
             errorcode |= 4
         if 'breaks-testbed' in t.restrictions:
@@ -538,7 +538,7 @@ def build_source(kind, arg, built_binaries):
                 build_essential += ['fakeroot']
 
         testbed.satisfy_dependencies_string(bd + ', ' + bdi + ', ' + ', '.join(build_essential), arg,
-                                            build_dep=True)
+                                            build_dep=True, shell_on_failure=opts.shell_fail)
 
         source_rules_command([dpkg_buildpackage], 'build', cwd=result_pwd)
 
@@ -691,8 +691,6 @@ def main():
         # meaning for that already
         sys.exit(20)
 
-    # FIXME: this should become Testbed ctor args
-    adt_testbed.opts = opts
     # vserver can be given without "adt-virt-" prefix
     if '/' not in vserver_args[0] and not vserver_args[0].startswith('adt-virt-'):
         vserver_args[0] = 'adt-virt-' + vserver_args[0]
@@ -705,7 +703,10 @@ def main():
         setup_trace()
         testbed = adt_testbed.Testbed(vserver_argv=vserver_args,
                                       output_dir=tmp,
-                                      user=opts.user)
+                                      user=opts.user,
+                                      setup_commands=opts.setup_commands,
+                                      add_apt_pockets=opts.apt_pocket,
+                                      copy_files=opts.copy)
         testbed.start()
         testbed.open()
         process_actions()
