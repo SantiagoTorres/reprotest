@@ -89,38 +89,7 @@ def badpkg(m):
     raise Quit(12, 'erroneous package: %s' % m)
 
 
-class Unsupported(Exception):
-
-    def __init__(self, lno, m):
-        if lno >= 0:
-            self.m = '%s (control line %d)' % (m, lno)
-        else:
-            self.m = m
-
-    def report(self, tname):
-        global errorcode
-        errorcode |= 2
-        adtlog.report(tname, 'SKIP %s' % self.m)
-
 # ---------- convenience functions
-
-
-def mkdir_okexist(pathname, mode=0o2755):
-    try:
-        os.mkdir(pathname, mode)
-    except (IOError, OSError) as oe:
-        if oe.errno != errno.EEXIST:
-            raise
-
-
-def rmtree(what, pathname):
-    adtlog.debug('/ %s rmtree %s' % (what, pathname))
-    try:
-        shutil.rmtree(pathname)
-    except (IOError, OSError) as oe:
-        if oe.errno not in (errno.EEXIST, errno.ENOENT):
-            raise
-
 
 def script_out(argv, what=None, script=None, **kwargs):
     '''Call a script and get its return code, and optionally stdout.
@@ -157,7 +126,7 @@ def setup_trace():
     global tmp
 
     if opts.output_dir is not None:
-        mkdir_okexist(opts.output_dir, 0o755)
+        os.makedirs(opts.output_dir, exist_ok=True)
         if os.listdir(opts.output_dir):
             bomb('--output-dir "%s" is not empty' % opts.output_dir)
         tmp = opts.output_dir
@@ -1284,7 +1253,7 @@ class TestbedPath:
             adtlog.debug('copyup: host path %s already exists' % self.host)
             return
 
-        mkdir_okexist(os.path.dirname(self.host))
+        os.makedirs(os.path.dirname(self.host), exist_ok=True, mode=0o2755)
         assert self.is_dir is not None
         if self.is_dir:
             testbed.command('copyup', (self.tb + '/', self.host + '/'))
@@ -1375,7 +1344,7 @@ def cleanup():
             testbed.reset_apt()
             testbed.stop()
         if opts.output_dir is None and tmp is not None:
-            rmtree('tmp', tmp)
+            shutil.rmtree(tmp, ignore_errors=True)
     except:
         print_exception(sys.exc_info(),
                         '\nadt-run: error cleaning up:\n')
@@ -1429,7 +1398,7 @@ Pin-Priority: 1002
 
     def reset(self):
         adtlog.debug('Binaries: reset')
-        rmtree('binaries', self.dir.host)
+        shutil.rmtree(self.dir.host)
         os.mkdir(self.dir.host)
         self.blamed = []
         self.registered = set()
@@ -1720,7 +1689,7 @@ def build_source(kind, arg, built_binaries):
 
     # copy built tree from testbed to hosts
     tests_tree = TestbedPath(testbed, os.path.join(tmp, 'tests-tree'), result_pwd, is_dir=True)
-    atexit.register(rmtree, 'tests-tree', tests_tree.host)
+    atexit.register(shutil.rmtree, tests_tree.host, ignore_errors=True)
     tests_tree.copyup()
 
     if not build_needed:
