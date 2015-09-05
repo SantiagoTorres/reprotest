@@ -8,6 +8,12 @@ autopkgtest (3.17) UNRELEASED; urgency=medium
     test.
   * adt-virt-lxc: In the auxverb, clean up leaked background processes which
     share the same stdout/stderr, to avoid eternal hangs. (LP: #1488359)
+  * Move Testbed class and related logic into separate module
+    lib/adt_testbed.py, and clean up some unnecessary code interdependencies
+    and error handling. This will make it easier to write alternative CLI
+    frontents. This also handles test timeouts in a better way: There now is a
+    proper "summary" report as "FAIL timed out", and subsequent tests will now
+    run. (Closes: #741322)
 
  -- Martin Pitt <mpitt@debian.org>  Fri, 28 Aug 2015 05:29:25 +0200
 
