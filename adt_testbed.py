@@ -43,7 +43,7 @@ opts = None
 
 
 class Testbed:
-    def __init__(self, vserver_argv, output_dir):
+    def __init__(self, vserver_argv, output_dir, user):
         self.sp = None
         self.lastsend = None
         self.scratch = None
@@ -57,6 +57,7 @@ class Testbed:
         self.shared_downtmp = None  # testbed's downtmp on the host, if supported
         self.vserver_argv = vserver_argv
         self.install_tmp_env = []
+        self.user = user
         adtlog.debug('testbed init')
 
     def start(self):
@@ -152,11 +153,11 @@ class Testbed:
                 self.shared_downtmp = c.split('=', 1)[1]
 
         # provide a default for --user
-        if opts.user is None and 'root-on-testbed' in self.caps:
-            opts.user = ''
+        if self.user is None and 'root-on-testbed' in self.caps:
+            self.user = ''
             for c in self.caps:
                 if c.startswith('suggested-normal-user='):
-                    opts.user = c.split('=', 1)[1]
+                    self.user = c.split('=', 1)[1]
 
         self.run_setup_commands()
 
@@ -226,8 +227,8 @@ class Testbed:
                              boot_dirs, self.scratch)])
 
         xenv = []
-        if opts.user:
-            xenv.append('ADT_NORMAL_USER=' + opts.user)
+        if self.user:
+            xenv.append('ADT_NORMAL_USER=' + self.user)
 
         for c in opts.setup_commands:
             rc = self.execute(['sh', '-ec', c], xenv=xenv, kind='install')[0]
@@ -677,14 +678,14 @@ fi
             self.badpkg('click install failed with status %i' % rc)
 
         # work around https://launchpad.net/bugs/1333215
-        self.check_exec(['sh', '-ec', opts.user_wrap(
-            # we don't want su -l here which resets the environment from
-            # self.execute(); so emulate the parts that we want
-            # FIXME: move "run as user" as an argument of execute()/check_exec() and run with -l
-            ('export USER=%s;' % opts.user) +
-            '. /etc/profile >/dev/null 2>&1 || true; '
-            ' . ~/.profile >/dev/null 2>&1 || true; '
-            '[ -z "$UPSTART_SESSION" ] || /sbin/initctl --user start click-user-hooks')])
+        # we don't want su -l here which resets the environment from
+        # self.execute(); so emulate the parts that we want
+        # FIXME: move "run as user" as an argument of execute()/check_exec() and run with -l
+        self.check_exec(['su', '--shell=/bin/sh', self.user, '-c',
+                         ('export USER=%s;' % self.user) +
+                         '. /etc/profile >/dev/null 2>&1 || true; '
+                         ' . ~/.profile >/dev/null 2>&1 || true; '
+                         '[ -z "$UPSTART_SESSION" ] || /sbin/initctl --user start click-user-hooks'])
 
     def apparmor_click(self, clickpkgs, installed_clicks):
         '''Update AppArmor rules for click tests
@@ -730,7 +731,7 @@ fi
                 'done; ' \
                 'aa-clickhook --include=/var/cache/apparmor/click-ap.rules' % (
                     ' '.join(clickpkgs),
-                    opts.user and ('--user ' + opts.user) or '',
+                    self.user and ('--user ' + self.user) or '',
                     self.scratch,
                     ' '.join(installed_clicks))
         else:
@@ -854,8 +855,8 @@ fi
                  'cd "$buildtree"; '\
                  % {'t': tree.tb, 'a': test_artifacts}
 
-        if opts.user and 'rw-build-tree' in test.restrictions:
-            script += 'chown -R %s "$buildtree"; ' % opts.user
+        if self.user and 'rw-build-tree' in test.restrictions:
+            script += 'chown -R %s "$buildtree"; ' % self.user
         if opts.set_lang is not False:
             script += 'export LANG=%s; ' % opts.set_lang
             script += 'unset LANGUAGE LC_CTYPE LC_NUMERIC LC_TIME LC_COLLATE '\
@@ -884,14 +885,14 @@ fi
                   '%(t)s 2> >(tee -a %(e)s >&2) > >(tee -a %(o)s); ' \
                   % {'t': test_cmd, 'o': so.tb, 'e': se.tb}
 
-        if 'needs-root' not in test.restrictions and opts.user is not None:
+        if 'needs-root' not in test.restrictions and self.user is not None:
             if 'root-on-testbed' not in self.caps:
-                self.bomb('cannot change to user %s without root-on-testbed' % opts.user,
+                self.bomb('cannot change to user %s without root-on-testbed' % self.user,
                           adtlog.AutopkgtestError)
             # we don't want -l here which resets the environment from
             # self.execute(); so emulate the parts that we want
             # FIXME: move "run as user" as an argument of execute()/check_exec() and run with -l
-            test_argv = ['su', '-s', '/bin/bash', opts.user, '-c']
+            test_argv = ['su', '-s', '/bin/bash', self.user, '-c']
         else:
             # this ensures that we have a PAM/logind session for root tests as
             # well; with some interfaces like ttyS1 or lxc_attach we don't log
@@ -1060,8 +1061,8 @@ class Path:
             self.testbed.command('copydown', (self.host, self.tb))
 
         # we usually want our files be readable for the non-root user
-        if opts.user:
-            rc = self.testbed.execute(['chown', '-R', opts.user, '--', self.tb],
+        if self.testbed.user:
+            rc = self.testbed.execute(['chown', '-R', self.testbed.user, '--', self.tb],
                                       stderr=subprocess.PIPE)[0]
             if rc != 0:
                 # chowning doesn't work on all shared downtmps, try to chmod
