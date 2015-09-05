@@ -14,6 +14,8 @@ autopkgtest (3.17) UNRELEASED; urgency=medium
     frontents. This also handles test timeouts in a better way: There now is a
     proper "summary" report as "FAIL timed out", and subsequent tests will now
     run. (Closes: #741322)
+  * Drop the --leave-lang option. Please use the explicit option --set-lang
+    instead, to avoid weakly defined behaviour.
 
  -- Martin Pitt <mpitt@debian.org>  Fri, 28 Aug 2015 05:29:25 +0200
 
