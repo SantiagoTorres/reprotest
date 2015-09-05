@@ -78,7 +78,6 @@ class Testbed:
         adtlog.info('host %s; command line: %s' % (
             os.uname()[1], ' '.join([pipes.quote(w) for w in sys.argv])))
 
-        adtlog.debug_subprocess('vserver', self.vserver_argv)
         self.sp = subprocess.Popen(self.vserver_argv,
                                    stdin=subprocess.PIPE,
                                    stdout=subprocess.PIPE,

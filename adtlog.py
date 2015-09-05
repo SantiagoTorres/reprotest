@@ -86,28 +86,6 @@ def debug(message):
     log(message, 2, prefix='DBG', timestamp=False, color=8)
 
 
-def debug_subprocess(what, argv, script=None):
-    '''Log a subprocess call for debugging'''
-
-    if verbosity < 2:
-        return
-
-    o = '$ ' + what + ':'
-    if argv is not None:
-        ol = []
-        for x in argv:
-            if x is script:
-                x = '<SCRIPT>'
-            ol.append(x.replace('\\', '\\\\').replace(' ', '\\ '))
-        o += ' ' + ' '.join(ol)
-    debug(o)
-    if script is not None:
-        o = ''
-        for l in script.rstrip('\n').split('\n'):
-            o += '$     ' + l + '\n'
-        debug(o)
-
-
 def psummary(m):
     if summary_stream is not None:
         summary_stream.write(m.encode('UTF-8'))
