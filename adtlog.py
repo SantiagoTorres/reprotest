@@ -123,3 +123,19 @@ def preport(m):
 
 def report(tname, result):
     preport('%-20s %s' % (tname, result))
+
+
+#
+# Errors
+#
+
+class TestbedFailure(RuntimeError):
+    pass
+
+
+class BadPackageError(RuntimeError):
+    pass
+
+
+class AutopkgtestError(RuntimeError):
+    pass
