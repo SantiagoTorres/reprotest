@@ -3,7 +3,7 @@
 # adt-run is part of autopkgtest
 # autopkgtest is a tool for testing Debian binary packages
 #
-# autopkgtest is Copyright (C) 2006-2007, 2013 Canonical Ltd.
+# autopkgtest is Copyright (C) 2006-2015 Canonical Ltd.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -53,8 +53,6 @@ opts = None             # argparse options
 actions = None          # list of (action_type, path)
 errorcode = 0		# exit status that we are going to use
 binaries = None		# Binaries (.debs we have registered)
-build_essential = ['build-essential']
-dpkg_buildpackage = 'dpkg-buildpackage -us -uc -b'
 
 
 # ---------- convenience functions
@@ -65,22 +63,6 @@ def bomb(m):
 
 def badpkg(m):
     raise adtlog.BadPackageError(m)
-
-
-def script_out(argv, what=None, script=None, **kwargs):
-    '''Call a script and get its return code, and optionally stdout.
-
-    If what/script are given, log these for debugging.
-
-    Return (exitcode, stdout). stdout will be a string if kwargs contains
-    stdout=subprocess.PIPE, otherwise None.
-    '''
-    if what:
-        adtlog.debug_subprocess(what, argv, script=script)
-
-    process = subprocess.Popen(argv, **kwargs)
-    output = process.communicate()[0]
-    return (process.returncode, output)
 
 
 def files_from_dsc(dsc_path):
@@ -146,17 +128,6 @@ def setup_trace():
         adtlog.summary_stream = open(opts.summary, 'w+b', 0)
     else:
         adtlog.summary_stream = open(os.path.join(tmp, 'summary'), 'w+b', 0)
-
-
-def finalise_options():
-    global testbed, build_essential, dpkg_buildpackage
-
-    if opts.gainroot is None:
-        if testbed.user or 'root-on-testbed' not in testbed.caps:
-            opts.gainroot = 'fakeroot'
-            build_essential += ['fakeroot']
-    if opts.gainroot:
-        dpkg_buildpackage += ' -r' + opts.gainroot
 
 
 def run_tests(tests, tree):
@@ -306,17 +277,15 @@ Pin-Priority: 1002
 
         self._configure_apt(testbed)
 
-        script = '''
-  exec >&2
-  cd "$1"
-  apt-ftparchive packages . >Packages
-  gzip <Packages >Packages.gz
-  apt-ftparchive release . >Release
-'''
-        cmdl = ['sh', '-ec', script, 'x', self.dir.host]
-        rc = script_out(cmdl, what='ftparchive', script=script)[0]
-        if rc:
-            bomb('apt-ftparchive or signature failed, code %d' % rc)
+        try:
+            with open(os.path.join(self.dir.host, 'Packages'), 'w') as f:
+                subprocess.check_call(['apt-ftparchive', 'packages', '.'],
+                                      cwd=self.dir.host, stdout=f)
+            with open(os.path.join(self.dir.host, 'Release'), 'w') as f:
+                subprocess.call(['apt-ftparchive', 'release', '.'],
+                                cwd=self.dir.host, stdout=f)
+        except subprocess.CalledProcessError as e:
+            bomb('apt-ftparchive failed: %s' % e)
 
         # copy binaries directory to testbed; self.dir.tb might have changed
         # since last time due to a reset, so update it
@@ -367,10 +336,10 @@ Pin-Priority: 1002
 def deb_package_name(deb):
     '''Return package name from a .deb'''
 
-    cmd = ['dpkg-deb', '--info', '--', deb, 'control']
-    (rc, output) = script_out(cmd, stdout=subprocess.PIPE)
-    if rc:
-        badpkg('failed to parse binary package, code %d' % rc)
+    try:
+        output = subprocess.check_output(['dpkg-deb', '--info', '--', deb, 'control'])
+    except subprocess.CalledProcessError as e:
+        badpkg('failed to parse binary package: %s' % e)
     pkg_re = re.compile(b'^\s*Package\s*:\s*([0-9a-z][-+.0-9a-z]*)\s*$')
     result = None
     for l in output.split(b'\n'):
@@ -558,6 +527,16 @@ def build_source(kind, arg, built_binaries):
             d = deb822.Deb822(sequence=f)
             bd = d.get('Build-Depends', '')
             bdi = d.get('Build-Depends-Indep', '')
+
+        # determine build command and build-essential packages
+        build_essential = ['build-essential']
+        dpkg_buildpackage = 'dpkg-buildpackage -us -uc -b'
+        if opts.gainroot:
+            dpkg_buildpackage += ' -r' + opts.gainroot
+        else:
+            if testbed.user or 'root-on-testbed' not in testbed.caps:
+                build_essential += ['fakeroot']
+
         testbed.satisfy_dependencies_string(bd + ', ' + bdi + ', ' + ', '.join(build_essential), arg,
                                             build_dep=True)
 
@@ -573,12 +552,8 @@ def build_source(kind, arg, built_binaries):
 
     if built_binaries:
         debug_b('want built binaries, getting and registering built debs')
-        script = [
-            'cd ..',
-            'echo *.deb >&3',
-        ]
-        result_debs = source_rules_command(script, 'binary', cwd=result_pwd,
-                                           results_lines=1)
+        result_debs = testbed.check_exec(['sh', '-ec', 'cd "%s"; echo *.deb' %
+                                          os.path.dirname(result_pwd)], stdout=True).strip()
         if result_debs == '*.deb':
             debs = []
         else:
@@ -733,7 +708,6 @@ def main():
                                       user=opts.user)
         testbed.start()
         testbed.open()
-        finalise_options()
         process_actions()
     except:
         ec = print_exception(sys.exc_info(), '')
