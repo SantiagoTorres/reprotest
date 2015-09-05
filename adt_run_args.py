@@ -309,9 +309,6 @@ details.'''
 
     # locale
     g_loc = parser.add_argument_group('locale options')
-    g_loc.add_argument('--leave-lang', dest='set_lang', action='store_false',
-                       default='C.UTF-8',
-                       help="leave LANG on testbed set to testbed's default")
     g_loc.add_argument('--set-lang', metavar='LANGVAL', default='C.UTF-8',
                        help='set LANG on testbed to LANGVAL '
                        '(default: %(default)s)')
