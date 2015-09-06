@@ -132,8 +132,6 @@ class DebBinaries:
                  '--reinstall', 'install'] + list(pkgs_reinstall),
                 kind='install')[0]
             if rc:
-                for pkg in pkgs_reinstall:
-                    self.testbed.blame(pkg)
                 adtlog.badpkg('installation of basic binaries failed, exit code %d' % rc)
 
         adtlog.debug('Binaries: publish done')

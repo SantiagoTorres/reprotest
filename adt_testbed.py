@@ -50,7 +50,6 @@ class Testbed:
         self.lastsend = None
         self.scratch = None
         self.modified = False
-        self.blamed = []
         self._need_reset_apt = False
         self.stop_sent = False
         self.dpkg_arch = None
@@ -266,10 +265,6 @@ class Testbed:
         adtlog.debug('needs_reset, previously=%s, requested by %s() line %i' %
                      (self.modified, function, lineno))
         self.modified = True
-
-    def blame(self, m):
-        adtlog.debug('blame += %s' % m)
-        self.blamed.append(m)
 
     def bomb(self, m, _type=adtlog.TestbedFailure):
         adtlog.debug('%s %s' % (_type.__name__, m))
