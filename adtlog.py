@@ -117,3 +117,11 @@ class BadPackageError(RuntimeError):
 
 class AutopkgtestError(RuntimeError):
     pass
+
+
+def bomb(m):
+    raise AutopkgtestError(m)
+
+
+def badpkg(m):
+    raise BadPackageError(m)
