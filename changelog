@@ -17,6 +17,8 @@ autopkgtest (3.17) UNRELEASED; urgency=medium
   * Drop the --leave-lang option. Please use the explicit option --set-lang
     instead, to avoid weakly defined behaviour.
   * Move Binaries class into separate module lib/adt_binaries.py.
+  * Testbed.execute(): Explicitly decode output of programs as UTF-8, instead
+    of relying on the host locale's encoding.
 
  -- Martin Pitt <mpitt@debian.org>  Fri, 28 Aug 2015 05:29:25 +0200
 
