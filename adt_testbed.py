@@ -353,8 +353,12 @@ class Testbed:
         VirtSubproc.timeout_start(timeouts[kind])
         try:
             proc = subprocess.Popen(self.exec_cmd + argv, stdout=stdout,
-                                    stderr=stderr, universal_newlines=True)
+                                    stderr=stderr)
             (out, err) = proc.communicate()
+            if out is not None:
+                out = out.decode()
+            if err is not None:
+                err = err.decode()
             VirtSubproc.timeout_stop()
         except VirtSubproc.Timeout:
             # This is a bit of a hack, but what can we do.. we can't kill/clean
