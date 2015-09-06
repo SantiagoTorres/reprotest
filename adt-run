@@ -204,21 +204,10 @@ def deb_package_name(deb):
     '''Return package name from a .deb'''
 
     try:
-        output = subprocess.check_output(['dpkg-deb', '--info', '--', deb, 'control'])
+        return subprocess.check_output(['dpkg-deb', '--field', deb, 'Package'],
+                                       universal_newlines=True).strip()
     except subprocess.CalledProcessError as e:
         adtlog.badpkg('failed to parse binary package: %s' % e)
-    pkg_re = re.compile(b'^\s*Package\s*:\s*([0-9a-z][-+.0-9a-z]*)\s*$')
-    result = None
-    for l in output.split(b'\n'):
-        m = pkg_re.match(l)
-        if not m:
-            continue
-        if result:
-            adtlog.badpkg('two Package: lines in control file')
-        result = m.groups()[0].decode('ASCII')
-    if not result:
-        adtlog.badpkg('no good Package: line in control file')
-    return result
 
 
 def source_rules_command(script, which, cwd=None, results_lines=0):
