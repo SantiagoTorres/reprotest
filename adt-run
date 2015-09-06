@@ -176,7 +176,8 @@ def print_exception(ei, msgprefix=''):
 def cleanup():
     try:
         if testbed is not None:
-            testbed.reset_apt()
+            if binaries is not None:
+                binaries.reset()
             testbed.stop()
         if opts.output_dir is None and tmp is not None:
             shutil.rmtree(tmp, ignore_errors=True)
@@ -538,7 +539,7 @@ def process_actions():
 
 
 def main():
-    global testbed, opts, actions
+    global testbed, opts, actions, errorcode
     try:
         (opts, actions, vserver_args) = adt_run_args.parse_args()
     except SystemExit:
@@ -566,9 +567,7 @@ def main():
         testbed.open()
         process_actions()
     except:
-        ec = print_exception(sys.exc_info(), '')
-        cleanup()
-        sys.exit(ec)
+        errorcode = print_exception(sys.exc_info(), '')
     cleanup()
     sys.exit(errorcode)
 
