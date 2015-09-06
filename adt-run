@@ -29,7 +29,6 @@ import subprocess
 import traceback
 import re
 import os
-import errno
 import shutil
 import atexit
 
@@ -44,6 +43,7 @@ import adtlog
 import testdesc
 import adt_run_args
 import adt_testbed
+import adt_binaries
 
 # ---------- global variables
 
@@ -52,18 +52,10 @@ testbed = None		# Testbed
 opts = None             # argparse options
 actions = None          # list of (action_type, path)
 errorcode = 0		# exit status that we are going to use
-binaries = None		# Binaries (.debs we have registered)
+binaries = None		# DebBinaries (.debs we have registered)
 
 
 # ---------- convenience functions
-
-def bomb(m):
-    raise adtlog.AutopkgtestError(m)
-
-
-def badpkg(m):
-    raise adtlog.BadPackageError(m)
-
 
 def files_from_dsc(dsc_path):
     '''Get files from a .dsc or a .changes
@@ -73,7 +65,7 @@ def files_from_dsc(dsc_path):
     try:
         files = testdesc.parse_rfc822(dsc_path).__next__()['Files'].split()
     except (StopIteration, KeyError):
-        badpkg('%s is invalid and does not contain Files:' % dsc_path)
+        adtlog.badpkg('%s is invalid and does not contain Files:' % dsc_path)
 
     dsc_dir = os.path.dirname(dsc_path)
 
@@ -86,7 +78,7 @@ def setup_trace():
     if opts.output_dir is not None:
         os.makedirs(opts.output_dir, exist_ok=True)
         if os.listdir(opts.output_dir):
-            bomb('--output-dir "%s" is not empty' % opts.output_dir)
+            adtlog.bomb('--output-dir "%s" is not empty' % opts.output_dir)
         tmp = opts.output_dir
     else:
         assert(tmp is None)
@@ -205,131 +197,6 @@ def signal_handler(signum, frame):
         os.kill(os.getpid(), signum)
 
 
-# ---------- registration, installation etc. of .deb's: Binaries
-
-
-class Binaries:
-
-    def __init__(self, tb):
-        # the binary dir must exist across tb reopenings, so don't use a
-        # adt_testbed.TempPath
-        self.dir = adt_testbed.Path(
-            tb, os.path.join(tmp, 'binaries'),
-            os.path.join(tb.scratch, 'binaries'), is_dir=True)
-        os.mkdir(self.dir.host)
-        # clean up an empty binaries output dir
-        atexit.register(lambda: os.path.exists(self.dir.host) and (
-            os.listdir(self.dir.host) or os.rmdir(self.dir.host)))
-
-        adtlog.debug('Binaries: initialising')
-        self.apt_get_cmd = ['apt-get', '--quiet',
-                            '-o', 'Debug::pkgProblemResolver=true',
-                            '-o', 'APT::Get::force-yes=true',
-                            '-o', 'APT::Get::Assume-Yes=true']
-
-    def _configure_apt(self, tb):
-        prefs = adt_testbed.Path(testbed, os.path.join(tmp, 'apt-prefs'),
-                                 '/etc/apt/preferences.d/90autopkgtest')
-        with open(prefs.host, 'w') as f:
-            f.write('''Package: *
-Pin: origin ""
-Pin-Priority: 1002
-''')
-        prefs.copydown()
-        os.unlink(prefs.host)
-
-    def reset(self):
-        adtlog.debug('Binaries: reset')
-        shutil.rmtree(self.dir.host)
-        os.mkdir(self.dir.host)
-        self.blamed = []
-        self.registered = set()
-
-    def register(self, path, pkgname):
-        adtlog.debug('Binaries: register deb=%s pkgname=%s ' % (path, pkgname))
-        self.blamed += testbed.blamed
-
-        dest = os.path.join(self.dir.host, pkgname + '.deb')
-
-        # link or copy to self.dir
-        try:
-            os.remove(dest)
-        except (IOError, OSError) as oe:
-            if oe.errno != errno.ENOENT:
-                raise oe
-        try:
-            os.link(path, dest)
-        except (IOError, OSError) as oe:
-            if oe.errno != errno.EXDEV:
-                raise oe
-            shutil.copy(path, dest)
-        # clean up locally built debs (what=ubtreeN) to keep a clean
-        # --output-dir, but don't clean up --binary arguments
-        if opts.output_dir and path.startswith(opts.output_dir):
-            atexit.register(lambda f: os.path.exists(f) and os.unlink(f), path)
-        self.registered.add(pkgname)
-
-    def publish(self):
-        adtlog.debug('Binaries: publish')
-        if not self.registered:
-            adtlog.debug('Binaries: no registered binaries, not publishing anything')
-            return
-
-        self._configure_apt(testbed)
-
-        try:
-            with open(os.path.join(self.dir.host, 'Packages'), 'w') as f:
-                subprocess.check_call(['apt-ftparchive', 'packages', '.'],
-                                      cwd=self.dir.host, stdout=f)
-            with open(os.path.join(self.dir.host, 'Release'), 'w') as f:
-                subprocess.call(['apt-ftparchive', 'release', '.'],
-                                cwd=self.dir.host, stdout=f)
-        except subprocess.CalledProcessError as e:
-            bomb('apt-ftparchive failed: %s' % e)
-
-        # copy binaries directory to testbed; self.dir.tb might have changed
-        # since last time due to a reset, so update it
-        self.dir.tb = os.path.join(testbed.scratch, 'binaries')
-        testbed.check_exec(['rm', '-rf', self.dir.tb])
-        self.dir.copydown()
-
-        aptupdate_out = adt_testbed.TempPath(testbed, 'apt-update.out')
-        script = '''
-  echo "deb [trusted=yes] file://%(d)s /" >/etc/apt/sources.list.d/autopkgtest.list
-  if [ "x`ls /var/lib/dpkg/updates`" != x ]; then
-    echo >&2 "/var/lib/dpkg/updates contains some files, aargh"; exit 1
-  fi
-  apt-get --quiet --no-list-cleanup -o Dir::Etc::sourcelist=/etc/apt/sources.list.d/autopkgtest.list -o Dir::Etc::sourceparts=/dev/null update 2>&1
-  cp /var/lib/dpkg/status %(o)s
-  ''' % {'d': self.dir.tb, 'o': aptupdate_out.tb}
-        testbed.mungeing_apt()
-        testbed.check_exec(['sh', '-ec', script], kind='install')
-        testbed.blamed += self.blamed
-
-        aptupdate_out.copyup()
-
-        adtlog.debug('Binaries: publish reinstall checking...')
-        pkgs_reinstall = set()
-        pkg = None
-        for l in open(aptupdate_out.host, encoding='UTF-8'):
-            if l.startswith('Package: '):
-                pkg = l[9:].rstrip()
-            elif l.startswith('Status: install '):
-                if pkg in self.registered:
-                    pkgs_reinstall.add(pkg)
-                    adtlog.debug('Binaries: publish reinstall needs ' + pkg)
-
-        if pkgs_reinstall:
-            for pkg in pkgs_reinstall:
-                testbed.blame(pkg)
-            rc = testbed.execute(
-                self.apt_get_cmd + ['--reinstall', 'install'] + list(pkgs_reinstall),
-                kind='install')[0]
-            if rc:
-                badpkg('installation of basic binaries failed, exit code %d' % rc)
-
-        adtlog.debug('Binaries: publish done')
-
 # ---------- processing of sources (building)
 
 
@@ -339,7 +206,7 @@ def deb_package_name(deb):
     try:
         output = subprocess.check_output(['dpkg-deb', '--info', '--', deb, 'control'])
     except subprocess.CalledProcessError as e:
-        badpkg('failed to parse binary package: %s' % e)
+        adtlog.badpkg('failed to parse binary package: %s' % e)
     pkg_re = re.compile(b'^\s*Package\s*:\s*([0-9a-z][-+.0-9a-z]*)\s*$')
     result = None
     for l in output.split(b'\n'):
@@ -347,10 +214,10 @@ def deb_package_name(deb):
         if not m:
             continue
         if result:
-            badpkg('two Package: lines in control file')
+            adtlog.badpkg('two Package: lines in control file')
         result = m.groups()[0].decode('ASCII')
     if not result:
-        badpkg('no good Package: line in control file')
+        adtlog.badpkg('no good Package: line in control file')
     return result
 
 
@@ -382,10 +249,10 @@ def source_rules_command(script, which, cwd=None, results_lines=0):
     if rc:
         if opts.shell_fail:
             testbed.run_shell()
-        badpkg('rules %s failed with exit code %d' % (which, rc))
+        adtlog.badpkg('rules %s failed with exit code %d' % (which, rc))
     if results_lines is not None and len(results) != results_lines:
-        badpkg('got %d lines of results from %s where %d expected'
-               % (len(results), which, results_lines))
+        adtlog.badpkg('got %d lines of results from %s where %d expected'
+                      % (len(results), which, results_lines))
     if results_lines == 1:
         return results[0]
     return results
@@ -459,7 +326,7 @@ def build_source(kind, arg, built_binaries):
         create_command = 'OUT=$(apt-get source -q --only-source %s); echo "$OUT" | grep ^Get: || true' % arg
 
     else:
-        bomb('unknown action kind for build_source: ' + kind)
+        adtlog.bomb('unknown action kind for build_source: ' + kind)
 
     if kind in ['source', 'apt-source']:
         testbed.install_deps([], False)
@@ -565,7 +432,7 @@ def build_source(kind, arg, built_binaries):
         for deb in debs:
             m = deb_re.match(deb)
             if not m:
-                badpkg("badly-named binary `%s'" % deb)
+                adtlog.badpkg("badly-named binary `%s'" % deb)
             pkgname = m.groups()[0]
             debug_b(' deb=%s, pkgname=%s' % (deb, pkgname))
             deb_path = adt_testbed.Path(testbed,
@@ -582,8 +449,7 @@ def build_source(kind, arg, built_binaries):
 def process_actions():
     global actions, binaries, errorcode
 
-    binaries = Binaries(testbed)
-    binaries.reset()
+    binaries = adt_binaries.DebBinaries(testbed, tmp)
     control_override = None
     testname = None
     pending_click_source = None
@@ -593,7 +459,7 @@ def process_actions():
         if kind == 'override-control':
             control_override = arg
             if not os.access(control_override, os.R_OK):
-                bomb('cannot read ' + control_override)
+                adtlog.bomb('cannot read ' + control_override)
             continue
         if kind == 'testname':
             testname = arg
@@ -642,7 +508,7 @@ def process_actions():
                     manifest, testbed.caps, [], True, pending_click_source)
 
             if not srcdir:
-                bomb('No click source available for %s' % arg)
+                adtlog.bomb('No click source available for %s' % arg)
 
             tests_tree = adt_testbed.Path(
                 testbed, srcdir, os.path.join(testbed.scratch, 'tree'),
@@ -656,7 +522,7 @@ def process_actions():
                     control_path=control_override,
                     auto_control=opts.auto_control)
             except testdesc.InvalidControl as e:
-                badpkg(str(e))
+                adtlog.badpkg(str(e))
 
         if skipped:
             errorcode |= 2
