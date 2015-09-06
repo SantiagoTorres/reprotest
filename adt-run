@@ -53,6 +53,7 @@ opts = None             # argparse options
 actions = None          # list of (action_type, path)
 errorcode = 0		# exit status that we are going to use
 binaries = None		# DebBinaries (.debs we have registered)
+blamed = []
 
 
 # ---------- convenience functions
@@ -70,6 +71,12 @@ def files_from_dsc(dsc_path):
     dsc_dir = os.path.dirname(dsc_path)
 
     return [os.path.join(dsc_dir, f) for f in files if '.' in f and '_' in f]
+
+
+def blame(m):
+    global blamed
+    adtlog.debug('blame += %s' % m)
+    blamed.append(m)
 
 
 def setup_trace():
@@ -153,7 +160,7 @@ def print_exception(ei, msgprefix=''):
         adtlog.error(msgprefix)
     (et, e, tb) = ei
     if et is adtlog.BadPackageError:
-        adtlog.preport('blame: ' + ' '.join(testbed.blamed))
+        adtlog.preport('blame: ' + ' '.join(blamed))
         adtlog.preport('badpkg: ' + e.args[0])
         adtlog.error('erroneous package: ' + e.args[0])
         adtlog.psummary('erroneous package: ' + e.args[0])
@@ -256,7 +263,7 @@ def build_source(kind, arg, built_binaries):
 
     Return a adt_testbed.Path to the unpacked tests tree.
     '''
-    testbed.blame(arg)
+    blame(arg)
     testbed.reset([], testbed.recommends_installed)
 
     def debug_b(m):
@@ -455,9 +462,9 @@ def process_actions():
             testname = arg
             continue
         if kind == 'binary':
-            testbed.blame('arg:' + arg)
+            blame('arg:' + arg)
             pkg = deb_package_name(arg)
-            testbed.blame('deb:' + pkg)
+            blame('deb:' + pkg)
             binaries.register(arg, pkg)
             continue
         if kind == 'click-source':
