@@ -16,6 +16,7 @@ autopkgtest (3.17) UNRELEASED; urgency=medium
     run. (Closes: #741322)
   * Drop the --leave-lang option. Please use the explicit option --set-lang
     instead, to avoid weakly defined behaviour.
+  * Move Binaries class into separate module lib/adt_binaries.py.
 
  -- Martin Pitt <mpitt@debian.org>  Fri, 28 Aug 2015 05:29:25 +0200
 
