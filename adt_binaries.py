@@ -45,16 +45,16 @@ class DebBinaries:
             self.testbed, os.path.join(self.output_dir, 'binaries'),
             os.path.join(self.testbed.scratch, 'binaries'), is_dir=True)
         os.mkdir(self.dir.host)
-        self.blamed = []
         self.registered = set()
 
         # clean up an empty binaries output dir
         atexit.register(lambda: os.path.exists(self.dir.host) and (
             os.listdir(self.dir.host) or os.rmdir(self.dir.host)))
 
+        self.need_apt_reset = False
+
     def register(self, path, pkgname):
         adtlog.debug('Binaries: register deb=%s pkgname=%s ' % (path, pkgname))
-        self.blamed += self.testbed.blamed
 
         dest = os.path.join(self.dir.host, pkgname + '.deb')
 
@@ -82,10 +82,6 @@ class DebBinaries:
             return
         adtlog.debug('Binaries: publish')
 
-        self.testbed.check_exec(['sh', '-ec', "printf 'Package: *\\n"
-                                 'Pin: origin ""\\n'
-                                 "Pin-Priority: 1002\\n' > /etc/apt/preferences.d/90autopkgtest"])
-
         try:
             with open(os.path.join(self.dir.host, 'Packages'), 'w') as f:
                 subprocess.check_call(['apt-ftparchive', 'packages', '.'],
@@ -104,6 +100,7 @@ class DebBinaries:
 
         aptupdate_out = adt_testbed.TempPath(self.testbed, 'apt-update.out')
         script = '''
+  printf 'Package: *\\nPin: origin ""\\nPin-Priority: 1002\\n' > /etc/apt/preferences.d/90autopkgtest
   echo "deb [trusted=yes] file://%(d)s /" >/etc/apt/sources.list.d/autopkgtest.list
   if [ "x`ls /var/lib/dpkg/updates`" != x ]; then
     echo >&2 "/var/lib/dpkg/updates contains some files, aargh"; exit 1
@@ -111,9 +108,8 @@ class DebBinaries:
   apt-get --quiet --no-list-cleanup -o Dir::Etc::sourcelist=/etc/apt/sources.list.d/autopkgtest.list -o Dir::Etc::sourceparts=/dev/null update 2>&1
   cp /var/lib/dpkg/status %(o)s
   ''' % {'d': self.dir.tb, 'o': aptupdate_out.tb}
-        self.testbed.mungeing_apt()
+        self.need_apt_reset = True
         self.testbed.check_exec(['sh', '-ec', script], kind='install')
-        self.testbed.blamed += self.blamed
 
         aptupdate_out.copyup()
 
@@ -129,8 +125,6 @@ class DebBinaries:
                     adtlog.debug('Binaries: publish reinstall needs ' + pkg)
 
         if pkgs_reinstall:
-            for pkg in pkgs_reinstall:
-                self.testbed.blame(pkg)
             rc = self.testbed.execute(
                 ['apt-get', '--quiet', '-o', 'Debug::pkgProblemResolver=true',
                  '-o', 'APT::Get::force-yes=true',
@@ -138,6 +132,20 @@ class DebBinaries:
                  '--reinstall', 'install'] + list(pkgs_reinstall),
                 kind='install')[0]
             if rc:
+                for pkg in pkgs_reinstall:
+                    self.testbed.blame(pkg)
                 adtlog.badpkg('installation of basic binaries failed, exit code %d' % rc)
 
         adtlog.debug('Binaries: publish done')
+
+    def reset(self):
+        '''Revert apt configuration for testbeds without reset'''
+
+        if self.need_apt_reset and 'revert' not in self.testbed.caps:
+            adtlog.info('Binaries: resetting testbed apt configuration')
+            self.check_exec(['sh', '-ec',
+                             'rm -f /etc/apt/sources.list.d/autopkgtest.list /etc/apt/preferences.d/90autopkgtest; '
+                             '(apt-get --quiet update || (sleep 15; apt-get update)) 2>&1'],
+                            kind='install')
+
+            self.need_apt_reset = False

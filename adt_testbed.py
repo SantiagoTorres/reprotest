@@ -178,20 +178,6 @@ class Testbed:
 
         self.post_boot_setup()
 
-    def mungeing_apt(self):
-        if 'revert' not in self.caps:
-            self._need_reset_apt = True
-
-    def reset_apt(self):
-        if not self._need_reset_apt:
-            return
-        self._need_reset_apt = False
-        self.check_exec(['rm', '-f', '/etc/apt/apt.conf.d/90autopkgtest',
-                         '/etc/apt/sources.list.d/autopkgtest.list',
-                         '/etc/apt/preferences.d/90autopkgtest'])
-        self.check_exec(['sh', '-ec', '(apt-get --quiet update || (sleep 15; apt-get update)) 2>&1'],
-                        kind='install')
-
     def close(self):
         adtlog.debug('testbed close, scratch=%s' % self.scratch)
         if self.scratch is None:
@@ -287,7 +273,6 @@ class Testbed:
 
     def bomb(self, m, _type=adtlog.TestbedFailure):
         adtlog.debug('%s %s' % (_type.__name__, m))
-        self.reset_apt()
         self.stop()
         raise _type(m)
 
