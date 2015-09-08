@@ -19,6 +19,8 @@ autopkgtest (3.17) UNRELEASED; urgency=medium
   * Move Binaries class into separate module lib/adt_binaries.py.
   * Testbed.execute(): Explicitly decode output of programs as UTF-8, instead
     of relying on the host locale's encoding.
+  * tools/adt-setup-vm: Only configure eth0 in ifupdown if it actually exists,
+    and then make sure it does not get renamed any more.
 
  -- Martin Pitt <mpitt@debian.org>  Fri, 28 Aug 2015 05:29:25 +0200
 
