@@ -95,9 +95,14 @@ if ! grep -q 'source.*interfaces.d' "$root/etc/network/interfaces"; then
 fi
 
 # set up networking
-if ! grep -qr eth0 "$root/etc/network/interfaces" "$root/etc/network/interfaces.d/"; then
-    mkdir -p "$root/etc/network/interfaces.d"
-    printf 'auto eth0\niface eth0 inet dhcp\n' >> "$root/etc/network/interfaces.d/eth0"
+if [ -e /sys/class/net/eth0 ]; then
+    if ! grep -qr eth0 "$root/etc/network/interfaces" "$root/etc/network/interfaces.d/"; then
+        mkdir -p "$root/etc/network/interfaces.d"
+        printf 'auto eth0\niface eth0 inet dhcp\n' >> "$root/etc/network/interfaces.d/eth0"
+    fi
+    # ensure it does not move to ens* with systemd >= 226
+    mkdir -p "$root/etc/systemd/network"
+    printf '[Match]\nOriginalName=eth0\n[Link]\nNamePolicy=\nName=eth0\n' > "$root/etc/systemd/network/01-eth0.link"
 fi
 
 # go-faster apt/dpkg
