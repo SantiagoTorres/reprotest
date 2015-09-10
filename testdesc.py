@@ -245,9 +245,14 @@ def _debian_build_deps_from_source(srcdir, testbed_arch):
     perl = subprocess.Popen(['perl', '-'], stdin=subprocess.PIPE,
                             stdout=subprocess.PIPE)
     code = '''use Dpkg::Deps;
-              $dep = deps_parse('%s', reduce_arch => 1, reduce_profiles => 1,
+              $supports_profiles = ($Dpkg::Deps::VERSION gt '1.04');
+              $dep = deps_parse('%s', reduce_arch => 1,
+                                reduce_profiles => $supports_profiles,
                                 build_dep => 1, host_arch => '%s');
-              print $dep->output(), "\\n";
+              $out = $dep->output();
+              # fall back to ignoring build profiles
+              $out =~ s/ <[^ >]+>//g if (!$supports_profiles);
+              print $out, "\\n";
               ''' % (deps, testbed_arch)
     deps = perl.communicate(code.encode('UTF-8'))[0].decode('UTF-8').strip()
     if perl.returncode != 0:
