@@ -145,6 +145,10 @@ class Testbed:
                           ''' '> /tmp/autopkgtest-reboot-prepare;'''
                           '''chmod 755 /tmp/autopkgtest-reboot-prepare;'''])
 
+        # record running kernel version
+        kernel_version = self.check_exec(['uname', '-srv'], True).strip()
+        adtlog.info('testbed running kernel: ' + kernel_version)
+
     def _opened(self, pl):
         self.scratch = pl[0]
         self.deps_installed = []
