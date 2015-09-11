@@ -62,6 +62,12 @@ class Testbed:
         self.setup_commands = setup_commands
         self.add_apt_pockets = add_apt_pockets
         self.copy_files = copy_files
+        self.initial_kernel_version = None
+        # tests might install a different kernel; [(testname, reboot_marker, kver)]
+        self.test_kernel_versions = []
+        # used for tracking kernel version changes
+        self.last_test_name = ''
+        self.last_reboot_marker = ''
 
         adtlog.debug('testbed init')
 
@@ -146,8 +152,17 @@ class Testbed:
                           '''chmod 755 /tmp/autopkgtest-reboot-prepare;'''])
 
         # record running kernel version
-        kernel_version = self.check_exec(['uname', '-srv'], True).strip()
-        adtlog.info('testbed running kernel: ' + kernel_version)
+        kver = self.check_exec(['uname', '-srv'], True).strip()
+        if not self.initial_kernel_version:
+            assert not self.last_test_name
+            self.initial_kernel_version = kver
+            adtlog.info('testbed running kernel: ' + self.initial_kernel_version)
+        else:
+            if kver != self.initial_kernel_version:
+                self.test_kernel_versions.append((self.last_test_name, self.last_reboot_marker, kver))
+                adtlog.info('testbed running kernel changed: %s (current test: %s%s)' %
+                            (kver, self.last_test_name,
+                             self.last_reboot_marker and (', last reboot marker: ' + self.last_reboot_marker) or ''))
 
     def _opened(self, pl):
         self.scratch = pl[0]
@@ -797,6 +812,8 @@ fi
         def _info(m):
             adtlog.info('test %s: %s' % (test.name, m))
 
+        self.last_test_name = test.name
+
         if test.path and not os.path.exists(os.path.join(tree.host, test.path)):
             self.badpkg('%s does not exist' % test.path)
 
@@ -897,11 +914,11 @@ fi
         _info('[-----------------------')
 
         # tests may reboot, so we might need to run several times
-        reboot_marker = None
+        self.last_reboot_marker = ''
         timeout = False
         while True:
-            if reboot_marker:
-                script_prefix = 'export ADT_REBOOT_MARK="%s"; ' % reboot_marker
+            if self.last_reboot_marker:
+                script_prefix = 'export ADT_REBOOT_MARK="%s"; ' % self.last_reboot_marker
             else:
                 script_prefix = ''
             try:
@@ -918,8 +935,8 @@ fi
                     ['cat', '/run/autopkgtest-reboot-mark'],
                     stdout=subprocess.PIPE, stderr=subprocess.PIPE)
                 if code == 0:
-                    reboot_marker = reboot_marker.strip()
-                    adtlog.info('test process requested reboot with marker %s' % reboot_marker)
+                    self.last_reboot_marker = reboot_marker.strip()
+                    adtlog.info('test process requested reboot with marker %s' % self.last_reboot_marker)
                     self.reboot()
                     continue
 
@@ -928,8 +945,8 @@ fi
                     ['cat', '/run/autopkgtest-reboot-prepare-mark'],
                     stdout=subprocess.PIPE, stderr=subprocess.PIPE)
                 if code == 0:
-                    reboot_marker = reboot_marker.strip()
-                    adtlog.info('test process requested preparation for reboot with marker %s' % reboot_marker)
+                    self.last_reboot_marker = reboot_marker.strip()
+                    adtlog.info('test process requested preparation for reboot with marker %s' % self.last_reboot_marker)
                     self.reboot(prepare_only=True)
                     continue
 
