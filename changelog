@@ -25,6 +25,7 @@ autopkgtest (3.17) UNRELEASED; urgency=medium
     just ignore all build profiles.
   * ssh-setup/nova: Add workaroud for cloud-init bug writing a wrong
     /etc/hosts. (LP #1494678)
+  * adt-run: Log running kernel after each boot. (part of LP #1491865)
 
  -- Martin Pitt <mpitt@debian.org>  Fri, 28 Aug 2015 05:29:25 +0200
 
