@@ -31,6 +31,7 @@ import re
 import os
 import shutil
 import atexit
+import json
 
 from debian import deb822
 
@@ -153,6 +154,19 @@ def run_tests(tests, tree):
             testbed.needs_reset()
 
     testbed.needs_reset()
+
+
+def create_testinfo():
+    global testbed
+
+    info = {}
+    if testbed.initial_kernel_version:
+        info['kernel_version'] = testbed.initial_kernel_version
+    if testbed.test_kernel_versions:
+        info['test_kernel_versions'] = testbed.test_kernel_versions
+    if info:
+        with open(os.path.join(tmp, 'testinfo.json'), 'w') as f:
+            json.dump(info, f, indent=2)
 
 
 def print_exception(ei, msgprefix=''):
@@ -573,6 +587,7 @@ def main():
         testbed.start()
         testbed.open()
         process_actions()
+        create_testinfo()
     except:
         errorcode = print_exception(sys.exc_info(), '')
     cleanup()
