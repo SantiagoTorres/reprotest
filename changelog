@@ -23,6 +23,8 @@ autopkgtest (3.17) UNRELEASED; urgency=medium
     and then make sure it does not get renamed any more.
   * Add @builddeps@ build profile parsing fallback for libdpkg-perl < 1.04;
     just ignore all build profiles.
+  * ssh-setup/nova: Add workaroud for cloud-init bug writing a wrong
+    /etc/hosts. (LP #1494678)
 
  -- Martin Pitt <mpitt@debian.org>  Fri, 28 Aug 2015 05:29:25 +0200
 
