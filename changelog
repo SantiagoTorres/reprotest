@@ -31,6 +31,7 @@ autopkgtest (3.17) UNRELEASED; urgency=medium
     "testinfo.json" in the output dir with this information. (LP: #1491865)
   * If --env options are specified, add these as list of name=value strings as
     "custom_environment" key to testinfo.json.
+  * Put vserver arguments into testinfo.json.
 
  -- Martin Pitt <mpitt@debian.org>  Fri, 28 Aug 2015 05:29:25 +0200
 
