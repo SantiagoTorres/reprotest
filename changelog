@@ -1,4 +1,4 @@
-autopkgtest (3.17) UNRELEASED; urgency=medium
+autopkgtest (3.17) unstable; urgency=medium
 
   * setup-commands/cloud-vm-setup: Provide fallback for Ubuntu 12.04 which
     does not yet have /etc/default/grub.cfg.d/.
@@ -33,7 +33,7 @@ autopkgtest (3.17) UNRELEASED; urgency=medium
     "custom_environment" key to testinfo.json.
   * Put vserver arguments into testinfo.json.
 
- -- Martin Pitt <mpitt@debian.org>  Fri, 28 Aug 2015 05:29:25 +0200
+ -- Martin Pitt <mpitt@debian.org>  Mon, 14 Sep 2015 15:02:39 +0200
 
 autopkgtest (3.16.3) unstable; urgency=medium
 
