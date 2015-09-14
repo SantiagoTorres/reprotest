@@ -164,6 +164,8 @@ def create_testinfo():
         info['kernel_version'] = testbed.initial_kernel_version
     if testbed.test_kernel_versions:
         info['test_kernel_versions'] = testbed.test_kernel_versions
+    if opts.env:
+        info['custom_environment'] = opts.env
     if info:
         with open(os.path.join(tmp, 'testinfo.json'), 'w') as f:
             json.dump(info, f, indent=2)
