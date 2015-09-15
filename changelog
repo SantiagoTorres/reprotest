@@ -1,9 +1,9 @@
-autopkgtest (3.17.1) UNRELEASED; urgency=medium
+autopkgtest (3.17.1) unstable; urgency=medium
 
   * Add new private python modules to Makefile, to actually ship them.
   * tests/adt-run: Fix test regression when $ADT_TEST* are not set.
 
- -- Martin Pitt <mpitt@debian.org>  Tue, 15 Sep 2015 08:10:03 +0200
+ -- Martin Pitt <mpitt@debian.org>  Tue, 15 Sep 2015 08:38:54 +0200
 
 autopkgtest (3.17) unstable; urgency=medium
 
