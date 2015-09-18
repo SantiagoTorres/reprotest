@@ -5,7 +5,7 @@
 # autopkgtest is Copyright (C) 2006-2014 Canonical Ltd.
 #
 # Setup script for e. g. vmdebootstrap or generic Debian/Ubuntu VM images to
-# start a root serial console on ttyS1, set up networking for eth0, configure
+# start a root serial console on ttyS1, set up networking for ethernet, configure
 # apt sources, install/clean up packages, etc.
 # See adt-virt-qemu(1) for details.
 #
@@ -95,10 +95,11 @@ if ! grep -q 'source.*interfaces.d' "$root/etc/network/interfaces"; then
 fi
 
 # set up networking
-if [ -e /sys/class/net/eth0 ]; then
-    if ! grep -qr eth0 "$root/etc/network/interfaces" "$root/etc/network/interfaces.d/"; then
+if OUT="$(cd /sys/class/net; ls -d e* 2>/dev/null)"; then
+    IFACE="${OUT# *}"
+    if ! grep -qr $IFACE "$root/etc/network/interfaces" "$root/etc/network/interfaces.d/"; then
         mkdir -p "$root/etc/network/interfaces.d"
-        printf 'auto eth0\niface eth0 inet dhcp\n' >> "$root/etc/network/interfaces.d/eth0"
+        printf "auto $IFACE\niface $IFACE inet dhcp\n" >> "$root/etc/network/interfaces.d/$IFACE"
     fi
 fi
 
