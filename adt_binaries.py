@@ -141,9 +141,10 @@ class DebBinaries:
 
         if self.need_apt_reset and 'revert' not in self.testbed.caps:
             adtlog.info('Binaries: resetting testbed apt configuration')
-            self.check_exec(['sh', '-ec',
-                             'rm -f /etc/apt/sources.list.d/autopkgtest.list /etc/apt/preferences.d/90autopkgtest; '
-                             '(apt-get --quiet update || (sleep 15; apt-get update)) 2>&1'],
-                            kind='install')
+            self.testbed.check_exec(
+                ['sh', '-ec',
+                 'rm -f /etc/apt/sources.list.d/autopkgtest.list /etc/apt/preferences.d/90autopkgtest; '
+                 '(apt-get --quiet update || (sleep 15; apt-get update)) 2>&1'],
+                kind='install')
 
             self.need_apt_reset = False
