@@ -2,6 +2,8 @@ autopkgtest (3.17.3) UNRELEASED; urgency=medium
 
   * Set DEB_BUILD_OPTIONS=parallel=<#cpu> for builds and tests (as they
     sometimes build packages). (LP: #1399177)
+  * If copying up files/artifacts through shared dir fails because of
+    inaccessible files, fall back to piping them through the auxverb.
 
  -- Martin Pitt <mpitt@debian.org>  Thu, 01 Oct 2015 17:46:31 +0200
 
