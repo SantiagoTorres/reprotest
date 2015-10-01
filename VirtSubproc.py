@@ -485,9 +485,12 @@ def copyupdown_internal(wh, sd, upp):
                 copyup_shareddir(sd[0], sd[1], dirsp, downtmp_host)
             else:
                 copydown_shareddir(sd[0], sd[1], dirsp, downtmp_host)
+            return
         except Timeout:
             raise FailedCmd(['timeout'])
-        return
+        except (shutil.Error, subprocess.CalledProcessError) as e:
+            adtlog.debug('Cannot copy %s to %s through shared dir: %s, falling back to tar' %
+                         (sd[0], sd[1], str(e)))
 
     isrc = 0
     idst = 1
