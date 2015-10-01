@@ -412,7 +412,7 @@ def build_source(kind, arg, built_binaries):
 
         # determine build command and build-essential packages
         build_essential = ['build-essential']
-        dpkg_buildpackage = 'dpkg-buildpackage -us -uc -b'
+        dpkg_buildpackage = '''DEB_BUILD_OPTIONS=parallel=$(grep -c ^processor /proc/cpuinfo | sed 's/^0$/1/') dpkg-buildpackage -us -uc -b'''
         if opts.gainroot:
             dpkg_buildpackage += ' -r' + opts.gainroot
         else:
