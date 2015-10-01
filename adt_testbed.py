@@ -857,6 +857,7 @@ fi
                  'export ADTTMP=$(mktemp -d --tmpdir adttmp.XXXXXX); ' \
                  'export DEBIAN_FRONTEND=noninteractive; ' \
                  'export LANG=C.UTF-8; ' \
+                 '''export DEB_BUILD_OPTIONS=parallel=$(grep -c ^processor /proc/cpuinfo | sed 's/^0$/1/'); ''' \
                  'unset LANGUAGE LC_CTYPE LC_NUMERIC LC_TIME LC_COLLATE '\
                  '  LC_MONETARY LC_MESSAGES LC_PAPER LC_NAME LC_ADDRESS '\
                  '  LC_TELEPHONE LC_MEASUREMENT LC_IDENTIFICATION LC_ALL;' \
