@@ -109,6 +109,7 @@ setup() {
     }
 
     lxc-attach --name=$1 apt-get update
+    lxc-attach --name=$1 -- apt-get install -y dbus
     lxc-stop --name=$1
 }
 
