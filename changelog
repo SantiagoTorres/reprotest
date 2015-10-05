@@ -6,6 +6,8 @@ autopkgtest (3.17.3) UNRELEASED; urgency=medium
     inaccessible files, fall back to piping them through the auxverb.
   * adt-build-lxc: Install dbus; a lot of software indirectly expects it
     (e. g. calling systemctl as user).
+  * tools/adt-setup-vm, setup-commands/cloud-vm-setup: Purge
+    libcpan-changes-perl, it breaks some Perl autopkgtests.
 
  -- Martin Pitt <mpitt@debian.org>  Thu, 01 Oct 2015 17:46:31 +0200
 
