@@ -140,7 +140,7 @@ fi
 for p in accountsservice apt-xapian-index cryptsetup landscape-client \
     landscape-common open-vm-tools w3m vim-runtime aptitude-common \
     command-not-found-data manpages ntfs-3g sosreport \
-    ubuntu-release-upgrader-core; do
+    ubuntu-release-upgrader-core libcpan-changes-perl; do
     chroot "$root" apt-get --auto-remove -y purge $p || true
 done
 
