@@ -1,4 +1,4 @@
-autopkgtest (3.17.3) UNRELEASED; urgency=medium
+autopkgtest (3.17.3) unstable; urgency=medium
 
   * Set DEB_BUILD_OPTIONS=parallel=<#cpu> for builds and tests (as they
     sometimes build packages). (LP: #1399177)
@@ -13,7 +13,7 @@ autopkgtest (3.17.3) UNRELEASED; urgency=medium
   * NullRunner.test_tmp_install: Explicitly require Json 1.0 GI version, to
     silence warning with current pygobject.
 
- -- Martin Pitt <mpitt@debian.org>  Thu, 01 Oct 2015 17:46:31 +0200
+ -- Martin Pitt <mpitt@debian.org>  Tue, 06 Oct 2015 08:13:09 +0200
 
 autopkgtest (3.17.2) unstable; urgency=medium
 
