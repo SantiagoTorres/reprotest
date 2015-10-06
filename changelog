@@ -10,6 +10,8 @@ autopkgtest (3.17.3) UNRELEASED; urgency=medium
     libcpan-changes-perl, it breaks some Perl autopkgtests.
   * tools/adt-setup-vm, setup-commands/cloud-vm-setup: Purge git, it breaks
     Ruby's autopkgtests.
+  * NullRunner.test_tmp_install: Explicitly require Json 1.0 GI version, to
+    silence warning with current pygobject.
 
  -- Martin Pitt <mpitt@debian.org>  Thu, 01 Oct 2015 17:46:31 +0200
 
