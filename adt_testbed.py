@@ -224,7 +224,7 @@ class Testbed:
             Path(self, host, tb, os.path.isdir(host)).copydown()
 
         for p in self.add_apt_pockets:
-            script = '''awk '/^deb(-src)? .*(ubuntu.com|debian.org|ftpmaster)/ { if ($3 !~ /-/) { $3 = $3"-%s"; print }}' ''' \
+            script = '''sed -rn 's/^(deb|deb-src) +(\[.*\] *)?([^ ]*(ubuntu.com|debian.org|ftpmaster|file:\/\/\/tmp\/adttestarchive)[^ ]*) +([^ -]+) +(.*)$/\\1 \\2\\3 \\5-%s \\6/p' ''' \
                 '''/etc/apt/sources.list `ls /etc/apt/sources.list.d/*.list 2>/dev/null|| true` ''' \
                 ''' > /etc/apt/sources.list.d/%s.list''' % (p, p)
             self.check_exec(['sh', '-ec', script])
