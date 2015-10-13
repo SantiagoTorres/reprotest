@@ -1,3 +1,9 @@
+autopkgtest (3.17.4) UNRELEASED; urgency=medium
+
+  * Fix --apt-pocket for apt sources with [options].
+
+ -- Martin Pitt <mpitt@debian.org>  Tue, 13 Oct 2015 14:24:47 +0200
+
 autopkgtest (3.17.3) unstable; urgency=medium
 
   * Set DEB_BUILD_OPTIONS=parallel=<#cpu> for builds and tests (as they
