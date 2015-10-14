@@ -31,7 +31,7 @@ override_dh_auto_install:
 	dh_auto_install
 
 	# put our package version into adt-run for logging
-	sed -i 's/@version@/$(VERSION)/' debian/autopkgtest/usr/bin/adt-run
+	sed -i 's/@version@/$(VERSION)/' debian/autopkgtest/usr/share/autopkgtest/python/adt_testbed.py
 
 override_dh_auto_test:
 ifeq (, $(findstring nocheck, $(DEB_BUILD_OPTIONS)))

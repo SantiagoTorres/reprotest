@@ -3,6 +3,7 @@ autopkgtest (3.17.4) UNRELEASED; urgency=medium
   * Fix --apt-pocket for apt sources with [options].
   * Add tests/testarchive.py module for creating dynamic archives of mock
     debs, and add a full integration test for --apt-pocket.
+  * Fix version in adt-run output (@version@ moved to adt_testbed.py).
 
  -- Martin Pitt <mpitt@debian.org>  Tue, 13 Oct 2015 14:24:47 +0200
 
