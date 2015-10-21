@@ -5,6 +5,8 @@ autopkgtest (3.17.4) UNRELEASED; urgency=medium
     debs, and add a full integration test for --apt-pocket.
   * Fix version in adt-run output (@version@ moved to adt_testbed.py).
   * adt-setup-vm, cloud-vm-setup: Purge lxc/lxd.
+  * tests/testdesc: Skip Debian.test_builddeps_profiles test if dpkg is too
+    old to support build profiles.
 
  -- Martin Pitt <mpitt@debian.org>  Tue, 13 Oct 2015 14:24:47 +0200
 
