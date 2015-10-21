@@ -1,4 +1,4 @@
-autopkgtest (3.17.4) UNRELEASED; urgency=medium
+autopkgtest (3.17.4) unstable; urgency=medium
 
   * Fix --apt-pocket for apt sources with [options].
   * Add tests/testarchive.py module for creating dynamic archives of mock
@@ -8,7 +8,7 @@ autopkgtest (3.17.4) UNRELEASED; urgency=medium
   * tests/testdesc: Skip Debian.test_builddeps_profiles test if dpkg is too
     old to support build profiles.
 
- -- Martin Pitt <mpitt@debian.org>  Tue, 13 Oct 2015 14:24:47 +0200
+ -- Martin Pitt <mpitt@debian.org>  Wed, 21 Oct 2015 07:33:04 +0200
 
 autopkgtest (3.17.3) unstable; urgency=medium
 
