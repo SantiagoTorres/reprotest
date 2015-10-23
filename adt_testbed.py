@@ -68,6 +68,7 @@ class Testbed:
         # used for tracking kernel version changes
         self.last_test_name = ''
         self.last_reboot_marker = ''
+        self.eatmydata_prefix = []
 
         adtlog.debug('testbed init')
 
@@ -187,6 +188,12 @@ class Testbed:
         # determine testbed architecture
         self.dpkg_arch = self.check_exec(['dpkg', '--print-architecture'], True).strip()
         adtlog.info('testbed dpkg architecture: ' + self.dpkg_arch)
+
+        # do we have eatmydata?
+        (code, out, err) =  self.execute(['which', 'eatmydata'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        if code == 0:
+            adtlog.debug('testbed has eatmydata')
+            self.eatmydata_prefix = [out.strip()]
 
         # record package versions of pristine testbed
         if self.output_dir and self.execute(['which', 'dpkg-query'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)[0] == 0:
@@ -450,7 +457,8 @@ Description: satisfy autopkgtest test dependencies
 
         # install it and its dependencies in the tb
         self.check_exec(['dpkg', '--unpack', deb.tb], stdout=subprocess.PIPE)
-        rc = self.execute(['apt-get', 'install', '--quiet', '--quiet', '--assume-yes', '--fix-broken',
+        rc = self.execute(self.eatmydata_prefix +
+                          ['apt-get', 'install', '--quiet', '--quiet', '--assume-yes', '--fix-broken',
                            '-o', 'APT::Install-Recommends=%s' % recommends,
                            '-o', 'Debug::pkgProblemResolver=true'],
                           kind='install')[0]

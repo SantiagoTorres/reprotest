@@ -260,7 +260,7 @@ details.'''
                          action='append_const',
                          const='(apt-get update || (sleep 15; apt-get update)'
                          ' || (sleep 60; apt-get update))'
-                         ' && apt-get dist-upgrade -y -o '
+                         ' && $(which eatmydata || true) apt-get dist-upgrade -y -o '
                          'Dpkg::Options::="--force-confnew"',
                          help='Run apt update/dist-upgrade before the tests')
     g_setup.add_argument('--apt-pocket', metavar='POCKETNAME', action='append',
