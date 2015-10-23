@@ -51,18 +51,6 @@ user, but need to run the container itself as root (if you use LXC system level
 containers).
 
 .TP
-.B --eatmydata
-This option is intended for test developer use. It enables the use of
-\fBeatmydata\fR(1) inside the container on all commands in order to improve
-performance. This requires
-.BR eatmydata (1)
-to already be installed inside the supplied template, which you will need to do
-manually.
-
-However, since eatmydata is not part of the dep8 specification and may affect
-the test environment, it is not recommended for use in automation.
-
-.TP
 .BR \-d " | " \-\-debug
 Enables debugging output.
 
@@ -119,7 +107,6 @@ adt-run \fIhello_2.8\-4.dsc\fR --- adt-virt-lxc -e \fIadt-sid\fR
 \fBadt\-run\fR(1),
 \fBadt\-build-lxc\fR(1),
 \fBlxc\-create\fR(1),
-\fBeatmydata\fR(1),
 \fB/usr/share/doc/autopkgtest/\fR.
 
 .SH AUTHORS AND COPYRIGHT

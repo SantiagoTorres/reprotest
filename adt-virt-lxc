@@ -61,8 +61,6 @@ def parse_args():
     parser = ArgumentParser()
     parser.add_argument('-d', '--debug', action='store_true',
                         help='Enable debugging output')
-    parser.add_argument('--eatmydata', action='store_true',
-                        help='Use eatmydata inside the container to improve performance')
     parser.add_argument('-e', '--ephemeral', action='store_true',
                         help='Use ephemeral overlays instead of cloning (much '
                         'faster, but does not support reboot and might cause '
@@ -86,17 +84,6 @@ def sudoify(command):
         return ['sudo'] + command
     else:
         return command
-
-
-def check_for_eatmydata(container, template_name):
-    with open('/dev/null', 'wb') as null:
-        result = VirtSubproc.execute_timeout(
-            None, 10, sudoify(['lxc-attach', '--name', container, '--', 'sh', '-c',
-                               'type eatmydata']),
-            close_fds=True, stdout=null, stderr=null)[0]
-    if result != 0:
-        VirtSubproc.bomb('Container %s does not contain eatmydata, which is '
-                         'required for the --eatmydata option' % template_name)
 
 
 def get_available_lxc_container_name():
@@ -234,9 +221,6 @@ def hook_open():
         ]
         if args.sudo:
             VirtSubproc.auxverb = ['sudo', '--preserve-env'] + VirtSubproc.auxverb
-        if args.eatmydata:
-            check_for_eatmydata(lxc_container_name, args.template)
-            VirtSubproc.auxverb.extend(['eatmydata', '--'])
     except:
         # Clean up on failure
         VirtSubproc.check_exec(sudoify(['lxc-stop', '--kill', '--name', lxc_container_name]))
