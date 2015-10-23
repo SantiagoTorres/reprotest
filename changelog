@@ -1,3 +1,12 @@
+autopkgtest (3.18) UNRELEASED; urgency=medium
+
+  Behaviour changes/improvements:
+  * adt-virt-lxc: Drop --eatmydata option. Conceptually this isn't specific to
+    the LXC runner, it should always be used for package installation (when
+    available) with all runners, but never for tests.
+
+ -- Martin Pitt <mpitt@debian.org>  Fri, 23 Oct 2015 09:00:40 +0200
+
 autopkgtest (3.17.4) unstable; urgency=medium
 
   * Fix --apt-pocket for apt sources with [options].
