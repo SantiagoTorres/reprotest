@@ -6,6 +6,8 @@ autopkgtest (3.18) UNRELEASED; urgency=medium
     available) with all runners, but never for tests.
   * setup-commands/cloud-vm-setup, tools/adt-setup-vm: Install and use
     eatmydata.
+  * Use eatmydata for --apt-upgrade and installing test dependencies, if
+    available.
 
  -- Martin Pitt <mpitt@debian.org>  Fri, 23 Oct 2015 09:00:40 +0200
 
