@@ -137,18 +137,18 @@ fi
 
 # upgrade, install some necessary packages
 chroot "$root" apt-get update
-[ "${ADT_SETUP_VM_UPGRADE:-}" = false ] || DEBIAN_FRONTEND=noninteractive chroot "$root" apt-get -y dist-upgrade
+# some tests use a lot of /dev/random, avoid hangs
+chroot "$root" apt-get install -y haveged eatmydata
+[ "${ADT_SETUP_VM_UPGRADE:-}" = false ] || DEBIAN_FRONTEND=noninteractive chroot "$root" eatmydata apt-get -y dist-upgrade
 
 if [ "${mirror_rel%ubuntu*}" != "$mirror_rel" ]; then
     # provides kmods like scsi_debug or mac80211_hwsim
-    chroot "$root" apt-get install -y linux-generic
+    chroot "$root" eatmydata apt-get install -y linux-generic
 fi
-# some tests use a lot of /dev/random, avoid hangs
-chroot "$root" apt-get install -y haveged
 
 # we need Python to run the auxverb helper
 if ! chroot "$root" sh -c 'type python3 >/dev/null 2>&1 || type python >/dev/null 2>&1'; then
-    chroot "$root" apt-get install -y --no-install-recommends python3-minimal
+    chroot "$root" eatmydata apt-get install -y --no-install-recommends python3-minimal
 fi
 
 # clean up some unnecessary packages
@@ -157,7 +157,7 @@ for p in accountsservice apt-xapian-index cryptsetup landscape-client \
     command-not-found-data manpages ntfs-3g sosreport \
     ubuntu-release-upgrader-core libcpan-changes-perl git \
     cgmanager lxd-client; do
-    chroot "$root" apt-get --auto-remove -y purge $p || true
+    chroot "$root" eatmydata apt-get --auto-remove -y purge $p || true
 done
 
 # run post-install commands
