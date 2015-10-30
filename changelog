@@ -8,6 +8,8 @@ autopkgtest (3.18) UNRELEASED; urgency=medium
     eatmydata.
   * Use eatmydata for --apt-upgrade and installing test dependencies, if
     available.
+  * ssh-setup/nova: Provide custom implementation of "wait-reboot" using "nova
+    reboot --poll". This works more reliably on some clouds.
 
  -- Martin Pitt <mpitt@debian.org>  Fri, 23 Oct 2015 09:00:40 +0200
 
