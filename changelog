@@ -10,6 +10,8 @@ autopkgtest (3.18) UNRELEASED; urgency=medium
     available.
   * ssh-setup/nova: Provide custom implementation of "wait-reboot" using "nova
     reboot --poll". This works more reliably on some clouds.
+  * ssh-setup/nova: Call "nova boot" with --debug to better be able to
+    diagnose failures.
 
  -- Martin Pitt <mpitt@debian.org>  Fri, 23 Oct 2015 09:00:40 +0200
 
