@@ -12,6 +12,10 @@ autopkgtest (3.18) UNRELEASED; urgency=medium
     reboot --poll". This works more reliably on some clouds.
   * ssh-setup/nova: Call "nova boot" with --debug to better be able to
     diagnose failures.
+  * Extend --apt-pocket=POCKET option to accept an additional "=pkgname1,..."
+    package list. If given, set up apt pinning to use only those packages from
+    POCKET, so that package updates in that pocket can be tested independently
+    from each other for better isolation. (LP: #1503150)
 
  -- Martin Pitt <mpitt@debian.org>  Fri, 23 Oct 2015 09:00:40 +0200
 
