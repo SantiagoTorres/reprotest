@@ -190,7 +190,7 @@ class Testbed:
         adtlog.info('testbed dpkg architecture: ' + self.dpkg_arch)
 
         # do we have eatmydata?
-        (code, out, err) =  self.execute(['which', 'eatmydata'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        (code, out, err) = self.execute(['which', 'eatmydata'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         if code == 0:
             adtlog.debug('testbed has eatmydata')
             self.eatmydata_prefix = [out.strip()]
