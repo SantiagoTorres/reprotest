@@ -233,7 +233,7 @@ and
 in the testbed before running the tests.
 
 .TP
-.BI \-\-apt\-pocket= pocket[=pkgname,...]
+.BI \-\-apt\-pocket= pocket[=pkgname,src:srcname,...]
 Add apt sources for \fIrelease\fR-\fIpocket\fR. This finds the first
 .B deb
 line in
@@ -247,6 +247,7 @@ Note that this does not imply calling
 If a package list is given after =, set up apt pinning to use only those
 packages from
 .I pocket\fR.
+An entry "src:srcname" expands to all binary packages built by that source.
 This can be used for minimizing dependencies taken from
 .I pocket
 so that package updates in that pocket can be tested independently from each
