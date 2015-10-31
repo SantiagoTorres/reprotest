@@ -1052,24 +1052,41 @@ fi
     def _create_apt_pinning_for_packages(self, pocket, pkglist):
         '''Create apt pinning for --apt-pocket=pocket=pkglist'''
 
-        pkglist = pkglist.replace(',', ' ')
+        # sort pkglist into source and binary packages
+        binpkgs = []
+        srcpkgs = []
+        for i in pkglist.split(','):
+            i = i.strip()
+            if i.startswith('src:'):
+                srcpkgs.append(i[4:])
+            else:
+                binpkgs.append(i)
 
         # get release name
-        script = '''SRCS=$(ls /etc/apt/sources.list /etc/apt/sources.list.d/*.list 2>/dev/null|| true);
-REL=$(sed -rn '/^(deb|deb-src) .*(ubuntu.com|debian.org|ftpmaster|file:\/\/\/tmp\/adttestarchive)/ { s/^[^ ]+ +(\[.*\] *)?[^ ]* +([^ -]+) +.*$/\\2/p}' $SRCS | head -n1); '''
+        script = 'SRCS=$(ls /etc/apt/sources.list /etc/apt/sources.list.d/*.list 2>/dev/null|| true); '
+        script += '''REL=$(sed -rn '/^(deb|deb-src) .*(ubuntu.com|debian.org|ftpmaster|file:\/\/\/tmp\/adttestarchive)/ { s/^[^ ]+ +(\[.*\] *)?[^ ]* +([^ -]+) +.*$/\\2/p}' $SRCS | head -n1); '''
+
+        script += 'mkdir -p /etc/apt/preferences.d; '
+        script += 'PKGS="%s"; ' % ' '.join(binpkgs)
+
+        # translate src:name entries into binaries of that source
+        if srcpkgs:
+            script += 'PKGS="$PKGS $(apt-cache showsrc %s | ' \
+                '''sed -n '/^Binary: / {s/^Binary: //; s/,//g; p}' | ''' \
+                'xargs -n1 | sort -u | xargs)"; ' % \
+                ' '.join(srcpkgs)
 
         # prefer given packages from pocket, other packages from
         # default $REL (prio 900), but make $REL-pocket available for
         # dependency resolution (prio 100)
-        script += 'mkdir -p /etc/apt/preferences.d; '
-        script += 'printf "Package: %(pkgs)s\\nPin: release a=${REL}-%(pocket)s\\nPin-Priority: 900\\n\\nPackage: *\\nPin: release a=$REL\\nPin-Priority: 900\\n\\nPackage: *\\nPin: release a=${REL}-%(pocket)s\\nPin-Priority: 100\\n" > /etc/apt/preferences.d/autopkgtest-${REL}-%(pocket)s; ' % \
-            {'pkgs': pkglist, 'pocket': pocket}
+        script += 'printf "Package: $PKGS\\nPin: release a=${REL}-%(pocket)s\\nPin-Priority: 900\\n\\nPackage: *\\nPin: release a=$REL\\nPin-Priority: 900\\n\\nPackage: *\\nPin: release a=${REL}-%(pocket)s\\nPin-Priority: 100\\n" > /etc/apt/preferences.d/autopkgtest-${REL}-%(pocket)s; ' % \
+            {'pocket': pocket}
 
         # FIXME: If pkglist's dependencies can only be satisfied in -proposed,
         # the pinning will fail. Check if/how we can tell apt to satisfy these
         # from -proposed as well. For now, drop pinning completely.
-        script += 'if ! OUT=$(apt-get install --simulate %(pkgs)s 2>&1); then rm /etc/apt/preferences.d/autopkgtest-${REL}-%(pocket)s; echo "$OUT"; fi;' % \
-            {'pkgs': pkglist, 'pocket': pocket}
+        script += 'if ! OUT=$(apt-get install --simulate $PKGS 2>&1); then rm /etc/apt/preferences.d/autopkgtest-${REL}-%(pocket)s; echo "$OUT"; fi;' % \
+            {'pocket': pocket}
 
         out = self.check_exec(['sh', '-ec', script], True).strip()
         if out:
