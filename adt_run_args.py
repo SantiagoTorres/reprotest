@@ -263,9 +263,11 @@ details.'''
                          ' && $(which eatmydata || true) apt-get dist-upgrade -y -o '
                          'Dpkg::Options::="--force-confnew"',
                          help='Run apt update/dist-upgrade before the tests')
-    g_setup.add_argument('--apt-pocket', metavar='POCKETNAME', action='append',
+    g_setup.add_argument('--apt-pocket', metavar='POCKETNAME[=pkgname,...]', action='append',
                          default=[],
-                         help='Enable additional apt source for POCKETNAME')
+                         help='Enable additional apt source for POCKETNAME; '
+                         'if packages are given, set up apt pinning to use '
+                         'only those packages from POCKETNAME')
     g_setup.add_argument('--copy', metavar='HOSTFILE:TESTBEDFILE',
                          action='append', default=[],
                          help='Copy file or dir from host into testbed after '

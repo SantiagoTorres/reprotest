@@ -230,10 +230,11 @@ class Testbed:
             adtlog.debug('Copying file %s to testbed %s' % (host, tb))
             Path(self, host, tb, os.path.isdir(host)).copydown()
 
-        for p in self.add_apt_pockets:
-            script = '''sed -rn 's/^(deb|deb-src) +(\[.*\] *)?([^ ]*(ubuntu.com|debian.org|ftpmaster|file:\/\/\/tmp\/adttestarchive)[^ ]*) +([^ -]+) +(.*)$/\\1 \\2\\3 \\5-%s \\6/p' ''' \
-                '''/etc/apt/sources.list `ls /etc/apt/sources.list.d/*.list 2>/dev/null|| true` ''' \
-                ''' > /etc/apt/sources.list.d/%s.list''' % (p, p)
+        # create apt sources for --apt-pocket
+        for pocket in self.add_apt_pockets:
+            pocket = pocket.split('=', 1)[0]  # strip off package list
+            script = '''SRCS=$(ls /etc/apt/sources.list /etc/apt/sources.list.d/*.list 2>/dev/null|| true);
+sed -rn 's/^(deb|deb-src) +(\[.*\] *)?([^ ]*(ubuntu.com|debian.org|ftpmaster|file:\/\/\/tmp\/adttestarchive)[^ ]*) +([^ -]+) +(.*)$/\\1 \\2\\3 \\5-%s \\6/p' $SRCS > /etc/apt/sources.list.d/%s.list; ''' % (pocket, pocket)
             self.check_exec(['sh', '-ec', script])
 
         # record the mtimes of dirs affecting the boot
@@ -250,6 +251,15 @@ class Testbed:
             rc = self.execute(['sh', '-ec', c], xenv=xenv, kind='install')[0]
             if rc:
                 self.bomb('testbed setup commands failed with status %i' % rc)
+
+        # create apt pinning for --apt-pocket with package list
+        for pocket in self.add_apt_pockets:
+            # do we have a package list?
+            try:
+                (pocket, pkglist) = pocket.split('=', 1)
+            except ValueError:
+                continue
+            self._create_apt_pinning_for_packages(pocket, pkglist)
 
         if self.setup_commands and 'reboot' in self.caps:
             boot_affected = self.execute(
@@ -1034,6 +1044,40 @@ fi
             self.apparmor_restore_click(test.clicks, test.installed_clicks)
         else:
             adtlog.debug('no need to restore click AppArmor profiles')
+
+    #
+    # helper methods
+    #
+
+    def _create_apt_pinning_for_packages(self, pocket, pkglist):
+        '''Create apt pinning for --apt-pocket=pocket=pkglist'''
+
+        pkglist = pkglist.replace(',', ' ')
+
+        # get release name
+        script = '''SRCS=$(ls /etc/apt/sources.list /etc/apt/sources.list.d/*.list 2>/dev/null|| true);
+REL=$(sed -rn '/^(deb|deb-src) .*(ubuntu.com|debian.org|ftpmaster|file:\/\/\/tmp\/adttestarchive)/ { s/^[^ ]+ +(\[.*\] *)?[^ ]* +([^ -]+) +.*$/\\2/p}' $SRCS | head -n1); '''
+
+        # prefer given packages from pocket, other packages from
+        # default $REL (prio 900), but make $REL-pocket available for
+        # dependency resolution (prio 100)
+        script += 'mkdir -p /etc/apt/preferences.d; '
+        script += 'printf "Package: %(pkgs)s\\nPin: release a=${REL}-%(pocket)s\\nPin-Priority: 900\\n\\nPackage: *\\nPin: release a=$REL\\nPin-Priority: 900\\n\\nPackage: *\\nPin: release a=${REL}-%(pocket)s\\nPin-Priority: 100\\n" > /etc/apt/preferences.d/autopkgtest-${REL}-%(pocket)s; ' % \
+            {'pkgs': pkglist, 'pocket': pocket}
+
+        # FIXME: If pkglist's dependencies can only be satisfied in -proposed,
+        # the pinning will fail. Check if/how we can tell apt to satisfy these
+        # from -proposed as well. For now, drop pinning completely.
+        script += 'if ! OUT=$(apt-get install --simulate %(pkgs)s 2>&1); then rm /etc/apt/preferences.d/autopkgtest-${REL}-%(pocket)s; echo "$OUT"; fi;' % \
+            {'pkgs': pkglist, 'pocket': pocket}
+
+        out = self.check_exec(['sh', '-ec', script], True).strip()
+        if out:
+            adtlog.warning('Packages %(pkgs)s are not installable with '
+                           'per-package pinning in %(pocket)s, falling '
+                           'back to using all packages from %(pocket)s:\n'
+                           '%(out)s' %
+                           {'pkgs': pkglist, 'pocket': pocket, 'out': out})
 
 
 class Path:
