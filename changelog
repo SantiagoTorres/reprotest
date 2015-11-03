@@ -19,6 +19,10 @@ autopkgtest (3.18) UNRELEASED; urgency=medium
     pocket can be tested independently from each other for better isolation.
     (LP: #1503150)
 
+  Bug fixes:
+  * ssh-setup/nova: Drop "Warning: PoC", we've been using this in production
+    for a long time.
+
  -- Martin Pitt <mpitt@debian.org>  Fri, 23 Oct 2015 09:00:40 +0200
 
 autopkgtest (3.17.4) unstable; urgency=medium
