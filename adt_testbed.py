@@ -233,8 +233,7 @@ class Testbed:
         # create apt sources for --apt-pocket
         for pocket in self.add_apt_pockets:
             pocket = pocket.split('=', 1)[0]  # strip off package list
-            script = '''SRCS=$(ls /etc/apt/sources.list /etc/apt/sources.list.d/*.list 2>/dev/null|| true);
-sed -rn 's/^(deb|deb-src) +(\[.*\] *)?([^ ]*(ubuntu.com|debian.org|ftpmaster|file:\/\/\/tmp\/adttestarchive)[^ ]*) +([^ -]+) +(.*)$/\\1 \\2\\3 \\5-%s \\6/p' $SRCS > /etc/apt/sources.list.d/%s.list; ''' % (pocket, pocket)
+            script = '''sed -rn 's/^(deb|deb-src) +(\[.*\] *)?([^ ]*(ubuntu.com|debian.org|ftpmaster|file:\/\/\/tmp\/adttestarchive)[^ ]*) +([^ -]+) +(.*)$/\\1 \\2\\3 \\5-%s \\6/p' /etc/apt/sources.list `ls /etc/apt/sources.list.d/*.list 2>/dev/null|| true)` > /etc/apt/sources.list.d/%s.list; ''' % (pocket, pocket)
             self.check_exec(['sh', '-ec', script])
 
         # record the mtimes of dirs affecting the boot
