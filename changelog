@@ -22,6 +22,9 @@ autopkgtest (3.18) UNRELEASED; urgency=medium
   Bug fixes:
   * ssh-setup/nova: Drop "Warning: PoC", we've been using this in production
     for a long time.
+  * tools/adt-setup-vm: Check if we already have a configuration for the
+    specific network interface that we are configuring, not just any
+    interface.
 
  -- Martin Pitt <mpitt@debian.org>  Fri, 23 Oct 2015 09:00:40 +0200
 
