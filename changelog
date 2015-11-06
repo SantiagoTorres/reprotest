@@ -25,6 +25,9 @@ autopkgtest (3.18) UNRELEASED; urgency=medium
   * tools/adt-setup-vm: Check if we already have a configuration for the
     specific network interface that we are configuring, not just any
     interface.
+  * tools/adt-buildvm-ubuntu-cloud: Counter-hack the Ubuntu livecd-rootfs
+    workaround for LP #1510345 by creating a configuration for ens3 and
+    removing the one for eth0.
 
  -- Martin Pitt <mpitt@debian.org>  Fri, 23 Oct 2015 09:00:40 +0200
 
