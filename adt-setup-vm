@@ -113,7 +113,7 @@ else
 fi
 if [ -n "$IFACE" ] ; then
     mkdir -p "$root/etc/network/interfaces.d"
-    if ! grep -h -r '^[[:space:]]*auto' "$root/etc/network/interfaces" "$root/etc/network/interfaces.d" | grep -qv 'auto[[:space:]]*lo'; then
+    if ! grep -h -r "^[[:space:]]*auto.*$IFACE" "$root/etc/network/interfaces" "$root/etc/network/interfaces.d" | grep -qv 'auto[[:space:]]*lo'; then
         printf "auto $IFACE\niface $IFACE inet dhcp\n" >> "$root/etc/network/interfaces.d/$IFACE"
     fi
 fi
