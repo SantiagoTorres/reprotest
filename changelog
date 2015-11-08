@@ -18,6 +18,9 @@ autopkgtest (3.18) UNRELEASED; urgency=medium
     to use only those packages from POCKET, so that package updates in that
     pocket can be tested independently from each other for better isolation.
     (LP: #1503150)
+  * Add ssh-setup/maas: Acquire and Deploy a machine via MAAS to use as an
+    autopkgtest testbed. It assumes that MaaS is already set up, machines are
+    commissioned to it, and you added your ssh key to it.
 
   Bug fixes:
   * ssh-setup/nova: Drop "Warning: PoC", we've been using this in production
