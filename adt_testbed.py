@@ -1084,7 +1084,7 @@ fi
         # FIXME: If pkglist's dependencies can only be satisfied in -proposed,
         # the pinning will fail. Check if/how we can tell apt to satisfy these
         # from -proposed as well. For now, drop pinning completely.
-        script += 'if ! OUT=$(apt-get install --simulate $PKGS 2>&1); then rm /etc/apt/preferences.d/autopkgtest-${REL}-%(pocket)s; echo "$OUT"; fi;' % \
+        script += 'for p in $PKGS; do if apt-cache show $p >/dev/null 2>&1 && ! OUT=$(apt-get install --simulate $p 2>&1); then rm /etc/apt/preferences.d/autopkgtest-${REL}-%(pocket)s; echo "$OUT"; break; fi; done' % \
             {'pocket': pocket}
 
         out = self.check_exec(['sh', '-ec', script], True).strip()
