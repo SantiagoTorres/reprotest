@@ -69,6 +69,7 @@ class Testbed:
         self.last_test_name = ''
         self.last_reboot_marker = ''
         self.eatmydata_prefix = []
+        self.apt_pin_for_pockets = []
 
         adtlog.debug('testbed init')
 
@@ -464,25 +465,36 @@ Description: satisfy autopkgtest test dependencies
         shutil.rmtree(pkgdir)
         deb.copydown()
 
-        # install it and its dependencies in the tb
-        self.check_exec(['dpkg', '--unpack', deb.tb], stdout=subprocess.PIPE)
-        rc = self.execute(self.eatmydata_prefix +
-                          ['apt-get', 'install', '--quiet', '--quiet', '--assume-yes', '--fix-broken',
-                           '-o', 'APT::Install-Recommends=%s' % recommends,
-                           '-o', 'Debug::pkgProblemResolver=true'],
-                          kind='install')[0]
-        if rc != 0:
-            if shell_on_failure:
-                self.run_shell()
-            self.badpkg('failed to run apt-get to satisfy adt-satdep.deb dependencies')
-        rc = self.execute(['dpkg', '--status', 'adt-satdep'],
-                          stdout=subprocess.PIPE,
-                          stderr=subprocess.PIPE)[0]
-        if rc != 0:
-            self.badpkg('Test dependencies are unsatisfiable. A common reason is '
-                        'that your testbed is out of date with respect to the '
-                        'archive, and you need to use a current testbed or run '
-                        'apt-get update or use -U.')
+        # install it and its dependencies in the tb; our apt pinning is not
+        # very clever wrt. resolving transitional dependencies in the pocket,
+        # so we might need to retry without pinning
+        while True:
+            self.check_exec(['dpkg', '--unpack', deb.tb], stdout=subprocess.PIPE)
+            rc = self.execute(self.eatmydata_prefix +
+                              ['apt-get', 'install', '--assume-yes', '--fix-broken',
+                               '-o', 'APT::Install-Recommends=%s' % recommends,
+                               '-o', 'Debug::pkgProblemResolver=true'],
+                              kind='install')[0]
+            if rc != 0:
+                if shell_on_failure:
+                    self.run_shell()
+                self.badpkg('failed to run apt-get to satisfy adt-satdep.deb dependencies')
+            rc = self.execute(['dpkg', '--status', 'adt-satdep'],
+                              stdout=subprocess.PIPE,
+                              stderr=subprocess.PIPE)[0]
+            if rc != 0:
+                if self.apt_pin_for_pockets:
+                    pocket = self.apt_pin_for_pockets.pop()
+                    adtlog.warning('Test dependencies are unsatisfiable with using apt pinning. '
+                                   'Retrying with using all packages from %s' % pocket)
+                    self.check_exec(['/bin/sh', '-ec', 'rm /etc/apt/preferences.d/autopkgtest-*-' + pocket])
+                    continue
+
+                self.badpkg('Test dependencies are unsatisfiable. A common reason is '
+                            'that your testbed is out of date with respect to the '
+                            'archive, and you need to use a current testbed or run '
+                            'apt-get update or use -U.')
+            break
 
         # remove adt-satdep to avoid confusing tests, but avoid marking our
         # test dependencies for auto-removal
@@ -1080,20 +1092,8 @@ fi
         # dependency resolution (prio 100)
         script += 'printf "Package: $PKGS\\nPin: release a=${REL}-%(pocket)s\\nPin-Priority: 900\\n\\nPackage: *\\nPin: release a=$REL\\nPin-Priority: 900\\n\\nPackage: *\\nPin: release a=${REL}-%(pocket)s\\nPin-Priority: 100\\n" > /etc/apt/preferences.d/autopkgtest-${REL}-%(pocket)s; ' % \
             {'pocket': pocket}
-
-        # FIXME: If pkglist's dependencies can only be satisfied in -proposed,
-        # the pinning will fail. Check if/how we can tell apt to satisfy these
-        # from -proposed as well. For now, drop pinning completely.
-        script += 'for p in $PKGS; do if apt-cache show $p >/dev/null 2>&1 && ! OUT=$(apt-get install --simulate $p 2>&1); then rm /etc/apt/preferences.d/autopkgtest-${REL}-%(pocket)s; echo "$OUT"; break; fi; done' % \
-            {'pocket': pocket}
-
-        out = self.check_exec(['sh', '-ec', script], True).strip()
-        if out:
-            adtlog.warning('Packages %(pkgs)s are not installable with '
-                           'per-package pinning in %(pocket)s, falling '
-                           'back to using all packages from %(pocket)s:\n'
-                           '%(out)s' %
-                           {'pkgs': pkglist, 'pocket': pocket, 'out': out})
+        self.check_exec(['sh', '-ec', script])
+        self.apt_pin_for_pockets.append(pocket)
 
 
 class Path:
