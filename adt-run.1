@@ -252,6 +252,12 @@ This can be used for minimizing dependencies taken from
 .I pocket
 so that package updates in that pocket can be tested independently from each
 other for better isolation.
+.B Attention:
+This does not currently resolve some situations where dependencies of
+the given packages can only be resolved in the given pocket. In that case the
+apt pinning will be removed and package installation will be retried with the
+entirety of
+.I pocket\fR.
 
 .TP
 .BI \-\-copy= HOSTPATH:TESTBEDPATH
