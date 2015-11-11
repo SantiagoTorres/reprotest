@@ -1,4 +1,4 @@
-autopkgtest (3.18) UNRELEASED; urgency=medium
+autopkgtest (3.18) unstable; urgency=medium
 
   Behaviour changes/improvements:
   * adt-virt-lxc: Drop --eatmydata option. Conceptually this isn't specific to
@@ -32,7 +32,7 @@ autopkgtest (3.18) UNRELEASED; urgency=medium
     workaround for LP #1510345 by creating a configuration for ens3 and
     removing the one for eth0.
 
- -- Martin Pitt <mpitt@debian.org>  Fri, 23 Oct 2015 09:00:40 +0200
+ -- Martin Pitt <mpitt@debian.org>  Wed, 11 Nov 2015 10:11:48 +0100
 
 autopkgtest (3.17.4) unstable; urgency=medium
 
