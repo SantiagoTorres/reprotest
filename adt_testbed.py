@@ -1090,7 +1090,7 @@ fi
         # prefer given packages from pocket, other packages from
         # default $REL (prio 900), but make $REL-pocket available for
         # dependency resolution (prio 800)
-        script += 'printf "Package: $PKGS\\nPin: release a=${REL}-%(pocket)s\\nPin-Priority: 990\\n\\nPackage: *\\nPin: release a=$REL\\nPin-Priority: 900\\n\\nPackage: *\\nPin: release a=${REL}-%(pocket)s\\nPin-Priority: 800\\n" > /etc/apt/preferences.d/autopkgtest-${REL}-%(pocket)s; ' % \
+        script += 'printf "Package: $PKGS\\nPin: release a=${REL}-%(pocket)s\\nPin-Priority: 990\\n\\nPackage: *\\nPin: release a=$REL\\nPin-Priority: 900\\n\\nPackage: *\\nPin: release a=${REL}-updates\\nPin-Priority: 900\\n\\nPackage: *\\nPin: release a=${REL}-%(pocket)s\\nPin-Priority: 800\\n" > /etc/apt/preferences.d/autopkgtest-${REL}-%(pocket)s; ' % \
             {'pocket': pocket}
         self.check_exec(['sh', '-ec', script])
         self.apt_pin_for_pockets.append(pocket)
