@@ -468,14 +468,30 @@ Description: satisfy autopkgtest test dependencies
         # install it and its dependencies in the tb; our apt pinning is not
         # very clever wrt. resolving transitional dependencies in the pocket,
         # so we might need to retry without pinning
+        download_fail_retries = 3
         while True:
             self.check_exec(['dpkg', '--unpack', deb.tb], stdout=subprocess.PIPE)
-            rc = self.execute(self.eatmydata_prefix +
-                              ['apt-get', 'install', '--assume-yes', '--fix-broken',
-                               '-o', 'APT::Install-Recommends=%s' % recommends,
-                               '-o', 'Debug::pkgProblemResolver=true'],
-                              kind='install')[0]
+            # capture status-fd to stderr
+            (rc, _, serr) = self.execute(['/bin/sh', '-ec', '%s apt-get install '
+                                          '--assume-yes --fix-broken '
+                                          '-o APT::Status-Fd=3 '
+                                          '-o APT::Install-Recommends=%s '
+                                          '-o Debug::pkgProblemResolver=true 3>&2 2>&1' %
+                                          (' '.join(self.eatmydata_prefix), recommends)],
+                                         kind='install', stderr=subprocess.PIPE)
             if rc != 0:
+                adtlog.debug('apt-get install failed; status-fd:\n%s' % serr)
+                # check if apt failed during package download, which might be a
+                # transient error, so retry
+                if 'dlstatus:' in serr and 'pmstatus:' not in serr:
+                    download_fail_retries -= 1
+                    if download_fail_retries > 0:
+                        adtlog.warning('apt failed to download packages, retrying in 10s...')
+                        time.sleep(10)
+                        continue
+                    else:
+                        self.bomb('apt repeatedly failed to download packages')
+
                 if shell_on_failure:
                     self.run_shell()
                 self.badpkg('failed to run apt-get to satisfy adt-satdep.deb dependencies')
