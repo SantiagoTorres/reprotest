@@ -172,3 +172,6 @@ chroot "$root" apt-get clean
 if [ -n "${ADT_APT_PROXY:-}" ]; then
     echo "Acquire::http { Proxy \"$ADT_APT_PROXY\"; };" > "$root"/etc/apt/apt.conf.d/01proxy
 fi
+
+# avoid cron interference with apt-get update
+rm -f "$root/etc/cron.daily/apt"
