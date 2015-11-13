@@ -169,6 +169,7 @@ class Testbed:
     def _opened(self, pl):
         self.scratch = pl[0]
         self.deps_installed = []
+        self.apt_pin_for_pockets = []
         self.recommends_installed = False
         self.exec_cmd = list(map(urllib.parse.unquote, self.command('print-execute-command', (), 1)[0].split(',')))
         self.caps = self.command('capabilities', (), None)
