@@ -264,7 +264,10 @@ def source_rules_command(script, which, cwd=None, results_lines=0):
     if rc:
         if opts.shell_fail:
             testbed.run_shell()
-        adtlog.badpkg('rules %s failed with exit code %d' % (which, rc))
+        if rc == 100:
+            testbed.bomb('rules %s failed with exit code %d (apt failure)' % (which, rc))
+        else:
+            adtlog.badpkg('rules %s failed with exit code %d' % (which, rc))
     if results_lines is not None and len(results) != results_lines:
         adtlog.badpkg('got %d lines of results from %s where %d expected'
                       % (len(results), which, results_lines))
