@@ -268,7 +268,7 @@ def _debian_build_deps_from_source(srcdir, testbed_arch):
 dep_re = re.compile(
     r'(?P<package>[a-z0-9+-.]+)(?::native)?\s*'
     r'(\((?P<relation><<|<=|>=|=|>>)\s*(?P<version>[^\)]*)\))?'
-    r'(\s*\[[[a-z0-9+-. ]+\])?$')
+    r'(\s*\[[[a-z0-9+-.! ]+\])?$')
 
 
 def _debian_check_dep(testname, dep):
