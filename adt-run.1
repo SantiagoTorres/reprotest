@@ -241,8 +241,9 @@ line in
 which does not already specify a pocket and adds a deb and deb-src line with
 that pocket to
 .B /etc/apt/sources.list.d/\fIpocket\fB.list\fR.
-Note that this does not imply calling
-.B apt-get update\fR.
+This also calls
+.B apt-get update
+for the new pocket (but not for anything else).
 
 If a package list is given after =, set up apt pinning to use only those
 packages from
