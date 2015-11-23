@@ -2,6 +2,11 @@ autopkgtest (3.18.2) UNRELEASED; urgency=medium
 
   * tools/adt-build-lxc: Install libpam-systemd; some tests expect to have an
     $XDG_RUNTIME_DIR.
+  * Fix --apt-pocket=proposed=pkgname.. to set up the apt pinning before
+    running setup-commands (in particular, dist-upgrade), as otherwise the
+    dist-ugprade will install package versions that conflict with the pinning.
+    Change --apt-pocket to download (only) the apt indexes for the given
+    pocket, so that we can set up the pinning correctly.
 
  -- Martin Pitt <mpitt@debian.org>  Mon, 23 Nov 2015 12:00:12 +0100
 
