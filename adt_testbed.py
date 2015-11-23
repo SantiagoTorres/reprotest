@@ -235,8 +235,17 @@ class Testbed:
         # create apt sources for --apt-pocket
         for pocket in self.add_apt_pockets:
             pocket = pocket.split('=', 1)[0]  # strip off package list
-            script = '''sed -rn 's/^(deb|deb-src) +(\[.*\] *)?([^ ]*(ubuntu.com|debian.org|ftpmaster|file:\/\/\/tmp\/adttestarchive)[^ ]*) +([^ -]+) +(.*)$/\\1 \\2\\3 \\5-%s \\6/p' /etc/apt/sources.list `ls /etc/apt/sources.list.d/*.list 2>/dev/null|| true)` > /etc/apt/sources.list.d/%s.list; ''' % (pocket, pocket)
+            script = '''sed -rn 's/^(deb|deb-src) +(\[.*\] *)?([^ ]*(ubuntu.com|debian.org|ftpmaster|file:\/\/\/tmp\/adttestarchive)[^ ]*) +([^ -]+) +(.*)$/\\1 \\2\\3 \\5-%s \\6/p' /etc/apt/sources.list `ls /etc/apt/sources.list.d/*.list 2>/dev/null|| true)` > /etc/apt/sources.list.d/%s.list; apt-get --no-list-cleanup -o Dir::Etc::sourcelist=/etc/apt/sources.list.d/%s.list -o Dir::Etc::sourceparts=/dev/null update 2>&1''' % (pocket, pocket, pocket)
             self.check_exec(['sh', '-ec', script])
+
+        # create apt pinning for --apt-pocket with package list
+        for pocket in self.add_apt_pockets:
+            # do we have a package list?
+            try:
+                (pocket, pkglist) = pocket.split('=', 1)
+            except ValueError:
+                continue
+            self._create_apt_pinning_for_packages(pocket, pkglist)
 
         # record the mtimes of dirs affecting the boot
         boot_dirs = '/boot /etc/init /etc/init.d /etc/systemd/system /lib/systemd/system'
@@ -253,15 +262,7 @@ class Testbed:
             if rc:
                 self.bomb('testbed setup commands failed with status %i' % rc)
 
-        # create apt pinning for --apt-pocket with package list
-        for pocket in self.add_apt_pockets:
-            # do we have a package list?
-            try:
-                (pocket, pkglist) = pocket.split('=', 1)
-            except ValueError:
-                continue
-            self._create_apt_pinning_for_packages(pocket, pkglist)
-
+        # if the setup commands affected the boot, then reboot
         if self.setup_commands and 'reboot' in self.caps:
             boot_affected = self.execute(
                 ['bash', '-ec', '[ ! -e /run/autopkgtest_no_reboot.stamp ] || exit 0;'
