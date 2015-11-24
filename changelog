@@ -7,6 +7,8 @@ autopkgtest (3.18.2) UNRELEASED; urgency=medium
     dist-ugprade will install package versions that conflict with the pinning.
     Change --apt-pocket to download (only) the apt indexes for the given
     pocket, so that we can set up the pinning correctly.
+  * ssh-setup-nova: Separately track server UUID, to avoid resetting the
+    originally given --name on testbed revert.
 
  -- Martin Pitt <mpitt@debian.org>  Mon, 23 Nov 2015 12:00:12 +0100
 
