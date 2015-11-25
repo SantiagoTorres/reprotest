@@ -97,6 +97,10 @@ Use a custom cloud-init metadata file to initialize the cloud image VM.
 .BI "--userdata=" USERDATA_FILE
 Use a custom cloud-init userdata file to initialize the cloud image VM.
 
+.TP
+.BI "--timeout=" SECONDS
+Timeout for cloud-init. Default is 3600 s.
+
 .SH CONFIGURATION FILES
 If you use lots of options, you can put parts of, or the whole
 command line into a text file, with one line per option. E. g. you can create a

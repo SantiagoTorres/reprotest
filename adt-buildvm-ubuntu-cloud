@@ -118,6 +118,8 @@ def parse_args():
                         help='Custom metadata file for cloud-init.')
     parser.add_argument('--userdata', metavar='USERDATA_FILE',
                         help='Custom userdata file for cloud-init.')
+    parser.add_argument('--timeout', metavar='SECONDS', default=3600, type=int,
+                        help='Timeout for cloud-init (default: %(default)i s)')
 
     args = parser.parse_args()
 
@@ -280,7 +282,7 @@ def host_tz():
     return 'Etc/UTC'
 
 
-def boot_image(image, seed, qemu_command, verbose):
+def boot_image(image, seed, qemu_command, verbose, timeout):
     print('Booting image to run cloud-init...')
 
     tty_sock = os.path.join(workdir, 'ttyS0')
@@ -303,7 +305,7 @@ def boot_image(image, seed, qemu_command, verbose):
             tty = VirtSubproc.get_unix_socket(tty_sock)
 
         # wait for cloud-init to finish and VM to shutdown
-        with VirtSubproc.timeout(3600, 'timed out on cloud-init'):
+        with VirtSubproc.timeout(timeout, 'timed out on cloud-init'):
             while qemu.poll() is None:
                 if verbose:
                     sys.stdout.buffer.raw.write(tty.recv(4096))
@@ -336,6 +338,6 @@ image = download_image(args.cloud_image_url, args.release, args.arch)
 resize_image(image, args.disk_size)
 seed = build_seed(args.mirror, args.proxy, args.no_apt_upgrade,
                   args.metadata, args.userdata, args.post_command)
-boot_image(image, seed, args.qemu_command, args.verbose)
+boot_image(image, seed, args.qemu_command, args.verbose, args.timeout)
 install_image(image, os.path.join(args.output_dir, 'adt-%s-%s-cloud.img' %
                                   (args.release, args.arch)))
