@@ -62,11 +62,20 @@ proxy_detect() {
         if echo "$proxy" | egrep -q '(localhost|127\.0\.0\.[0-9]*):3142'; then
             # set http_proxy for the initial debootstrap
             export http_proxy="$proxy"
-            local bridge_ip=$(ip -4 a show dev lxcbr0 | awk '/ inet / {sub(/\/.*$/, "", $2); print $2}') || true
-            if [ -n "$bridge_ip" ]; then
-                ADT_APT_PROXY="http://$bridge_ip:3142"
+
+            # translate proxy address to one that can be accessed from the
+            # running container
+            local bridge_interface=$(awk '{ if ($1 == "lxc.network.link") print($3)}' /etc/lxc/default.conf)
+            if [ -n "$bridge_interface" ]; then
+                local bridge_ip=$(ip -4 a show dev "$bridge_interface" | awk '/ inet / {sub(/\/.*$/, "", $2); print $2}') || true
+                if [ -n "$bridge_ip" ]; then
+                    ADT_APT_PROXY="http://$bridge_ip:3142"
+                fi
             fi
-            echo "Detected apt-cacher-ng. Using local proxy $http_proxy, container proxy $ADT_APT_PROXY"
+            echo "Detected apt-cacher-ng. Using local proxy $http_proxy"
+            if [ -n "$ADT_APT_PROXY" ]; then
+                echo "Using $ADT_APT_PROXY as container proxy"
+            fi
         fi
     fi
 }
