@@ -1,5 +1,6 @@
 autopkgtest (3.18.2) UNRELEASED; urgency=medium
 
+  [ Martin Pitt ]
   * tools/adt-build-lxc: Install libpam-systemd; some tests expect to have an
     $XDG_RUNTIME_DIR.
   * Fix --apt-pocket=proposed=pkgname.. to set up the apt pinning before
@@ -12,6 +13,9 @@ autopkgtest (3.18.2) UNRELEASED; urgency=medium
 
   [ Max Brustkern ]
   * adt-buildvm-ubuntu-cloud: Add timeout option.
+
+  [ Antonio Terceiro ]
+  * adt-build-lxc: Don't hardcode bridge interface.
 
  -- Martin Pitt <mpitt@debian.org>  Mon, 23 Nov 2015 12:00:12 +0100
 
