@@ -12,6 +12,8 @@ autopkgtest (3.18.2) UNRELEASED; urgency=medium
     originally given --name on testbed revert.
   * If apt-get fails for --apt-pocket ("Hash sum mismatch"!), retry up to
     three times.
+  * Fix parsing of "apt-cache showsrc" to not get broken by wrapped lines.
+    Thanks Andy Whitcroft! (LP: #1522469)
 
   [ Max Brustkern ]
   * adt-buildvm-ubuntu-cloud: Add timeout option.
