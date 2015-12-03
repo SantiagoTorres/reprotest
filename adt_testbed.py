@@ -235,7 +235,7 @@ class Testbed:
         # create apt sources for --apt-pocket
         for pocket in self.add_apt_pockets:
             pocket = pocket.split('=', 1)[0]  # strip off package list
-            script = '''sed -rn 's/^(deb|deb-src) +(\[.*\] *)?([^ ]*(ubuntu.com|debian.org|ftpmaster|file:\/\/\/tmp\/adttestarchive)[^ ]*) +([^ -]+) +(.*)$/\\1 \\2\\3 \\5-%s \\6/p' /etc/apt/sources.list `ls /etc/apt/sources.list.d/*.list 2>/dev/null|| true)` > /etc/apt/sources.list.d/%s.list; apt-get --no-list-cleanup -o Dir::Etc::sourcelist=/etc/apt/sources.list.d/%s.list -o Dir::Etc::sourceparts=/dev/null update 2>&1''' % (pocket, pocket, pocket)
+            script = '''sed -rn 's/^(deb|deb-src) +(\[.*\] *)?([^ ]*(ubuntu.com|debian.org|ftpmaster|file:\/\/\/tmp\/adttestarchive)[^ ]*) +([^ -]+) +(.*)$/\\1 \\2\\3 \\5-%s \\6/p' /etc/apt/sources.list `ls /etc/apt/sources.list.d/*.list 2>/dev/null|| true)` > /etc/apt/sources.list.d/%s.list; for retry in 1 2 3; do apt-get --no-list-cleanup -o Dir::Etc::sourcelist=/etc/apt/sources.list.d/%s.list -o Dir::Etc::sourceparts=/dev/null update 2>&1 && break || sleep 15; done''' % (pocket, pocket, pocket)
             self.check_exec(['sh', '-ec', script])
 
         # create apt pinning for --apt-pocket with package list
