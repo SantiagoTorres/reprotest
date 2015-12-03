@@ -1101,8 +1101,8 @@ fi
         # translate src:name entries into binaries of that source
         if srcpkgs:
             script += 'PKGS="$PKGS $(apt-cache showsrc %s | ' \
-                '''sed -n '/^Binary: / {s/^Binary: //; s/,//g; p}' | ''' \
-                'xargs -n1 | sort -u | xargs)"; ' % \
+                '''awk '/^Package-List:/ { show=1; next } (/^ / && show==1) { print $1; next } { show=0 }' |''' \
+                '''sort -u | tr '\\n' ' ')"; ''' % \
                 ' '.join(srcpkgs)
 
         # prefer given packages from pocket, other packages from
