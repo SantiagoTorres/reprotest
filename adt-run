@@ -238,7 +238,7 @@ def deb_package_name(deb):
 
 def source_rules_command(script, which, cwd=None, results_lines=0):
     if cwd is None:
-        cwd = '.'
+        cwd = '/'
 
     # there's no way to tell su to not reset $PATH, for install-tmp mode
     if testbed.install_tmp_env:
