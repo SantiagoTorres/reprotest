@@ -25,6 +25,8 @@ autopkgtest (3.18.2) UNRELEASED; urgency=medium
     the setup script fails with nonzero or on timeouts waiting for ssh or
     reboot.
   * ssh-setup/nova: Implement "debug-failure" command with "nova console-log".
+  * tools/adt-build-lxc: Only install libpam-systemd if that exists (e. g. not
+    on Ubuntu 12.04).
 
   [ Max Brustkern ]
   * adt-buildvm-ubuntu-cloud: Add timeout option.
