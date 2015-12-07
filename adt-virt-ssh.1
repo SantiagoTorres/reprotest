@@ -223,6 +223,13 @@ something more elaborate than just waiting for the ssh port to go down and come
 back up after calling "reboot". This needs to wait for testbed to shut down,
 boot, and re-prepare the testbed for ssh login.
 
+.SS command: debug-failure
+
+This is called when the setup script fails with nonzero or on timeouts waiting
+for ssh or reboot. If available, this should output some debugging information,
+such as the boot log from the serial console. Implementing this is
+optional.
+
 .SS Included scripts
 
 .RE

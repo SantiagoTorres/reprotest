@@ -199,6 +199,7 @@ def execute_setup_script(command, fail_ok=False):
                 adtlog.debug(err)
                 return status
             else:
+                execute_setup_script('debug-failure', fail_ok=True)
                 VirtSubproc.bomb(err)
 
         if command in ['open', 'revert']:
@@ -302,6 +303,7 @@ def wait_for_ssh(ssh_cmd, timeout=300):
         time.sleep(delay)
         elapsed = time.time() - start
     else:
+        execute_setup_script('debug-failure', fail_ok=True)
         VirtSubproc.bomb('Timed out on waiting for ssh connection')
 
 
@@ -453,6 +455,7 @@ def hook_wait_reboot():
         try:
             wait_port_down(sshconfig['hostname'], port, 300)
         except VirtSubproc.Timeout:
+            execute_setup_script('debug-failure', fail_ok=True)
             VirtSubproc.bomb('timed out waiting for testbed to reboot')
 
     build_sshcmd()
