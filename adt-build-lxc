@@ -118,7 +118,8 @@ setup() {
     }
 
     lxc-attach --name=$1 apt-get update
-    lxc-attach --name=$1 -- apt-get install -y dbus libpam-systemd
+    lxc-attach --name=$1 -- apt-get install -y dbus
+    lxc-attach --name=$1 -- sh -c 'if apt-cache show libpam-systemd >/dev/null; then apt-get install -y libpam-systemd; fi'
     lxc-stop --name=$1
 }
 
