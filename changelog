@@ -27,6 +27,9 @@ autopkgtest (3.18.2) UNRELEASED; urgency=medium
   * ssh-setup/nova: Implement "debug-failure" command with "nova console-log".
   * tools/adt-build-lxc: Only install libpam-systemd if that exists (e. g. not
     on Ubuntu 12.04).
+  * setup-commands/cloud-vm-setup: Don't rm the /etc/cron.daily/apt conffile
+    to avoid breaking apt upgrades. Instead, create
+    /etc/apt/apt.conf.d/02periodic.
 
   [ Max Brustkern ]
   * adt-buildvm-ubuntu-cloud: Add timeout option.
