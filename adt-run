@@ -594,9 +594,10 @@ def main():
         testbed.start()
         testbed.open()
         process_actions()
-        create_testinfo(vserver_args)
     except:
         errorcode = print_exception(sys.exc_info(), '')
+    if tmp:
+        create_testinfo(vserver_args)
     cleanup()
     sys.exit(errorcode)
 
