@@ -24,6 +24,7 @@ autopkgtest (3.18.2) UNRELEASED; urgency=medium
   * Add a new ssh setup script command "debug-failure" which is called when
     the setup script fails with nonzero or on timeouts waiting for ssh or
     reboot.
+  * ssh-setup/nova: Implement "debug-failure" command with "nova console-log".
 
   [ Max Brustkern ]
   * adt-buildvm-ubuntu-cloud: Add timeout option.
