@@ -21,6 +21,9 @@ autopkgtest (3.18.2) UNRELEASED; urgency=medium
     greatest (by string sorting) result. This avoids having to put date stamps
     into the command line, and also avoids completely falling over if two
     images have the same name.
+  * Add a new ssh setup script command "debug-failure" which is called when
+    the setup script fails with nonzero or on timeouts waiting for ssh or
+    reboot.
 
   [ Max Brustkern ]
   * adt-buildvm-ubuntu-cloud: Add timeout option.
