@@ -25,7 +25,7 @@ Depends: python3,
  procps,
  ${misc:Depends}
 Recommends: autodep8
-Suggests: schroot, lxc, qemu-system, qemu-utils
+Suggests: schroot, lxc, lxd-client, qemu-system, qemu-utils
 Description: automatic as-installed testing for Debian packages
  autopkgtest runs tests on binary packages.  The tests are run on the
  package as installed on a testbed system (which may be found via a
@@ -34,7 +34,7 @@ Description: automatic as-installed testing for Debian packages
  .
  See adt-run(1) and /usr/share/doc/autopkgtest.
  Depending on which virtualization server you want to use, you need to
- install additional packages (schroot, lxc, or qemu-system)
+ install additional packages (schroot, lxc, lxd, or qemu-system)
  .
  For generating tests of well-known source packages such as Perl and Ruby
  libraries you should install the autodep8 package.

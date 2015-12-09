@@ -1,12 +1,16 @@
-autopkgtest (3.18.3) UNRELEASED; urgency=medium
+autopkgtest (3.19) UNRELEASED; urgency=medium
 
+  New features:
+  * Add adt-virt-lxd runner for LXD. (LP: #1519677)
+
+  Bug fixes:
   * If apt-get fails when installing test dependencies and apt
     pinning is in use, also retry without pinning. This was already done in
     the case of apt-get succeeding but removing our "satdep" dummy package
     (the common case), but this does not cover upgrades of Priority: >=
     important packages which make apt-get exit with non-zero.
 
- -- Martin Pitt <mpitt@debian.org>  Wed, 09 Dec 2015 21:37:53 +0100
+ -- Martin Pitt <mpitt@debian.org>  Wed, 09 Dec 2015 12:47:21 +0100
 
 autopkgtest (3.18.2) unstable; urgency=medium
 
