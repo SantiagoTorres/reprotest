@@ -71,6 +71,11 @@ class Testbed:
         self.eatmydata_prefix = []
         self.apt_pin_for_pockets = []
 
+        try:
+            self.devnull = subprocess.DEVNULL
+        except AttributeError:
+            self.devnull = open(os.devnull, 'rb')
+
         adtlog.debug('testbed init')
 
     def start(self):
@@ -390,8 +395,9 @@ class Testbed:
 
         VirtSubproc.timeout_start(timeouts[kind])
         try:
-            proc = subprocess.Popen(self.exec_cmd + argv, stdout=stdout,
-                                    stderr=stderr)
+            proc = subprocess.Popen(self.exec_cmd + argv,
+                                    stdin=self.devnull,
+                                    stdout=stdout, stderr=stderr)
             (out, err) = proc.communicate()
             if out is not None:
                 out = out.decode()
