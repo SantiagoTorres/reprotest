@@ -34,6 +34,7 @@ autopkgtest (3.18.2) UNRELEASED; urgency=medium
   * Set stdin to /dev/null when running commands in the testbed. This avoids
     hanging tests on interactive questions and also fixes auxverbs which check
     if stdin is a PTY (like "lxc exec").
+  * tests/testarchive.py: Don't include the "Release" file into itself.
 
   [ Max Brustkern ]
   * adt-buildvm-ubuntu-cloud: Add timeout option.
