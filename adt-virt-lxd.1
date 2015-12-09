@@ -1,0 +1,114 @@
+.TH adt\-virt-lxd 1 2013 "Linux Programmer's Manual"
+.SH NAME
+adt\-virt\-lxd \- autopkgtest virtualisation server using LXD
+
+.SH SYNOPSYS
+.B adt\-virt\-lxd
+.RI [ options ]
+.I image
+.RI [ "-- extra lxc launch args..." ]
+
+.SH DESCRIPTION
+.B adt-virt-lxd
+provides an autopkgtest virtualisation server using LXD. It creates temporary
+containers from the given LXD image name.
+
+Normally
+.B adt-virt-lxd
+will be invoked by
+.BR adt-run .
+
+.SH REQUIREMENTS
+.B adt-virt-lxd
+makes no particular assumptions about the image. However, it is highly
+recommended that the image has eatmydata installed, or at least that gets
+installed via setup commands.
+
+.SH OPTIONS
+
+.TP
+.BI -r " remote" " | --remote=" remote
+Run container on given remote host instead of locally. See
+.B lxc remote list
+for available remotes.
+
+.TP
+.BR \-d " | " \-\-debug
+Enables debugging output.
+
+.PP
+You can pass additional options to
+.B lxd launch\fR:
+Anything after a
+.B --
+gets appended verbatim to
+.BI "lxc launch " image\fR.
+
+.SH INPUT, OUTPUT AND EXIT STATUS
+The behaviour of
+.B adt-virt-lxd
+is as described by the AutomatedTesting virtualisation regime
+specification.
+
+.SH EXAMPLE
+
+Add a remote LXD image server for the public
+.B linuxcontainers.org
+and show available images:
+
+.RS
+.EX
+lxc remote add lco https://images.linuxcontainers.org:8443
+lxc image list lco:
+.EE
+.RE
+
+Run the tests of the
+.B libpng
+package on the current Debian sid image from the above
+.B lco:
+remote:
+
+.RS
+.EX
+adt-run libpng --- lxd lco:debian/sid/amd64
+.EE
+.RE
+
+Run the tests in a local built directory tree from a local LXD image
+.B desktop/i386\fR,
+ensuring that eatmydata is installed:
+
+.RS
+.EX
+adt-run --setup-commands 'apt-get install -y eatmydata' dir/to/test/ \\
+  --- lxd desktop/i386
+.EE
+.RE
+
+Run the tests of the
+.B libpng
+package on the current Debian sid image from the
+.B lco:
+remote on a remote armhf host:
+
+.RS
+.EX
+lxc remote add armhf-test http://armhf.testlab.example.com:8443
+adt-run libpng --- lxd --remote armhf-test lco:debian/sid/armhf
+.EE
+.RE
+
+.SH SEE ALSO
+\fBadt\-run\fR(1),
+\fB/usr/share/doc/autopkgtest/\fR.
+
+.SH AUTHORS AND COPYRIGHT
+.B adt-virt-lxd
+was written by Martin Pitt <martin.pitt@ubuntu.com>.
+
+This manpage is part of autopkgtest, a tool for testing Debian binary
+packages.  autopkgtest is Copyright (C) 2006-2015 Canonical Ltd and others.
+
+See \fB/usr/share/doc/autopkgtest/CREDITS\fR for the list of
+contributors and full copying conditions.
