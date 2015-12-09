@@ -31,6 +31,9 @@ autopkgtest (3.18.2) UNRELEASED; urgency=medium
     to avoid breaking apt upgrades. Instead, create
     /etc/apt/apt.conf.d/02periodic.
   * Create a testinfo.json for "badpkg" and other exit codes as well.
+  * Set stdin to /dev/null when running commands in the testbed. This avoids
+    hanging tests on interactive questions and also fixes auxverbs which check
+    if stdin is a PTY (like "lxc exec").
 
   [ Max Brustkern ]
   * adt-buildvm-ubuntu-cloud: Add timeout option.
