@@ -35,6 +35,8 @@ autopkgtest (3.18.2) UNRELEASED; urgency=medium
     hanging tests on interactive questions and also fixes auxverbs which check
     if stdin is a PTY (like "lxc exec").
   * tests/testarchive.py: Don't include the "Release" file into itself.
+  * Fix SchrootRunner.test_apt_pocket_* test cases to include "Sources" into
+    Release file. This makes the tests work with apt 1.1.
 
   [ Max Brustkern ]
   * adt-buildvm-ubuntu-cloud: Add timeout option.
