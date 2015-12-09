@@ -502,10 +502,13 @@ Description: satisfy autopkgtest test dependencies
 
                 if shell_on_failure:
                     self.run_shell()
-                self.badpkg('failed to run apt-get to satisfy adt-satdep.deb dependencies')
-            rc = self.execute(['dpkg', '--status', 'adt-satdep'],
-                              stdout=subprocess.PIPE,
-                              stderr=subprocess.PIPE)[0]
+            else:
+                # apt-get -f may succeed, but its solution might remove
+                # adt-satdep, which is still a failure
+                rc = self.execute(['dpkg', '--status', 'adt-satdep'],
+                                  stdout=subprocess.PIPE,
+                                  stderr=subprocess.PIPE)[0]
+
             if rc != 0:
                 if self.apt_pin_for_pockets:
                     pocket = self.apt_pin_for_pockets.pop()
