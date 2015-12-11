@@ -258,7 +258,7 @@ class Testbed:
                          'for d in %s; do [ ! -d $d ] || touch -r $d %s/${d//\//_}.stamp; done' % (
                              boot_dirs, self.scratch)])
 
-        xenv = []
+        xenv = ['ADT_IS_SETUP_COMMAND=1']
         if self.user:
             xenv.append('ADT_NORMAL_USER=' + self.user)
 
