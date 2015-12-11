@@ -7,6 +7,7 @@ autopkgtest (3.19) UNRELEASED; urgency=medium
     script setup-commands/setup-testbed. This will work both for image
     building (VM, cloud, LXC, LXD) and as --setup-commands (in which case some
     actions are skipped).
+  * setup-commands/setup-testbed: Clean up mdadm, dmeventd, and lvm2.
 
   Bug fixes:
   * If apt-get fails when installing test dependencies and apt
