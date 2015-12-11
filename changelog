@@ -1,7 +1,12 @@
 autopkgtest (3.19) UNRELEASED; urgency=medium
 
-  New features:
+  New features/behaviour changes:
   * Add adt-virt-lxd runner for LXD. (LP: #1519677)
+  * Unify test bed setup scripts for VMs (adt-setup-vm), containers (in
+    adt-build-lxc) and cloud (setup-commands/cloud-vm-setup) into a common
+    script setup-commands/setup-testbed. This will work both for image
+    building (VM, cloud, LXC, LXD) and as --setup-commands (in which case some
+    actions are skipped).
 
   Bug fixes:
   * If apt-get fails when installing test dependencies and apt
