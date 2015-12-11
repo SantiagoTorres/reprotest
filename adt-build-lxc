@@ -81,9 +81,6 @@ proxy_detect() {
 }
 
 setup() {
-    # add deb-src
-    sed -i '/^deb/ { p; s/^deb/deb-src/}' $LXCDIR/$1/rootfs/etc/apt/sources.list
-
     # a host's http_proxy for localhost does not work in the guest, apt proxy
     # needs to be set up separately there
     if [ "$http_proxy" != "${http_proxy#*localhost*}" ] || \
@@ -96,10 +93,6 @@ setup() {
     if [ -n "$ADT_APT_PROXY" ]; then
         echo "Acquire::http { Proxy \"$ADT_APT_PROXY\"; };" > $LXCDIR/$1/rootfs/etc/apt/apt.conf.d/01proxy
     fi
-
-    # go-faster apt/dpkg
-    echo "Acquire::Languages \"none\";" > $LXCDIR/$1/rootfs/etc/apt/apt.conf.d/90nolanguages
-    echo 'force-unsafe-io' > $LXCDIR/$1/rootfs/etc/dpkg/dpkg.cfg.d/autopkgtest
 
     lxc-start --daemon --name=$1
     # wait until it is booted: lxc-attach works and we get a numeric runlevel
@@ -117,9 +110,15 @@ setup() {
         exit 1
     }
 
-    lxc-attach --name=$1 apt-get update
-    lxc-attach --name=$1 -- apt-get install -y dbus
-    lxc-attach --name=$1 -- sh -c 'if apt-cache show libpam-systemd >/dev/null; then apt-get install -y libpam-systemd; fi'
+    # find setup-testbed script
+    for script in $(dirname $(dirname "$0"))/setup-commands/setup-testbed \
+                  /usr/share/autopkgtest/setup-commands/setup-testbed; do
+        if [ -x "$script" ]; then
+            echo "Running setup script $script..."
+            cat "$script" | lxc-attach --name=$1 sh
+            break
+        fi
+    done
     lxc-stop --name=$1
 }
 

@@ -201,7 +201,7 @@ runcmd:
  - sed -i 's/deb-systemd-invoke/true/' /var/lib/dpkg/info/cloud-init.prerm
  - mount -r /dev/vdb /mnt
  - env ADT_SETUP_VM_UPGRADE=%(upgr)s ADT_SETUP_VM_POST_COMMAND='%(postcmd)s'
-     sh /mnt/adt-setup-vm
+     sh /mnt/setup-testbed
  - if grep -q 'net.ifnames=0' /proc/cmdline; then rm /etc/network/interfaces.d/eth0.cfg; printf "auto ens3\\niface ens3 inet dhcp\\n" > /etc/network/interfaces.d/ens3.cfg; fi
  - umount /mnt
  - sed -i 's/deb-systemd-invoke/true/' /var/lib/dpkg/info/cloud-init.prerm
@@ -243,20 +243,21 @@ def build_seed(mirror, proxy, no_apt_upgrade, metadata_file=None,
     with open(os.path.join(workdir, 'user-data'), 'w') as f:
         f.write(userdata)
 
-    # find adt-setup-vm, copy it into the VM via the cloud-init seed iso
-    for setup_vm in [os.path.join(os.path.dirname(__file__), 'adt-setup-vm'),
-                     '/usr/share/autopkgtest/adt-setup-vm']:
-        if os.path.exists(setup_vm):
-            shutil.copy(setup_vm, workdir)
+    # find setup-testbed, copy it into the VM via the cloud-init seed iso
+    for script in [os.path.join(os.path.dirname(os.path.abspath(os.path.dirname(__file__))),
+                                'setup-commands', 'setup-testbed'),
+                   '/usr/share/autopkgtest/setup-commands setup-testbed']:
+        if os.path.exists(script):
+            shutil.copy(script, workdir)
             break
     else:
-        sys.stderr.write('\nCould not find adt-setup-vm\n')
+        sys.stderr.write('\nCould not find setup-testbed script\n')
         sys.exit(1)
 
     genisoimage = subprocess.Popen(['genisoimage', '-output', 'adt.seed',
                                     '-volid', 'cidata', '-joliet', '-rock',
                                     '-quiet', 'user-data', 'meta-data',
-                                    'adt-setup-vm'],
+                                    'setup-testbed'],
                                    cwd=workdir)
     genisoimage.communicate()
     if genisoimage.returncode != 0:
