@@ -69,6 +69,22 @@ be used to satisfy dependencies, as usually in this mode you want to test
 binaries from a real archive.
 
 .TP
+.BR --git-source " " \fIURL\fR " " \fR[\fIbranchname\fR]
+Specifies that tests from the unbuilt Debian source tree from git-cloning
+.IR URL
+should be run. If
+.I branchname
+is given, this branch will be checked out instead of the default (usually
+"master").
+
+This is very similar to specifying \fB\-\-unbuilt-tree\fR after cloning, i. e.
+this is commonly used with
+.BR \-\-no\-built\-binaries .
+The
+.B git
+package will be installed if necessary.
+
+.TP
 .BR --binary " " \fIdeb\fR
 Specifies that \fIdeb\fR should be used for tests of all following
 source packages.  By default it will be used to satisfy dependencies,

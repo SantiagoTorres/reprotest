@@ -344,6 +344,16 @@ def build_source(kind, arg, built_binaries):
         # apt-get source is terribly noisy; only show what gets downloaded
         create_command = 'OUT=$(apt-get source -q --only-source %s); echo "$OUT" | grep ^Get: || true' % arg
 
+    elif kind == 'git-source':
+        fields = arg.split()
+        if len(fields) == 1:
+            create_command = "git clone '%s'" % arg
+        elif len(fields) == 2:
+            create_command = "git clone --branch '%s' '%s'" % (fields[1], fields[0])
+        else:
+            adtlog.bomb('--git-source argument must be "URL" or "URL branchname"')
+
+        testbed.satisfy_dependencies_string('git', 'install git for --git-source')
     else:
         adtlog.bomb('unknown action kind for build_source: ' + kind)
 
@@ -399,7 +409,7 @@ def build_source(kind, arg, built_binaries):
         if kind not in ['dsc', 'apt-source']:
             testbed.install_deps([], False)
 
-        if kind == 'apt-source':
+        if kind in ('apt-source', 'git-source'):
             # we need to get the downloaded debian/control from the testbed, so
             # that we can avoid calling "apt-get build-dep" and thus
             # introducing a second mechanism for installing build deps
@@ -496,7 +506,8 @@ def process_actions():
             continue
 
         # tests/build actions
-        assert kind in ('source', 'unbuilt-tree', 'built-tree', 'apt-source', 'click')
+        assert kind in ('source', 'unbuilt-tree', 'built-tree', 'apt-source',
+                        'git-source', 'click')
         adtlog.info('@@@@@@@@@@@@@@@@@@@@ %s %s' % (kind, arg))
 
         if kind == 'click':
