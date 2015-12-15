@@ -140,7 +140,7 @@ class ActionArg(argparse.Action):
         if option_string in ('--apt-source', '--built-tree'):
             bins = False
         # these are the only types where built_binaries applies
-        elif option_string in ('--unbuilt-tree', '--source'):
+        elif option_string in ('--unbuilt-tree', '--source', '--git-source'):
             bins = built_binaries
         else:
             bins = None
@@ -183,6 +183,10 @@ def parse_args(arglist=None):
         '--source', action=ActionArg, metavar='DSC or some/pkg.dsc',
         help='build DSC and use its tests and/or generated binary packages')
     action_parser.add_argument(
+        '--git-source', action=ActionArg, metavar='GITURL [branchname]',
+        help='check out git URL (optionally a non-default branch), build it '
+        'if necessary, and run its tests')
+    action_parser.add_argument(
         '--binary', action=ActionArg, metavar='DEB or some/pkg.deb',
         help='use binary package DEB for subsequent tests')
     action_parser.add_argument(
@@ -209,11 +213,12 @@ def parse_args(arglist=None):
         help='run only given test name in the next package')
     action_parser.add_argument(
         '-B', '--no-built-binaries', nargs=0, action=BinariesArg,
-        help='do not use any binaries from subsequent --source or '
-        '--unbuilt-tree actions')
+        help='do not use any binaries from subsequent --source, '
+        '--git-source, or --unbuilt-tree actions')
     action_parser.add_argument(
         '--built-binaries', nargs=0, action=BinariesArg,
-        help='use binaries from subsequent --source or --unbuilt-tree actions')
+        help='use binaries from subsequent --source, --git-source, or '
+        '--unbuilt-tree actions')
 
     # main / options parser
     usage = '%(prog)s [options] action [action ...] --- virt-server [options]'
