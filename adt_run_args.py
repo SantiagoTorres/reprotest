@@ -276,7 +276,7 @@ details.'''
                          'opening')
     g_setup.add_argument('--env', metavar='VAR=value',
                          action='append', default=[],
-                         help='Set arbitrary environment variable for a test')
+                         help='Set arbitrary environment variable for builds and test')
 
     # privileges
     g_priv = parser.add_argument_group('user/privilege handling options')
