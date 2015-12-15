@@ -10,6 +10,8 @@ autopkgtest (3.19) UNRELEASED; urgency=medium
   * setup-commands/setup-testbed: Clean up many more packages. Only do this
     when building an image, to avoid accidentally destroying testbeds which
     are not minimal autopkgtest ones.
+  * Make --env apply to package builds too. With that you can e. g. set
+    DEB_BUILD_OPTIONS.
 
   Bug fixes:
   * If apt-get fails when installing test dependencies and apt
