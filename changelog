@@ -12,6 +12,9 @@ autopkgtest (3.19) UNRELEASED; urgency=medium
     are not minimal autopkgtest ones.
   * Make --env apply to package builds too. With that you can e. g. set
     DEB_BUILD_OPTIONS.
+  * Add new action type --git-source which installs git (unless already
+    present), checks out a remote branch, and then behaves like
+    --unbuilt-tree.
 
   Bug fixes:
   * If apt-get fails when installing test dependencies and apt
