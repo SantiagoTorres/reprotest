@@ -1,0 +1,124 @@
+#!/bin/sh
+# adt-build-lxd is part of autopkgtest
+# autopkgtest is a tool for testing Debian binary packages
+#
+# autopkgtest is Copyright (C) 2006-2015 Canonical Ltd.
+#
+# Build or update an LXD image autopkgtest/<distro>/<release>/<arch> with
+# autopkgtest customizations from an arbitrary existing image.
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+#
+# See the file CREDITS for a full list of credits information (often
+# installed as /usr/share/doc/autopkgtest/CREDITS).
+set -eu
+
+# generate temporary container name
+generate_container_name() {
+    while true; do
+        CONTAINER=$(mktemp adt-prepare-XXX -u)
+        lxc info "$CONTAINER" >/dev/null 2>&1 || break
+    done
+}
+
+# auto-detect apt-cacher-ng
+proxy_detect() {
+    if [ -z "${ADT_APT_PROXY:-}" ]; then
+        RES=`apt-config shell proxy Acquire::http::Proxy`
+        eval $RES
+        if echo "$proxy" | egrep -q '(localhost|127\.0\.0\.[0-9]*):3142'; then
+            # translate proxy address to one that can be accessed from the
+            # running container
+            local bridge_interface=$(awk '{ if ($1 == "lxc.network.link") print($3)}' /etc/lxc/default.conf)
+            if [ -n "$bridge_interface" ]; then
+                local bridge_ip=$(ip -4 a show dev "$bridge_interface" | awk '/ inet / {sub(/\/.*$/, "", $2); print $2}') || true
+                if [ -n "$bridge_ip" ]; then
+                    ADT_APT_PROXY="http://$bridge_ip:3142"
+                fi
+            fi
+            if [ -n "${ADT_APT_PROXY:-}" ]; then
+                echo "Detected local apt-cacher-ng, using $ADT_APT_PROXY as container proxy"
+            fi
+        fi
+    fi
+}
+
+setup() {
+    # set up apt proxy for the container
+    if [ -n "${ADT_APT_PROXY:-}" ]; then
+        echo "Acquire::http::Proxy \"$ADT_APT_PROXY\";" | lxc file push - "$CONTAINER/etc/apt/apt.conf.d/01proxy"
+    fi
+
+    # wait until it is booted: lxc exec works and we get a numeric runlevel
+    timeout=60
+    while [ $timeout -ge 0 ]; do
+        timeout=$((timeout - 1))
+        sleep 1
+        O=`lxc exec "$CONTAINER" runlevel 2>/dev/null </dev/null` || continue
+        [ "$O" = "${O%[0-9]}" ] || break
+    done
+    [ $timeout -ge 0 ] || {
+        echo "Timed out waiting for container to boot" >&2
+        exit 1
+    }
+
+    ARCH=$(lxc exec "$CONTAINER" -- dpkg --print-architecture </dev/null)
+    DISTRO=$(lxc exec "$CONTAINER" -- sh -ec 'lsb_release -si 2>/dev/null || . /etc/os-release; echo "${NAME% *}"' </dev/null)
+    RELEASE=$(lxc exec "$CONTAINER" -- sh -ec 'lsb_release -sc 2>/dev/null || awk "/^deb/ {print \$3; quit}" /etc/apt/sources.list' </dev/null)
+    echo "Container finished booting. Distribution $DISTRO, release $RELEASE, architecture $ARCH"
+
+    # find setup-testbed script
+    for script in $(dirname $(dirname "$0"))/setup-commands/setup-testbed \
+                  /usr/share/autopkgtest/setup-commands/setup-testbed; do
+        if [ -x "$script" ]; then
+            echo "Running setup script $script..."
+            lxc exec "$CONTAINER" -- sh < "$script"
+            break
+        fi
+    done
+    lxc stop "$CONTAINER"
+}
+
+#
+# main
+#
+
+if [ -z "${1:-}" ]; then
+    echo "Usage: $0 <image>" >&2
+    exit 1
+fi
+IMAGE="$1"
+CONTAINER=''
+trap '[ -z "$CONTAINER" ] || lxc delete "$CONTAINER"' EXIT INT QUIT PIPE
+
+proxy_detect
+generate_container_name
+lxc launch "$IMAGE" "$CONTAINER"
+setup
+
+# if there already is a published image, get its fingerprint to clean it up
+# afterwards
+ALIAS="adt/$(echo "$DISTRO" | tr '[:upper:]' '[:lower:]')/$RELEASE/$ARCH"
+OLD_IMAGE=''
+if O=$(lxc image info "$ALIAS" 2>/dev/null); then
+    OLD_IMAGE=$(echo "$O" | awk 'tolower($1) ~ /fingerprint:/ { print $2}')
+fi
+
+lxc publish "$CONTAINER" --alias "$ALIAS" --public description="autopkgtest $DISTRO $RELEASE $ARCH"
+
+if [ -n "$OLD_IMAGE" ]; then
+    echo "Removing previous image $OLD_IMAGE"
+    lxc image delete "$OLD_IMAGE"
+fi

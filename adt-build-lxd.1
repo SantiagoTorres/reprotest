@@ -1,0 +1,50 @@
+.TH adt-build-lxd 1 2015 "Linux Programmer's Manual"
+.SH NAME
+adt-build-lxd \- Create or update autopkgtest container for adt\-virt-lxd
+
+.SH SYNOPSYS
+.B adt-build-lxd
+.I image
+
+.SH DESCRIPTION
+.B adt-build-lxd
+creates or updates an LXD image which is optimized for autopkgtest's LXD runner
+.BR adt-virt-lxd (1).
+
+It builds a temporary container from an existing given image, runs
+autopkgtest's standard
+.B setup-commands/setup-testbed
+script, and publishes it as a new image with the alias
+\fBadt-\fIdistro\fR-\fIrelease\fR-\fIarchitecture\fR.
+
+You can specify an apt proxy to use in the container in the
+.B $ADT_APT_PROXY
+environment variable. If apt-cacher-ng is running on the local host, the
+container will automatically use this (i. e. use the IP from the
+.B lxcbr0
+interface, or whichever interface is configured in /etc/lxc/default.conf)
+otherwise there is no default.
+
+
+.SH EXAMPLE
+
+Add a remote LXD image server for the public linuxcontainers.org and build a
+local autopkgtest container for Debian sid i386:
+$ lxc remote add lco https://images.linuxcontainers.org:8443
+$ adt-build-lxd lco:debian/sid/i386
+
+.SH SEE ALSO
+\fBadt\-virt-lxd\fR(1),
+\fBadt\-run\fR(1),
+\fBlxc\fR(1),
+\fB/usr/share/doc/autopkgtest/\fR.
+
+.SH AUTHORS AND COPYRIGHT
+.B adt-build-lxd
+was written by Martin Pitt <martin.pitt@ubuntu.com>
+
+This manpage is part of autopkgtest, a tool for testing Debian binary
+packages.  autopkgtest is Copyright (C) 2006-2015 Canonical Ltd and others.
+
+See \fB/usr/share/doc/autopkgtest/CREDITS\fR for the list of
+contributors and full copying conditions.
