@@ -26,6 +26,8 @@ autopkgtest (3.19) UNRELEASED; urgency=medium
     the case of apt-get succeeding but removing our "satdep" dummy package
     (the common case), but this does not cover upgrades of Priority: >=
     important packages which make apt-get exit with non-zero.
+  * Set $TERM in testbed to the host's value when starting an interactive
+    shell in the testbed. This fixes broken shells with the LXC/LXD runners.
 
  -- Martin Pitt <mpitt@debian.org>  Wed, 09 Dec 2015 12:47:21 +0100
 
