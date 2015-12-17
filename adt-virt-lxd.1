@@ -20,9 +20,14 @@ will be invoked by
 
 .SH REQUIREMENTS
 .B adt-virt-lxd
-makes no particular assumptions about the image. However, it is highly
+makes no strict assumptions about the image. However, it is highly
 recommended that the image has eatmydata installed, or at least that gets
 installed via setup commands.
+
+For production use, it is recommended to use
+.BR adt-build-lxd (1)
+to generate an optimized image with autopkgtest's standard setup commands
+applied. Then these setup commands don't need to be applied for every test.
 
 .SH OPTIONS
 
@@ -101,6 +106,7 @@ adt-run libpng --- lxd --remote armhf-test lco:debian/sid/armhf
 
 .SH SEE ALSO
 \fBadt\-run\fR(1),
+\fBadt\-build-lxd\fR(1),
 \fB/usr/share/doc/autopkgtest/\fR.
 
 .SH AUTHORS AND COPYRIGHT
