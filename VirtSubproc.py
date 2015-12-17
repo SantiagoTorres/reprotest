@@ -589,6 +589,11 @@ def cmd_shell(c, ce):
         cmd = 'cd "%s"; ' % c[1]
         for e in c[2:]:
             cmd += 'export "%s"; ' % e
+        # use host's $TERM to provide a sane shell
+        try:
+            cmd += 'export TERM="%s"; ' % os.environ['TERM']
+        except KeyError:
+            pass
         cmd += 'bash -i'
         with open('/dev/tty', 'rb') as sin:
             with open('/dev/tty', 'wb') as sout:
