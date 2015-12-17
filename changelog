@@ -15,6 +15,7 @@ autopkgtest (3.19) UNRELEASED; urgency=medium
   * Add new action type --git-source which installs git (unless already
     present), checks out a remote branch, and then behaves like
     --unbuilt-tree.
+  * adt-virt-lxc.1: Mention adt-build-lxc in "Requirements".
 
   Bug fixes:
   * If apt-get fails when installing test dependencies and apt
