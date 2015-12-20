@@ -1,3 +1,13 @@
+autopkgtest (3.19.1) UNRELEASED; urgency=medium
+
+  * adt-virt-qemu: If the executed command exits with 255, translate that to
+    253 in the auxverb wrapper, as 255 is the exit code for failures of the
+    auxverb itself. This avoids considering ordinary test failures as
+    temporary testbed failures. This makes the QEMU runner behave the same way
+    as the container ones.
+
+ -- Martin Pitt <mpitt@debian.org>  Sun, 20 Dec 2015 09:52:05 +0100
+
 autopkgtest (3.19) unstable; urgency=medium
 
   New features/behaviour changes:
