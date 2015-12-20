@@ -368,7 +368,8 @@ with open(path_exit) as f:
 t_stdin.join()
 t_stdout.join()
 t_stderr.join()
-sys.exit(rc)
+# code 255 means that the auxverb itself failed, so translate
+sys.exit(rc == 255 and 253 or rc)
 ''' % {'py': sys.executable, 'tty': os.path.join(workdir, 'ttyS1'), 'dir': shared_dir})
 
     os.chmod(auxverb, 0o755)
