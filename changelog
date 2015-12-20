@@ -5,6 +5,7 @@ autopkgtest (3.19.1) UNRELEASED; urgency=medium
     auxverb itself. This avoids considering ordinary test failures as
     temporary testbed failures. This makes the QEMU runner behave the same way
     as the container ones.
+  * tests/adt-run: Factorize common tests into superclasses.
 
  -- Martin Pitt <mpitt@debian.org>  Sun, 20 Dec 2015 09:52:05 +0100
 
