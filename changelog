@@ -6,6 +6,9 @@ autopkgtest (3.19.1) UNRELEASED; urgency=medium
     temporary testbed failures. This makes the QEMU runner behave the same way
     as the container ones.
   * tests/adt-run: Factorize common tests into superclasses.
+  * doc/README.package-tests.rst: Point out that "Test-Command:" is also
+    useful for running the same test script under different interpreters or
+    different dependencies. (Closes: #809442)
 
  -- Martin Pitt <mpitt@debian.org>  Sun, 20 Dec 2015 09:52:05 +0100
 
