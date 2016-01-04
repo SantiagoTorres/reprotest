@@ -147,8 +147,12 @@ def execute_timeout(instr, timeout, *popenargs, **popenargsk):
     try:
         (out, err) = sp.communicate(instr)
     except Timeout:
-        sp.kill()
-        sp.wait()
+        try:
+            sp.kill()
+            sp.wait()
+        except OSError as e:
+            adtlog.error('WARNING: Cannot kill timed out process %s: %s' %
+                         (popenargs[0], e))
         raise
     timeout_stop()
     status = sp.wait()
