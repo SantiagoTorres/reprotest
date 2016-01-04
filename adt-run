@@ -576,6 +576,7 @@ def process_actions():
             adtlog.info('@@@@@@@@@@@@@@@@@@@@ summary')
             sys.stderr.buffer.write(adtlog.summary_stream.read())
         adtlog.summary_stream.close()
+        adtlog.summary_stream = None
 
 
 def main():
