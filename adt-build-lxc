@@ -113,7 +113,7 @@ setup() {
     # find setup-testbed script
     for script in $(dirname $(dirname "$0"))/setup-commands/setup-testbed \
                   /usr/share/autopkgtest/setup-commands/setup-testbed; do
-        if [ -x "$script" ]; then
+        if [ -r "$script" ]; then
             echo "Running setup script $script..."
             cat "$script" | lxc-attach --name=$1 sh
             break
