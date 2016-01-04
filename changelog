@@ -14,6 +14,8 @@ autopkgtest (3.19.1) UNRELEASED; urgency=medium
   * Gracefully handle failure to kill a timed out process.
   * ssh-setup/nova: Use image UUID instead of its name for "nova boot". This
     avoids failures if multiple images have the same name. (LP: #1524216)
+  * adt-build-{lxc,lxd}: Run testbed setup scripts also if they are not
+    executable. Thanks Antonio Terceiro! (Closes: #809917)
 
  -- Martin Pitt <mpitt@debian.org>  Sun, 20 Dec 2015 09:52:05 +0100
 
