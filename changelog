@@ -11,6 +11,7 @@ autopkgtest (3.19.1) UNRELEASED; urgency=medium
     different dependencies. (Closes: #809442)
   * Set summary_stream to None after closing it, to avoid trying to write
     late error messages from cleanup into it.
+  * Gracefully handle failure to kill a timed out process.
 
  -- Martin Pitt <mpitt@debian.org>  Sun, 20 Dec 2015 09:52:05 +0100
 
