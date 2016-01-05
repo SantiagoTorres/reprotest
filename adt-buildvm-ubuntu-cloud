@@ -246,7 +246,7 @@ def build_seed(mirror, proxy, no_apt_upgrade, metadata_file=None,
     # find setup-testbed, copy it into the VM via the cloud-init seed iso
     for script in [os.path.join(os.path.dirname(os.path.abspath(os.path.dirname(__file__))),
                                 'setup-commands', 'setup-testbed'),
-                   '/usr/share/autopkgtest/setup-commands setup-testbed']:
+                   '/usr/share/autopkgtest/setup-commands/setup-testbed']:
         if os.path.exists(script):
             shutil.copy(script, workdir)
             break
