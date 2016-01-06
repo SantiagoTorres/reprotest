@@ -31,7 +31,7 @@ import adt_testbed
 
 
 class DebBinaries:
-    '''Registration and installaltion of .debs'''
+    '''Registration and installation of .debs'''
 
     def __init__(self, testbed, output_dir):
         adtlog.debug('Binaries: initialising')
