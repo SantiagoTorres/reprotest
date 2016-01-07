@@ -38,7 +38,7 @@ proxy_detect() {
     if [ -z "${ADT_APT_PROXY:-}" ]; then
         RES=`apt-config shell proxy Acquire::http::Proxy`
         eval $RES
-        if echo "$proxy" | egrep -q '(localhost|127\.0\.0\.[0-9]*):3142'; then
+        if echo "${proxy:-}" | egrep -q '(localhost|127\.0\.0\.[0-9]*):3142'; then
             # translate proxy address to one that can be accessed from the
             # running container
             local bridge_interface=$(awk '{ if ($1 == "lxc.network.link") print($3)}' /etc/lxc/default.conf)
