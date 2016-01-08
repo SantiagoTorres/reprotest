@@ -26,6 +26,8 @@ autopkgtest (3.19.1) UNRELEASED; urgency=medium
   * tools/adt-build-lxc: Fix removal of LXC caches on btrfs.
   * tools/adt-build-lxc: Use "-B best" for lxc-create, for better performance
     on btrfs or LVM.
+  * tools/adt-build-lxc: Fix hostname for updating containers to not end in
+    ".new".
 
  -- Martin Pitt <mpitt@debian.org>  Sun, 20 Dec 2015 09:52:05 +0100
 
