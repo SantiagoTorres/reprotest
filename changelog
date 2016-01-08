@@ -20,6 +20,9 @@ autopkgtest (3.19.1) UNRELEASED; urgency=medium
   * setup-commands/setup-testbed: Handle options in sources.list. Thanks
     Antonio Terceiro!
   * tools/adt-build-lxd: Fix error message if apt does not have a proxy set.
+  * setup-commands/setup-testbed: Install linux-headers-generic if there is no
+    kernel (for containers), to make DKMS tests work when not being triggered
+    by a kernel. (LP: #1531488)
 
  -- Martin Pitt <mpitt@debian.org>  Sun, 20 Dec 2015 09:52:05 +0100
 
