@@ -33,6 +33,10 @@ autopkgtest (3.19.1) UNRELEASED; urgency=medium
     itself, but currently doesn't (LP #1532125).
   * adt-virt-lxc: Don't fail on stderr of lxc-start, it sometimes prints
     warnings.
+  * When using --apt-source with --apt-pocket= with an explicit package list,
+    let apt-get source download the source version that matches the pinning.
+    This avoids running tests from -proposed against packages in -release.
+    (LP: #1517426)
 
  -- Martin Pitt <mpitt@debian.org>  Sun, 20 Dec 2015 09:52:05 +0100
 
