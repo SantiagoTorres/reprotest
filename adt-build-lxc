@@ -135,6 +135,7 @@ else
     # create a new rootfs in a temp container
     $LXC_CREATE_PREFIX lxc-create -B best --name=${NAME}.new $LXC_ARGS
     setup ${NAME}.new
+    sed -i "s/${NAME}.new/${NAME}/" $LXCDIR/${NAME}.new/rootfs/etc/hostname $LXCDIR/${NAME}.new/rootfs/etc/hosts
     # replace the original rootfs; can't make this more atomic unfortunately
     mv $LXCDIR/${NAME}.new/rootfs $LXCDIR/${NAME}/rootfs.new
     mv $LXCDIR/${NAME}/rootfs $LXCDIR/${NAME}/rootfs.old
