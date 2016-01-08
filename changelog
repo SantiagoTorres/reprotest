@@ -24,6 +24,8 @@ autopkgtest (3.19.1) UNRELEASED; urgency=medium
     kernel (for containers), to make DKMS tests work when not being triggered
     by a kernel. (LP: #1531488)
   * tools/adt-build-lxc: Fix removal of LXC caches on btrfs.
+  * tools/adt-build-lxc: Use "-B best" for lxc-create, for better performance
+    on btrfs or LVM.
 
  -- Martin Pitt <mpitt@debian.org>  Sun, 20 Dec 2015 09:52:05 +0100
 
