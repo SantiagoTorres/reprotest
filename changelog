@@ -28,6 +28,9 @@ autopkgtest (3.19.1) UNRELEASED; urgency=medium
     on btrfs or LVM.
   * tools/adt-build-lxc: Fix hostname for updating containers to not end in
     ".new".
+  * adt-virt-lxc: Opportunistically try lxc-clone with "-B btrfs", and fall
+    back to default backing store if it fails. lxc-clone should do this by
+    itself, but currently doesn't (LP #1532125).
 
  -- Martin Pitt <mpitt@debian.org>  Sun, 20 Dec 2015 09:52:05 +0100
 
