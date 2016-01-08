@@ -341,9 +341,20 @@ def build_source(kind, arg, built_binaries):
         return tests_tree
 
     elif kind == 'apt-source':
+        # determine the version for "apt-get source pkg=version" that conforms
+        # to the current apt pinning
         # apt-get source is terribly noisy; only show what gets downloaded
-        create_command = 'OUT=$(apt-get source -q --only-source %s); echo "$OUT" | grep ^Get: || true' % arg
-
+        create_command = ('minver=''; '
+                          'for pkg in $(apt-cache showsrc --only-source "%(src)s" | sed -n "/^Binary:/ { s/^Binary://; s/,//g; p }" | xargs -n1 | sort -u); do'
+                          '  pkg_candidate=$(apt-cache policy $pkg|sed -n "/Candidate:/ { s/^.* //; /none/d; p}");'
+                          '  [ -n "$pkg_candidate" ] || continue; '
+                          '  srcversion=$(apt-cache show $pkg=$pkg_candidate | sed -n "/^Source: .*(.*)/ { s/^.*(//; s/)\$//; p}");'
+                          '  ver=${srcversion:-$pkg_candidate};'
+                          '  dpkg --compare-versions "$ver" gt-nl "$minver" || minver="$ver";'
+                          'done;'
+                          '[ -z "$minver" ] || minver="=$minver";'
+                          'OUT=$(apt-get source -q --only-source %(src)s$minver);'
+                          'echo "$OUT" | grep ^Get: || true' % {'src': arg})
     elif kind == 'git-source':
         fields = arg.split()
         if len(fields) == 1:
