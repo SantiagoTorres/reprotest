@@ -176,8 +176,12 @@ def hook_open():
             'lxc-attach', '--name', lxc_container_name, '--', 'chmod', 'go+rx', '/']),
             timeout=30)
     else:
-        VirtSubproc.check_exec(sudoify(
-            ['lxc-clone', '--new', lxc_container_name, '--orig', args.template]), outp=True)
+        # lxc-clone should pick -B by itself (LP: #1532125)
+        argv = sudoify(['lxc-clone', '--new', lxc_container_name, '--orig', args.template])
+        if VirtSubproc.execute_timeout(None, 10, argv + ['-B', 'btrfs'],
+                                       stdout=subprocess.PIPE, stderr=subprocess.STDOUT)[0] != 0:
+            adtlog.debug('lxc-clone with btrfs backingstore failed, re-trying without')
+            VirtSubproc.check_exec(argv, outp=True)
         argv = ['lxc-start', '--name', lxc_container_name, '--daemon']
         if shared_dir:
             argv += ['--define', 'lxc.mount.entry=%s %s none bind,create=dir 0 0' % (shared_dir, shared_dir[1:])]
