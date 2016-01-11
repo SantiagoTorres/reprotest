@@ -31,6 +31,8 @@ autopkgtest (3.19.1) UNRELEASED; urgency=medium
   * adt-virt-lxc: Opportunistically try lxc-clone with "-B btrfs", and fall
     back to default backing store if it fails. lxc-clone should do this by
     itself, but currently doesn't (LP #1532125).
+  * adt-virt-lxc: Don't fail on stderr of lxc-start, it sometimes prints
+    warnings.
 
  -- Martin Pitt <mpitt@debian.org>  Sun, 20 Dec 2015 09:52:05 +0100
 
