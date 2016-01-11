@@ -186,7 +186,9 @@ def hook_open():
         if shared_dir:
             argv += ['--define', 'lxc.mount.entry=%s %s none bind,create=dir 0 0' % (shared_dir, shared_dir[1:])]
         argv += args.lxcargs
-        VirtSubproc.check_exec(sudoify(argv))
+        rc = VirtSubproc.execute_timeout(None, 60, sudoify(argv))[0]
+        if rc != 0:
+            VirtSubproc.bomb('lxc-start failed with exit status %d' % rc)
         capabilities.append('reboot')
     try:
         adtlog.debug('waiting for lxc guest start')
