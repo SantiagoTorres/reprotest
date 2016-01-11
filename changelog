@@ -37,6 +37,8 @@ autopkgtest (3.19.1) UNRELEASED; urgency=medium
     let apt-get source download the source version that matches the pinning.
     This avoids running tests from -proposed against packages in -release.
     (LP: #1517426)
+  * setup-commands/setup-testbed: Don't purge perl and python2.7. This works
+    in sid and xenial, but is too greedy for older releases.
 
  -- Martin Pitt <mpitt@debian.org>  Sun, 20 Dec 2015 09:52:05 +0100
 
