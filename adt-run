@@ -344,7 +344,7 @@ def build_source(kind, arg, built_binaries):
         # determine the version for "apt-get source pkg=version" that conforms
         # to the current apt pinning
         # apt-get source is terribly noisy; only show what gets downloaded
-        create_command = ('minver=''; '
+        create_command = ('maxver=''; '
                           'for pkg in $(apt-cache showsrc --only-source "%(src)s" | sed -n "/^Binary:/ { s/^Binary://; s/,//g; p }" | xargs -n1 | sort -u); do'
                           '  pkg_candidate=$(apt-cache policy $pkg|sed -n "/Candidate:/ { s/^.* //; /none/d; p}");'
                           '  [ -n "$pkg_candidate" ] || continue; '
@@ -352,10 +352,10 @@ def build_source(kind, arg, built_binaries):
                           '  [ "$pkg" = "%(src)s" ] || echo "$show" | grep -q "^Source: %(src)s\\b" || continue; '
                           '  srcversion=$(echo "$show" | sed -n "/^Source: .*(.*)/ { s/^.*(//; s/)\$//; p}");'
                           '  ver=${srcversion:-$pkg_candidate};'
-                          '  dpkg --compare-versions "$ver" gt-nl "$minver" || minver="$ver";'
+                          '  dpkg --compare-versions "$ver" lt "$maxver" || maxver="$ver";'
                           'done;'
-                          '[ -z "$minver" ] || minver="=$minver";'
-                          'OUT=$(apt-get source -q --only-source %(src)s$minver);'
+                          '[ -z "$maxver" ] || maxver="=$maxver";'
+                          'OUT=$(apt-get source -q --only-source %(src)s$maxver);'
                           'echo "$OUT" | grep ^Get: || true' % {'src': arg})
     elif kind == 'git-source':
         fields = arg.split()
