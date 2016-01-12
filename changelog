@@ -2,6 +2,9 @@ autopkgtest (3.19.2) UNRELEASED; urgency=medium
 
   * Fix "apt-get source" version detection to ignore source record "Binary:"
     entries which are not actually binaries of that source.
+  * Fix "apt-get source" version detection to take the highest source version
+    of all encountered binaries. In other words, as soon as apt pinning uses
+    one package from -proposed, use the tests from -proposed too.
 
  -- Martin Pitt <mpitt@debian.org>  Tue, 12 Jan 2016 12:08:47 +0100
 
