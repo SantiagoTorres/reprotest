@@ -7,6 +7,7 @@ autopkgtest (3.19.2) UNRELEASED; urgency=medium
     one package from -proposed, use the tests from -proposed too.
   * Install /usr/share/autopkgtest/setup-commands/* scripts as executable, to
     make them work for vmdebootstrap --customize. (Closes: #810862)
+  * ssh-setup/nova: Use extended RE for matching --image pattern.
 
  -- Martin Pitt <mpitt@debian.org>  Tue, 12 Jan 2016 12:08:47 +0100
 
