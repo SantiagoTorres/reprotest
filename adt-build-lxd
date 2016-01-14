@@ -76,7 +76,7 @@ setup() {
 
     ARCH=$(lxc exec "$CONTAINER" -- dpkg --print-architecture </dev/null)
     DISTRO=$(lxc exec "$CONTAINER" -- sh -ec 'lsb_release -si 2>/dev/null || . /etc/os-release; echo "${NAME% *}"' </dev/null)
-    RELEASE=$(lxc exec "$CONTAINER" -- sh -ec 'lsb_release -sc 2>/dev/null || awk "/^deb/ {print \$3; quit}" /etc/apt/sources.list' </dev/null)
+    RELEASE=$(lxc exec "$CONTAINER" -- sh -ec 'lsb_release -sc 2>/dev/null || awk "/^deb/ {sub(/\\[.*\\]/, \"\", \$0); print \$3; quit}" /etc/apt/sources.list' </dev/null)
     echo "Container finished booting. Distribution $DISTRO, release $RELEASE, architecture $ARCH"
 
     # find setup-testbed script
