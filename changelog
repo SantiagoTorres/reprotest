@@ -11,6 +11,8 @@ autopkgtest (3.19.2) UNRELEASED; urgency=medium
   * setup-commands/setup-testbed: Fix handling of options in sources.list.
   * tools/adt-build-lxd: Fix parsing of release name from apt sources with
     options if lsb_release is not available.
+  * setup-commands/setup-testbed: Regenerate initramfs when adding udev rule
+    for disabling ifnames (for chroots).
 
  -- Martin Pitt <mpitt@debian.org>  Tue, 12 Jan 2016 12:08:47 +0100
 
