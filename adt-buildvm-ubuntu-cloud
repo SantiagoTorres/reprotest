@@ -225,7 +225,7 @@ def build_seed(mirror, proxy, no_apt_upgrade, metadata_file=None,
     else:
         userdata = DEFAULT_USERDATA % {'proxy': proxy or '', 'mirror': mirror,
                                        'upgr': upgr, 'tz': host_tz(),
-                                       'postcmd': post_command}
+                                       'postcmd': post_command or ''}
 
     # preserve proxy from host
     for v in ['http_proxy', 'https_proxy', 'no_proxy']:
