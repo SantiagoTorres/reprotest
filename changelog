@@ -13,6 +13,7 @@ autopkgtest (3.19.2) UNRELEASED; urgency=medium
     options if lsb_release is not available.
   * setup-commands/setup-testbed: Regenerate initramfs when adding udev rule
     for disabling ifnames (for chroots).
+  * adt-buildvm-ubuntu-cloud: Drop duplicate sed of cloud-init.prerm.
 
  -- Martin Pitt <mpitt@debian.org>  Tue, 12 Jan 2016 12:08:47 +0100
 
