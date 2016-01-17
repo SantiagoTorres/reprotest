@@ -204,7 +204,6 @@ runcmd:
      sh /mnt/setup-testbed
  - if grep -q 'net.ifnames=0' /proc/cmdline; then rm /etc/network/interfaces.d/eth0.cfg; printf "auto ens3\\niface ens3 inet dhcp\\n" > /etc/network/interfaces.d/ens3.cfg; fi
  - umount /mnt
- - sed -i 's/deb-systemd-invoke/true/' /var/lib/dpkg/info/cloud-init.prerm
  - (while [ ! -e /var/lib/cloud/instance/boot-finished ]; do sleep 1; done;
     apt-get -y purge cloud-init; shutdown -P now) &
 """
