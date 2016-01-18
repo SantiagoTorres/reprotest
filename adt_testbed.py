@@ -923,8 +923,6 @@ fi
                  'cd "$buildtree"; '\
                  % {'t': tree.tb, 'a': test_artifacts}
 
-        if self.user and 'rw-build-tree' in test.restrictions:
-            script += 'chown -R %s "$buildtree"; ' % self.user
         for e in extra_env:
             script += 'export \'%s\'; ' % e
         # there's no way to tell su to not reset $PATH, for install-tmp mode;
@@ -956,6 +954,9 @@ fi
             # self.execute(); so emulate the parts that we want
             # FIXME: move "run as user" as an argument of execute()/check_exec() and run with -l
             test_argv = ['su', '-s', '/bin/bash', self.user, '-c']
+
+            if 'rw-build-tree' in test.restrictions:
+                self.check_exec(['chown', '-R', self.user, tree.tb])
         else:
             # this ensures that we have a PAM/logind session for root tests as
             # well; with some interfaces like ttyS1 or lxc_attach we don't log
