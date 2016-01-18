@@ -170,7 +170,7 @@ def hook_open():
         if shared_dir:
             argv += ['--bdir', shared_dir]
         argv += ['--orig', args.template] + args.lxcargs
-        VirtSubproc.check_exec(sudoify(argv), outp=True)
+        VirtSubproc.check_exec(sudoify(argv), outp=True, timeout=300)
         # work around https://launchpad.net/bugs/1367730
         VirtSubproc.check_exec(sudoify([
             'lxc-attach', '--name', lxc_container_name, '--', 'chmod', 'go+rx', '/']),
@@ -181,7 +181,7 @@ def hook_open():
         if VirtSubproc.execute_timeout(None, 10, argv + ['-B', 'btrfs'],
                                        stdout=subprocess.PIPE, stderr=subprocess.STDOUT)[0] != 0:
             adtlog.debug('lxc-clone with btrfs backingstore failed, re-trying without')
-            VirtSubproc.check_exec(argv, outp=True)
+            VirtSubproc.check_exec(argv, outp=True, timeout=600)
         argv = ['lxc-start', '--name', lxc_container_name, '--daemon']
         if shared_dir:
             argv += ['--define', 'lxc.mount.entry=%s %s none bind,create=dir 0 0' % (shared_dir, shared_dir[1:])]
@@ -229,7 +229,7 @@ def hook_open():
             VirtSubproc.auxverb = ['sudo', '--preserve-env'] + VirtSubproc.auxverb
     except:
         # Clean up on failure
-        VirtSubproc.check_exec(sudoify(['lxc-stop', '--kill', '--name', lxc_container_name]))
+        VirtSubproc.check_exec(sudoify(['lxc-stop', '--kill', '--name', lxc_container_name]), timeout=600)
         VirtSubproc.execute_timeout(None, 30, sudoify(['lxc-destroy', '--name', lxc_container_name]))
         raise
 
@@ -241,7 +241,7 @@ def hook_downtmp(path):
         d = os.path.join(shared_dir, 'downtmp')
         # these permissions are ugly, but otherwise we can't clean up files
         # written by the testbed when running as user
-        VirtSubproc.check_exec(['mkdir', '-m', '777', d], downp=True)
+        VirtSubproc.check_exec(['mkdir', '-m', '777', d], downp=True, timeout=30)
         capabilities.append('downtmp-host=' + d)
     else:
         d = VirtSubproc.downtmp_mktemp(path)
@@ -267,7 +267,7 @@ def hook_cleanup():
     VirtSubproc.downtmp_remove()
     capabilities = [c for c in capabilities if not c.startswith('downtmp-host')]
 
-    VirtSubproc.check_exec(sudoify(['lxc-stop', '--kill', '--name', lxc_container_name]))
+    VirtSubproc.check_exec(sudoify(['lxc-stop', '--kill', '--name', lxc_container_name]), timeout=600)
     # ephemeral containers don't exist at this point any more, so make failure
     # non-fatal
     (s, o, e) = VirtSubproc.execute_timeout(
