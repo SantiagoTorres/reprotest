@@ -345,7 +345,7 @@ def build_source(kind, arg, built_binaries):
         # to the current apt pinning
         # apt-get source is terribly noisy; only show what gets downloaded
         create_command = ('maxver=''; '
-                          'for pkg in $(apt-cache showsrc --only-source "%(src)s" | sed -n "/^Binary:/ { s/^Binary://; s/,//g; p }" | xargs -n1 | sort -u); do'
+                          'for pkg in $(apt-cache showsrc "%(src)s" | sed -n "/^Binary:/ { s/^Binary://; s/,//g; p }" | xargs -n1 | sort -u); do'
                           '  pkg_candidate=$(apt-cache policy $pkg|sed -n "/Candidate:/ { s/^.* //; /none/d; p}");'
                           '  [ -n "$pkg_candidate" ] || continue; '
                           '  show=$(apt-cache show $pkg=$pkg_candidate | grep "^Source:" || true);'
