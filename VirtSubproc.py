@@ -139,13 +139,18 @@ def execute_timeout(instr, timeout, *popenargs, **popenargsk):
     adtlog.debug('execute-timeout: ' + ' '.join(popenargs[0]))
     sp = subprocess.Popen(*popenargs,
                           preexec_fn=preexecfn,
-                          universal_newlines=True,
                           **popenargsk)
     if instr is None:
         popenargsk['stdin'] = devnull_read
+    else:
+        instr = instr.encode('UTF-8')
     timeout_start(timeout)
     try:
         (out, err) = sp.communicate(instr)
+        if out is not None:
+            out = out.decode('UTF-8', 'replace')
+        if err is not None:
+            err = err.decode('UTF-8', 'replace')
     except Timeout:
         try:
             sp.kill()

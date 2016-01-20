@@ -84,8 +84,8 @@ class Testbed:
         if os.path.exists(os.path.join(root_dir, '.git')):
             try:
                 head = subprocess.check_output(['git', 'show', '--no-patch', '--oneline'],
-                                               cwd=root_dir, universal_newlines=True)
-                head = head.strip()
+                                               cwd=root_dir)
+                head = head.decode('UTF-8').strip()
             except OSError:
                 head = 'cannot determine current HEAD'
             adtlog.info('git checkout: %s' % head)
@@ -1242,8 +1242,7 @@ def child_ps(pid):
     '''Get all child processes of pid'''
 
     try:
-        out = subprocess.check_output(['ps', '-o', 'pid=', '--ppid', str(pid)],
-                                      universal_newlines=True)
+        out = subprocess.check_output(['ps', '-o', 'pid=', '--ppid', str(pid)])
         return [int(p) for p in out.split()]
     except subprocess.CalledProcessError:
         return []
