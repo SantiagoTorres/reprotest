@@ -26,6 +26,9 @@ autopkgtest (3.19.2) UNRELEASED; urgency=medium
     and otherwise ignore it entirely. (LP: #1535234)
   * Drop apt-cache showsrc --only-source option, as this is not yet understood
     by Ubuntu 12.04's apt.
+  * VirtSubproc.py, execute_timeout(): Avoid UnicodeDecodeErrors when called
+    programs send gibberish. Decode manually with "replace" error mode
+    instead. (LP: #1535741)
 
  -- Martin Pitt <mpitt@debian.org>  Tue, 12 Jan 2016 12:08:47 +0100
 
