@@ -31,6 +31,8 @@ autopkgtest (3.19.2) UNRELEASED; urgency=medium
     instead. (LP: #1535741)
   * adt-virt-lxc: Avoid unnecessary reading and decoding of program outputs if
     we don't actually use it.
+  * ssh-setup/nova: Use the image with the latest "created" time, instead of
+    the last lexicographic name.
 
  -- Martin Pitt <mpitt@debian.org>  Tue, 12 Jan 2016 12:08:47 +0100
 
