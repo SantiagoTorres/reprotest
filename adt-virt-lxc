@@ -179,7 +179,7 @@ def hook_open():
         # lxc-clone should pick -B by itself (LP: #1532125)
         argv = sudoify(['lxc-clone', '--new', lxc_container_name, '--orig', args.template])
         if VirtSubproc.execute_timeout(None, 10, argv + ['-B', 'btrfs'],
-                                       stdout=subprocess.PIPE, stderr=subprocess.STDOUT)[0] != 0:
+                                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)[0] != 0:
             adtlog.debug('lxc-clone with btrfs backingstore failed, re-trying without')
             VirtSubproc.check_exec(argv, outp=True, timeout=600)
         argv = ['lxc-start', '--name', lxc_container_name, '--daemon']
@@ -272,7 +272,7 @@ def hook_cleanup():
     # non-fatal
     (s, o, e) = VirtSubproc.execute_timeout(
         None, 30, sudoify(['lxc-destroy', '--name', lxc_container_name]),
-        stderr=subprocess.PIPE)
+        stderr=subprocess.DEVNULL)
     if s != 0 and e and 'not defined' not in e:
         sys.stderr.write(e)
 
