@@ -29,6 +29,8 @@ autopkgtest (3.19.2) UNRELEASED; urgency=medium
   * VirtSubproc.py, execute_timeout(): Avoid UnicodeDecodeErrors when called
     programs send gibberish. Decode manually with "replace" error mode
     instead. (LP: #1535741)
+  * adt-virt-lxc: Avoid unnecessary reading and decoding of program outputs if
+    we don't actually use it.
 
  -- Martin Pitt <mpitt@debian.org>  Tue, 12 Jan 2016 12:08:47 +0100
 
