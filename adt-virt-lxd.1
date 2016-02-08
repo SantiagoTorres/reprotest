@@ -28,6 +28,13 @@ For production use, it is recommended to use
 .BR adt-build-lxd (1)
 to generate an optimized image with autopkgtest's standard setup commands
 applied. Then these setup commands don't need to be applied for every test.
+This is particularly necessary if you want to use
+.B --apt-source
+tests, i. e. use
+.B apt-get source
+in the test bed to download the package to test. Standard images from
+.B linuxcontainers.org
+do not have "deb-src" apt sources by default.
 
 .SH OPTIONS
 
@@ -68,15 +75,14 @@ lxc image list lco:
 .EE
 .RE
 
-Run the tests of the
-.B libpng
-package on the current Debian sid image from the above
+Run the tests of a local built directory tree on the current Debian sid
+image from the above
 .B lco:
 remote:
 
 .RS
 .EX
-adt-run libpng --- lxd lco:debian/sid/amd64
+adt-run my-package/ --- lxd lco:debian/sid/amd64
 .EE
 .RE
 
@@ -100,9 +106,18 @@ remote on a remote armhf host:
 .RS
 .EX
 lxc remote add armhf-test http://armhf.testlab.example.com:8443
-adt-run libpng --- lxd --remote armhf-test lco:debian/sid/armhf
+adt-run --setup-commands=setup-testbed libpng --- \\
+   lxd --remote armhf-test lco:debian/sid/armhf
 .EE
 .RE
+
+Build a local image with standard setup commands pre-applied from a remote
+standard image, and run libpng test in it:
+
+.RS
+.EX
+adt-build-lxd lco:ubuntu/xenial/amd64
+adt-run libpng --- lxd adt/ubuntu/xenial/amd64
 
 .SH SEE ALSO
 \fBadt\-run\fR(1),
