@@ -4,6 +4,8 @@ autopkgtest (3.19.3) UNRELEASED; urgency=medium
   * adt-virt-lxc: Call lxc-stop and lxc-destroy with --quiet, to fix breakage
     due to unexpected output with LXC 2.0.
   * adt-virt-lxc: Redirect lxc-destroy stdout, to work around LP #1543016.
+  * Ignore build profiles on too old libdpkg-perl versions also when building
+    the tested package.
 
  -- Martin Pitt <mpitt@debian.org>  Sun, 07 Feb 2016 10:52:05 +0100
 
