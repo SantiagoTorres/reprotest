@@ -6,6 +6,9 @@ autopkgtest (3.19.3) UNRELEASED; urgency=medium
   * adt-virt-lxc: Redirect lxc-destroy stdout, to work around LP #1543016.
   * Ignore build profiles on too old libdpkg-perl versions also when building
     the tested package.
+  * adt-virt-lxd.1: Standard images from linuxcontainers.org stopped having
+    "deb-src" apt lines by default. Document that standard setup commands are
+    required for this and adjust examples accordingly.
 
  -- Martin Pitt <mpitt@debian.org>  Sun, 07 Feb 2016 10:52:05 +0100
 
