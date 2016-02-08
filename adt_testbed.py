@@ -827,14 +827,18 @@ fi
         # resolve arch specific dependencies; don't use universal_newlines
         # here, it's broken for stdin on Python 3.2
         if build_dep:
-            extra_args = ', reduce_profiles => 1, build_dep => 1'
+            extra_args = ', reduce_profiles => $supports_profiles, build_dep => 1'
         else:
             extra_args = ''
         perl = subprocess.Popen(['perl', '-'], stdin=subprocess.PIPE,
                                 stdout=subprocess.PIPE)
         code = '''use Dpkg::Deps;
+                  $supports_profiles = ($Dpkg::Deps::VERSION gt '1.04' or 0);
                   $dep = deps_parse('%s', reduce_arch => 1, host_arch => '%s' %s);
-                  print $dep->output(), "\\n";
+                  $out = $dep->output();
+                  # fall back to ignoring build profiles
+                  $out =~ s/ <[^ >]+>//g if (!$supports_profiles);
+                  print $out, "\\n";
                   ''' % (deps, self.dpkg_arch, extra_args)
         deps = perl.communicate(code.encode('UTF-8'))[0].decode('UTF-8').strip()
         if perl.returncode != 0:
