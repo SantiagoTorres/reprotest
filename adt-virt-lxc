@@ -229,10 +229,7 @@ def hook_open():
             VirtSubproc.auxverb = ['sudo', '--preserve-env'] + VirtSubproc.auxverb
     except:
         # Clean up on failure
-        VirtSubproc.check_exec(sudoify(['lxc-stop', '--quiet', '--kill', '--name', lxc_container_name]), timeout=600)
-        VirtSubproc.execute_timeout(None, 30,
-                                    sudoify(['lxc-destroy', '--quiet', '--name', lxc_container_name]),
-                                    stdout=subprocess.DEVNULL)
+        hook_cleanup()
         raise
 
 
@@ -264,19 +261,21 @@ def hook_wait_reboot():
 
 
 def hook_cleanup():
-    global capabilities, shared_dir
+    global capabilities, shared_dir, lxc_container_name
 
     VirtSubproc.downtmp_remove()
     capabilities = [c for c in capabilities if not c.startswith('downtmp-host')]
 
-    VirtSubproc.check_exec(sudoify(['lxc-stop', '--quiet', '--kill', '--name', lxc_container_name]), timeout=600)
-    # ephemeral containers don't exist at this point any more, so make failure
-    # non-fatal
-    (s, o, e) = VirtSubproc.execute_timeout(
-        None, 30, sudoify(['lxc-destroy', '--quiet', '--name', lxc_container_name]),
-        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    if s != 0 and e and 'not defined' not in e:
-        sys.stderr.write(e)
+    if lxc_container_name:
+        VirtSubproc.check_exec(sudoify(['lxc-stop', '--quiet', '--kill', '--name', lxc_container_name]), timeout=600)
+        # ephemeral containers don't exist at this point any more, so make failure
+        # non-fatal
+        (s, o, e) = VirtSubproc.execute_timeout(
+            None, 30, sudoify(['lxc-destroy', '--quiet', '--name', lxc_container_name]),
+            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        if s != 0 and e and 'not defined' not in e:
+            sys.stderr.write(e)
+        lxc_container_name = None
 
     if shared_dir:
         shutil.rmtree(shared_dir, ignore_errors=True)
