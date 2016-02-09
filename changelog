@@ -9,6 +9,7 @@ autopkgtest (3.19.3) UNRELEASED; urgency=medium
   * adt-virt-lxd.1: Standard images from linuxcontainers.org stopped having
     "deb-src" apt lines by default. Document that standard setup commands are
     required for this and adjust examples accordingly.
+  * adt-virt-lxc: Factorize cleanup code.
 
  -- Martin Pitt <mpitt@debian.org>  Sun, 07 Feb 2016 10:52:05 +0100
 
