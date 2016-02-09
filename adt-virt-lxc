@@ -77,11 +77,14 @@ def parse_args():
         adtlog.verbosity = 2
 
 
-def sudoify(command):
+def sudoify(command, timeout=None):
     '''Prepend sudo to command with the --sudo option'''
 
     if args.sudo:
-        return ['sudo'] + command
+        if timeout:
+            return ['sudo', 'timeout', str(timeout)] + command
+        else:
+            return ['sudo'] + command
     else:
         return command
 
@@ -170,7 +173,7 @@ def hook_open():
         if shared_dir:
             argv += ['--bdir', shared_dir]
         argv += ['--orig', args.template] + args.lxcargs
-        VirtSubproc.check_exec(sudoify(argv), outp=True, timeout=300)
+        VirtSubproc.check_exec(sudoify(argv, 300), outp=True, timeout=310)
         # work around https://launchpad.net/bugs/1367730
         VirtSubproc.check_exec(sudoify([
             'lxc-attach', '--name', lxc_container_name, '--', 'chmod', 'go+rx', '/']),
@@ -186,7 +189,7 @@ def hook_open():
         if shared_dir:
             argv += ['--define', 'lxc.mount.entry=%s %s none bind,create=dir 0 0' % (shared_dir, shared_dir[1:])]
         argv += args.lxcargs
-        rc = VirtSubproc.execute_timeout(None, 60, sudoify(argv))[0]
+        rc = VirtSubproc.execute_timeout(None, 310, sudoify(argv, 300))[0]
         if rc != 0:
             VirtSubproc.bomb('lxc-start failed with exit status %d' % rc)
         capabilities.append('reboot')
@@ -267,11 +270,11 @@ def hook_cleanup():
     capabilities = [c for c in capabilities if not c.startswith('downtmp-host')]
 
     if lxc_container_name:
-        VirtSubproc.check_exec(sudoify(['lxc-stop', '--quiet', '--kill', '--name', lxc_container_name]), timeout=600)
+        VirtSubproc.check_exec(sudoify(['lxc-stop', '--quiet', '--kill', '--name', lxc_container_name], 600), timeout=610)
         # ephemeral containers don't exist at this point any more, so make failure
         # non-fatal
         (s, o, e) = VirtSubproc.execute_timeout(
-            None, 30, sudoify(['lxc-destroy', '--quiet', '--name', lxc_container_name]),
+            None, 310, sudoify(['lxc-destroy', '--quiet', '--name', lxc_container_name], 300),
             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         if s != 0 and e and 'not defined' not in e:
             sys.stderr.write(e)
