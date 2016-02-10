@@ -14,6 +14,8 @@ autopkgtest (3.19.3) UNRELEASED; urgency=medium
     sudo, as killing these on timeout does not work.
   * ssh-setup/nova: Wait until instance is actually ready before sending
     access info.
+  * ssh-setup/nova: Show instance's console log on ssh or cloud-init timeouts,
+    as that's very useful for debugging.
 
  -- Martin Pitt <mpitt@debian.org>  Sun, 07 Feb 2016 10:52:05 +0100
 
