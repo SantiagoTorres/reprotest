@@ -12,6 +12,8 @@ autopkgtest (3.19.3) UNRELEASED; urgency=medium
   * adt-virt-lxc: Factorize cleanup code.
   * adt-virt-lxc: Run lxc-{start,stop} under "timeout" when running through
     sudo, as killing these on timeout does not work.
+  * ssh-setup/nova: Wait until instance is actually ready before sending
+    access info.
 
  -- Martin Pitt <mpitt@debian.org>  Sun, 07 Feb 2016 10:52:05 +0100
 
