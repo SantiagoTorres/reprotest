@@ -16,6 +16,7 @@ autopkgtest (3.19.3) UNRELEASED; urgency=medium
     access info.
   * ssh-setup/nova: Show instance's console log on ssh or cloud-init timeouts,
     as that's very useful for debugging.
+  * adt-virt-lxd: Drop redundant "lxc stop", just call "lxc delete --force".
 
  -- Martin Pitt <mpitt@debian.org>  Sun, 07 Feb 2016 10:52:05 +0100
 
