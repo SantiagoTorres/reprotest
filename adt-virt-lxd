@@ -174,8 +174,7 @@ def hook_open():
         ]
     except:
         # Clean up on failure
-        VirtSubproc.check_exec(['lxc', 'stop', '--force', container_name], timeout=30)
-        VirtSubproc.execute_timeout(None, 300, ['lxc', 'delete', container_name])
+        VirtSubproc.execute_timeout(None, 300, ['lxc', 'delete', '--force', container_name])
         raise
 
 
@@ -200,9 +199,7 @@ def hook_wait_reboot():
 
 def hook_cleanup():
     VirtSubproc.downtmp_remove()
-
-    VirtSubproc.check_exec(['lxc', 'stop', '--force', container_name], timeout=30)
-    VirtSubproc.check_exec(['lxc', 'delete', container_name], timeout=600)
+    VirtSubproc.check_exec(['lxc', 'delete', '--force', container_name], timeout=600)
 
 
 def hook_forked_inchild():
