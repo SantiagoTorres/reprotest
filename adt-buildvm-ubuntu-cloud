@@ -97,7 +97,7 @@ def parse_args():
                         help='Use a proxy for apt; a local apt-cacher-ng '
                         'gets used automatically (default: %s)' % (
                             default_proxy or 'none'))
-    parser.add_argument('-s', '--disk-size', default='4G',
+    parser.add_argument('-s', '--disk-size', default='20G',
                         help='grow image by this size (default: %(default)s)')
     parser.add_argument('-o', '--output-dir', metavar='DIR', default='.',
                         help='output directory for generated image (default: '
