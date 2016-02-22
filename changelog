@@ -18,6 +18,8 @@ autopkgtest (3.19.3) UNRELEASED; urgency=medium
     as that's very useful for debugging.
   * adt-virt-lxd: Drop redundant "lxc stop", just call "lxc delete --force".
   * adt-buildvm-ubuntu-cloud: Bump default image size from 4 to 20 GB.
+  * runner/adt-run: Install ca-certificates along with git, to ensure that
+    https URLs can be cloned.
 
  -- Martin Pitt <mpitt@debian.org>  Sun, 07 Feb 2016 10:52:05 +0100
 
