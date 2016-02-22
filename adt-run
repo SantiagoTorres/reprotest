@@ -369,7 +369,7 @@ def build_source(kind, arg, built_binaries):
         else:
             adtlog.bomb('--git-source argument must be "URL" or "URL branchname"')
 
-        testbed.satisfy_dependencies_string('git', 'install git for --git-source')
+        testbed.satisfy_dependencies_string('git, ca-certificates', 'install git for --git-source')
     else:
         adtlog.bomb('unknown action kind for build_source: ' + kind)
 
