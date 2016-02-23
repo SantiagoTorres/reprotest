@@ -59,6 +59,8 @@ setup() {
     # set up apt proxy for the container
     if [ -n "${ADT_APT_PROXY:-}" ]; then
         echo "Acquire::http::Proxy \"$ADT_APT_PROXY\";" | lxc file push - "$CONTAINER/etc/apt/apt.conf.d/01proxy"
+        # work around LP#1548878
+        lxc exec "$CONTAINER" -- chmod 644 /etc/apt/apt.conf.d/01proxy
     fi
 
     # wait until it is booted: lxc exec works and we get a numeric runlevel
