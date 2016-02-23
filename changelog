@@ -1,4 +1,4 @@
-autopkgtest (3.19.3) UNRELEASED; urgency=medium
+autopkgtest (3.19.3) unstable; urgency=medium
 
   * setup-commands/setup-testbed: Avoid dpkg conffile prompts.
   * adt-virt-lxc: Call lxc-stop and lxc-destroy with --quiet, to fix breakage
@@ -23,7 +23,7 @@ autopkgtest (3.19.3) UNRELEASED; urgency=medium
   * tools/adt-build-lxd: Add workaround for broken "lxc file push" permissions
     (LP: #1548878)
 
- -- Martin Pitt <mpitt@debian.org>  Sun, 07 Feb 2016 10:52:05 +0100
+ -- Martin Pitt <mpitt@debian.org>  Tue, 23 Feb 2016 17:56:45 +0100
 
 autopkgtest (3.19.2) unstable; urgency=medium
 
