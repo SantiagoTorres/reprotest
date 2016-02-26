@@ -135,7 +135,7 @@ def hook_open():
 
     container_name = args.remote + get_available_container_name()
     adtlog.debug('using container name %s' % container_name)
-    VirtSubproc.check_exec(['lxc', 'launch', args.image, container_name] + args.lxcargs,
+    VirtSubproc.check_exec(['lxc', 'launch', '--ephemeral', args.image, container_name] + args.lxcargs,
                            outp=True, timeout=600)
     try:
         adtlog.debug('waiting for container start')
