@@ -3,6 +3,8 @@ autopkgtest (3.19.4) UNRELEASED; urgency=medium
   * setup-commands/setup-testbed: Ensure that removing cruft does not remove
     cloud-init. (LP: #1539126)
   * setup-commands/setup-testbed: Purge lxd and lxc.
+  * adt-virt-lxc: Don't fail on deprecation warnings of lxc-clone and
+    lxc-start-ephemeral. (LP: #1549995)
 
  -- Martin Pitt <mpitt@debian.org>  Tue, 23 Feb 2016 18:21:51 +0100
 
