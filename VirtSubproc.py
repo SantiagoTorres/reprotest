@@ -125,10 +125,6 @@ def cmd_print_execute_command(c, ce):
     return [','.join(map(url_quote, auxverb))]
 
 
-def preexecfn():
-    caller.hook_forked_inchild()
-
-
 def execute_timeout(instr, timeout, *popenargs, **popenargsk):
     '''Popen wrapper with timeout supervision
 
@@ -142,7 +138,6 @@ def execute_timeout(instr, timeout, *popenargs, **popenargsk):
     else:
         instr = instr.encode('UTF-8')
     sp = subprocess.Popen(*popenargs,
-                          preexec_fn=preexecfn,
                           **popenargsk)
     timeout_start(timeout)
     try:
@@ -554,12 +549,10 @@ def copyupdown_internal(wh, sd, upp):
     subprocs = [None, None]
     adtlog.debug(" +< %s" % ' '.join(cmdls[0]))
     subprocs[0] = subprocess.Popen(cmdls[0], stdin=srcstdin,
-                                   stdout=subprocess.PIPE,
-                                   preexec_fn=preexecfn)
+                                   stdout=subprocess.PIPE)
     adtlog.debug(" +> %s" % ' '.join(cmdls[1]))
     subprocs[1] = subprocess.Popen(cmdls[1], stdin=subprocs[0].stdout,
-                                   stdout=deststdout,
-                                   preexec_fn=preexecfn)
+                                   stdout=deststdout)
     subprocs[0].stdout.close()
     try:
         timeout_start(copy_timeout)
