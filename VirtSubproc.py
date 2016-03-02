@@ -137,13 +137,13 @@ def execute_timeout(instr, timeout, *popenargs, **popenargsk):
     Return (status, stdout, stderr)
     '''
     adtlog.debug('execute-timeout: ' + ' '.join(popenargs[0]))
-    sp = subprocess.Popen(*popenargs,
-                          preexec_fn=preexecfn,
-                          **popenargsk)
     if instr is None:
         popenargsk['stdin'] = devnull_read
     else:
         instr = instr.encode('UTF-8')
+    sp = subprocess.Popen(*popenargs,
+                          preexec_fn=preexecfn,
+                          **popenargsk)
     timeout_start(timeout)
     try:
         (out, err) = sp.communicate(instr)
