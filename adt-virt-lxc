@@ -153,28 +153,14 @@ def determine_normal_user(lxc_name):
         adtlog.debug('determine_normal_user: no uid >= 500 available')
 
 
-def hook_open():
-    global args, lxc_container_name, shared_dir
-
-    lxc_container_name = get_available_lxc_container_name()
-    adtlog.debug('using container name %s' % lxc_container_name)
-    if shared_dir is None:
-        # shared bind mount works poorly for unprivileged containers due to
-        # mapped UIDs
-        if args.sudo or os.geteuid() == 0:
-            shared_dir = tempfile.mkdtemp(prefix='adt-virt-lxc.shared.')
-    else:
-        # don't change the name between resets, to provide stable downtmp paths
-        os.makedirs(shared_dir)
-    if shared_dir:
-        os.chmod(shared_dir, 0o755)
+def start_lxc1():
     if args.ephemeral:
         argv = ['lxc-start-ephemeral', '--name', lxc_container_name, '--daemon']
         if shared_dir:
             argv += ['--bdir', shared_dir]
         argv += ['--orig', args.template] + args.lxcargs
         rc = VirtSubproc.execute_timeout(None, 310, sudoify(argv, 300),
-                                         stdout=subprocess.PIPE)[0]
+                                         stdout=subprocess.DEVNULL)[0]
         if rc != 0:
             VirtSubproc.bomb('lxc-start-ephemeral failed with exit status %i' % rc)
         # work around https://launchpad.net/bugs/1367730
@@ -198,6 +184,55 @@ def hook_open():
         if rc != 0:
             VirtSubproc.bomb('lxc-start failed with exit status %d' % rc)
         capabilities.append('reboot')
+
+
+def start_lxc_copy():
+    if args.ephemeral:
+        argv = ['lxc-copy', '--name', args.template, '--newname', lxc_container_name, '--ephemeral']
+        if shared_dir:
+            argv += ['--mount', 'bind=%s:%s' % (shared_dir, shared_dir)]
+        rc = VirtSubproc.execute_timeout(None, 310, sudoify(argv, 300),
+                                         stdout=subprocess.DEVNULL)[0]
+        if rc != 0:
+            VirtSubproc.bomb('lxc-copy with exit status %i' % rc)
+    else:
+        argv = ['lxc-copy', '--name', args.template, '--newname', lxc_container_name]
+        rc = VirtSubproc.execute_timeout(None, 310, sudoify(argv, 300),
+                                         stdout=subprocess.DEVNULL)[0]
+        if rc != 0:
+            VirtSubproc.bomb('lxc-copy with exit status %i' % rc)
+        argv = ['lxc-start', '--name', lxc_container_name, '--daemon']
+        if shared_dir:
+            argv += ['--define', 'lxc.mount.entry=%s %s none bind,create=dir 0 0' % (shared_dir, shared_dir[1:])]
+        argv += args.lxcargs
+        rc = VirtSubproc.execute_timeout(None, 310, sudoify(argv, 300),
+                                         stdout=subprocess.DEVNULL)[0]
+        if rc != 0:
+            VirtSubproc.bomb('lxc-start failed with exit status %d' % rc)
+
+    # lxc-copy ephemeral containers support reboot too
+    capabilities.append('reboot')
+
+
+def hook_open():
+    global args, lxc_container_name, shared_dir
+
+    lxc_container_name = get_available_lxc_container_name()
+    adtlog.debug('using container name %s' % lxc_container_name)
+    if shared_dir is None:
+        # shared bind mount works poorly for unprivileged containers due to
+        # mapped UIDs
+        if args.sudo or os.geteuid() == 0:
+            shared_dir = tempfile.mkdtemp(prefix='adt-virt-lxc.shared.')
+    else:
+        # don't change the name between resets, to provide stable downtmp paths
+        os.makedirs(shared_dir)
+    if shared_dir:
+        os.chmod(shared_dir, 0o755)
+    if shutil.which('lxc-copy'):
+        start_lxc_copy()
+    else:
+        start_lxc1()
     try:
         adtlog.debug('waiting for lxc guest start')
         wait_booted(lxc_container_name)
