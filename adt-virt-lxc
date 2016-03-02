@@ -289,10 +289,6 @@ def hook_cleanup():
         shutil.rmtree(shared_dir, ignore_errors=True)
 
 
-def hook_forked_inchild():
-    pass
-
-
 def hook_capabilities():
     return capabilities
 

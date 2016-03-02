@@ -82,10 +82,6 @@ def hook_cleanup():
     capabilities = [c for c in capabilities if not c.startswith('downtmp-host')]
 
 
-def hook_forked_inchild():
-    pass
-
-
 def hook_capabilities():
     return capabilities
 
