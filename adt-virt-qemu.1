@@ -26,6 +26,11 @@ does
 the given images, but will instead create a temporary overlay for the
 primary image, and add all other images as read-only.
 
+The first image without the overlay is always added as an additional
+read-only hard drive, which will be available for tests as
+.IR /dev/baseimage .
+This allows tests that require nested VMs to reuse the same image.
+
 .SH REQUIREMENTS
 .B adt-virt-qemu
 assumes that you have already prepared a suitable Debian based QEMU image (see
