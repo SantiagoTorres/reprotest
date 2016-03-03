@@ -45,6 +45,8 @@ autopkgtest (3.19.4) UNRELEASED; urgency=medium
   * Fix spelling errors in manpages.
   * Support nested KVM by default by emulating a CPU with VMX/SVM support on
     x86_64. (Closes: #800845, part 1)
+  * adt-virt-qemu: Provide read-only version of the VM image to the test as
+    /dev/baseimage, for tests that want to run nested QEMU. (Closes: #800845)
 
  -- Martin Pitt <mpitt@debian.org>  Tue, 23 Feb 2016 18:21:51 +0100
 
