@@ -43,6 +43,8 @@ autopkgtest (3.19.4) UNRELEASED; urgency=medium
     this in /etc/default/grub.d (like vmdeboostrap).
   * adt-virt-qemu: Use correct qemu-system-i386 command on i[3456]86 systems.
   * Fix spelling errors in manpages.
+  * Support nested KVM by default by emulating a CPU with VMX/SVM support on
+    x86_64. (Closes: #800845, part 1)
 
  -- Martin Pitt <mpitt@debian.org>  Tue, 23 Feb 2016 18:21:51 +0100
 
