@@ -70,6 +70,9 @@ class Testbed:
         self.last_reboot_marker = ''
         self.eatmydata_prefix = []
         self.apt_pin_for_pockets = []
+        self.nproc = None
+        self.cpu_model = None
+        self.cpu_flags = None
 
         try:
             self.devnull = subprocess.DEVNULL
@@ -170,6 +173,18 @@ class Testbed:
                 adtlog.info('testbed running kernel changed: %s (current test: %s%s)' %
                             (kver, self.last_test_name,
                              self.last_reboot_marker and (', last reboot marker: ' + self.last_reboot_marker) or ''))
+
+        # get CPU info
+        if self.nproc is None:
+            cpu_info = self.check_exec(['sh', '-c', 'nproc; cat /proc/cpuinfo 2>/dev/null || true'],
+                                       stdout=True).strip()
+            self.nproc = cpu_info.split('\n', 1)[0]
+            m = re.search('^(model.*name|cpu)\s*:\s*(.*)$', cpu_info, re.MULTILINE | re.IGNORECASE)
+            if m:
+                self.cpu_model = m.group(2)
+            m = re.search('^(flags|features)\s*:\s*(.*)$', cpu_info, re.MULTILINE | re.IGNORECASE)
+            if m:
+                self.cpu_flags = m.group(2)
 
     def _opened(self, pl):
         self.scratch = pl[0]
