@@ -15,6 +15,8 @@ autopkgtest (3.19.4) UNRELEASED; urgency=medium
     ephemeral mode.
   * ssh-setup/nova: Try and prefer novaclient.v2 API first, and fall back to
     v1_1. (LP: #1552730)
+  * Correctly ignore positive and negative build profiles with too old
+    libdpkg-perl that does not support them yet.
 
  -- Martin Pitt <mpitt@debian.org>  Tue, 23 Feb 2016 18:21:51 +0100
 
