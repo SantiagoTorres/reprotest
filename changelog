@@ -13,6 +13,8 @@ autopkgtest (3.19.4) UNRELEASED; urgency=medium
   * adt-virt-lxc: Use the new lxc-copy if available, as lxc-clone and
     lxc-start-ephemeral got deprecated by that. This now supports reboots in
     ephemeral mode.
+  * ssh-setup/nova: Try and prefer novaclient.v2 API first, and fall back to
+    v1_1. (LP: #1552730)
 
  -- Martin Pitt <mpitt@debian.org>  Tue, 23 Feb 2016 18:21:51 +0100
 
