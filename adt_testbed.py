@@ -875,11 +875,11 @@ fi
         else:
             self.install_tmp(deps, recommends)
 
-    def run_shell(self, cwd=None):
+    def run_shell(self, cwd=None, extra_env=[]):
         '''Run shell in testbed for debugging tests'''
 
         adtlog.info(' - - - - - - - - - - running shell - - - - - - - - - -')
-        self.command('shell', [cwd or '/'] + self.install_tmp_env)
+        self.command('shell', [cwd or '/'] + self.install_tmp_env + extra_env)
 
     def run_test(self, tree, test, extra_env=[], shell_on_failure=False, shell=False):
         '''Run given test in testbed
@@ -924,6 +924,7 @@ fi
 
         # create script to run test
         test_artifacts = '%s/%s-artifacts' % (self.scratch, test.name)
+        adttmp = '%s/adttmp' % (self.scratch)
         script = 'set -e; ' \
                  'export USER=`id -nu`; ' \
                  '. /etc/profile >/dev/null 2>&1 || true; ' \
@@ -931,7 +932,7 @@ fi
                  'buildtree="%(t)s"; ' \
                  'mkdir -p -m 1777 -- "%(a)s"; ' \
                  'export ADT_ARTIFACTS="%(a)s"; ' \
-                 'export ADTTMP=$(mktemp -d --tmpdir adttmp.XXXXXX); ' \
+                 'mkdir -p -m 755 "%(tmp)s"; export ADTTMP="%(tmp)s" ' \
                  'export DEBIAN_FRONTEND=noninteractive; ' \
                  'export LANG=C.UTF-8; ' \
                  '''export DEB_BUILD_OPTIONS=parallel=$(grep -c ^processor /proc/cpuinfo | sed 's/^0$/1/'); ''' \
@@ -939,10 +940,9 @@ fi
                  '  LC_MONETARY LC_MESSAGES LC_PAPER LC_NAME LC_ADDRESS '\
                  '  LC_TELEPHONE LC_MEASUREMENT LC_IDENTIFICATION LC_ALL;' \
                  'rm -f /tmp/adt_test_script_pid; set -C; echo $$ > /tmp/adt_test_script_pid; set +C; ' \
-                 'trap "rm -rf $ADTTMP /tmp/adt_test_script_pid" EXIT INT QUIT PIPE; '\
-                 'chmod 755 $ADTTMP; '\
+                 'trap "rm -f /tmp/adt_test_script_pid" EXIT INT QUIT PIPE; '\
                  'cd "$buildtree"; '\
-                 % {'t': tree.tb, 'a': test_artifacts}
+                 % {'t': tree.tb, 'a': test_artifacts, 'tmp': adttmp}
 
         for e in extra_env:
             script += 'export \'%s\'; ' % e
@@ -1094,11 +1094,12 @@ fi
             if not os.listdir(ap.host):
                 os.rmdir(ap.host)
 
-        # clean up artifacts dirs
-        self.check_exec(['rm', '-rf', test_artifacts])
-
         if shell or (shell_on_failure and not test.result):
-            self.run_shell(tree.tb)
+            self.run_shell(tree.tb, ['ADT_ARTIFACTS="%s"' % test_artifacts,
+                                     'ADTTMP="%s"' % adttmp])
+
+        # clean up artifacts and ADTTMP dirs
+        self.check_exec(['rm', '-rf', test_artifacts, adttmp])
 
         if need_click_restore:
             self.apparmor_restore_click(test.clicks, test.installed_clicks)
