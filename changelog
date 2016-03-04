@@ -33,6 +33,7 @@ autopkgtest (3.19.4) UNRELEASED; urgency=medium
   [ Christian Seiler ]
   * setup-testbed: reduce grub timeout on images that don't already configure
     this in /etc/default/grub.d (like vmdeboostrap).
+  * adt-virt-qemu: Use correct qemu-system-i386 command on i[3456]86 systems.
 
  -- Martin Pitt <mpitt@debian.org>  Tue, 23 Feb 2016 18:21:51 +0100
 
