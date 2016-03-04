@@ -46,7 +46,8 @@ completely transparent (e. g. seen with tar failing when running LXC within
 Qemu). Before using this option in automation you should ensure that tests that
 involve large I/O work as expected.
 
-Also, ephemeral containers do not support rebooting.
+Note that ephemeral containers do not support rebooting with LXC 1.x. This does
+work with LXC >= 2.x.
 
 .TP
 .BR \-s " | " \-\-sudo
