@@ -68,6 +68,7 @@ def parse_args():
     parser.add_argument('-s', '--sudo', action='store_true',
                         help='Run lxc-* commands with sudo; use if you run '
                         'adt-run as normal user')
+    parser.add_argument('--name', help='container name (adt-virt-lxc-XXXXXX by default)')
     parser.add_argument('template', help='LXC container name that will be '
                         'used as a template')
     parser.add_argument('lxcargs', nargs=argparse.REMAINDER,
@@ -217,7 +218,7 @@ def start_lxc_copy():
 def hook_open():
     global args, lxc_container_name, shared_dir
 
-    lxc_container_name = get_available_lxc_container_name()
+    lxc_container_name = args.name or get_available_lxc_container_name()
     adtlog.debug('using container name %s' % lxc_container_name)
     if shared_dir is None:
         # shared bind mount works poorly for unprivileged containers due to
