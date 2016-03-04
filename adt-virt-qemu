@@ -34,6 +34,7 @@ import time
 import socket
 import errno
 import fcntl
+import re
 
 try:
     our_base = os.environ['AUTOPKGTEST_BASE'] + '/lib'
@@ -57,9 +58,16 @@ normal_user = None
 def parse_args():
     global args
 
-    parser = ArgumentParser()
+    uname_to_qemu_suffix = {'i[3456]86$': 'i386'}
+    arch = os.uname()[4]
+    for pattern, suffix in uname_to_qemu_suffix.items():
+        if re.match(pattern, arch):
+            qemu_cmd_default = 'qemu-system-' + suffix
+            break
+    else:
+        qemu_cmd_default = 'qemu-system-' + arch
 
-    qemu_cmd_default = 'qemu-system-' + os.uname()[4]
+    parser = ArgumentParser()
 
     parser.add_argument('-q', '--qemu-command', default=qemu_cmd_default,
                         help='QEMU command (default: %s)' % qemu_cmd_default)
