@@ -17,6 +17,8 @@ autopkgtest (3.19.4) UNRELEASED; urgency=medium
     v1_1. (LP: #1552730)
   * Correctly ignore positive and negative build profiles with too old
     libdpkg-perl that does not support them yet.
+  * tests/run-parallel: Don't run NullRunner and SchrootRunner tests in
+    parallel, as they collide with a bind-mounted /tmp.
 
  -- Martin Pitt <mpitt@debian.org>  Tue, 23 Feb 2016 18:21:51 +0100
 
