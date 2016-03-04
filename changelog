@@ -26,6 +26,8 @@ autopkgtest (3.19.4) UNRELEASED; urgency=medium
     easier to map a container to a running test.
   * Add CPU information to testinfo.json: "nproc" (#cpus), "cpu_model", and
     "cpu_flags". (LP: #1552129)
+  * Keep and export $ADTTMP and $ADT_ARTIFACTS in debug shells.
+    (Closes: #814115)
 
  -- Martin Pitt <mpitt@debian.org>  Tue, 23 Feb 2016 18:21:51 +0100
 
