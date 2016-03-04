@@ -53,10 +53,11 @@ p_qemu = None
 ssh_port = None
 ssh_port_lock = None
 normal_user = None
+qemu_cmd_default = None
 
 
 def parse_args():
-    global args
+    global args, qemu_cmd_default
 
     uname_to_qemu_suffix = {'i[3456]86$': 'i386'}
     arch = os.uname()[4]
@@ -392,6 +393,29 @@ sys.exit(rc == 255 and 253 or rc)
         VirtSubproc.bomb('failed to connect to VM')
 
 
+def get_cpuflag():
+    '''Return QEMU cpu option list suitable for host CPU'''
+
+    try:
+        with open('/proc/cpuinfo', 'r') as f:
+            for line in f:
+                if line.startswith('flags'):
+                    words = line.split()
+                    if 'vmx' in words:
+                        adtlog.debug('Detected KVM capable Intel host CPU, enabling nested KVM')
+                        return ['-cpu', 'kvm64,+vmx,+lahf_lm']
+                    elif 'svm' in words:  # AMD kvm
+                        adtlog.debug('Detected KVM capable AMD host CPU, enabling nested KVM')
+                        return ['-cpu', 'kvm64,+svm,+lahf_lm']
+    except IOError as e:
+        adtlog.warning('Cannot read /proc/cpuinfo to detect CPU flags: %s' % e)
+        # fetching CPU flags isn't critical (only used to enable nested KVM),
+        # so don't fail here
+        pass
+
+    return []
+
+
 def find_free_port(start):
     '''Find an unused port in the range [start, start+50)'''
 
@@ -484,6 +508,10 @@ def hook_open():
 
     if os.path.exists('/dev/kvm'):
         argv.append('-enable-kvm')
+        # Enable nested KVM by default on x86_64
+        if os.uname()[4] == 'x86_64' and args.qemu_command == qemu_cmd_default and \
+                (not args.qemu_options or '-cpu' not in args.qemu_options.split()):
+            argv += get_cpuflag()
 
     # pass through option to qemu
     if args.qemu_options:
