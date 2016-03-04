@@ -1,5 +1,6 @@
 autopkgtest (3.19.4) UNRELEASED; urgency=medium
 
+  [ Martin Pitt ]
   * setup-commands/setup-testbed: Ensure that removing cruft does not remove
     cloud-init. (LP: #1539126)
   * setup-commands/setup-testbed: Purge lxd and lxc.
@@ -28,6 +29,10 @@ autopkgtest (3.19.4) UNRELEASED; urgency=medium
     "cpu_flags". (LP: #1552129)
   * Keep and export $ADTTMP and $ADT_ARTIFACTS in debug shells.
     (Closes: #814115)
+
+  [ Christian Seiler ]
+  * setup-testbed: reduce grub timeout on images that don't already configure
+    this in /etc/default/grub.d (like vmdeboostrap).
 
  -- Martin Pitt <mpitt@debian.org>  Tue, 23 Feb 2016 18:21:51 +0100
 
