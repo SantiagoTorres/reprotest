@@ -168,6 +168,12 @@ def create_testinfo(vserver_args):
         info['test_kernel_versions'] = testbed.test_kernel_versions
     if opts.env:
         info['custom_environment'] = opts.env
+    if testbed.nproc:
+        info['nproc'] = testbed.nproc
+    if testbed.cpu_model:
+        info['cpu_model'] = testbed.cpu_model
+    if testbed.cpu_flags:
+        info['cpu_flags'] = testbed.cpu_flags
 
     with open(os.path.join(tmp, 'testinfo.json'), 'w') as f:
         json.dump(info, f, indent=2)
