@@ -834,10 +834,12 @@ fi
                                 stdout=subprocess.PIPE)
         code = '''use Dpkg::Deps;
                   $supports_profiles = ($Dpkg::Deps::VERSION gt '1.04' or 0);
-                  $dep = deps_parse('%s', reduce_arch => 1, host_arch => '%s' %s);
+                  $origdeps = '%s';
+                  $origdeps =~ s/(^|,)[^<,]+<[^!>]+>//g if (!$supports_profiles);
+                  $dep = deps_parse($origdeps, reduce_arch => 1, host_arch => '%s' %s);
                   $out = $dep->output();
                   # fall back to ignoring build profiles
-                  $out =~ s/ <[^ >]+>//g if (!$supports_profiles);
+                  $out =~ s/ <![^ >]+>//g if (!$supports_profiles);
                   print $out, "\\n";
                   ''' % (deps, self.dpkg_arch, extra_args)
         deps = perl.communicate(code.encode('UTF-8'))[0].decode('UTF-8').strip()
