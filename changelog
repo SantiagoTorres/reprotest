@@ -30,6 +30,7 @@ autopkgtest (3.19.4) UNRELEASED; urgency=medium
   * Keep and export $ADTTMP and $ADT_ARTIFACTS in debug shells.
     (Closes: #814115)
   * setup-commands/*: Add shebang headers to quiesce lintian.
+  * Bump Standards-Version to 3.9.7 (no changes necessary).
 
   [ Christian Seiler ]
   * setup-testbed: reduce grub timeout on images that don't already configure
