@@ -385,11 +385,8 @@ sys.exit(rc == 255 and 253 or rc)
     VirtSubproc.auxverb = [auxverb]
 
     # verify that we can connect
-    status, out, err = VirtSubproc.execute_timeout(
-        None, 5, VirtSubproc.auxverb + ['runlevel'],
-        stdout=subprocess.PIPE)
-    adtlog.debug('runlevel: exit %i, out "%s", err "%s"' % (status, out, err))
-    if status == 0 and out.split()[-1] in ['2', '3', '4', '5']:
+    status = VirtSubproc.execute_timeout(None, 5, VirtSubproc.auxverb + ['true'])[0]
+    if status == 0:
         adtlog.debug('can connect to autopkgtest sh in VM')
     else:
         VirtSubproc.bomb('failed to connect to VM')
