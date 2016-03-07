@@ -328,6 +328,11 @@ def cmd_reboot(c, ce):
                downp=True, timeout=copy_timeout)
     adtlog.debug('cmd_reboot: saved current downtmp, rebooting')
 
+    try:
+        caller.hook_prepare_reboot()
+    except AttributeError:
+        pass
+
     # reboot
     if len(c) > 1 and c[1] == 'prepare-only':
         adtlog.info('state saved, waiting for testbed to reboot...')
