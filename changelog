@@ -34,6 +34,9 @@ autopkgtest (3.19.4) UNRELEASED; urgency=medium
   * Add debian/source/format (3.0 native).
   * debian/control: Use https Vcs-* links.
   * Bump debhelper compat level to 9.
+  * adt-virt-qemu: Don't assert result of "runlevel" for connection test. This
+    is a race condition under systemd as getty starts before default.target
+    is fully finished.
 
   [ Christian Seiler ]
   * setup-testbed: reduce grub timeout on images that don't already configure
