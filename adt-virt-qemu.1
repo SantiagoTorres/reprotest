@@ -29,7 +29,12 @@ primary image, and add all other images as read-only.
 The first image without the overlay is always added as an additional
 read-only hard drive, which will be available for tests as
 .IR /dev/baseimage .
-This allows tests that require nested VMs to reuse the same image.
+This allows tests that require nested VMs to reuse the same image. Be
+aware that
+.I /dev/baseimage
+will not be accessible between calling
+.B adt-reboot-prepare
+and the next boot, thus make sure to stop accessing it before.
 
 .SH REQUIREMENTS
 .B adt-virt-qemu

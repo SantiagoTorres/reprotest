@@ -192,7 +192,7 @@ def setup_baseimage():
 
     # Setup udev rules for /dev/baseimage; set link_priority to -1024 so
     # that the duplicate UUIDs of the partitions will have no effect.
-    term.send(b'''mkdir -p -m 0755 /etc/udev/rules.d ; printf '# Created by adt-virt-qemu\\n%s\\n%s\\n' 'KERNEL=="vd*[!0-9]", ENV{ID_SERIAL}=="BASEIMAGE", OPTIONS+="link_priority=-1024", SYMLINK+="baseimage", MODE="0664"' 'KERNEL=="vd*[0-9]",  ENV{ID_SERIAL}=="BASEIMAGE", OPTIONS+="link_priority=-1024"' > /etc/udev/rules.d/61-baseimage.rules\n''')
+    term.send(b'''mkdir -p -m 0755 /run/udev/rules.d ; printf '# Created by adt-virt-qemu\\n%s\\n%s\\n' 'KERNEL=="vd*[!0-9]", ENV{ID_SERIAL}=="BASEIMAGE", OPTIONS+="link_priority=-1024", SYMLINK+="baseimage", MODE="0664"' 'KERNEL=="vd*[0-9]",  ENV{ID_SERIAL}=="BASEIMAGE", OPTIONS+="link_priority=-1024"' > /run/udev/rules.d/61-baseimage.rules\n''')
     VirtSubproc.expect(term, b'#', 10)
     # Reload udev to make sure the rules take effect (udev only auto-
     # rereads rules every 3 seconds)
@@ -206,21 +206,6 @@ def setup_baseimage():
     VirtSubproc.expect(monitor, b'(qemu)', 10)
 
     term.send(b'udevadm settle --exit-if-exists=/dev/baseimage\n')
-    VirtSubproc.expect(term, b'#', 10)
-
-    # The initramfs needs to be regenerated to include the new udev
-    # rules, but this is only necesssary if the testbed is rebooted, so
-    # just touch a flag file.
-    term.send(b'touch /run/autopkgtest-update-initramfs-at-reboot\n')
-    VirtSubproc.expect(term, b'#', 10)
-
-    # Add an update-initramfs hook that removes the flag file, because
-    # if the test case calls update-initramfs already, we don't need to
-    # do so ourselves.
-    term.send(b'''if [ -d /usr/share/initramfs-tools/hooks ] ; then '''
-              b'''printf '#!/bin/sh\\nrm -f /run/autopkgtest-update-initramfs-at-reboot\\nexit 0\\n' '''
-              b'''> /usr/share/initramfs-tools/hooks/autopkgtest; '''
-              b'''chmod +x /usr/share/initramfs-tools/hooks/autopkgtest; fi\n''')
     VirtSubproc.expect(term, b'#', 10)
 
 
@@ -611,12 +596,21 @@ def hook_cleanup():
         workdir = None
 
 
+def hook_prepare_reboot():
+    # Remove baseimage drive again, so that it does not break the subsequent
+    # boot due to the duplicate UUID
+    monitor = VirtSubproc.get_unix_socket(os.path.join(workdir, 'monitor'))
+    monitor.send(b'device_del virtio-baseimage\n')
+    VirtSubproc.expect(monitor, b'(qemu)', 10)
+
+
 def hook_wait_reboot():
     global workdir
     shareddir = os.path.join(workdir, 'shared')
     os.unlink(os.path.join(shareddir, 'done_shared'))
     wait_boot()
     setup_shared(shareddir)
+    setup_baseimage()
 
 
 def hook_capabilities():
