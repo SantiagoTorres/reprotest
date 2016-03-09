@@ -55,6 +55,8 @@ autopkgtest (3.20) UNRELEASED; urgency=medium
     apt 1.1.
   * Latest LXD now adds an "images" remote for images.linuxcontainers.org by
     default. Adjust adt-build-lxd.1 and adt-virt-lxd.1 accordingly.
+  * Respect $TMPDIR when creating the downtmp and some other directory/files.
+    (Closes: #817190)
 
   [ Christian Seiler ]
   * setup-testbed: reduce grub timeout on images that don't already configure
