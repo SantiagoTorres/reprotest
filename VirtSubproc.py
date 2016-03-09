@@ -278,7 +278,7 @@ def downtmp_mktemp(path):
                    downp=True)
         return path
     else:
-        d = check_exec(['mktemp', '--directory', '/tmp/adt-run.XXXXXX'],
+        d = check_exec(['mktemp', '--directory', '--tmpdir', 'adt-run.XXXXXX'],
                        downp=True, outp=True)
         check_exec(['chmod', '1777', d], downp=True)
         return d
