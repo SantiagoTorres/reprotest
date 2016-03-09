@@ -37,6 +37,8 @@ autopkgtest (3.19.4) UNRELEASED; urgency=medium
   * adt-virt-qemu: Don't assert result of "runlevel" for connection test. This
     is a race condition under systemd as getty starts before default.target
     is fully finished.
+  * tests/adt-run SchrootClickRunner: Ensure that the "click" system user
+    exists in the schroot, so that it doesn't need to exist on the host.
 
   [ Christian Seiler ]
   * setup-testbed: reduce grub timeout on images that don't already configure
