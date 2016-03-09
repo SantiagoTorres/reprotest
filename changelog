@@ -39,6 +39,8 @@ autopkgtest (3.19.4) UNRELEASED; urgency=medium
     is fully finished.
   * tests/adt-run SchrootClickRunner: Ensure that the "click" system user
     exists in the schroot, so that it doesn't need to exist on the host.
+  * Adjust SchrootRunner.test_apt_pocket_pkg_with_proposed_dep test case for
+    apt 1.1.
 
   [ Christian Seiler ]
   * setup-testbed: reduce grub timeout on images that don't already configure
