@@ -57,6 +57,8 @@ autopkgtest (3.20) UNRELEASED; urgency=medium
     default. Adjust adt-build-lxd.1 and adt-virt-lxd.1 accordingly.
   * Respect $TMPDIR when creating the downtmp and some other directory/files.
     (Closes: #817190)
+  * tests/adt-run: Symlink real ~/.config/lxc into the temporary $HOME, to
+    avoid regenerating the LXD client certificate for each test.
 
   [ Christian Seiler ]
   * setup-testbed: reduce grub timeout on images that don't already configure
