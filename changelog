@@ -53,6 +53,8 @@ autopkgtest (3.20) UNRELEASED; urgency=medium
     exists in the schroot, so that it doesn't need to exist on the host.
   * Adjust SchrootRunner.test_apt_pocket_pkg_with_proposed_dep test case for
     apt 1.1.
+  * Latest LXD now adds an "images" remote for images.linuxcontainers.org by
+    default. Adjust adt-build-lxd.1 and adt-virt-lxd.1 accordingly.
 
   [ Christian Seiler ]
   * setup-testbed: reduce grub timeout on images that don't already configure
