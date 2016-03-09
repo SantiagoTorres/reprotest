@@ -12,6 +12,7 @@ autopkgtest (3.20) UNRELEASED; urgency=medium
     easier to map a container to a running test.
   * Add CPU information to testinfo.json: "nproc" (#cpus), "cpu_model", and
     "cpu_flags". (LP: #1552129)
+  * Add autopkgtest for adt-build-lxd and the lxd runner.
 
   [ Christian Seiler ]
   * Support nested KVM by default by emulating a CPU with VMX/SVM support on

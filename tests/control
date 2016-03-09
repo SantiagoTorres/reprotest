@@ -1,5 +1,8 @@
 Tests: adt-run
-Depends: autopkgtest, autodep8, build-essential, debhelper (>= 7)
+Depends: autopkgtest,
+ autodep8,
+ build-essential,
+ debhelper (>= 7)
 Restrictions: needs-root
 Tests-Directory: tests
 
@@ -9,3 +12,12 @@ Tests-Directory: tests
 
 Tests: installed
 Depends: autopkgtest
+
+Test-Command: adt-build-lxd images:ubuntu/xenial/amd64; ADT_TEST_LXD=adt/ubuntu/xenial/amd64 tests/adt-run LxdRunner
+Depends: autopkgtest,
+ lxd,
+ lxd-client,
+ build-essential,
+ debhelper (>= 7),
+ fakeroot
+Restrictions: isolation-machine, allow-stderr
