@@ -355,7 +355,7 @@ def can_sudo(ssh_cmd):
 
     # if we have a password, use that
     if args.password:
-        cmd = 'F=`mktemp -t sudo_askpass.XXXX`;' \
+        cmd = 'F=`mktemp --tmpdir sudo_askpass.XXXX`;' \
               '/bin/echo -e "#!/bin/sh\necho \'%s\'" > $F;' \
               'chmod u+x $F; sync; echo $F' % args.password
         askpass = VirtSubproc.check_exec(
