@@ -28,10 +28,12 @@ otherwise there is no default.
 
 .SH EXAMPLE
 
-Add a remote LXD image server for the public linuxcontainers.org and build a
-local autopkgtest container for Debian sid i386:
-$ lxc remote add lco https://images.linuxcontainers.org:8443
-$ adt-build-lxd lco:debian/sid/i386
+Build a local autopkgtest container image for Debian sid i386, based on the
+stock Debian image from the public
+.B images.linuxcontainers.org
+remote:
+
+$ adt-build-lxd images:debian/sid/i386
 
 .SH SEE ALSO
 \fBadt\-virt-lxd\fR(1),
