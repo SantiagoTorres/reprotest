@@ -64,25 +64,24 @@ specification.
 
 .SH EXAMPLE
 
-Add a remote LXD image server for the public
+Show available images on the standard
 .B linuxcontainers.org
-and show available images:
+remote image server:
 
 .RS
 .EX
-lxc remote add lco https://images.linuxcontainers.org:8443
-lxc image list lco:
+lxc image list images:
 .EE
 .RE
 
 Run the tests of a local built directory tree on the current Debian sid
 image from the above
-.B lco:
+.B images:
 remote:
 
 .RS
 .EX
-adt-run my-package/ --- lxd lco:debian/sid/amd64
+adt-run my-package/ --- lxd images:debian/sid/amd64
 .EE
 .RE
 
@@ -100,14 +99,14 @@ adt-run --setup-commands 'apt-get install -y eatmydata' dir/to/test/ \\
 Run the tests of the
 .B libpng
 package on the current Debian sid image from the
-.B lco:
+.B images:
 remote on a remote armhf host:
 
 .RS
 .EX
 lxc remote add armhf-test http://armhf.testlab.example.com:8443
 adt-run --setup-commands=setup-testbed libpng --- \\
-   lxd --remote armhf-test lco:debian/sid/armhf
+   lxd --remote armhf-test images:debian/sid/armhf
 .EE
 .RE
 
@@ -116,7 +115,7 @@ standard image, and run libpng test in it:
 
 .RS
 .EX
-adt-build-lxd lco:ubuntu/xenial/amd64
+adt-build-lxd images:ubuntu/xenial/amd64
 adt-run libpng --- lxd adt/ubuntu/xenial/amd64
 
 .SH SEE ALSO
