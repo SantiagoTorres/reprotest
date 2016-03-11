@@ -1,4 +1,4 @@
-autopkgtest (3.20) UNRELEASED; urgency=medium
+autopkgtest (3.20) unstable; urgency=medium
 
   New features/behaviour changes:
 
@@ -67,7 +67,7 @@ autopkgtest (3.20) UNRELEASED; urgency=medium
   * adt-virt-qemu: Use correct qemu-system-i386 command on i[3456]86 systems.
   * Fix spelling errors in manpages.
 
- -- Martin Pitt <mpitt@debian.org>  Tue, 23 Feb 2016 18:21:51 +0100
+ -- Martin Pitt <mpitt@debian.org>  Fri, 11 Mar 2016 10:05:08 +0100
 
 autopkgtest (3.19.3) unstable; urgency=medium
 
