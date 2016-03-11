@@ -770,9 +770,9 @@ fi
         '''
         # check if we are in a click+AppArmor environment
         if self.execute(['sh', '-ec',
-                         '[ -d /var/cache/apparmor -a -d /var/lib/apparmor/clicks ] && '
+                         '[ -d /var/cache/apparmor -a -d /var/lib/apparmor/clicks -a ! -e /var/cache/apparmor/click-ap.rules ] && '
                          'type aa-clickhook >/dev/null 2>&1'])[0] != 0:
-            adtlog.debug('testbed does not have AppArmor/click, no need to adjust rules')
+            adtlog.debug('testbed does not have AppArmor/click or already has Autopilot click rules, no need to adjust rules')
             return False
         adtlog.debug('testbed has AppArmor/click')
 
