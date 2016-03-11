@@ -1,3 +1,12 @@
+autopkgtest (3.20.1) UNRELEASED; urgency=medium
+
+  * When testing click packages, don't regenerate all AppArmor profiles if
+    /var/cache/apparmor/click-ap.rules already exists. That way the profiles
+    can be pre-adjusted once in a testbed instead of once for each test run,
+    which greatly speeds up iterations. (LP: #1553797)
+
+ -- Martin Pitt <mpitt@debian.org>  Fri, 11 Mar 2016 15:56:40 +0100
+
 autopkgtest (3.20) unstable; urgency=medium
 
   New features/behaviour changes:
