@@ -174,7 +174,7 @@ def start_lxc1():
         if VirtSubproc.execute_timeout(None, 10, argv + ['-B', 'btrfs'],
                                        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)[0] != 0:
             adtlog.debug('lxc-clone with btrfs backingstore failed, re-trying without')
-            rc = VirtSubproc.execute_timeout(None, 600, argv)[0]
+            rc = VirtSubproc.execute_timeout(None, 600, argv, stdout=subprocess.DEVNULL)[0]
             if rc != 0:
                 VirtSubproc.bomb('lxc-clone failed with exit status %i' % rc)
         argv = ['lxc-start', '--name', lxc_container_name, '--daemon']
