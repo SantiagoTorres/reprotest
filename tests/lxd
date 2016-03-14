@@ -1,0 +1,12 @@
+#!/bin/sh
+set -eu
+arch=$(dpkg --print-architecture)
+if [ "$arch" != i386 -a "$arch" != amd64 ]; then
+    # we don't have LXD images for most non-x86 architectures
+    echo "Skipping on non-x86 architecture $arch"
+    exit 0
+fi
+
+adt-build-lxd images:ubuntu/xenial/$arch
+export ADT_TEST_LXD=adt/ubuntu/xenial/$arch
+tests/adt-run LxdRunner

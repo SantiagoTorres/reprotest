@@ -13,7 +13,7 @@ Tests-Directory: tests
 Tests: installed
 Depends: autopkgtest
 
-Test-Command: adt-build-lxd images:ubuntu/xenial/amd64; ADT_TEST_LXD=adt/ubuntu/xenial/amd64 tests/adt-run LxdRunner
+Tests: lxd
 Depends: autopkgtest,
  lxd,
  lxd-client,

@@ -7,6 +7,8 @@ autopkgtest (3.20.1) UNRELEASED; urgency=medium
   * Move SshRunner* tests from lxc to lxd.
   * NullRunner.test_tree_output_dir test: Only check for cpu_{model,flags} on
     x86 and ARM, as these need parsing adjustments on other architectures.
+  * Only run lxd autopkgtest on x86 architectures, as
+    images.linuxcontainers.org does not have much else.
 
  -- Martin Pitt <mpitt@debian.org>  Fri, 11 Mar 2016 15:56:40 +0100
 
