@@ -1,4 +1,4 @@
-autopkgtest (3.20.1) UNRELEASED; urgency=medium
+autopkgtest (3.20.1) unstable; urgency=medium
 
   * When testing click packages, don't regenerate all AppArmor profiles if
     /var/cache/apparmor/click-ap.rules already exists. That way the profiles
@@ -15,7 +15,7 @@ autopkgtest (3.20.1) UNRELEASED; urgency=medium
   * adt-virt-lxc: Suppress lxc-copy's stdout in the "no btrfs" fallback case.
     (Closes: #818185)
 
- -- Martin Pitt <mpitt@debian.org>  Fri, 11 Mar 2016 15:56:40 +0100
+ -- Martin Pitt <mpitt@debian.org>  Mon, 14 Mar 2016 22:35:54 +0100
 
 autopkgtest (3.20) unstable; urgency=medium
 
