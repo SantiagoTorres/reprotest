@@ -7,8 +7,7 @@ autopkgtest (3.20.1) UNRELEASED; urgency=medium
   * Move SshRunner* tests from lxc to lxd.
   * NullRunner.test_tree_output_dir test: Only check for cpu_{model,flags} on
     x86 and ARM, as these need parsing adjustments on other architectures.
-  * Only run lxd autopkgtest on x86 architectures, as
-    images.linuxcontainers.org does not have much else.
+  * Disable lxd autopkgtest for now, this still needs some way to set a proxy.
   * lib/VirtSubproc.py, cmd_reboot(): Add workaround for dhclient hanging on
     reboot (see LP #1556175).
   * Fix regular expression for removing profile guarded dependencies on hosts

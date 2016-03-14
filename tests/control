@@ -13,11 +13,12 @@ Tests-Directory: tests
 Tests: installed
 Depends: autopkgtest
 
-Tests: lxd
-Depends: autopkgtest,
- lxd,
- lxd-client,
- build-essential,
- debhelper (>= 7),
- fakeroot
-Restrictions: isolation-machine, allow-stderr
+# LP#1557161
+#Tests: lxd
+#Depends: autopkgtest,
+# lxd,
+# lxd-client,
+# build-essential,
+# debhelper (>= 7),
+# fakeroot
+#Restrictions: isolation-machine, allow-stderr
