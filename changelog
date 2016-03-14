@@ -5,6 +5,8 @@ autopkgtest (3.20.1) UNRELEASED; urgency=medium
     can be pre-adjusted once in a testbed instead of once for each test run,
     which greatly speeds up iterations. (LP: #1553797)
   * Move SshRunner* tests from lxc to lxd.
+  * NullRunner.test_tree_output_dir test: Only check for cpu_{model,flags} on
+    x86 and ARM, as these need parsing adjustments on other architectures.
 
  -- Martin Pitt <mpitt@debian.org>  Fri, 11 Mar 2016 15:56:40 +0100
 
