@@ -12,6 +12,8 @@ autopkgtest (3.20.1) UNRELEASED; urgency=medium
     reboot (see LP #1556175).
   * Fix regular expression for removing profile guarded dependencies on hosts
     that don't support build profiles.
+  * adt-virt-lxc: Suppress lxc-copy's stdout in the "no btrfs" fallback case.
+    (Closes: #818185)
 
  -- Martin Pitt <mpitt@debian.org>  Fri, 11 Mar 2016 15:56:40 +0100
 
