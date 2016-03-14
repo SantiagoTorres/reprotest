@@ -850,7 +850,7 @@ fi
         code = '''use Dpkg::Deps;
                   $supports_profiles = ($Dpkg::Deps::VERSION gt '1.04' or 0);
                   $origdeps = '%s';
-                  $origdeps =~ s/(^|,)[^<,]+<[^!>]+>//g if (!$supports_profiles);
+                  $origdeps =~ s/(^|,)[^<,]+<[^!,>]+>//g if (!$supports_profiles);
                   $dep = deps_parse($origdeps, reduce_arch => 1, host_arch => '%s' %s);
                   $out = $dep->output();
                   # fall back to ignoring build profiles
