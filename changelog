@@ -1,3 +1,9 @@
+autopkgtest (3.20.2) UNRELEASED; urgency=medium
+
+  * setup-commands/setup-testbed: Purge lxc-common for testbed preparation.
+
+ -- Martin Pitt <mpitt@debian.org>  Mon, 21 Mar 2016 21:31:24 +0100
+
 autopkgtest (3.20.1) unstable; urgency=medium
 
   * When testing click packages, don't regenerate all AppArmor profiles if
