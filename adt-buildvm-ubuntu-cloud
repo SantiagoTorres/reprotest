@@ -209,7 +209,7 @@ runcmd:
  - mount -r /dev/vdb /mnt
  - env ADT_SETUP_VM_UPGRADE=%(upgr)s ADT_SETUP_VM_POST_COMMAND='%(postcmd)s'
      sh /mnt/setup-testbed
- - if grep -q 'net.ifnames=0' /proc/cmdline; then rm /etc/network/interfaces.d/eth0.cfg; printf "auto ens3\\niface ens3 inet dhcp\\n" > /etc/network/interfaces.d/ens3.cfg; fi
+ - if grep -q 'net.ifnames=0' /proc/cmdline; then ln -s /dev/null /etc/udev/rules.d/80-net-setup-link.rules; update-initramfs -u; fi
  - umount /mnt
  - (while [ ! -e /var/lib/cloud/instance/boot-finished ]; do sleep 1; done;
     apt-get -y purge cloud-init; shutdown -P now) &
