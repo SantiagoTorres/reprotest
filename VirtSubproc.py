@@ -337,9 +337,8 @@ def cmd_reboot(c, ce):
     if len(c) > 1 and c[1] == 'prepare-only':
         adtlog.info('state saved, waiting for testbed to reboot...')
     else:
-        # FIXME: kill dhclient, workaround for LP #1556175
         execute_timeout(None, 30, auxverb +
-                        ['sh', '-c', 'pkill -9 dhclient >/dev/null 2>&1; (sleep 3; reboot) >/dev/null 2>&1 &'])
+                        ['sh', '-c', '(sleep 3; reboot) >/dev/null 2>&1 &'])
     caller.hook_wait_reboot()
 
     # restore downtmp
