@@ -430,7 +430,10 @@ def get_cpuflag():
                         return ['-cpu', 'kvm64,+vmx,+lahf_lm']
                     elif 'svm' in words:  # AMD kvm
                         adtlog.debug('Detected KVM capable AMD host CPU, enabling nested KVM')
-                        return ['-cpu', 'kvm64,+svm,+lahf_lm']
+                        # FIXME: this should really be the one below for more
+                        # reproducible testbeds, but nothing except -cpu host works
+                        # return ['-cpu', 'kvm64,+svm,+lahf_lm']
+                        return ['-cpu', 'host']
     except IOError as e:
         adtlog.warning('Cannot read /proc/cpuinfo to detect CPU flags: %s' % e)
         # fetching CPU flags isn't critical (only used to enable nested KVM),
