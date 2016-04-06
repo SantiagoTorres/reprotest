@@ -6,7 +6,7 @@
 # autopkgtest is Copyright (C) 2006-2014 Canonical Ltd.
 #
 # Build a suitable autopkgtest VM from the Ubuntu cloud images:
-# http://cloud-images.ubuntu.com/
+# https://cloud-images.ubuntu.com/
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -115,7 +115,7 @@ def parse_args():
     parser.add_argument('-v', '--verbose', action='store_true', default=False,
                         help='Show VM guest and cloud-init output')
     parser.add_argument('--cloud-image-url', metavar='URL',
-                        default='http://cloud-images.ubuntu.com',
+                        default='https://cloud-images.ubuntu.com',
                         help='cloud images URL (default: %(default)s)')
     parser.add_argument('--no-apt-upgrade', action='store_true',
                         help='Do not run apt-get dist-upgrade')
