@@ -57,7 +57,7 @@ proxy_detect() {
 
 setup() {
     # set up apt proxy for the container
-    if [ -n "${ADT_APT_PROXY:-}" ]; then
+    if [ -n "${ADT_APT_PROXY:-}" ] && [ "$ADT_APT_PROXY" != "none" ]; then
         echo "Acquire::http::Proxy \"$ADT_APT_PROXY\";" | lxc file push - "$CONTAINER/etc/apt/apt.conf.d/01proxy"
         # work around LP#1548878
         lxc exec "$CONTAINER" -- chmod 644 /etc/apt/apt.conf.d/01proxy
