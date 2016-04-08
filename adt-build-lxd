@@ -103,7 +103,7 @@ if [ -z "${1:-}" ]; then
 fi
 IMAGE="$1"
 CONTAINER=''
-trap '[ -z "$CONTAINER" ] || lxc delete "$CONTAINER"' EXIT INT QUIT PIPE
+trap '[ -z "$CONTAINER" ] || lxc delete -f "$CONTAINER"' EXIT INT QUIT PIPE
 
 proxy_detect
 generate_container_name
