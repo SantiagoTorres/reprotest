@@ -881,7 +881,8 @@ fi
         adtlog.info(' - - - - - - - - - - running shell - - - - - - - - - -')
         self.command('shell', [cwd or '/'] + self.install_tmp_env + extra_env)
 
-    def run_test(self, tree, test, extra_env=[], shell_on_failure=False, shell=False):
+    def run_test(self, tree, test, extra_env=[], shell_on_failure=False,
+                 shell=False, build_parallel=None):
         '''Run given test in testbed
 
         tree (a Path) is the source tree root.
@@ -943,7 +944,8 @@ fi
                  'rm -f /tmp/adt_test_script_pid; set -C; echo $$ > /tmp/adt_test_script_pid; set +C; ' \
                  'trap "rm -f /tmp/adt_test_script_pid" EXIT INT QUIT PIPE; '\
                  'cd "$buildtree"; '\
-                 % {'t': tree.tb, 'a': test_artifacts, 'tmp': adttmp, 'cpu': self.nproc}
+                 % {'t': tree.tb, 'a': test_artifacts, 'tmp': adttmp,
+                    'cpu': build_parallel or self.nproc}
 
         for e in extra_env:
             script += 'export \'%s\'; ' % e
