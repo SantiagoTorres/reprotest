@@ -925,6 +925,7 @@ fi
         # create script to run test
         test_artifacts = '%s/%s-artifacts' % (self.scratch, test.name)
         adttmp = '%s/adttmp' % (self.scratch)
+        assert self.nproc is not None
         script = 'set -e; ' \
                  'export USER=`id -nu`; ' \
                  '. /etc/profile >/dev/null 2>&1 || true; ' \
@@ -935,14 +936,14 @@ fi
                  'mkdir -p -m 755 "%(tmp)s"; export ADTTMP="%(tmp)s" ' \
                  'export DEBIAN_FRONTEND=noninteractive; ' \
                  'export LANG=C.UTF-8; ' \
-                 '''export DEB_BUILD_OPTIONS=parallel=$(grep -c ^processor /proc/cpuinfo | sed 's/^0$/1/'); ''' \
+                 '''export DEB_BUILD_OPTIONS=parallel=%(cpu)s; ''' \
                  'unset LANGUAGE LC_CTYPE LC_NUMERIC LC_TIME LC_COLLATE '\
                  '  LC_MONETARY LC_MESSAGES LC_PAPER LC_NAME LC_ADDRESS '\
                  '  LC_TELEPHONE LC_MEASUREMENT LC_IDENTIFICATION LC_ALL;' \
                  'rm -f /tmp/adt_test_script_pid; set -C; echo $$ > /tmp/adt_test_script_pid; set +C; ' \
                  'trap "rm -f /tmp/adt_test_script_pid" EXIT INT QUIT PIPE; '\
                  'cd "$buildtree"; '\
-                 % {'t': tree.tb, 'a': test_artifacts, 'tmp': adttmp}
+                 % {'t': tree.tb, 'a': test_artifacts, 'tmp': adttmp, 'cpu': self.nproc}
 
         for e in extra_env:
             script += 'export \'%s\'; ' % e
