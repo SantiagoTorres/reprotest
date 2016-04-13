@@ -148,7 +148,8 @@ def run_tests(tests, tree):
         binaries.publish()
         testbed.install_deps(t.depends, 'needs-recommends' in t.restrictions)
 
-        testbed.run_test(tree, t, opts.env, opts.shell_fail, opts.shell)
+        testbed.run_test(tree, t, opts.env, opts.shell_fail, opts.shell,
+                         opts.build_parallel)
         if not t.result:
             errorcode |= 4
         if 'breaks-testbed' in t.restrictions:
@@ -449,7 +450,8 @@ def build_source(kind, arg, built_binaries):
         # determine build command and build-essential packages
         build_essential = ['build-essential']
         assert testbed.nproc
-        dpkg_buildpackage = 'DEB_BUILD_OPTIONS="parallel=%s $DEB_BUILD_OPTIONS" dpkg-buildpackage -us -uc -b' % testbed.nproc
+        dpkg_buildpackage = 'DEB_BUILD_OPTIONS="parallel=%s $DEB_BUILD_OPTIONS" dpkg-buildpackage -us -uc -b' % (
+            opts.build_parallel or testbed.nproc)
         if opts.gainroot:
             dpkg_buildpackage += ' -r' + opts.gainroot
         else:

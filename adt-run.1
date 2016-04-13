@@ -359,7 +359,6 @@ explicit timeout settings are used exactly as specified.
 When running commands on the testbed, sets the \fBLANG\fR environment
 variable to \fIlangval\fR.  The default in \fBadt-run\fR is to set it
 to \fBC.UTF-8\fR.
-.TP
 
 .SH OTHER OPTIONS
 
@@ -368,6 +367,15 @@ to \fBC.UTF-8\fR.
 Disable automatic test generation with autodep8, even if it is installed. In
 that case, packages without tests will exit with code 8 ("No tests in this
 package") just like without autodep8.
+
+
+.TP
+.BI --build-parallel N
+Set
+.I parallel=N
+DEB_BUILD_OPTION for building packages. By default this is the number of
+available processors. This is mostly useful in containers where you can
+restrict the available RAM, but not restrict the number of CPUs.
 
 .TP
 .BR \-h | \-\-help
