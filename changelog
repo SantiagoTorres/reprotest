@@ -2,6 +2,8 @@ autopkgtest (3.20.4) UNRELEASED; urgency=medium
 
   * setup-commands/setup-testbed: Fix kernel header installation for
     precise/armhf, which does not yet have linux-headers-generic.
+  * Use "nproc" to determine the number of processors available, which is both
+    more correct in a cgroup world, and also simpler.
 
  -- Martin Pitt <mpitt@debian.org>  Tue, 12 Apr 2016 21:08:10 +0200
 
