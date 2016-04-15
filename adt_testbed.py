@@ -357,7 +357,7 @@ class Testbed:
             self.bomb('unexpected whitespace-only line from the testbed')
         if ll[0] != keyword:
             if self.lastsend is None:
-                self.bomb("got banner `%s', expected `%s...'"
+                self.bomb("got banner `%s', expected `%s...'" %
                           (l, keyword))
             else:
                 self.bomb("sent `%s', got `%s', expected `%s...'" %
