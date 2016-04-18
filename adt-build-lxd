@@ -112,13 +112,14 @@ setup
 
 # if there already is a published image, get its fingerprint to clean it up
 # afterwards
-ALIAS="adt/$(echo "$DISTRO" | tr '[:upper:]' '[:lower:]')/$RELEASE/$ARCH"
+DISTROLC=$(echo "$DISTRO" | tr '[:upper:]' '[:lower:]')
+ALIAS="adt/$DISTROLC/$RELEASE/$ARCH"
 OLD_IMAGE=''
 if O=$(lxc image info "$ALIAS" 2>/dev/null); then
     OLD_IMAGE=$(echo "$O" | awk 'tolower($1) ~ /fingerprint:/ { print $2}')
 fi
 
-lxc publish "$CONTAINER" --alias "$ALIAS" --public description="autopkgtest $DISTRO $RELEASE $ARCH"
+lxc publish "$CONTAINER" --alias "$ALIAS" --public description="autopkgtest $DISTRO $RELEASE $ARCH" distribution="$DISTROLC" release="$RELEASE" architecture="$ARCH"
 
 if [ -n "$OLD_IMAGE" ]; then
     echo "Removing previous image $OLD_IMAGE"
