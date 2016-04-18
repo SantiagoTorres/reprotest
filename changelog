@@ -1,4 +1,4 @@
-autopkgtest (3.20.4) UNRELEASED; urgency=medium
+autopkgtest (3.20.4) unstable; urgency=medium
 
   * setup-commands/setup-testbed: Fix kernel header installation for
     precise/armhf, which does not yet have linux-headers-generic.
@@ -22,7 +22,7 @@ autopkgtest (3.20.4) UNRELEASED; urgency=medium
   * Bump Standards-Version to 3.9.8 (no changes necessary).
   * Update Vcs-* URLs.
 
- -- Martin Pitt <mpitt@debian.org>  Tue, 12 Apr 2016 21:08:10 +0200
+ -- Martin Pitt <mpitt@debian.org>  Mon, 18 Apr 2016 11:19:45 +0200
 
 autopkgtest (3.20.3) unstable; urgency=medium
 
