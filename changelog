@@ -11,6 +11,8 @@ autopkgtest (3.20.4) UNRELEASED; urgency=medium
     (LP: #1569750)
   * setup-commands/setup-testbed: ubuntu-snappy got renamed to snapd, adjust
     package name.
+  * adt-build-lxd: Set "distribution", "release", and "architecture"
+    properties of generated images.
 
  -- Martin Pitt <mpitt@debian.org>  Tue, 12 Apr 2016 21:08:10 +0200
 
