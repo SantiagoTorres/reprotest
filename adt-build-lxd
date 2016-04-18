@@ -114,14 +114,12 @@ setup
 # afterwards
 DISTROLC=$(echo "$DISTRO" | tr '[:upper:]' '[:lower:]')
 ALIAS="adt/$DISTROLC/$RELEASE/$ARCH"
-OLD_IMAGE=''
-if O=$(lxc image info "$ALIAS" 2>/dev/null); then
-    OLD_IMAGE=$(echo "$O" | awk 'tolower($1) ~ /fingerprint:/ { print $2}')
-fi
+DESCRIPTION="autopkgtest $DISTRO $RELEASE $ARCH"
 
-lxc publish "$CONTAINER" --alias "$ALIAS" --public description="autopkgtest $DISTRO $RELEASE $ARCH" distribution="$DISTROLC" release="$RELEASE" architecture="$ARCH"
+lxc publish "$CONTAINER" --alias "$ALIAS" --public description="$DESCRIPTION" distribution="$DISTROLC" release="$RELEASE" architecture="$ARCH"
 
-if [ -n "$OLD_IMAGE" ]; then
-    echo "Removing previous image $OLD_IMAGE"
-    lxc image delete "$OLD_IMAGE"
-fi
+# clean up old images
+for i in $(lxc image list | grep "$DESCRIPTION" | grep -v "$ALIAS" | cut -d'|' -f3); do
+    echo "Removing previous image $i"
+    lxc image delete "$i"
+done
