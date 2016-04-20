@@ -3,6 +3,11 @@ autopkgtest (3.20.5) UNRELEASED; urgency=medium
   [ Martin Packman ]
   * Fix ssh virt server example and testbed error.
 
+  [ Martin Pitt ]
+  * If git clone fails with "--git-source" the first time, retry after 15
+    seconds. This should defend short temporary network glitches.
+    (LP: #1571979)
+
  -- Martin Pitt <mpitt@debian.org>  Tue, 19 Apr 2016 10:13:22 +0200
 
 autopkgtest (3.20.4) unstable; urgency=medium
