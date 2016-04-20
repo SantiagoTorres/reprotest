@@ -370,9 +370,10 @@ def build_source(kind, arg, built_binaries):
     elif kind == 'git-source':
         fields = arg.split()
         if len(fields) == 1:
-            create_command = "git clone '%s'" % arg
+            create_command = "git clone '%s' || { sleep 15; git clone '%s'; }" % (arg, arg)
         elif len(fields) == 2:
-            create_command = "git clone --branch '%s' '%s'" % (fields[1], fields[0])
+            create_command = "git clone --branch '%(b)s' '%(u)s' || { sleep 15; git clone --branch '%(b)s' '%(u)s'; }" \
+                % {'b': fields[1], 'u': fields[0]}
         else:
             adtlog.bomb('--git-source argument must be "URL" or "URL branchname"')
 
