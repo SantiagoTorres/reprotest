@@ -11,6 +11,9 @@ autopkgtest (3.20.5) UNRELEASED; urgency=medium
     #822431), by running python3.5 with a long timeout the first time (until
     the RNG got initialized). (Closes: #821778)
   * adt-virt-ssh: Fix UnboundLocalError crash when logging in as root.
+  * Fix running for multiple actions in one command line: (Closes: #822285)
+    - Close the summary stream after the last test, not after the first.
+    - Clean up the test tree on the testbed between actions.
 
  -- Martin Pitt <mpitt@debian.org>  Tue, 19 Apr 2016 10:13:22 +0200
 
