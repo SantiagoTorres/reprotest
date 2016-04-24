@@ -10,6 +10,7 @@ autopkgtest (3.20.5) UNRELEASED; urgency=medium
   * Add temporary workaround for python3.5 regression in 3.5.1-11 (see
     #822431), by running python3.5 with a long timeout the first time (until
     the RNG got initialized). (Closes: #821778)
+  * adt-virt-ssh: Fix UnboundLocalError crash when logging in as root.
 
  -- Martin Pitt <mpitt@debian.org>  Tue, 19 Apr 2016 10:13:22 +0200
 
