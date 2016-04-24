@@ -7,9 +7,9 @@ autopkgtest (3.20.5) UNRELEASED; urgency=medium
   * If git clone fails with "--git-source" the first time, retry after 15
     seconds. This should defend short temporary network glitches.
     (LP: #1571979)
-  * Add temporary workaround for python3.5 regression in 3.5.1-11 (see
-    #822431), by running python3.5 with a long timeout the first time (until
-    the RNG got initialized). (Closes: #821778)
+  * adt-virt-qemu: Call eofcat helper with PYTHONHASHSEED=0 to avoid long
+    hangs after booting the VM until the RNG gets initialized. (See #822431
+    for details) (Closes: #821778)
   * adt-virt-ssh: Fix UnboundLocalError crash when logging in as root.
   * Fix running for multiple actions in one command line: (Closes: #822285)
     - Close the summary stream after the last test, not after the first.
