@@ -508,6 +508,7 @@ def process_actions():
     control_override = None
     testname = None
     pending_click_source = None
+    tests_tree = None
 
     for (kind, arg, built_binaries) in actions:
         # non-tests/build actions
@@ -535,6 +536,11 @@ def process_actions():
         assert kind in ('source', 'unbuilt-tree', 'built-tree', 'apt-source',
                         'git-source', 'click')
         adtlog.info('@@@@@@@@@@@@@@@@@@@@ %s %s' % (kind, arg))
+
+        # remove tests tree from previous action
+        if tests_tree and tests_tree.tb:
+            adtlog.debug('cleaning up previous tests tree %s on testbed' % tests_tree.tb)
+            testbed.execute(['rm', '-rf', tests_tree.tb])
 
         if kind == 'click':
             if control_override:
@@ -601,8 +607,9 @@ def process_actions():
             adtlog.summary_stream.seek(0)
             adtlog.info('@@@@@@@@@@@@@@@@@@@@ summary')
             sys.stderr.buffer.write(adtlog.summary_stream.read())
-        adtlog.summary_stream.close()
-        adtlog.summary_stream = None
+
+    adtlog.summary_stream.close()
+    adtlog.summary_stream = None
 
 
 def main():
