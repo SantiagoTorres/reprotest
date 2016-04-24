@@ -409,6 +409,9 @@ sys.exit(rc == 255 and 253 or rc)
 
     VirtSubproc.auxverb = [auxverb]
 
+    # temporary workaround for Python bug (https://bugs.debian.org/822431)
+    VirtSubproc.execute_timeout(None, 180, VirtSubproc.auxverb + ['true'])
+
     # verify that we can connect
     status = VirtSubproc.execute_timeout(None, 5, VirtSubproc.auxverb + ['true'])[0]
     if status == 0:
