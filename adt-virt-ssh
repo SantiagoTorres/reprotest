@@ -314,6 +314,8 @@ def build_auxverb():
 
     if sshconfig['login'] != 'root':
         (sudocmd, askpass) = can_sudo(sshcmd)
+    else:
+        (sudocmd, askpass) = (None, None)
     if sudocmd:
         if 'root-on-testbed' not in capabilities:
             capabilities.append('root-on-testbed')
