@@ -602,11 +602,14 @@ def cmd_shell(c, ce):
         except KeyError:
             pass
         cmd += 'bash -i'
-        with open('/dev/tty', 'rb') as sin:
-            with open('/dev/tty', 'wb') as sout:
-                with open('/dev/tty', 'wb') as serr:
-                    subprocess.call(auxverb + ['sh', '-c', cmd],
-                                    stdin=sin, stdout=sout, stderr=serr)
+        try:
+            with open('/dev/tty', 'rb') as sin:
+                with open('/dev/tty', 'wb') as sout:
+                    with open('/dev/tty', 'wb') as serr:
+                        subprocess.call(auxverb + ['sh', '-c', cmd],
+                                        stdin=sin, stdout=sout, stderr=serr)
+        except (OSError, IOError) as e:
+            adtlog.error('Cannot run shell: %s' % e)
 
 
 def command():
