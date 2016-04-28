@@ -356,7 +356,7 @@ def build_source(kind, arg, built_binaries):
         # apt-get source is terribly noisy; only show what gets downloaded
         create_command = ('''pkgs=$(apt-cache showsrc %(src)s | awk "/^Package-List:/ { inlist=1; next } (/^ / && inlist == 1) { thissrc[\$1] = 1; next } { if (!inlist) next; inlist=0; if (intersect) {for (p in pkgs) { if (!(p in thissrc)) delete pkgs[p] }} else { for (p in thissrc) { pkgs[p] = 1}; intersect=1 }; delete thissrc } END {for (p in pkgs) print p}");'''
                           ' for pkg in $pkgs; do'
-                          '  pkg_candidate=$(apt-cache policy $pkg|sed -n "/Candidate:/ { s/^.* //; /none/d; p}");'
+                          '  pkg_candidate=$(apt-cache policy "^$pkg\$"|sed -n "/Candidate:/ { s/^.* //; /none/d; p}") || continue;'
                           '  [ -n "$pkg_candidate" ] || continue; '
                           '  show=$(apt-cache show $pkg=$pkg_candidate | grep "^Source:" || true);'
                           '  [ "$pkg" = "%(src)s" ] || echo "$show" | grep -q "^Source: %(src)s\\b" || continue; '
