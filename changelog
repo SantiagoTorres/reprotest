@@ -2,6 +2,9 @@ autopkgtest (3.20.6) UNRELEASED; urgency=medium
 
   * Fix OSError when running a shell is requested but /dev/tty does not exist;
     just log an error instead.
+  * Fix parsing of candidate versions from "apt-cache policy" to always use
+    the precise given package name. By default it falls back to a
+    substring/regexp search (undocumented).
 
  -- Martin Pitt <mpitt@debian.org>  Wed, 27 Apr 2016 12:44:42 +0200
 
