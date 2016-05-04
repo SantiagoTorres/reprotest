@@ -54,12 +54,12 @@ if type eatmydata >/dev/null 2>&1; then
     LXC_CREATE_PREFIX="eatmydata"
 fi
 
-# auto-detect apt-cacher-ng
+# detect apt proxy
 proxy_detect() {
     if [ -z "$ADT_APT_PROXY" ]; then
         RES=`apt-config shell proxy Acquire::http::Proxy`
         eval $RES
-        if echo "$proxy" | egrep -q '(localhost|127\.0\.0\.[0-9]*):3142'; then
+        if echo "${proxy:-}" | egrep -q '(localhost|127\.0\.0\.[0-9]*)'; then
             # set http_proxy for the initial debootstrap
             export http_proxy="$proxy"
 
@@ -69,13 +69,17 @@ proxy_detect() {
             if [ -n "$bridge_interface" ]; then
                 local bridge_ip=$(ip -4 a show dev "$bridge_interface" | awk '/ inet / {sub(/\/.*$/, "", $2); print $2}') || true
                 if [ -n "$bridge_ip" ]; then
-                    ADT_APT_PROXY="http://$bridge_ip:3142"
+                    ADT_APT_PROXY=$(echo "$proxy" | sed -r "s#localhost|127\.0\.0\.[0-9]*#$bridge_ip#")
                 fi
             fi
-            echo "Detected apt-cacher-ng. Using local proxy $http_proxy"
             if [ -n "$ADT_APT_PROXY" ]; then
-                echo "Using $ADT_APT_PROXY as container proxy"
+                echo "Detected local apt proxy, using $ADT_APT_PROXY as container proxy"
             fi
+        elif [ -n "${proxy:-}" ]; then
+            ADT_APT_PROXY="$proxy"
+            echo "Using $ADT_APT_PROXY as container proxy"
+            # set http_proxy for the initial debootstrap
+            export http_proxy="$proxy"
         fi
     fi
 }

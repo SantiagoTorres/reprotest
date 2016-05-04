@@ -46,11 +46,8 @@ autopkgtests.
 
 You can specify an apt proxy to use in the container in the
 .B $ADT_APT_PROXY
-environment variable. If apt-cacher-ng is running on the local host, the
-container will automatically use this (i. e. use the IP from the
-.B lxcbr0
-interface)
-otherwise there is no default.
+environment variable. If you have an apt proxy configured on the host,
+the container will automatically use this, otherwise there is no default.
 
 
 .SH EXAMPLES

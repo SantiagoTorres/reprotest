@@ -33,24 +33,27 @@ generate_container_name() {
     done
 }
 
-# auto-detect apt-cacher-ng
+# detect apt proxy
 proxy_detect() {
     if [ -z "${ADT_APT_PROXY:-}" ]; then
         RES=`apt-config shell proxy Acquire::http::Proxy`
         eval $RES
-        if echo "${proxy:-}" | egrep -q '(localhost|127\.0\.0\.[0-9]*):3142'; then
+        if echo "${proxy:-}" | egrep -q '(localhost|127\.0\.0\.[0-9]*)'; then
             # translate proxy address to one that can be accessed from the
             # running container
             local bridge_interface=$(sh -c '. /etc/default/lxd-bridge; echo $LXD_BRIDGE' 2>/dev/null)
             if [ -n "$bridge_interface" ]; then
                 local bridge_ip=$(ip -4 a show dev "$bridge_interface" | awk '/ inet / {sub(/\/.*$/, "", $2); print $2}') || true
                 if [ -n "$bridge_ip" ]; then
-                    ADT_APT_PROXY="http://$bridge_ip:3142"
+                    ADT_APT_PROXY=$(echo "$proxy" | sed -r "s#localhost|127\.0\.0\.[0-9]*#$bridge_ip#")
                 fi
             fi
             if [ -n "${ADT_APT_PROXY:-}" ]; then
-                echo "Detected local apt-cacher-ng, using $ADT_APT_PROXY as container proxy"
+                echo "Detected local apt proxy, using $ADT_APT_PROXY as container proxy"
             fi
+        elif [ -n "${proxy:-}" ]; then
+            echo "Using $ADT_APT_PROXY as container proxy"
+            ADT_APT_PROXY="$proxy"
         fi
     fi
 }

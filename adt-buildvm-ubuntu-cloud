@@ -34,7 +34,6 @@ import atexit
 import urllib.request
 import os
 import time
-import socket
 import re
 
 try:
@@ -72,12 +71,17 @@ def get_default_release():
 def parse_args():
     '''Parse CLI args'''
 
-    # auto-detect apt-cacher-ng
+    # use host's apt proxy
+    default_proxy = ''
     try:
-        socket.create_connection(('localhost', 3142), 0.5)
-        default_proxy = 'http://10.0.2.2:3142'
-    except socket.error:
-        default_proxy = ''
+        p = subprocess.check_output(
+            'eval `apt-config shell p Acquire::http::Proxy`; echo $p',
+            shell=True, universal_newlines=True).strip()
+        if p:
+            # translate proxy on localhost to QEMU IP
+            default_proxy = re.sub('localhost|127\.0\.0\.[0-9]*', '10.0.2.2', p)
+    except subprocess.CalledProcessError:
+        pass
 
     parser = argparse.ArgumentParser(fromfile_prefix_chars='@')
 
@@ -101,8 +105,7 @@ def parse_args():
                         default='http://archive.ubuntu.com/ubuntu',
                         help='Use this mirror for apt (default: %(default)s)')
     parser.add_argument('-p', '--proxy', metavar='URL', default=default_proxy,
-                        help='Use a proxy for apt; a local apt-cacher-ng '
-                        'gets used automatically (default: %s)' % (
+                        help='Use a proxy for apt (default: %s)' % (
                             default_proxy or 'none'))
     parser.add_argument('-s', '--disk-size', default='20G',
                         help='grow image by this size (default: %(default)s)')
