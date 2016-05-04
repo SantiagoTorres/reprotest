@@ -7,6 +7,8 @@ autopkgtest (3.20.6) UNRELEASED; urgency=medium
     substring/regexp search (undocumented).
   * adt-build-lxd: Check the LXD configuration for the LXD bridge instead of
     the old LXC bridge, for apt proxy auto-detection. (LP: #1577968)
+  * Generalize the apt proxy detection in adt-build* and setup-testbed to
+    work for arbitrary proxies, not just apt-cacher-ng. (LP: #1577966)
 
  -- Martin Pitt <mpitt@debian.org>  Wed, 27 Apr 2016 12:44:42 +0200
 
