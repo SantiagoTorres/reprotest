@@ -41,7 +41,7 @@ proxy_detect() {
         if echo "${proxy:-}" | egrep -q '(localhost|127\.0\.0\.[0-9]*):3142'; then
             # translate proxy address to one that can be accessed from the
             # running container
-            local bridge_interface=$(awk '{ if ($1 == "lxc.network.link") print($3)}' /etc/lxc/default.conf)
+            local bridge_interface=$(sh -c '. /etc/default/lxd-bridge; echo $LXD_BRIDGE' 2>/dev/null)
             if [ -n "$bridge_interface" ]; then
                 local bridge_ip=$(ip -4 a show dev "$bridge_interface" | awk '/ inet / {sub(/\/.*$/, "", $2); print $2}') || true
                 if [ -n "$bridge_ip" ]; then
