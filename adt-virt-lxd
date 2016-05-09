@@ -39,7 +39,6 @@ except KeyError:
 sys.path.insert(1, our_base)
 
 import VirtSubproc
-from adt_run_args import ArgumentParser
 import adtlog
 
 
@@ -54,7 +53,7 @@ normal_user = None
 def parse_args():
     global args
 
-    parser = ArgumentParser()
+    parser = argparse.ArgumentParser()
     parser.add_argument('-d', '--debug', action='store_true',
                         help='Enable debugging output')
     parser.add_argument('-r', '--remote', default='',

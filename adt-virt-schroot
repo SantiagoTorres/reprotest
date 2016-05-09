@@ -29,6 +29,7 @@ import grp
 import pwd
 import subprocess
 import time
+import argparse
 
 try:
     our_base = os.environ['AUTOPKGTEST_BASE'] + '/lib'
@@ -37,7 +38,6 @@ except KeyError:
 sys.path.insert(1, our_base)
 
 import VirtSubproc
-from adt_run_args import ArgumentParser
 import adtlog
 
 
@@ -72,7 +72,7 @@ def match(exp_names, ids, extract_id):
 def parse_args():
     global schroot, sessid
 
-    parser = ArgumentParser()
+    parser = argparse.ArgumentParser()
     parser.add_argument('-d', '--debug', action='store_true',
                         help='Enable debugging output')
     parser.add_argument('-s', '--session-id',

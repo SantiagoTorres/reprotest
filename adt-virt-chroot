@@ -24,6 +24,7 @@
 
 import sys
 import os
+import argparse
 
 try:
     our_base = os.environ['AUTOPKGTEST_BASE'] + '/lib'
@@ -32,7 +33,6 @@ except KeyError:
 sys.path.insert(1, our_base)
 
 import VirtSubproc
-from adt_run_args import ArgumentParser
 import adtlog
 
 
@@ -43,7 +43,7 @@ chroot_dir = None
 def parse_args():
     global chroot_dir
 
-    parser = ArgumentParser()
+    parser = argparse.ArgumentParser()
     parser.add_argument('-r', '--gain-root', metavar='COMMAND',
                         help='can become root by prefixing commands with COMMAND')
     parser.add_argument('-d', '--debug', action='store_true',

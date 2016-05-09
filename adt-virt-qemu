@@ -35,6 +35,7 @@ import socket
 import errno
 import fcntl
 import re
+import argparse
 
 try:
     our_base = os.environ['AUTOPKGTEST_BASE'] + '/lib'
@@ -43,7 +44,6 @@ except KeyError:
 sys.path.insert(1, our_base)
 
 import VirtSubproc
-from adt_run_args import ArgumentParser
 import adtlog
 
 
@@ -68,7 +68,7 @@ def parse_args():
     else:
         qemu_cmd_default = 'qemu-system-' + arch
 
-    parser = ArgumentParser()
+    parser = argparse.ArgumentParser()
 
     parser.add_argument('-q', '--qemu-command', default=qemu_cmd_default,
                         help='QEMU command (default: %s)' % qemu_cmd_default)
