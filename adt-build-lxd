@@ -41,12 +41,9 @@ proxy_detect() {
         if echo "${proxy:-}" | egrep -q '(localhost|127\.0\.0\.[0-9]*)'; then
             # translate proxy address to one that can be accessed from the
             # running container
-            local bridge_interface=$(sh -c '. /etc/default/lxd-bridge; echo $LXD_BRIDGE' 2>/dev/null)
-            if [ -n "$bridge_interface" ]; then
-                local bridge_ip=$(ip -4 a show dev "$bridge_interface" | awk '/ inet / {sub(/\/.*$/, "", $2); print $2}') || true
-                if [ -n "$bridge_ip" ]; then
-                    ADT_APT_PROXY=$(echo "$proxy" | sed -r "s#localhost|127\.0\.0\.[0-9]*#$bridge_ip#")
-                fi
+            local bridge_ip=$(sh -c '. /etc/default/lxd-bridge; echo $LXD_IPV4_ADDR' 2>/dev/null)
+            if [ -n "$bridge_ip" ]; then
+                ADT_APT_PROXY=$(echo "$proxy" | sed -r "s#localhost|127\.0\.0\.[0-9]*#$bridge_ip#")
             fi
             if [ -n "${ADT_APT_PROXY:-}" ]; then
                 echo "Detected local apt proxy, using $ADT_APT_PROXY as container proxy"
