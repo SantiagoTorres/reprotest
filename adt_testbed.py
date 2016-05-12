@@ -255,7 +255,7 @@ class Testbed:
         # create apt sources for --apt-pocket
         for pocket in self.add_apt_pockets:
             pocket = pocket.split('=', 1)[0]  # strip off package list
-            script = '''sed -rn 's/^(deb|deb-src) +(\[.*\] *)?([^ ]*(ubuntu.com|debian.org|ftpmaster|file:\/\/\/tmp\/adttestarchive)[^ ]*) +([^ -]+) +(.*)$/\\1 \\2\\3 \\5-%s \\6/p' /etc/apt/sources.list `ls /etc/apt/sources.list.d/*.list 2>/dev/null|| true)` > /etc/apt/sources.list.d/%s.list; for retry in 1 2 3; do apt-get --no-list-cleanup -o Dir::Etc::sourcelist=/etc/apt/sources.list.d/%s.list -o Dir::Etc::sourceparts=/dev/null update 2>&1 && break || sleep 15; done''' % (pocket, pocket, pocket)
+            script = '''sed -rn 's/^(deb|deb-src) +(\[.*\] *)?([^ ]*(ubuntu.com|debian.org|ftpmaster|file:\/\/\/tmp\/testarchive)[^ ]*) +([^ -]+) +(.*)$/\\1 \\2\\3 \\5-%s \\6/p' /etc/apt/sources.list `ls /etc/apt/sources.list.d/*.list 2>/dev/null|| true)` > /etc/apt/sources.list.d/%s.list; for retry in 1 2 3; do apt-get --no-list-cleanup -o Dir::Etc::sourcelist=/etc/apt/sources.list.d/%s.list -o Dir::Etc::sourceparts=/dev/null update 2>&1 && break || sleep 15; done''' % (pocket, pocket, pocket)
             self.check_exec(['sh', '-ec', script])
 
         # create apt pinning for --apt-pocket with package list
@@ -1128,7 +1128,7 @@ fi
 
         # get release name
         script = 'SRCS=$(ls /etc/apt/sources.list /etc/apt/sources.list.d/*.list 2>/dev/null|| true); '
-        script += '''REL=$(sed -rn '/^(deb|deb-src) .*(ubuntu.com|debian.org|ftpmaster|file:\/\/\/tmp\/adttestarchive)/ { s/^[^ ]+ +(\[.*\] *)?[^ ]* +([^ -]+) +.*$/\\2/p}' $SRCS | head -n1); '''
+        script += '''REL=$(sed -rn '/^(deb|deb-src) .*(ubuntu.com|debian.org|ftpmaster|file:\/\/\/tmp\/testarchive)/ { s/^[^ ]+ +(\[.*\] *)?[^ ]* +([^ -]+) +.*$/\\2/p}' $SRCS | head -n1); '''
 
         script += 'mkdir -p /etc/apt/preferences.d; '
         script += 'PKGS="%s"; ' % ' '.join(binpkgs)
@@ -1231,7 +1231,7 @@ class TempPath(Path):
               will then be derived from that
         is_dir: whether path is a directory; None for "unspecified" if you only
                 need copydown()
-        autoclean: If True (default), remove file when adt-run finishes. Should
+        autoclean: If True (default), remove file when test finishes. Should
                 be set to False for files which you want to keep in the
                 --output-dir which are useful for reporting results, like test
                 stdout/err, log files, and binaries.

@@ -36,7 +36,7 @@ def log(message, level, prefix='', timestamp=False, color=None):
     if level > verbosity:
         return
 
-    # needs lazy initialization as adt-run may redirect it to tee
+    # needs lazy initialization as it may be redirected to tee
     global enable_colors
     if enable_colors is None:
         enable_colors = os.isatty(sys.stderr.fileno())
