@@ -645,7 +645,7 @@ Depending on which terminal program you have installed, you can use one of
 
 The tested source package is in %(dir)s
 
-Press Enter to resume adt-run.
+Press Enter to resume running tests.
 ''' % {'tty0': os.path.join(workdir, 'ttyS0'), 'dir': dir, 'ssh': ssh})
     with open('/dev/tty', 'r') as f:
         f.readline()
