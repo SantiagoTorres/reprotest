@@ -5,17 +5,20 @@ import os
 
 import reprotest
 
-def test_return_code(command, artifact, code):
+def test_return_code(command, code):
     try:
-        reprotest.check(command, artifact)
+        reprotest.check(command, 'tests/artifact')
     except SystemExit as system_exit:
         assert(system_exit.args[0] == code)
-    
 
 if __name__ == '__main__':
-    test_return_code(['python', 'tests/dummy_build.py'],
-                     'tests/dummy_artifact.txt', 0)
-    test_return_code(['python', 'tests/fails.py'], '', 2)
-    test_return_code(['python', 'tests/irreproducible.py'],
-                     'tests/irreproducible_artifact', 1)
-    os.remove('tests/irreproducible_artifact')
+    try:
+        test_return_code(['python', 'tests/build.py'], 0)
+        test_return_code(['python', 'tests/fails.py'], 2)
+        test_return_code(['python', 'tests/build.py', 'irreproducible'], 1)
+        test_return_code(['python', 'tests/build.py', 'locales'], 1)
+        test_return_code(['python', 'tests/build.py', 'timezone'], 1)
+    finally:
+        # Clean up random binary file created as part of the test.
+        if os.path.isfile('tests/artifact'):
+            os.remove('tests/artifact')
