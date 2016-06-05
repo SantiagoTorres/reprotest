@@ -1,0 +1,7 @@
+[run]
+branch = True
+
+[paths]
+source =
+  reprotest/
+  .tox/*/lib/python*/site-packages/reprotest
