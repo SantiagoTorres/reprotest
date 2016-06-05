@@ -23,5 +23,5 @@ if __name__ == '__main__':
         output.extend(l.encode('ascii') for l in locale.getlocale())
     if 'timezone' in args:
         output.append(time.ctime().encode('ascii'))
-    with open('tests/artifact', 'wb') as artifact:
+    with open('artifact', 'wb') as artifact:
         artifact.write(b''.join(output))
