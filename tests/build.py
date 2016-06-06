@@ -17,10 +17,14 @@ if __name__ == '__main__':
     output = [b'']
     if 'irreproducible' in args:
         output.append(os.urandom(1024))
+    if 'home' in args:
+        output.append(os.path.expanduser('~').encode('ascii'))
     if 'locales' in args:
         # print(locale.getlocale())
         # print([l.encode('ascii') for l in locale.getlocale()])
         output.extend(l.encode('ascii') for l in locale.getlocale())
+    if 'path' in args:
+        output.extend(p.encode('ascii') for p in os.get_exec_path())
     if 'timezone' in args:
         output.append(time.ctime().encode('ascii'))
     with open('artifact', 'wb') as artifact:
