@@ -7,7 +7,7 @@ import reprotest
 
 def test_return_code(command, code):
     try:
-        reprotest.check(command, 'tests/', 'artifact')
+        reprotest.check(command, 'artifact', 'tests/')
     except SystemExit as system_exit:
         assert(system_exit.args[0] == code)
 

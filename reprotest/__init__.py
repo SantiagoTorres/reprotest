@@ -2,6 +2,7 @@
 # For details: reprotest/debian/copyright
 
 import argparse
+import configparser
 import logging
 import os
 import pathlib
@@ -101,7 +102,7 @@ def build(command, source_root, built_artifact, artifact_store, **kws):
             artifact_store.write(artifact.read())
             artifact_store.flush()
 
-def check(build_command, source_root, artifact_name, variations=VARIATIONS):
+def check(build_command, artifact_name, source_root, variations=VARIATIONS):
     with tempfile.TemporaryDirectory() as temp:
         env1 = os.environ.copy()
         env2 = env1.copy()
@@ -116,6 +117,32 @@ def check(build_command, source_root, artifact_name, variations=VARIATIONS):
         sys.exit(subprocess.call(['diffoscope', temp + '/artifact1', temp + '/artifact2']))
 
 def main():
+    build_command = ''
+    artifact = ''
+    # If a source root isn't provided, assume it's the current
+    # working directory.
+    source_root = pathlib.Path.cwd()
+    # The default is to try all variations.
+    variations = frozenset(VARIATIONS.keys())
+    logging.basicConfig(
+        format='%(message)s', level=30-10*args.verbose, stream=sys.stdout)
+
+    # Config file.
+    config = configparser.ConfigParser()
+    config.read('.reprotestrc')
+    if 'basics' in config:
+        if 'variations' in config['basics']:
+            variations = frozenset(config['basics'].split())
+        if 'build_command' in config['basics']:
+            build_command = config['build_command'].split()
+        if 'artifact' in config['basics']:
+            artifact = config['artifact']
+        if 'source_root' in config['basics']:
+            source_root = config['source_root']
+        if 'verbosity' in config['basics']:
+            verbosity = config['verbosity']
+
+    # Command-line arguments override config file settings.
     arg_parser = argparse.ArgumentParser(
         description='Build packages and check them for reproducibility.',
         formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -137,19 +164,24 @@ def main():
     # Argparse exits with status code 2 if something goes wrong, which
     # is already the right status exit code for reprotest.
     args = arg_parser.parse_args()
-    logging.basicConfig(
-        format='%(message)s', level=30-10*args.verbose, stream=sys.stdout)
-    variations = VARIATIONS
+    if args.build_command:
+        build_command = args.build_command.split()
+    if args.artifact:
+        artifact = args.artifact
+    if args.source_root:
+        source_root = args.source_root
     if args.dont_vary and args.variations:
         print("Use only one of --variations or --dont_vary, not both.")
         sys.exit(2)
     elif args.dont_vary:
-        variations = variations - args.dont_vary
+        variations = variations - frozenset(args.dont_vary.split(','))
     elif args.variations:
-        variations = args.variations
-    check(args.build_command.split(),
-          # If a source root isn't provided, assume it's the current
-          # working directory.
-          args.source_root if args.source_root else pathlib.Path.cwd(),
-          args.artifact,
-          variations)
+        variations = frozenset(args.variations.split(','))
+
+    if not build_command:
+        print("No build command provided.")
+        sys.exit(2)
+    if not artifact:
+        print("No build artifact to test for differences provided.")
+        sys.exit(2)
+    check(build_command, artifact, source_root, variations)
