@@ -28,8 +28,6 @@ if __name__ == '__main__':
         output.extend(l.encode('ascii') for l in locale.getlocale())
     if 'path' in args:
         output.extend(p.encode('ascii') for p in os.get_exec_path())
-    if 'time' in args:
-        output.append(time.asctime(time.gmtime()).encode('ascii'))
     if 'timezone' in args:
         output.append(str(time.timezone).encode('ascii'))
     with open('artifact', 'wb') as artifact:

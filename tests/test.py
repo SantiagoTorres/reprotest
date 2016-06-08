@@ -19,7 +19,4 @@ if __name__ == '__main__':
     test_return_code(['python', 'build.py', 'kernel'], 1)
     test_return_code(['python', 'build.py', 'locales'], 1)
     test_return_code(['python', 'build.py', 'path'], 1)
-    # This test relies on this script being fast enough so that a
-    # second doesn't elapse between one build and another build.
-    test_return_code(['python', 'build.py', 'time'], 0)
     test_return_code(['python', 'build.py', 'timezone'], 1)

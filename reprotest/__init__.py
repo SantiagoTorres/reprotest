@@ -96,15 +96,10 @@ def path(command1, command2, env1, env2, tree1, tree2):
     env2['PATH'] = env1['PATH'] + '/i_capture_the_path'
     yield command1, command2, env1, env2, tree1, tree2
 
+# This doesn't require superuser privileges, but the chsh command
+# affects all user shells, which would be bad.
 @contextlib.contextmanager
 def shell(command1, command2, env1, env2, tree1, tree2):
-    # Probably try linking the shell.
-    yield command1, command2, env1, env2, tree1, tree2
-
-# TODO: when building on an existing system, it's almost certain time
-# will be tested.
-@contextlib.contextmanager
-def time(command1, command2, env1, env2, tree1, tree2):
     yield command1, command2, env1, env2, tree1, tree2
 
 @contextlib.contextmanager
@@ -194,15 +189,17 @@ def main():
     arg_parser.add_argument(
         'artifact', help='Build artifact to test for reproducibility.')
     # Reprotest will copy this tree and then run the build command.
-    arg_parser.add_argument('--source_root', type=pathlib.Path,
-                           help='Root of the source tree, if not the '
-                           'current working directory.')
+    arg_parser.add_argument(
+        '--source-root', dest='--source_root', type=pathlib.Path,
+        help='Root of the source tree, if not the '
+        'current working directory.')
     arg_parser.add_argument(
         '--variations', type=lambda s: frozenset(s.split(',')),
         help='Build variations to test as a comma-separated list'
         ' (without spaces).  Default is to test all available variations.')
     arg_parser.add_argument(
-        '--dont_vary', type=lambda s: frozenset(s.split(',')),
+        '--dont-vary', dest='--dont_vary',
+        type=lambda s: frozenset(s.split(',')),
         help='Build variations *not* to test as a comma-separated'
         ' list (without spaces).  Default is to test all available variations.')
     # Argparse exits with status code 2 if something goes wrong, which
