@@ -3,6 +3,7 @@
 
 import argparse
 import configparser
+import contextlib
 import logging
 import os
 import pathlib
@@ -24,38 +25,43 @@ import time
 
 # TODO: relies on a pbuilder-specific command to parallelize
 # def cpu(command1, command2, env1, env2, tree1, tree2):
-#     return command1, command2, env1, env2, tree1, tree2
+#     yield command1, command2, env1, env2, tree1, tree2
 
+@contextlib.contextmanager
 def captures_environment(command1, command2, env1, env2, tree1, tree2):
     env2['CAPTURE_ENVIRONMENT'] = 'i_capture_the_environment'
-    return command1, command2, env1, env2, tree1, tree2
+    yield command1, command2, env1, env2, tree1, tree2
 
 # TODO: this probably requires superuser privileges.
+@contextlib.contextmanager
 def domain_host(command1, command2, env1, env2, tree1, tree2):
-    return command1, command2, env1, env2, tree1, tree2
+    yield command1, command2, env1, env2, tree1, tree2
 
 # TODO: disorderfs must be unmounted after the build, which probably
 # requires some context-manager silliness.
+@contextlib.contextmanager
 def filesystem(command1, command2, env1, env2, tree1, tree2):
     # disorderfs = tree2.parent / 'disorderfs'
     # disorderfs.mkdir()
     # subprocess.check_call(['disorderfs', '--shuffle-dirents=yes',
     #                        str(tree2), str(disorderfs)])
-    return command1, command2, env1, env2, tree1, tree2
+    yield command1, command2, env1, env2, tree1, tree2
 
+@contextlib.contextmanager
 def home(command1, command2, env1, env2, tree1, tree2):
     env1['HOME'] = '/nonexistent/first-build'
     env2['HOME'] = '/nonexistent/second-build'
-    return command1, command2, env1, env2, tree1, tree2
+    yield command1, command2, env1, env2, tree1, tree2
 
 # TODO: Linux-specific?  uname is a POSIX standard.  The related Linux
 # command (setarch) only affects uname at the moment according to the
 # docs.  FreeBSD does this with environment variables.  Wikipedia has
 # a reference to a setname command:
 # https://en.wikipedia.org/wiki/Uname
+@contextlib.contextmanager
 def kernel(command1, command2, env1, env2, tree1, tree2):
     command2 = ['linux64', '--uname-2.6'] + command2
-    return command1, command2, env1, env2, tree1, tree2
+    yield command1, command2, env1, env2, tree1, tree2
 
 # TODO: if this locale doesn't exist on the system, Python's
 # locales.getlocale() will return (None, None) rather than this
@@ -69,48 +75,55 @@ def kernel(command1, command2, env1, env2, tree1, tree2):
 
 # TODO: what exact locales and how to many test is probably a mailing
 # list question.
+@contextlib.contextmanager
 def locales(command1, command2, env1, env2, tree1, tree2):
     # env1['LANG'] = 'C'
     env2['LANG'] = 'fr_CH.UTF-8'
     # env1['LANGUAGE'] = 'en_US:en'
     # env2['LANGUAGE'] = 'fr_CH:fr'
     env2['LC_ALL'] = 'fr_CH.UTF-8'
-    return command1, command2, env1, env2, tree1, tree2
+    yield command1, command2, env1, env2, tree1, tree2
 
 # TODO: Linux-specific.  unshare --uts requires superuser privileges.
 # How is this related to host/domainname?
 # def namespace(command1, command2, env1, env2, tree1, tree2):
 #     # command1 = ['unshare', '--uts'] + command1
 #     # command2 = ['unshare', '--uts'] + command2
-#     return command1, command2, env1, env2, tree1, tree2
+#     yield command1, command2, env1, env2, tree1, tree2
 
+@contextlib.contextmanager
 def path(command1, command2, env1, env2, tree1, tree2):
     env2['PATH'] = env1['PATH'] + '/i_capture_the_path'
-    return command1, command2, env1, env2, tree1, tree2
+    yield command1, command2, env1, env2, tree1, tree2
 
+@contextlib.contextmanager
 def shell(command1, command2, env1, env2, tree1, tree2):
     # Probably try linking the shell.
-    return command1, command2, env1, env2, tree1, tree2
+    yield command1, command2, env1, env2, tree1, tree2
 
 # TODO: when building on an existing system, it's almost certain time
 # will be tested.
+@contextlib.contextmanager
 def time(command1, command2, env1, env2, tree1, tree2):
-    return command1, command2, env1, env2, tree1, tree2
+    yield command1, command2, env1, env2, tree1, tree2
 
+@contextlib.contextmanager
 def timezone(command1, command2, env1, env2, tree1, tree2):
     # These time zones are theoretically in the POSIX time zone format
     # (http://pubs.opengroup.org/onlinepubs/9699919799/basedefs/V1_chap08.html#tag_08),
     # so they should be cross-platform compatible.
     env1['TZ'] = 'GMT+12'
     env2['TZ'] = 'GMT-14'
-    return command1, command2, env1, env2, tree1, tree2
+    yield command1, command2, env1, env2, tree1, tree2
 
+@contextlib.contextmanager
 def umask(command1, command2, env1, env2, tree1, tree2):
-    return command1, command2, env1, env2, tree1, tree2
+    yield command1, command2, env1, env2, tree1, tree2
 
 # TODO: This definitely requires superuser privileges.
+@contextlib.contextmanager
 def user_group(command1, command2, env1, env2, tree1, tree2):
-    return command1, command2, env1, env2, tree1, tree2
+    yield command1, command2, env1, env2, tree1, tree2
 
 VARIATIONS = {'captures_environment': captures_environment,
               # 'cpu': cpu, 
@@ -136,12 +149,13 @@ def check(build_command, artifact_name, source_root, variations=VARIATIONS):
         tree1 = pathlib.Path(shutil.copytree(str(source_root), temp + '/tree1'))
         tree2 = pathlib.Path(shutil.copytree(str(source_root), temp + '/tree2'))
         try:
-            for variation in variations:
-                command1, command2, env1, env2, tree1, tree2 = VARIATIONS[variation](command1, command2, env1, env2, tree1, tree2)
-            build(command1, str(tree1), temp + '/tree1/' + artifact_name,
-                  open(temp + '/artifact1', 'wb'), env=env1)
-            build(command2, str(tree2), temp + '/tree2/' + artifact_name,
-                  open(temp + '/artifact2', 'wb'), env=env2)
+            with contextlib.ExitStack() as stack:
+                for variation in variations:
+                    command1, command2, env1, env2, tree1, tree2 = stack.enter_context(VARIATIONS[variation](command1, command2, env1, env2, tree1, tree2))
+                build(command1, str(tree1), temp + '/tree1/' + artifact_name,
+                      open(temp + '/artifact1', 'wb'), env=env1)
+                build(command2, str(tree2), temp + '/tree2/' + artifact_name,
+                      open(temp + '/artifact2', 'wb'), env=env2)
         except Exception:
             sys.exit(2)
         sys.exit(subprocess.call(['diffoscope', temp + '/artifact1', temp + '/artifact2']))
