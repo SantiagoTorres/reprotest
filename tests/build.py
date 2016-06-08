@@ -4,6 +4,7 @@
 import argparse
 import locale
 import os
+import subprocess
 import tempfile
 import time
 
@@ -19,13 +20,17 @@ if __name__ == '__main__':
         output.append(os.urandom(1024))
     if 'home' in args:
         output.append(os.path.expanduser('~').encode('ascii'))
+    if 'kernel' in args:
+        output.append(subprocess.check_output(['uname', '-r']))
     if 'locales' in args:
         # print(locale.getlocale())
         # print([l.encode('ascii') for l in locale.getlocale()])
         output.extend(l.encode('ascii') for l in locale.getlocale())
     if 'path' in args:
         output.extend(p.encode('ascii') for p in os.get_exec_path())
+    if 'time' in args:
+        output.append(time.asctime(time.gmtime()).encode('ascii'))
     if 'timezone' in args:
-        output.append(time.ctime().encode('ascii'))
+        output.append(str(time.timezone).encode('ascii'))
     with open('artifact', 'wb') as artifact:
         artifact.write(b''.join(output))

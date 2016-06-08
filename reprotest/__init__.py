@@ -10,37 +10,52 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import time
 
 # time zone, locales, disorderfs, host name, user/group, shell, CPU
 # number, architecture for uname (using linux64), umask, HOME, see
 # also: https://tests.reproducible-builds.org/index_variations.html
 
-def cpu(command, env1, env2, tree1, tree2):
-    return command, env1, env2, tree1, tree2
+# chroot is the only form of OS virtualization that's available on
+# most POSIX OSes.  Linux containers (lxc) and namespaces are specific
+# to Linux.  Some versions of BSD has jails (MacOS X?).  There are a
+# variety of other options including Docker etc that use different
+# approaches.
 
-def domain(command, env1, env2, tree1, tree2):
-    return command, env1, env2, tree1, tree2
+# TODO: relies on a pbuilder-specific command to parallelize
+# def cpu(command1, command2, env1, env2, tree1, tree2):
+#     return command1, command2, env1, env2, tree1, tree2
 
-def captures_environment(command, env1, env2, tree1, tree2):
+def captures_environment(command1, command2, env1, env2, tree1, tree2):
     env2['CAPTURE_ENVIRONMENT'] = 'i_capture_the_environment'
-    return command, env1, env2, tree1, tree2
+    return command1, command2, env1, env2, tree1, tree2
 
-def filesystem(command, env1, env2, tree1, tree2):
-    return command, env1, env2, tree1, tree2
+# TODO: this probably requires superuser privileges.
+def domain_host(command1, command2, env1, env2, tree1, tree2):
+    return command1, command2, env1, env2, tree1, tree2
 
-def group(command, env1, env2, tree1, tree2):
-    return command, env1, env2, tree1, tree2
+# TODO: disorderfs must be unmounted after the build, which probably
+# requires some context-manager silliness.
+def filesystem(command1, command2, env1, env2, tree1, tree2):
+    # disorderfs = tree2.parent / 'disorderfs'
+    # disorderfs.mkdir()
+    # subprocess.check_call(['disorderfs', '--shuffle-dirents=yes',
+    #                        str(tree2), str(disorderfs)])
+    return command1, command2, env1, env2, tree1, tree2
 
-def home(command, env1, env2, tree1, tree2):
+def home(command1, command2, env1, env2, tree1, tree2):
     env1['HOME'] = '/nonexistent/first-build'
     env2['HOME'] = '/nonexistent/second-build'
-    return command, env1, env2, tree1, tree2
+    return command1, command2, env1, env2, tree1, tree2
 
-def host(command, env1, env2, tree1, tree2):
-    return command, env1, env2, tree1, tree2
-
-def kernel(command, env1, env2, tree1, tree2):
-    return command, env1, env2, tree1, tree2
+# TODO: Linux-specific?  uname is a POSIX standard.  The related Linux
+# command (setarch) only affects uname at the moment according to the
+# docs.  FreeBSD does this with environment variables.  Wikipedia has
+# a reference to a setname command:
+# https://en.wikipedia.org/wiki/Uname
+def kernel(command1, command2, env1, env2, tree1, tree2):
+    command2 = ['linux64', '--uname-2.6'] + command2
+    return command1, command2, env1, env2, tree1, tree2
 
 # TODO: if this locale doesn't exist on the system, Python's
 # locales.getlocale() will return (None, None) rather than this
@@ -52,68 +67,83 @@ def kernel(command, env1, env2, tree1, tree2):
 # is to figure out what locales are installed (how?) and use another
 # locale if this one isn't installed.
 
-def locales(command, env1, env2, tree1, tree2):
+# TODO: what exact locales and how to many test is probably a mailing
+# list question.
+def locales(command1, command2, env1, env2, tree1, tree2):
     # env1['LANG'] = 'C'
     env2['LANG'] = 'fr_CH.UTF-8'
     # env1['LANGUAGE'] = 'en_US:en'
     # env2['LANGUAGE'] = 'fr_CH:fr'
     env2['LC_ALL'] = 'fr_CH.UTF-8'
-    return command, env1, env2, tree1, tree2
+    return command1, command2, env1, env2, tree1, tree2
 
-def namespace(command, env1, env2, tree1, tree2):
-    return command, env1, env2, tree1, tree2
+# TODO: Linux-specific.  unshare --uts requires superuser privileges.
+# How is this related to host/domainname?
+# def namespace(command1, command2, env1, env2, tree1, tree2):
+#     # command1 = ['unshare', '--uts'] + command1
+#     # command2 = ['unshare', '--uts'] + command2
+#     return command1, command2, env1, env2, tree1, tree2
 
-def path(command, env1, env2, tree1, tree2):
-    env2['PATH'] = env1['PATH'] + 'i_capture_the_path'
-    return command, env1, env2, tree1, tree2
+def path(command1, command2, env1, env2, tree1, tree2):
+    env2['PATH'] = env1['PATH'] + '/i_capture_the_path'
+    return command1, command2, env1, env2, tree1, tree2
 
-def shell(command, env1, env2, tree1, tree2):
-    return command, env1, env2, tree1, tree2
+def shell(command1, command2, env1, env2, tree1, tree2):
+    # Probably try linking the shell.
+    return command1, command2, env1, env2, tree1, tree2
 
-def time(command, env1, env2, tree1, tree2):
-    return command, env1, env2, tree1, tree2
+# TODO: when building on an existing system, it's almost certain time
+# will be tested.
+def time(command1, command2, env1, env2, tree1, tree2):
+    return command1, command2, env1, env2, tree1, tree2
 
-def timezone(command, env1, env2, tree1, tree2):
+def timezone(command1, command2, env1, env2, tree1, tree2):
     # These time zones are theoretically in the POSIX time zone format
     # (http://pubs.opengroup.org/onlinepubs/9699919799/basedefs/V1_chap08.html#tag_08),
     # so they should be cross-platform compatible.
     env1['TZ'] = 'GMT+12'
     env2['TZ'] = 'GMT-14'
-    return command, env1, env2, tree1, tree2
+    return command1, command2, env1, env2, tree1, tree2
 
-def umask(command, env1, env2, tree1, tree2):
-    return command, env1, env2, tree1, tree2
+def umask(command1, command2, env1, env2, tree1, tree2):
+    return command1, command2, env1, env2, tree1, tree2
 
-def user(command, env1, env2, tree1, tree2):
-    return command, env1, env2, tree1, tree2
+# TODO: This definitely requires superuser privileges.
+def user_group(command1, command2, env1, env2, tree1, tree2):
+    return command1, command2, env1, env2, tree1, tree2
 
-VARIATIONS = {'captures_environment': captures_environment, 'cpu':
-              cpu, 'domain': domain, 'filesystem': filesystem, 'group': group,
-              'home': home, 'host': host, 'kernel': kernel, 'locales': locales,
-              'namespace': namespace, 'path': path, 'shell': shell, 'time': time,
-              'timezone': timezone, 'umask': umask, 'user': user}
+VARIATIONS = {'captures_environment': captures_environment,
+              # 'cpu': cpu, 
+              'domain_host': domain_host, 'filesystem': filesystem,
+              'home': home, 'kernel': kernel, 'locales': locales,
+              # 'namespace': namespace,
+              'path': path, 'shell': shell, 'time': time,
+              'timezone': timezone, 'umask': umask, 'user_group': user_group
+}
 
 def build(command, source_root, built_artifact, artifact_store, **kws):
-    return_code = subprocess.call(command, cwd=source_root, **kws)
-    if return_code != 0:
-        sys.exit(2)
-    else:
-        with open(built_artifact, 'rb') as artifact:
-            artifact_store.write(artifact.read())
-            artifact_store.flush()
+    subprocess.check_call(command, cwd=source_root, **kws)
+    with open(built_artifact, 'rb') as artifact:
+        artifact_store.write(artifact.read())
+        artifact_store.flush()
 
 def check(build_command, artifact_name, source_root, variations=VARIATIONS):
     with tempfile.TemporaryDirectory() as temp:
+        command1 = build_command
+        command2 = build_command
         env1 = os.environ.copy()
         env2 = env1.copy()
-        tree1 = shutil.copytree(str(source_root), temp + '/tree1')
-        tree2 = shutil.copytree(str(source_root), temp + '/tree2')
-        for variation in variations:
-            build_command, env1, env2, tree1, tree2 = VARIATIONS[variation](build_command, env1, env2, tree1, tree2)
-        build(build_command, tree1, temp + '/tree1/' + artifact_name,
-              open(temp + '/artifact1', 'wb'), env=env1)
-        build(build_command, tree2, temp + '/tree2/' + artifact_name,
-              open(temp + '/artifact2', 'wb'), env=env2)
+        tree1 = pathlib.Path(shutil.copytree(str(source_root), temp + '/tree1'))
+        tree2 = pathlib.Path(shutil.copytree(str(source_root), temp + '/tree2'))
+        try:
+            for variation in variations:
+                command1, command2, env1, env2, tree1, tree2 = VARIATIONS[variation](command1, command2, env1, env2, tree1, tree2)
+            build(command1, str(tree1), temp + '/tree1/' + artifact_name,
+                  open(temp + '/artifact1', 'wb'), env=env1)
+            build(command2, str(tree2), temp + '/tree2/' + artifact_name,
+                  open(temp + '/artifact2', 'wb'), env=env2)
+        except Exception:
+            sys.exit(2)
         sys.exit(subprocess.call(['diffoscope', temp + '/artifact1', temp + '/artifact2']))
 
 def main():
@@ -124,8 +154,6 @@ def main():
     source_root = pathlib.Path.cwd()
     # The default is to try all variations.
     variations = frozenset(VARIATIONS.keys())
-    logging.basicConfig(
-        format='%(message)s', level=30-10*args.verbose, stream=sys.stdout)
 
     # Config file.
     config = configparser.ConfigParser()
@@ -153,14 +181,16 @@ def main():
         'artifact', help='Build artifact to test for reproducibility.')
     # Reprotest will copy this tree and then run the build command.
     arg_parser.add_argument('--source_root', type=pathlib.Path,
-                           help='Root of the source tree, if not the'
+                           help='Root of the source tree, if not the '
                            'current working directory.')
     arg_parser.add_argument(
-        '--variations', help='Build variations to test as a comma-separated list'
-        '(without spaces).  Default is to test all available variations.')
+        '--variations', type=lambda s: frozenset(s.split(',')),
+        help='Build variations to test as a comma-separated list'
+        ' (without spaces).  Default is to test all available variations.')
     arg_parser.add_argument(
-        '--dont_vary', help='Build variations *not* to test as a comma-separated'
-        'list (without spaces).  Default is to test all available variations.')
+        '--dont_vary', type=lambda s: frozenset(s.split(',')),
+        help='Build variations *not* to test as a comma-separated'
+        ' list (without spaces).  Default is to test all available variations.')
     # Argparse exits with status code 2 if something goes wrong, which
     # is already the right status exit code for reprotest.
     args = arg_parser.parse_args()
@@ -174,9 +204,9 @@ def main():
         print("Use only one of --variations or --dont_vary, not both.")
         sys.exit(2)
     elif args.dont_vary:
-        variations = variations - frozenset(args.dont_vary.split(','))
+        variations = variations - args.dont_vary
     elif args.variations:
-        variations = frozenset(args.variations.split(','))
+        variations = args.variations
 
     if not build_command:
         print("No build command provided.")
@@ -184,4 +214,6 @@ def main():
     if not artifact:
         print("No build artifact to test for differences provided.")
         sys.exit(2)
+    logging.basicConfig(
+        format='%(message)s', level=30-10*args.verbose, stream=sys.stdout)
     check(build_command, artifact, source_root, variations)
