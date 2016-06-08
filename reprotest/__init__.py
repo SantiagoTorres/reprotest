@@ -2,6 +2,7 @@
 # For details: reprotest/debian/copyright
 
 import argparse
+import collections
 import configparser
 import contextlib
 import logging
@@ -113,6 +114,7 @@ def timezone(command1, command2, env1, env2, tree1, tree2):
 
 @contextlib.contextmanager
 def umask(command1, command2, env1, env2, tree1, tree2):
+    command2 = ['umask', '0002;'] + command2
     yield command1, command2, env1, env2, tree1, tree2
 
 # TODO: This definitely requires superuser privileges.
@@ -120,14 +122,15 @@ def umask(command1, command2, env1, env2, tree1, tree2):
 def user_group(command1, command2, env1, env2, tree1, tree2):
     yield command1, command2, env1, env2, tree1, tree2
 
-VARIATIONS = {'captures_environment': captures_environment,
-              # 'cpu': cpu, 
-              'domain_host': domain_host, 'filesystem': filesystem,
-              'home': home, 'kernel': kernel, 'locales': locales,
-              # 'namespace': namespace,
-              'path': path, 'shell': shell, 'time': time,
-              'timezone': timezone, 'umask': umask, 'user_group': user_group
-}
+VARIATIONS = collections.OrderedDict([
+    ('captures_environment', captures_environment),
+    # 'cpu': cpu,
+    ('domain_host', domain_host), ('filesystem', filesystem),
+    ('home', home), ('kernel', kernel), ('locales', locales),
+    # 'namespace': namespace,
+    ('path', path), ('shell', shell),
+    ('timezone', timezone), ('umask', umask), ('user_group', user_group)
+])
 
 def build(command, source_root, built_artifact, artifact_store, **kws):
     subprocess.check_call(command, cwd=source_root, **kws)
@@ -147,10 +150,10 @@ def check(build_command, artifact_name, source_root, variations=VARIATIONS):
             with contextlib.ExitStack() as stack:
                 for variation in variations:
                     command1, command2, env1, env2, tree1, tree2 = stack.enter_context(VARIATIONS[variation](command1, command2, env1, env2, tree1, tree2))
-                build(command1, str(tree1), temp + '/tree1/' + artifact_name,
-                      open(temp + '/artifact1', 'wb'), env=env1)
-                build(command2, str(tree2), temp + '/tree2/' + artifact_name,
-                      open(temp + '/artifact2', 'wb'), env=env2)
+                build(' '.join(command1), str(tree1), temp + '/tree1/' + artifact_name,
+                      open(temp + '/artifact1', 'wb'), env=env1, shell=True)
+                build(' '.join(command2), str(tree2), temp + '/tree2/' + artifact_name,
+                      open(temp + '/artifact2', 'wb'), env=env2, shell=True)
         except Exception:
             sys.exit(2)
         sys.exit(subprocess.call(['diffoscope', temp + '/artifact1', temp + '/artifact2']))
@@ -218,6 +221,8 @@ def main():
         variations = variations - args.dont_vary
     elif args.variations:
         variations = args.variations
+    # Restore the order
+    variations = [v for v in VARIATIONS if v in variations]
 
     if not build_command:
         print("No build command provided.")
