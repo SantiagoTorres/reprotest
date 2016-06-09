@@ -1,8 +1,6 @@
 # Licensed under the GPL: https://www.gnu.org/licenses/gpl-3.0.en.html
 # For details: reprotest/debian/copyright
 
-import os
-
 import reprotest
 
 def test_return_code(command, code):
@@ -15,7 +13,7 @@ if __name__ == '__main__':
     test_return_code(['python', 'build.py'], 0)
     test_return_code(['python', 'fails.py'], 2)
     test_return_code(['python', 'build.py', 'irreproducible'], 1)
-    test_return_code(['python', 'build.py', 'filesystem'], 1)
+    test_return_code(['python', 'build.py', 'fileordering'], 1)
     test_return_code(['python', 'build.py', 'home'], 1)
     test_return_code(['python', 'build.py', 'kernel'], 1)
     test_return_code(['python', 'build.py', 'locales'], 1)

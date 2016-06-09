@@ -26,7 +26,7 @@ if __name__ == '__main__':
     # Like the above test, this test can theoretically fail by
     # producing the same file order, but this is unlikely, if not
     # as unlikely as in the above test.
-    if 'filesystem' in args:
+    if 'fileordering' in args:
         # Ensure this temporary directory is created in the disorders
         # mount point by passing the dir argument.
         with tempfile.TemporaryDirectory(dir=str(pathlib.Path.cwd())) as temp:
@@ -39,8 +39,6 @@ if __name__ == '__main__':
     if 'kernel' in args:
         output.append(subprocess.check_output(['uname', '-r']))
     if 'locales' in args:
-        # print(locale.getlocale())
-        # print([l.encode('ascii') for l in locale.getlocale()])
         output.extend(l.encode('ascii') for l in locale.getlocale())
     if 'path' in args:
         output.extend(p.encode('ascii') for p in os.get_exec_path())
@@ -51,10 +49,5 @@ if __name__ == '__main__':
             test_permissions = pathlib.Path(temp)/'test_permissions'
             test_permissions.touch()
             output.append(stat.filemode(test_permissions.stat().st_mode).encode('ascii'))
-            # with tempfile.TemporaryFile() as file_object:
-            #     archive_object = tarfile.open(name='temp', mode='w', fileobj=file_object)
-            #     archive_object.add(str(test_permissions))
-            #     file_object.seek(0)
-            #     output.append(file_object.read())
     with open('artifact', 'wb') as artifact:
         artifact.write(b''.join(output))

@@ -33,13 +33,13 @@ def captures_environment(command1, command2, env1, env2, tree1, tree2):
     env2['CAPTURE_ENVIRONMENT'] = 'i_capture_the_environment'
     yield command1, command2, env1, env2, tree1, tree2
 
-# TODO: this probably requires superuser privileges.
+# TODO: this requires superuser privileges.
 @contextlib.contextmanager
 def domain_host(command1, command2, env1, env2, tree1, tree2):
     yield command1, command2, env1, env2, tree1, tree2
 
 @contextlib.contextmanager
-def filesystem(command1, command2, env1, env2, tree1, tree2):
+def fileordering(command1, command2, env1, env2, tree1, tree2):
     disorderfs = tree2.parent/'disorderfs'
     disorderfs.mkdir()
     subprocess.check_call(['disorderfs', '--shuffle-dirents=yes',
@@ -47,21 +47,16 @@ def filesystem(command1, command2, env1, env2, tree1, tree2):
     yield command1, command2, env1, env2, tree1, disorderfs
     subprocess.check_call(['fusermount', '-u', str(disorderfs)])
 
-# @contextlib.contextmanager
-# def filesystem(command1, command2, env1, env2, tree1, tree2):
-#     yield command1, command2, env1, env2, tree1, tree2
-
 @contextlib.contextmanager
 def home(command1, command2, env1, env2, tree1, tree2):
     env1['HOME'] = '/nonexistent/first-build'
     env2['HOME'] = '/nonexistent/second-build'
     yield command1, command2, env1, env2, tree1, tree2
 
-# TODO: Linux-specific?  uname is a POSIX standard.  The related Linux
-# command (setarch) only affects uname at the moment according to the
-# docs.  FreeBSD does this with environment variables.  Wikipedia has
-# a reference to a setname command:
-# https://en.wikipedia.org/wiki/Uname
+# TODO: uname is a POSIX standard.  The related Linux command
+# (setarch) only affects uname at the moment according to the docs.
+# FreeBSD changes uname with environment variables.  Wikipedia has a
+# reference to a setname command: https://en.wikipedia.org/wiki/Uname
 @contextlib.contextmanager
 def kernel(command1, command2, env1, env2, tree1, tree2):
     command2 = ['linux64', '--uname-2.6'] + command2
@@ -122,7 +117,7 @@ def umask(command1, command2, env1, env2, tree1, tree2):
     command1 = ['umask', '0002;'] + command1
     yield command1, command2, env1, env2, tree1, tree2
 
-# TODO: This definitely requires superuser privileges.
+# TODO: This requires superuser privileges.
 @contextlib.contextmanager
 def user_group(command1, command2, env1, env2, tree1, tree2):
     yield command1, command2, env1, env2, tree1, tree2
@@ -130,7 +125,7 @@ def user_group(command1, command2, env1, env2, tree1, tree2):
 VARIATIONS = collections.OrderedDict([
     ('captures_environment', captures_environment),
     # 'cpu': cpu,
-    ('domain_host', domain_host), ('filesystem', filesystem),
+    ('domain_host', domain_host), ('fileordering', fileordering),
     ('home', home), ('kernel', kernel), ('locales', locales),
     # 'namespace': namespace,
     ('path', path), ('shell', shell),
@@ -138,7 +133,6 @@ VARIATIONS = collections.OrderedDict([
 ])
 
 def build(command, source_root, built_artifact, artifact_store, **kws):
-    # print(command)
     subprocess.check_call(command, cwd=source_root, **kws)
     with open(built_artifact, 'rb') as artifact:
         artifact_store.write(artifact.read())
