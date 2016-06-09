@@ -38,17 +38,18 @@ def captures_environment(command1, command2, env1, env2, tree1, tree2):
 def domain_host(command1, command2, env1, env2, tree1, tree2):
     yield command1, command2, env1, env2, tree1, tree2
 
-# TODO: disorderfs must be unmounted after the build, which probably
-# requires some context-manager silliness.
 @contextlib.contextmanager
 def filesystem(command1, command2, env1, env2, tree1, tree2):
     disorderfs = tree2.parent/'disorderfs'
     disorderfs.mkdir()
     subprocess.check_call(['disorderfs', '--shuffle-dirents=yes',
-                           # '--pad-blocks=10',
                            str(tree2), str(disorderfs)])
     yield command1, command2, env1, env2, tree1, disorderfs
     subprocess.check_call(['fusermount', '-u', str(disorderfs)])
+
+# @contextlib.contextmanager
+# def filesystem(command1, command2, env1, env2, tree1, tree2):
+#     yield command1, command2, env1, env2, tree1, tree2
 
 @contextlib.contextmanager
 def home(command1, command2, env1, env2, tree1, tree2):
@@ -114,9 +115,11 @@ def timezone(command1, command2, env1, env2, tree1, tree2):
     env2['TZ'] = 'GMT-14'
     yield command1, command2, env1, env2, tree1, tree2
 
+# TODO: This is currently operating on command1 to work around this
+# bug: https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=826891
 @contextlib.contextmanager
 def umask(command1, command2, env1, env2, tree1, tree2):
-    command2 = ['umask', '0002;'] + command2
+    command1 = ['umask', '0002;'] + command1
     yield command1, command2, env1, env2, tree1, tree2
 
 # TODO: This definitely requires superuser privileges.
@@ -135,6 +138,7 @@ VARIATIONS = collections.OrderedDict([
 ])
 
 def build(command, source_root, built_artifact, artifact_store, **kws):
+    # print(command)
     subprocess.check_call(command, cwd=source_root, **kws)
     with open(built_artifact, 'rb') as artifact:
         artifact_store.write(artifact.read())
@@ -148,9 +152,11 @@ def check(build_command, artifact_name, source_root, variations=VARIATIONS):
         env2 = env1.copy()
         tree1 = pathlib.Path(shutil.copytree(str(source_root), temp + '/tree1'))
         tree2 = pathlib.Path(shutil.copytree(str(source_root), temp + '/tree2'))
+        # print(build_command)
         with contextlib.ExitStack() as stack:
             try:
                 for variation in variations:
+                    # print(variation)
                     command1, command2, env1, env2, tree1, tree2 = stack.enter_context(VARIATIONS[variation](command1, command2, env1, env2, tree1, tree2))
                     build(' '.join(command1), str(tree1),
                           temp + '/tree1/' + artifact_name,
