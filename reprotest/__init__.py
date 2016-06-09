@@ -42,11 +42,13 @@ def domain_host(command1, command2, env1, env2, tree1, tree2):
 # requires some context-manager silliness.
 @contextlib.contextmanager
 def filesystem(command1, command2, env1, env2, tree1, tree2):
-    # disorderfs = tree2.parent / 'disorderfs'
-    # disorderfs.mkdir()
-    # subprocess.check_call(['disorderfs', '--shuffle-dirents=yes',
-    #                        str(tree2), str(disorderfs)])
-    yield command1, command2, env1, env2, tree1, tree2
+    disorderfs = tree2.parent/'disorderfs'
+    disorderfs.mkdir()
+    subprocess.check_call(['disorderfs', '--shuffle-dirents=yes',
+                           # '--pad-blocks=10',
+                           str(tree2), str(disorderfs)])
+    yield command1, command2, env1, env2, tree1, disorderfs
+    subprocess.check_call(['fusermount', '-u', str(disorderfs)])
 
 @contextlib.contextmanager
 def home(command1, command2, env1, env2, tree1, tree2):
@@ -146,16 +148,18 @@ def check(build_command, artifact_name, source_root, variations=VARIATIONS):
         env2 = env1.copy()
         tree1 = pathlib.Path(shutil.copytree(str(source_root), temp + '/tree1'))
         tree2 = pathlib.Path(shutil.copytree(str(source_root), temp + '/tree2'))
-        try:
-            with contextlib.ExitStack() as stack:
+        with contextlib.ExitStack() as stack:
+            try:
                 for variation in variations:
                     command1, command2, env1, env2, tree1, tree2 = stack.enter_context(VARIATIONS[variation](command1, command2, env1, env2, tree1, tree2))
-                build(' '.join(command1), str(tree1), temp + '/tree1/' + artifact_name,
-                      open(temp + '/artifact1', 'wb'), env=env1, shell=True)
-                build(' '.join(command2), str(tree2), temp + '/tree2/' + artifact_name,
-                      open(temp + '/artifact2', 'wb'), env=env2, shell=True)
-        except Exception:
-            sys.exit(2)
+                    build(' '.join(command1), str(tree1),
+                          temp + '/tree1/' + artifact_name,
+                          open(temp + '/artifact1', 'wb'), env=env1, shell=True)
+                    build(' '.join(command2), str(tree2),
+                          temp + '/tree2/' + artifact_name,
+                          open(temp + '/artifact2', 'wb'), env=env2, shell=True)
+            except Exception:
+                sys.exit(2)
         sys.exit(subprocess.call(['diffoscope', temp + '/artifact1', temp + '/artifact2']))
 
 def main():

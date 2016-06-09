@@ -22,6 +22,16 @@ if __name__ == '__main__':
         # This test can theoretically fail by producing the same
         # random bits in both runs, but it is extremely unlikely.
         output.append(os.urandom(1024))
+    if 'filesystem' in args:
+        # Like the above test, this test can theoretically fail by
+        # producing the same file order, but this is unlikely, if not
+        # as unlikely as in the above test.
+        test_file_order = pathlib.Path.cwd()/'test_file_order'
+        if not test_file_order.exists():
+            test_file_order.mkdir()
+            for i in range(20):
+                (test_file_order/str(i)).touch()
+        output.extend(p.name.encode('ascii') for p in test_file_order.iterdir())
     if 'home' in args:
         output.append(os.path.expanduser('~').encode('ascii'))
     if 'kernel' in args:
@@ -35,7 +45,7 @@ if __name__ == '__main__':
     if 'timezone' in args:
         output.append(str(time.timezone).encode('ascii'))
     if 'umask' in args:
-        test_permissions = pathlib.Path.cwd() / 'test_permissions'
+        test_permissions = pathlib.Path.cwd()/'test_permissions'
         test_permissions.touch()
         with tempfile.TemporaryFile() as temp:
             archive = tarfile.open(name='temp', mode='w', fileobj=temp)

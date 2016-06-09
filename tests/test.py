@@ -15,6 +15,7 @@ if __name__ == '__main__':
     test_return_code(['python', 'build.py'], 0)
     test_return_code(['python', 'fails.py'], 2)
     test_return_code(['python', 'build.py', 'irreproducible'], 1)
+    test_return_code(['python', 'build.py', 'filesystem'], 1)
     test_return_code(['python', 'build.py', 'home'], 1)
     test_return_code(['python', 'build.py', 'kernel'], 1)
     test_return_code(['python', 'build.py', 'locales'], 1)
