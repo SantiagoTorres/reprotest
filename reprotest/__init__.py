@@ -110,11 +110,9 @@ def timezone(command1, command2, env1, env2, tree1, tree2):
     env2['TZ'] = 'GMT-14'
     yield command1, command2, env1, env2, tree1, tree2
 
-# TODO: This is currently operating on command1 to work around this
-# bug: https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=826891
 @contextlib.contextmanager
 def umask(command1, command2, env1, env2, tree1, tree2):
-    command1 = ['umask', '0002;'] + command1
+    command2 = ['umask', '0002;'] + command2
     yield command1, command2, env1, env2, tree1, tree2
 
 # TODO: This requires superuser privileges.
