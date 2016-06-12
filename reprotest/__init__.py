@@ -44,8 +44,10 @@ def fileordering(command1, command2, env1, env2, tree1, tree2):
     disorderfs.mkdir()
     subprocess.check_call(['disorderfs', '--shuffle-dirents=yes',
                            str(tree2), str(disorderfs)])
-    yield command1, command2, env1, env2, tree1, disorderfs
-    subprocess.check_call(['fusermount', '-u', str(disorderfs)])
+    try:
+        yield command1, command2, env1, env2, tree1, disorderfs
+    finally:
+        subprocess.check_call(['fusermount', '-u', str(disorderfs)])
 
 @contextlib.contextmanager
 def home(command1, command2, env1, env2, tree1, tree2):
@@ -131,6 +133,12 @@ VARIATIONS = collections.OrderedDict([
 ])
 
 def build(command, source_root, built_artifact, artifact_store, **kws):
+    # print(command)
+    # print(source_root)
+    # print(list(pathlib.Path(source_root).glob('*')))
+    # print(kws)
+    # print(subprocess.check_output(['ls'], cwd=source_root, **kws).decode('ascii'))
+    # print(subprocess.check_output('python --version', cwd=source_root, **kws))
     subprocess.check_call(command, cwd=source_root, **kws)
     with open(built_artifact, 'rb') as artifact:
         artifact_store.write(artifact.read())
@@ -144,20 +152,22 @@ def check(build_command, artifact_name, source_root, variations=VARIATIONS):
         env2 = env1.copy()
         tree1 = pathlib.Path(shutil.copytree(str(source_root), temp + '/tree1'))
         tree2 = pathlib.Path(shutil.copytree(str(source_root), temp + '/tree2'))
-        # print(build_command)
-        with contextlib.ExitStack() as stack:
-            try:
-                for variation in variations:
-                    # print(variation)
-                    command1, command2, env1, env2, tree1, tree2 = stack.enter_context(VARIATIONS[variation](command1, command2, env1, env2, tree1, tree2))
+        # print(' '.join(command1))
+        # print(pathlib.Path.cwd())
+        # print(source_root)
+        try:
+            with contextlib.ExitStack() as stack:
+                    for variation in variations:
+                        # print(variation)
+                        command1, command2, env1, env2, tree1, tree2 = stack.enter_context(VARIATIONS[variation](command1, command2, env1, env2, tree1, tree2))
                     build(' '.join(command1), str(tree1),
                           temp + '/tree1/' + artifact_name,
                           open(temp + '/artifact1', 'wb'), env=env1, shell=True)
                     build(' '.join(command2), str(tree2),
                           temp + '/tree2/' + artifact_name,
                           open(temp + '/artifact2', 'wb'), env=env2, shell=True)
-            except Exception:
-                sys.exit(2)
+        except:
+            sys.exit(2)
         sys.exit(subprocess.call(['diffoscope', temp + '/artifact1', temp + '/artifact2']))
 
 def main():
@@ -195,7 +205,7 @@ def main():
         'artifact', help='Build artifact to test for reproducibility.')
     # Reprotest will copy this tree and then run the build command.
     arg_parser.add_argument(
-        '--source-root', dest='--source_root', type=pathlib.Path,
+        '--source-root', dest='source_root', type=pathlib.Path,
         help='Root of the source tree, if not the '
         'current working directory.')
     arg_parser.add_argument(
@@ -203,15 +213,18 @@ def main():
         help='Build variations to test as a comma-separated list'
         ' (without spaces).  Default is to test all available variations.')
     arg_parser.add_argument(
-        '--dont-vary', dest='--dont_vary',
+        '--dont-vary', dest='dont_vary',
         type=lambda s: frozenset(s.split(',')),
         help='Build variations *not* to test as a comma-separated'
         ' list (without spaces).  Default is to test all available variations.')
     # Argparse exits with status code 2 if something goes wrong, which
     # is already the right status exit code for reprotest.
+
     args = arg_parser.parse_args()
+    # print(args)
     if args.build_command:
         build_command = args.build_command.split()
+        # print(build_command)
     if args.artifact:
         artifact = args.artifact
     if args.source_root:

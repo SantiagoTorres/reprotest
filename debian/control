@@ -14,12 +14,14 @@ X-Python3-Version: >= 3.3
 
 Package: reprotest
 Architecture: all
-Depends: python3,
+Depends: ${python3:Depends},
  python3-debian,
  apt-utils,
  libdpkg-perl,
  procps,
+ diffoscope,
  ${misc:Depends}
 Recommends: autodep8
 Suggests: schroot, lxc, lxd-client, qemu-system, qemu-utils
 Description: Build packages and check them for reproducibility.
+ Nothing to see here.

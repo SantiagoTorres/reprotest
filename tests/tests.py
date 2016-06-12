@@ -1,6 +1,8 @@
 # Licensed under the GPL: https://www.gnu.org/licenses/gpl-3.0.en.html
 # For details: reprotest/debian/copyright
 
+import subprocess
+
 import reprotest
 
 def test_return_code(command, code):
@@ -20,3 +22,6 @@ if __name__ == '__main__':
     test_return_code(['python', 'build.py', 'path'], 1)
     test_return_code(['python', 'build.py', 'timezone'], 1)
     test_return_code(['python', 'build.py', 'umask'], 1)
+
+    assert(subprocess.call(['reprotest', 'python setup.py bdist', 'dist/reprotest-0.1.linux-x86_64.tar.gz']) == 1)
+    assert(subprocess.call(['reprotest', 'debuild --no-lintian -b -uc -us', '../reprotest_0.1_amd64.deb']) == 2)
