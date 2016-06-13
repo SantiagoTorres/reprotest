@@ -24,4 +24,4 @@ if __name__ == '__main__':
     test_return_code(['python', 'build.py', 'umask'], 1)
 
     assert(subprocess.call(['reprotest', 'python setup.py bdist', 'dist/reprotest-0.1.linux-x86_64.tar.gz']) == 1)
-    assert(subprocess.call(['reprotest', 'debuild --no-lintian -b -uc -us', '../reprotest_0.1_amd64.deb']) == 2)
+    assert(subprocess.call(['reprotest', 'debuild -b -uc -us', '../reprotest_0.1_all.deb']) == 1)

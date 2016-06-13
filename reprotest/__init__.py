@@ -13,6 +13,7 @@ import subprocess
 import sys
 import tempfile
 import time
+import traceback
 
 # time zone, locales, disorderfs, host name, user/group, shell, CPU
 # number, architecture for uname (using linux64), umask, HOME, see
@@ -160,13 +161,19 @@ def check(build_command, artifact_name, source_root, variations=VARIATIONS):
                     for variation in variations:
                         # print(variation)
                         command1, command2, env1, env2, tree1, tree2 = stack.enter_context(VARIATIONS[variation](command1, command2, env1, env2, tree1, tree2))
+                    # I would prefer to use pathlib here but
+                    # .resolve(), to eliminate ../ references, doesn't
+                    # work on nonexistent paths.
                     build(' '.join(command1), str(tree1),
-                          temp + '/tree1/' + artifact_name,
-                          open(temp + '/artifact1', 'wb'), env=env1, shell=True)
+                          os.path.normpath(temp + '/tree1/' + artifact_name),
+                          open(os.path.normpath(temp + '/artifact1'), 'wb'),
+                          env=env1, shell=True)
                     build(' '.join(command2), str(tree2),
-                          temp + '/tree2/' + artifact_name,
-                          open(temp + '/artifact2', 'wb'), env=env2, shell=True)
-        except:
+                          os.path.normpath(temp + '/tree2/' + artifact_name),
+                          open(os.path.normpath(temp + '/artifact2'), 'wb'),
+                          env=env2, shell=True)
+        except Exception:
+            traceback.print_exc()
             sys.exit(2)
         sys.exit(subprocess.call(['diffoscope', temp + '/artifact1', temp + '/artifact2']))
 
