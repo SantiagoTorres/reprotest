@@ -10,6 +10,7 @@ setup(name='reprotest',
       author='Ceridwen',
       author_email='ceridwenv@gmail.com',
       license='GPL-3+',
+      url='https://anonscm.debian.org/cgit/reproducible/reprotest.git/',
       packages=find_packages(),
       entry_points={
           'console_scripts': [
