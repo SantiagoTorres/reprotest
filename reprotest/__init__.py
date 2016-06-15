@@ -14,6 +14,7 @@ import sys
 import tempfile
 import time
 import traceback
+import types
 
 # time zone, locales, disorderfs, host name, user/group, shell, CPU
 # number, architecture for uname (using linux64), umask, HOME, see
@@ -123,7 +124,7 @@ def umask(command1, command2, env1, env2, tree1, tree2):
 def user_group(command1, command2, env1, env2, tree1, tree2):
     yield command1, command2, env1, env2, tree1, tree2
 
-VARIATIONS = collections.OrderedDict([
+VARIATIONS = types.MappingProxyType(collections.OrderedDict([
     ('captures_environment', captures_environment),
     # 'cpu': cpu,
     ('domain_host', domain_host), ('fileordering', fileordering),
@@ -131,7 +132,7 @@ VARIATIONS = collections.OrderedDict([
     # 'namespace': namespace,
     ('path', path), ('shell', shell),
     ('timezone', timezone), ('umask', umask), ('user_group', user_group)
-])
+]))
 
 def build(command, source_root, built_artifact, artifact_store, **kws):
     # print(command)
@@ -177,74 +178,104 @@ def check(build_command, artifact_name, source_root, variations=VARIATIONS):
             sys.exit(2)
         sys.exit(subprocess.call(['diffoscope', temp + '/artifact1', temp + '/artifact2']))
 
-def main():
-    build_command = ''
-    artifact = ''
-    # If a source root isn't provided, assume it's the current
-    # working directory.
-    source_root = pathlib.Path.cwd()
-    # The default is to try all variations.
-    variations = frozenset(VARIATIONS.keys())
 
+COMMAND_LINE_OPTIONS = types.MappingProxyType(collections.OrderedDict([
+    ('build_command', types.MappingProxyType({
+        'type': str.split, 'default': None, 'nargs': '?',
+        'help': 'Build command to execute.'})),
+    ('artifact', types.MappingProxyType({
+        'default': None, 'nargs': '?',
+        'help': 'Build artifact to test for reproducibility.'})),
+    ('--source-root', types.MappingProxyType({
+        'dest': 'source_root', 'type': pathlib.Path,
+        'help': 'Root of the source tree, if not the '
+        'current working directory.'})),
+    ('--variations', types.MappingProxyType({
+        'type': lambda s: frozenset(s.split(',')),
+        'help': 'Build variations to test as a comma-separated list'
+        ' (without spaces).  Default is to test all available '
+        'variations.'})),
+    ('--dont-vary', types.MappingProxyType({
+        'dest': 'dont_vary', 'type': lambda s: frozenset(s.split(',')),
+        'help': 'Build variations *not* to test as a comma-separated'
+        ' list (without spaces).  Default is to test all available '
+        ' variations.'})),
+    ('--verbosity', types.MappingProxyType({
+        'type': int, 'default': 0,
+        'help': 'An integer.  Control which messages are displayed.'}))
+    ]))
+
+
+MULTIPLET_OPTIONS = frozenset(['build_command', 'dont_vary', 'variations'])
+
+CONFIG_OPTIONS = []
+for option in COMMAND_LINE_OPTIONS.keys():
+    if 'dest' in COMMAND_LINE_OPTIONS[option]:
+        CONFIG_OPTIONS.append(COMMAND_LINE_OPTIONS[option]['dest'])
+    else:
+        CONFIG_OPTIONS.append(option.strip('-'))
+CONFIG_OPTIONS = tuple(CONFIG_OPTIONS)
+
+def config():
     # Config file.
     config = configparser.ConfigParser()
     config.read('.reprotestrc')
+    options = collections.OrderedDict()
     if 'basics' in config:
-        if 'variations' in config['basics']:
-            variations = frozenset(config['basics'].split())
-        if 'build_command' in config['basics']:
-            build_command = config['build_command'].split()
-        if 'artifact' in config['basics']:
-            artifact = config['artifact']
-        if 'source_root' in config['basics']:
-            source_root = config['source_root']
-        if 'verbosity' in config['basics']:
-            verbosity = config['verbosity']
+        for option in CONFIG_OPTIONS:
+            if option in config['basics'] and option in MULTIPLET_OPTIONS:
+                options[option] = config['basics'][option].split()
+            else:
+                options[option] = config['basics'][option]
+    return types.MappingProxyType(options)
 
-    # Command-line arguments override config file settings.
+def command_line():
     arg_parser = argparse.ArgumentParser(
         description='Build packages and check them for reproducibility.',
         formatter_class=argparse.RawDescriptionHelpFormatter)
-    arg_parser.add_argument(
-        '-v', '--verbose', action='count', default=0, help='Verbose output.')
-    arg_parser.add_argument('build_command', help='Build command to execute.')
-    arg_parser.add_argument(
-        'artifact', help='Build artifact to test for reproducibility.')
-    # Reprotest will copy this tree and then run the build command.
-    arg_parser.add_argument(
-        '--source-root', dest='source_root', type=pathlib.Path,
-        help='Root of the source tree, if not the '
-        'current working directory.')
-    arg_parser.add_argument(
-        '--variations', type=lambda s: frozenset(s.split(',')),
-        help='Build variations to test as a comma-separated list'
-        ' (without spaces).  Default is to test all available variations.')
-    arg_parser.add_argument(
-        '--dont-vary', dest='dont_vary',
-        type=lambda s: frozenset(s.split(',')),
-        help='Build variations *not* to test as a comma-separated'
-        ' list (without spaces).  Default is to test all available variations.')
-    # Argparse exits with status code 2 if something goes wrong, which
-    # is already the right status exit code for reprotest.
-
+    for option in COMMAND_LINE_OPTIONS:
+        arg_parser.add_argument(option, **COMMAND_LINE_OPTIONS[option])
     args = arg_parser.parse_args()
     # print(args)
-    if args.build_command:
-        build_command = args.build_command.split()
-        # print(build_command)
-    if args.artifact:
-        artifact = args.artifact
-    if args.source_root:
-        source_root = args.source_root
-    if args.dont_vary and args.variations:
-        print("Use only one of --variations or --dont_vary, not both.")
-        sys.exit(2)
-    elif args.dont_vary:
-        variations = variations - args.dont_vary
-    elif args.variations:
-        variations = args.variations
+
+    return types.MappingProxyType({k:v for k, v in vars(args).items() if v is not None})
+    
+        
+def main():
+    config_options = config()
+    
+    # Argparse exits with status code 2 if something goes wrong, which
+    # is already the right status exit code for reprotest.
+    command_line_options = command_line()
+    
+    # Command-line arguments override config file settings.
+    build_command = command_line_options.get(
+        'build_command',
+        config_options.get('build_command'))
+    artifact = command_line_options.get(
+        'artifact',
+        config_options.get('artifact'))
+    # Reprotest will copy this tree and then run the build command.
+    # If a source root isn't provided, assume it's the current working
+    # directory.
+    source_root = command_line_options.get(
+        'source_root',
+        config_options.get('source_root', pathlib.Path.cwd()))
+    # The default is to try all variations.
+    variations = frozenset(VARIATIONS.keys())
+    if 'variations' in config_options:
+        variations = frozenset(config_options['variations'])
+    if 'dont_vary' in config_options:
+        variations = variations - frozenset(config_options['dont_vary'])
+    if 'variations' in command_line_options:
+        variations = command_line_options['variations']
+    if 'dont_vary' in command_line_options:
+        variations = variations - frozenset(command_line_options['dont_vary'])
     # Restore the order
     variations = [v for v in VARIATIONS if v in variations]
+    verbosity = command_line_options.get(
+        'verbosity',
+        config_options.get('verbosity', 0))
 
     if not build_command:
         print("No build command provided.")
@@ -253,5 +284,5 @@ def main():
         print("No build artifact to test for differences provided.")
         sys.exit(2)
     logging.basicConfig(
-        format='%(message)s', level=30-10*args.verbose, stream=sys.stdout)
+        format='%(message)s', level=30-10*verbosity, stream=sys.stdout)
     check(build_command, artifact, source_root, variations)
