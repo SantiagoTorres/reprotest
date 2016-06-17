@@ -174,7 +174,7 @@ def check(build_command, artifact_name, source_root, variations=VARIATIONS):
                           open(os.path.normpath(temp + '/artifact2'), 'wb'),
                           env=env2, shell=True)
         except Exception:
-            traceback.print_exc()
+            # traceback.print_exc()
             sys.exit(2)
         sys.exit(subprocess.call(['diffoscope', temp + '/artifact1', temp + '/artifact2']))
 

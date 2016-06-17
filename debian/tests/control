@@ -1,2 +1,2 @@
-Tests: reprotest
+Tests: tests.py
 Tests-Directory: tests
