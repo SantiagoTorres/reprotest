@@ -3,8 +3,8 @@ Upstream-Name: reprotest
 Source: https://anonscm.debian.org/cgit/reproducible/reprotest.git/
 
 Files: *
-Copyright: 2016 Cara Vinson <ceridwenv@gmail.com>
-License: GPL 3+
+Copyright: 2016 Ceridwen <ceridwenv@gmail.com>
+License: GPL-3+
 
 Files: reprotest/lib/*
        reprotest/runner/*

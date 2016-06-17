@@ -22,7 +22,6 @@ Depends: ${python3:Depends},
  diffoscope,
  ${misc:Depends}
 Recommends: autodep8
-Suggests: schroot, lxc, lxd-client, qemu-system, qemu-utils
 Description: Build software and check it for reproducibility.
  reprotest builds the same source code in different environments and
  then checks the binaries produced by the builds to see if changing
