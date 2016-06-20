@@ -1,6 +1,6 @@
 Source: reprotest
 Maintainer: Reproducible builds folks <reproducible-builds@lists.alioth.debian.org>
-Uploaders: 
+Uploaders: Ceridwen <ceridwenv@gmail.com>
 Section: devel
 Priority: optional
 Standards-Version: 3.9.8
