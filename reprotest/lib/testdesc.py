@@ -30,11 +30,13 @@ import tempfile
 import atexit
 import shutil
 
-import debian.deb822
-import debian.debian_support
-import debian.debfile
+# TODO: probably this file is unnecessary.
 
-import adtlog
+# import debian.deb822
+# import debian.debian_support
+# import debian.debfile
+
+# import adtlog
 
 #
 # Abstract test representation

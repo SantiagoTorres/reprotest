@@ -33,10 +33,15 @@ import tempfile
 import shutil
 import urllib.parse
 
-from debian import debian_support
 
-import adtlog
-import VirtSubproc
+# TODO: removing this import disables install_tmp, may want to restore
+# it at some point if I'm improving support for building Debian packages in
+# particular.
+
+# from debian import debian_support
+
+from reprotest.lib import adtlog
+from reprotest.lib import VirtSubproc
 
 
 timeouts = {'short': 100, 'copy': 300, 'install': 3000, 'test': 10000,

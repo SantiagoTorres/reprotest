@@ -16,6 +16,8 @@ import time
 import traceback
 import types
 
+from reprotest.lib import adt_testbed
+
 # time zone, locales, disorderfs, host name, user/group, shell, CPU
 # number, architecture for uname (using linux64), umask, HOME, see
 # also: https://tests.reproducible-builds.org/index_variations.html

@@ -35,7 +35,7 @@ import pipes
 import socket
 import shutil
 
-import adtlog
+from reprotest.lib import adtlog
 
 progname = "<VirtSubproc>"
 devnull_read = open('/dev/null', 'r')

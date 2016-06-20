@@ -26,8 +26,10 @@ import atexit
 import shutil
 import errno
 
-import adtlog
-import adt_testbed
+# TODO: not sure if this file is necessary
+
+# import adtlog
+# import adt_testbed
 
 
 class DebBinaries:
