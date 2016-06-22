@@ -16,6 +16,8 @@ import time
 import traceback
 import types
 
+import pkg_resources
+
 from reprotest.lib import adt_testbed
 
 # time zone, locales, disorderfs, host name, user/group, shell, CPU
@@ -24,9 +26,25 @@ from reprotest.lib import adt_testbed
 
 # chroot is the only form of OS virtualization that's available on
 # most POSIX OSes.  Linux containers (lxc) and namespaces are specific
-# to Linux.  Some versions of BSD has jails (MacOS X?).  There are a
+# to Linux.  Some versions of BSD have jails (MacOS X?).  There are a
 # variety of other options including Docker etc that use different
 # approaches.
+
+@contextlib.contextmanager
+def virt_server_manager(server_type, args):
+    '''This is a simple wrapper around adt_testbed that automates the
+    clean up.'''
+    # Find the location of reprotest using setuptools and then get the
+    # path for the correct virt-server script.
+    server_path = pkg_resources.resource_filename(__name__, 'virt/' +
+                                                  server_type)
+    virt_server = adt_testbed.Testbed((server_path,) + args, '/tmp/outdir', None)
+    virt_server.start()
+    virt_server.open()
+    try:
+        yield virt_server
+    finally:
+        virt_server.stop()
 
 # TODO: relies on a pbuilder-specific command to parallelize
 # def cpu(command1, command2, env1, env2, tree1, tree2):
@@ -148,7 +166,9 @@ def build(command, source_root, built_artifact, artifact_store, **kws):
         artifact_store.write(artifact.read())
         artifact_store.flush()
 
-def check(build_command, artifact_name, source_root, variations=VARIATIONS):
+def check(build_command, artifact_name, virt_server_args, source_root,
+          variations=VARIATIONS):
+    # print(virt_server_args)
     with tempfile.TemporaryDirectory() as temp:
         command1 = build_command
         command2 = build_command
@@ -188,6 +208,9 @@ COMMAND_LINE_OPTIONS = types.MappingProxyType(collections.OrderedDict([
     ('artifact', types.MappingProxyType({
         'default': None, 'nargs': '?',
         'help': 'Build artifact to test for reproducibility.'})),
+    ('virt_server_args', types.MappingProxyType({
+        'default': None, 'nargs': '*',
+        'help': 'Arguments to pass to the virt_server.'})),
     ('--source-root', types.MappingProxyType({
         'dest': 'source_root', 'type': pathlib.Path,
         'help': 'Root of the source tree, if not the '
@@ -207,8 +230,8 @@ COMMAND_LINE_OPTIONS = types.MappingProxyType(collections.OrderedDict([
         'help': 'An integer.  Control which messages are displayed.'}))
     ]))
 
-
-MULTIPLET_OPTIONS = frozenset(['build_command', 'dont_vary', 'variations'])
+MULTIPLET_OPTIONS = frozenset(['build_command', 'dont_vary',
+                               'variations', 'virt_server_args'])
 
 CONFIG_OPTIONS = []
 for option in COMMAND_LINE_OPTIONS.keys():
@@ -241,7 +264,7 @@ def command_line():
     # print(args)
 
     return types.MappingProxyType({k:v for k, v in vars(args).items() if v is not None})
-    
+
         
 def main():
     config_options = config()
@@ -249,7 +272,7 @@ def main():
     # Argparse exits with status code 2 if something goes wrong, which
     # is already the right status exit code for reprotest.
     command_line_options = command_line()
-    
+
     # Command-line arguments override config file settings.
     build_command = command_line_options.get(
         'build_command',
@@ -257,6 +280,9 @@ def main():
     artifact = command_line_options.get(
         'artifact',
         config_options.get('artifact'))
+    virt_server_args = command_line_options.get(
+        'virt_server_args',
+        config_options.get('virt_server_args'))
     # Reprotest will copy this tree and then run the build command.
     # If a source root isn't provided, assume it's the current working
     # directory.
@@ -285,6 +311,10 @@ def main():
     if not artifact:
         print("No build artifact to test for differences provided.")
         sys.exit(2)
+    if not virt_server_args:
+        print("No virt_server to run the build in specified.")
+        sys.exit(2)
     logging.basicConfig(
         format='%(message)s', level=30-10*verbosity, stream=sys.stdout)
-    check(build_command, artifact, source_root, variations)
+    # print(build_command, artifact, virt_server_args)
+    check(build_command, artifact, virt_server_args, source_root, variations)

@@ -8,7 +8,7 @@ import reprotest
 
 def test_return_code(command, code):
     try:
-        reprotest.check(command, 'artifact', 'tests/')
+        reprotest.check(command, 'artifact', 'null', 'tests/')
     except SystemExit as system_exit:
         assert(system_exit.args[0] == code)
 
@@ -30,5 +30,5 @@ if __name__ == '__main__':
     test_return_code(['python', 'mock_build.py', 'umask'], 1)
 
     if args.test_build:
-        assert(subprocess.call(['reprotest', 'python setup.py bdist', 'dist/reprotest-0.1.linux-x86_64.tar.gz']) == 1)
-        assert(subprocess.call(['reprotest', 'debuild -b -uc -us', '../reprotest_0.1_all.deb']) == 1)
+        assert(subprocess.call(['reprotest', 'python setup.py bdist', 'dist/reprotest-0.1.linux-x86_64.tar.gz', 'null']) == 1)
+        assert(subprocess.call(['reprotest', 'debuild -b -uc -us', '../reprotest_0.1_all.deb', 'null']) == 1)
