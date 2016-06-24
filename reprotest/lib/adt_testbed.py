@@ -389,7 +389,7 @@ class Testbed:
             ll = list(map(urllib.parse.unquote, ll))
         return ll
 
-    def execute(self, argv, xenv=[], stdout=None, stderr=None, kind='short'):
+    def execute(self, argv, xenv=[], stdout=None, stderr=None, kind='short', cwd=os.getcwd()):
         '''Run command in testbed.
 
         The commands stdout/err will be piped directly to adt-run and its log
@@ -417,7 +417,7 @@ class Testbed:
         try:
             proc = subprocess.Popen(self.exec_cmd + argv,
                                     stdin=self.devnull,
-                                    stdout=stdout, stderr=stderr)
+                                    stdout=stdout, stderr=stderr, cwd=cwd)
             (out, err) = proc.communicate()
             if out is not None:
                 out = out.decode()
