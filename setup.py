@@ -12,6 +12,8 @@ setup(name='reprotest',
       license='GPL-3+',
       url='https://anonscm.debian.org/cgit/reproducible/reprotest.git/',
       packages=find_packages(),
+      # This layout is badly broken at the moment, something must be
+      # done to make the scripts in virt/ install executable.
       entry_points={
           'console_scripts': [
               'reprotest = reprotest:main'

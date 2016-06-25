@@ -12,6 +12,7 @@ import tempfile
 import time
 
 if __name__ == '__main__':
+    # print(os.environ)
     arg_parser = argparse.ArgumentParser(
         description='Create binaries for testing reproducibility.',
         formatter_class=argparse.RawDescriptionHelpFormatter)
