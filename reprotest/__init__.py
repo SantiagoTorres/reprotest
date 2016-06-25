@@ -90,7 +90,7 @@ def fileordering(command, env, tree, builder):
 
 @contextlib.contextmanager
 def home(command, env, tree, builder):
-    control = add(env.experiment, 'HOME', '/nonexistent/first-build')
+    control = add(env.control, 'HOME', '/nonexistent/first-build')
     experiment = add(env.experiment, 'HOME', '/nonexistent/second-build')
     yield command, Pair(control, experiment), tree
 
@@ -149,7 +149,7 @@ def timezone(command, env, tree, builder):
     # These time zones are theoretically in the POSIX time zone format
     # (http://pubs.opengroup.org/onlinepubs/9699919799/basedefs/V1_chap08.html#tag_08),
     # so they should be cross-platform compatible.
-    control = add(env.experiment, 'TZ', 'GMT+12')
+    control = add(env.control, 'TZ', 'GMT+12')
     experiment = add(env.experiment, 'TZ', 'GMT-14')
     yield command, Pair(control, experiment), tree
 
@@ -217,6 +217,7 @@ def check(build_command, artifact_name, virtual_server_args, source_root,
                 # I would prefer to use pathlib here but
                 # .resolve(), to eliminate ../ references, doesn't
                 # work on nonexistent paths.
+                # print(env)
                 build(command.control, tree.control,
                       os.path.normpath(tree.control + artifact_name),
                       builder,
