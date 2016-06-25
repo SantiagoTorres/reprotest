@@ -3,25 +3,32 @@
 
 import subprocess
 
+import pytest
+
 import reprotest
 
-def check_return_code(command, code):
+def check_return_code(command, virtual_server, code):
     try:
-        reprotest.check(command, 'artifact', ['null'], 'tests/')
+        reprotest.check(command, 'artifact', virtual_server, 'tests/')
     except SystemExit as system_exit:
         assert(system_exit.args[0] == code)
 
-def test_check():
-    check_return_code(['python', 'mock_build.py'], 0)
-    # check_return_code(['python', 'mock_failure.py'], 2)
-    check_return_code(['python', 'mock_build.py', 'irreproducible'], 1)
-    check_return_code(['python', 'mock_build.py', 'fileordering'], 1)
-    check_return_code(['python', 'mock_build.py', 'home'], 1)
-    check_return_code(['python', 'mock_build.py', 'kernel'], 1)
-    check_return_code(['python', 'mock_build.py', 'locales'], 1)
-    check_return_code(['python', 'mock_build.py', 'path'], 1)
-    check_return_code(['python', 'mock_build.py', 'timezone'], 1)
-    # check_return_code(['python', 'mock_build.py', 'umask'], 1)
+@pytest.fixture(scope='module', params=['null']) # , 'chroot'
+def virtual_server(request):
+    if request.param == 'null':
+        return [request.param]
+    else:
+        return request.param
+
+def test_simple_builds(virtual_server):
+    check_return_code(['python', 'mock_build.py'], virtual_server, 0)
+    # check_return_code(['python', 'mock_failure.py'], virtual_server, 2)
+    check_return_code(['python', 'mock_build.py', 'irreproducible'],
+                      virtual_server, 1)
+
+@pytest.mark.parametrize('variation', ['fileordering', 'home', 'kernel', 'locales', 'path', 'timezone']) #, 'umask'
+def test_variations(virtual_server, variation):
+    check_return_code(['python', 'mock_build.py', variation], virtual_server, 1)
 
 def test_self_build():
     assert(subprocess.call(['reprotest', 'python setup.py bdist', 'dist/reprotest-0.1.linux-x86_64.tar.gz', 'null']) == 1)
