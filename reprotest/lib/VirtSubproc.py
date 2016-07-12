@@ -183,8 +183,8 @@ def check_exec(argv, downp=False, outp=False, timeout=0):
                                          stdout=stdout, stderr=subprocess.PIPE)
 
     if status:
-        bomb("%s%s failed (exit status %d)" %
-             ((downp and "(down) " or ""), argv, status))
+        bomb("%s%s failed (exit status %d)\n%s" %
+             ((downp and "(down) " or ""), argv, status, err))
     if err:
         bomb("%s unexpectedly produced stderr output `%s'" %
              (argv, err))

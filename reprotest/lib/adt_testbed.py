@@ -331,7 +331,7 @@ class Testbed:
 
     def bomb(self, m, _type=adtlog.TestbedFailure):
         adtlog.debug('%s %s' % (_type.__name__, m))
-        self.stop()
+        # self.stop()
         raise _type(m)
 
     def badpkg(self, m):
@@ -389,7 +389,10 @@ class Testbed:
             ll = list(map(urllib.parse.unquote, ll))
         return ll
 
-    def execute(self, argv, xenv=[], stdout=None, stderr=None, kind='short', cwd=os.getcwd()):
+    # TODO: with stdout and stderr defaulting to None, this function
+    # eats all errors/output from its call, which is not the right
+    # thing.
+    def execute(self, argv, xenv=[], stdout=None, stderr=None, kind='short'):
         '''Run command in testbed.
 
         The commands stdout/err will be piped directly to adt-run and its log
@@ -413,11 +416,12 @@ class Testbed:
         if env:
             argv = ['env'] + env + argv
 
+        # import pdb; pdb.set_trace()
         VirtSubproc.timeout_start(timeouts[kind])
         try:
             proc = subprocess.Popen(self.exec_cmd + argv,
                                     stdin=self.devnull,
-                                    stdout=stdout, stderr=stderr, cwd=cwd)
+                                    stdout=stdout, stderr=stderr)
             (out, err) = proc.communicate()
             if out is not None:
                 out = out.decode()
