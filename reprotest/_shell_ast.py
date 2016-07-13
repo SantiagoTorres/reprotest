@@ -23,12 +23,46 @@ which should transform the AST into valid shell code.
 '''
 
 import collections
+import itertools
 import shlex
+
+
+class _SequenceNode(tuple):
+    '''Tuple subclass that returns appropriate types from methods.
+
+    This overloads tuple methods so they return the subclass's type
+    rather than tuple and provides a nicer __repr__.
+
+    '''
+
+    def __add__(self, other):
+        if self.__class__ is other.__class__:
+            return self.__class__(itertools.chain(self, other))
+        else:
+            raise TypeError('Cannot add two shell AST nodes of different types.')
+    __iadd__ = __add__
+
+    def __radd__(self, other):
+        if self.__class__ is other.__class__:
+            return self.__class__(itertools.chain(other, self))
+        else:
+            raise TypeError('Cannot add two shell AST nodes of different types.')
+
+    def __getitem__(self, index):
+        if isinstance(index, slice):
+            return self.__class__(super().__getitem__(index))
+        else:
+            return super().__getitem__(index)
+
+    def __repr__(self):
+        return self.__class__.__name__ + super().__repr__()
 
 
 class BaseNode:
     '''Abstract base class for all nodes.  This class should never be
-    instantiated.'''
+    instantiated.
+
+    '''
     __slots__ = ()
 
     def __str__(self):
@@ -54,7 +88,7 @@ class Command(BaseNode):
     __slots__ = ()
 
 
-class List(BaseNode, tuple):
+class List(BaseNode, _SequenceNode):
     '''The recursion in this rule is flatted into a sequence.
     separator_op is a & or ;.
 
@@ -78,7 +112,7 @@ class List(BaseNode, tuple):
     __slots__ = ()
 
 
-class Term(BaseNode, collections.namedtuple('_Term', 'list separator')):
+class Term(BaseNode, collections.namedtuple('_Term', 'command separator')):
     '''This rule is recursive in the grammar, but its direct recursion is
     handled in List in this AST.
 
@@ -87,16 +121,16 @@ class Term(BaseNode, collections.namedtuple('_Term', 'list separator')):
     term separator and_or | and_or
 
     Attributes:
-        list (AndList, OrList, Command): A command or sequence of commands.
+        command (AndList, OrList, Command): A command or sequence of commands.
         separator (str): & or ;.
     '''
     __slots__ = ()
 
     def __str__(self):
-        return str(self.list) + ' ' + self.separator + '\n'
+        return str(self.command) + ' ' + self.separator + '\n'
 
 
-class AndList(BaseNode, tuple):
+class AndList(BaseNode, _SequenceNode):
     '''While the && and || operators are not associative with each other,
     each is associative with itself, so this recursion can also be
     flattened into a sequence.
@@ -119,7 +153,7 @@ class AndList(BaseNode, tuple):
         return ' && '.join(str(field) for field in self)
 
 
-class OrList(BaseNode, tuple):
+class OrList(BaseNode, _SequenceNode):
     '''While the && and || operators are not associative with each other,
     each is associative with itself, so this recursion can also be
     flattened into a sequence.
@@ -140,7 +174,7 @@ class OrList(BaseNode, tuple):
         return ' || '.join(str(field) for field in self)
 
 
-class Pipeline(BaseNode, tuple):
+class Pipeline(BaseNode, _SequenceNode):
     '''The recursion in this rule is flatted into a sequence.  The option
     to prepend the bang (!) to a pipeline is deliberately omitted.  It
     would require another class because the __str__ method would be
@@ -188,7 +222,7 @@ class SimpleCommand(Command,
                 str(self.cmd_name) +
                 (' ' + str(self.cmd_suffix) if self.cmd_suffix else ''))
 
-class CmdPrefix(BaseNode, tuple):
+class CmdPrefix(BaseNode, _SequenceNode):
     '''The recursion in this rule is flatted into a sequence.
 
     Grammar rule:
@@ -247,7 +281,7 @@ class IORedirect(BaseNode,
                 str(self.filename))
 
 
-class CmdSuffix(BaseNode, tuple):
+class CmdSuffix(BaseNode, _SequenceNode):
     ''''The recursion in this rule is flatted into a sequence.  This node
     represents the arguments passed to a simple command.
 
@@ -309,7 +343,7 @@ class ElsePart(BaseNode, collections.namedtuple('_IfClause', 'elifs then')):
         return (str(self.elifs) +
                 ('\nelse ' + str(self.then)) if self.then else '')
 
-class Elifs(BaseNode, tuple):
+class Elifs(BaseNode, _SequenceNode):
     '''This node doesn't directly correspond to a grammar rule.  It
     flattens the recursion for elif statements in else_part.
 
@@ -371,14 +405,18 @@ class Subshell(Command, collections.namedtuple('_BraceGroup', 'list')):
         return '( ' + str(self.list) + ' )'
 
 
-class Quote(BaseNode, collections.namedtuple('_Quote', 'command')):
+class Quote(Command, collections.namedtuple('_Quote', 'command')):
     '''This is a special node that allows nesting of commands using shell
     quoting.  For example, to pass a script to a specific shell:
 
     SimpleCommand('', 'bash', CmdSuffix([Quote(<script>)]))
 
+    This can also be used to insert shell code from other sources into
+    an AST in a proper way.
+
     Attributes:
-        command (List, Command): AST to quote.
+        command (List, Command, str): AST or string to quote.
+
     '''
     __slots__ = ()
 
