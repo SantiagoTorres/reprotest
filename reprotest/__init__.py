@@ -8,11 +8,9 @@ import contextlib
 import logging
 import os
 import pathlib
-import shutil
 import subprocess
 import sys
 import tempfile
-import time
 import traceback
 import types
 
@@ -23,7 +21,7 @@ from reprotest.lib import adt_testbed
 from reprotest import _shell_ast
 
 
-adtlog.verbosity = 2
+adtlog.verbosity = 1
 
 
 # chroot is the only form of OS virtualization that's available on
@@ -33,21 +31,21 @@ adtlog.verbosity = 2
 # approaches.
 
 @contextlib.contextmanager
-def virtual_server(args, temp_dir):
+def start_testbed(args, temp_dir):
     '''This is a simple wrapper around adt_testbed that automates the
-    clean up.'''
+    initialization and cleanup.'''
     # Find the location of reprotest using setuptools and then get the
     # path for the correct virt-server script.
     server_path = pkg_resources.resource_filename(__name__, 'virt/' +
                                                   args[0])
     print('VIRTUAL SERVER', [server_path] + args[1:])
-    virtual_server = adt_testbed.Testbed([server_path] + args[1:], temp_dir, None)
-    virtual_server.start()
-    virtual_server.open()
+    testbed = adt_testbed.Testbed([server_path] + args[1:], temp_dir, None)
+    testbed.start()
+    testbed.open()
     try:
-        yield virtual_server
+        yield testbed
     finally:
-        virtual_server.stop()
+        testbed.stop()
 
 
 # time zone, locales, disorderfs, host name, user/group, shell, CPU
@@ -64,40 +62,40 @@ def add(mapping, key, value):
 
 # TODO: relies on a pbuilder-specific command to parallelize
 # @contextlib.contextmanager
-# def cpu(env, tree, builder):
+# def cpu(env, tree, testbed):
 #     yield script, env, tree
 
 @contextlib.contextmanager
-def captures_environment(script, env, tree, builder):
+def captures_environment(script, env, tree, testbed):
     new_env = add(env.experiment, 'CAPTURE_ENVIRONMENT',
                   'i_capture_the_environment')
     yield script, Pair(env.control, new_env), tree
 
 # TODO: this requires superuser privileges.
 @contextlib.contextmanager
-def domain_host(script, env, tree, builder):
+def domain_host(script, env, tree, testbed):
     yield script, env, tree
+
+@contextlib.contextmanager
+def fileordering(script, env, tree, testbed):
+    new_tree = os.path.dirname(os.path.dirname(tree.control)) + '/disorderfs/'
+    testbed.execute(['mkdir', '-p', new_tree])
+    # disorderfs = tree2.parent/'disorderfs'
+    # disorderfs.mkdir()
+    testbed.execute(['disorderfs', '--shuffle-dirents=yes',
+                     tree.experiment, new_tree])
+    try:
+        yield script, env, Pair(tree.control, new_tree)
+    finally:
+        # subprocess.check_call(['fusermount', '-u', str(disorderfs)])
+        testbed.execute(['fusermount', '-u', new_tree])
 
 # @contextlib.contextmanager
-# def fileordering(script, env, tree, builder):
-#     new_tree = os.path.dirname(os.path.dirname(tree.control)) + '/disorderfs/'
-#     builder.execute(['mkdir', '-p', new_tree])
-#     # disorderfs = tree2.parent/'disorderfs'
-#     # disorderfs.mkdir()
-#     builder.execute(['disorderfs', '--shuffle-dirents=yes',
-#                      tree.experiment, new_tree])
-#     try:
-#         yield script, env, Pair(tree.control, new_tree)
-#     finally:
-#         # subprocess.check_call(['fusermount', '-u', str(disorderfs)])
-#         builder.execute(['fusermount', '-u', new_tree])
+# def fileordering(script, env, tree, testbed):
+#     yield script, env, tree
 
 @contextlib.contextmanager
-def fileordering(script, env, tree, builder):
-    yield script, env, tree
-
-@contextlib.contextmanager
-def home(script, env, tree, builder):
+def home(script, env, tree, testbed):
     control = add(env.control, 'HOME', '/nonexistent/first-build')
     experiment = add(env.experiment, 'HOME', '/nonexistent/second-build')
     yield script, Pair(control, experiment), tree
@@ -108,7 +106,7 @@ def home(script, env, tree, builder):
 # reference to a setname command on another Unix variant:
 # https://en.wikipedia.org/wiki/Uname
 @contextlib.contextmanager
-def kernel(script, env, tree, builder):
+def kernel(script, env, tree, testbed):
     setarch = _shell_ast.SimpleCommand(
         '', 'linux64', _shell_ast.CmdSuffix(
             ['--uname-2.6', script.experiment[0].command]))
@@ -129,7 +127,7 @@ def kernel(script, env, tree, builder):
 # TODO: what exact locales and how to many test is probably a mailing
 # list question.
 @contextlib.contextmanager
-def locales(script, env, tree, builder):
+def locales(script, env, tree, testbed):
     # env1['LANG'] = 'C'
     new_env = add(add(env.experiment, 'LANG', 'fr_CH.UTF-8'),
                   'LC_ALL', 'fr_CH.UTF-8')
@@ -139,13 +137,13 @@ def locales(script, env, tree, builder):
 
 # TODO: Linux-specific.  unshare --uts requires superuser privileges.
 # How is this related to host/domainname?
-# def namespace(script, env, tree, builder):
+# def namespace(script, env, tree, testbed):
 #     # command1 = ['unshare', '--uts'] + command1
 #     # command2 = ['unshare', '--uts'] + command2
 #     yield script, env, tree
 
 @contextlib.contextmanager
-def path(script, env, tree, builder):
+def path(script, env, tree, testbed):
     new_env = add(env.experiment, 'PATH', env.control['PATH'] +
                   '/i_capture_the_path')
     yield script, Pair(env.control, new_env), tree
@@ -153,11 +151,11 @@ def path(script, env, tree, builder):
 # This doesn't require superuser privileges, but the chsh command
 # affects all user shells, which would be bad.
 @contextlib.contextmanager
-def shell(script, env, tree, builder):
+def shell(script, env, tree, testbed):
     yield script, env, tree
 
 @contextlib.contextmanager
-def timezone(script, env, tree, builder):
+def timezone(script, env, tree, testbed):
     # These time zones are theoretically in the POSIX time zone format
     # (http://pubs.opengroup.org/onlinepubs/9699919799/basedefs/V1_chap08.html#tag_08),
     # so they should be cross-platform compatible.
@@ -166,7 +164,7 @@ def timezone(script, env, tree, builder):
     yield script, Pair(control, experiment), tree
 
 @contextlib.contextmanager
-def umask(script, env, tree, builder):
+def umask(script, env, tree, testbed):
     umask = _shell_ast.SimpleCommand('', 'umask', _shell_ast.CmdSuffix(['0002']))
     new_script = (_shell_ast.List([_shell_ast.Term(umask, ';')])
                   + script.experiment)
@@ -174,7 +172,7 @@ def umask(script, env, tree, builder):
 
 # TODO: This requires superuser privileges.
 @contextlib.contextmanager
-def user_group(script, env, tree, builder):
+def user_group(script, env, tree, testbed):
     yield script, env, tree
 
 
@@ -192,37 +190,37 @@ VARIATIONS = types.MappingProxyType(collections.OrderedDict([
 ]))
 
 
-def build(script, source_root, built_artifact, builder, artifact_store, env):
+def build(script, source_root, built_artifact, testbed, artifact_store, env):
     print(source_root)
-    builder.execute(['ls', '-l', source_root])
-    # builder.execute(['pwd'])
+    testbed.execute(['ls', '-l', source_root])
+    # testbed.execute(['pwd'])
     print(built_artifact)
     cd = _shell_ast.SimpleCommand('', 'cd', _shell_ast.CmdSuffix([source_root]))
     new_script = (_shell_ast.List([_shell_ast.Term(cd, ';')]) + script)
     print(new_script)
-    exit_code, stdout, stderr = builder.execute(['sh', '-ec', str(new_script)], xenv=[str(k) + '=' + str(v) for k, v in env.items()], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    exit_code, stdout, stderr = testbed.execute(['sh', '-ec', str(new_script)], xenv=[str(k) + '=' + str(v) for k, v in env.items()], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     print(exit_code, stdout, stderr)
-    builder.execute(['ls', '-l', source_root])
+    testbed.execute(['ls', '-l', source_root])
     # subprocess.check_call(script, cwd=source_root, **kws)
     # with open(built_artifact, 'rb') as artifact:
     #     artifact_store.write(artifact.read())
     #     artifact_store.flush()
-    builder.command('copyup', (built_artifact, artifact_store))
+    testbed.command('copyup', (built_artifact, artifact_store))
 
 
 def check(build_command, artifact_name, virtual_server_args, source_root,
           variations=VARIATIONS):
     # print(virtual_server_args)
-    with tempfile.TemporaryDirectory() as temp_dir, virtual_server(virtual_server_args, temp_dir) as builder:
+    with tempfile.TemporaryDirectory() as temp_dir, start_testbed(virtual_server_args, temp_dir) as testbed:
         ast = _shell_ast.List(
             [_shell_ast.Term(build_command, ';')])
         script = Pair(ast, ast)
         env = Pair(types.MappingProxyType(os.environ.copy()),
                    types.MappingProxyType(os.environ.copy()))
         # TODO, why?: directories need explicit '/' appended for VirtSubproc
-        tree = Pair(builder.scratch + '/control/', builder.scratch + '/experiment/')
-        builder.command('copydown', (str(source_root) + '/', tree.control))
-        builder.command('copydown', (str(source_root) + '/', tree.experiment))
+        tree = Pair(testbed.scratch + '/control/', testbed.scratch + '/experiment/')
+        testbed.command('copydown', (str(source_root) + '/', tree.control))
+        testbed.command('copydown', (str(source_root) + '/', tree.experiment))
         # print(pathlib.Path.cwd())
         # print(source_root)
         try:
@@ -230,7 +228,7 @@ def check(build_command, artifact_name, virtual_server_args, source_root,
                 for variation in variations:
                     # print('START')
                     # print(variation)
-                    script, env, tree = stack.enter_context(VARIATIONS[variation](script, env, tree, builder))
+                    script, env, tree = stack.enter_context(VARIATIONS[variation](script, env, tree, testbed))
                     # print(script)
                     # print(env)
                     # print(tree)
@@ -240,12 +238,12 @@ def check(build_command, artifact_name, virtual_server_args, source_root,
                 # print(env)
                 build(script.control, tree.control,
                       os.path.normpath(tree.control + artifact_name),
-                      builder,
+                      testbed,
                       os.path.normpath(temp_dir + '/control_artifact'),
                       env=env.control)
                 build(script.experiment, tree.experiment,
                       os.path.normpath(tree.experiment + artifact_name),
-                      builder,
+                      testbed,
                       os.path.normpath(temp_dir + '/experiment_artifact'),
                       env=env.experiment)
         except Exception:
