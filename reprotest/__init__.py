@@ -21,7 +21,7 @@ from reprotest.lib import adt_testbed
 from reprotest import _shell_ast
 
 
-adtlog.verbosity = 1
+adtlog.verbosity = 2
 
 
 # chroot is the only form of OS virtualization that's available on
@@ -198,13 +198,10 @@ def build(script, source_root, built_artifact, testbed, artifact_store, env):
     cd = _shell_ast.SimpleCommand('', 'cd', _shell_ast.CmdSuffix([source_root]))
     new_script = (_shell_ast.List([_shell_ast.Term(cd, ';')]) + script)
     print(new_script)
-    exit_code, stdout, stderr = testbed.execute(['sh', '-ec', str(new_script)], xenv=[str(k) + '=' + str(v) for k, v in env.items()], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    print(exit_code, stdout, stderr)
+    # exit_code, stdout, stderr = testbed.execute(['sh', '-ec', str(new_script)], xenv=[str(k) + '=' + str(v) for k, v in env.items()], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    testbed.check_exec(['sh', '-ec', str(new_script)], xenv=[str(k) + '=' + str(v) for k, v in env.items()])
+    # print(exit_code, stdout, stderr)
     testbed.execute(['ls', '-l', source_root])
-    # subprocess.check_call(script, cwd=source_root, **kws)
-    # with open(built_artifact, 'rb') as artifact:
-    #     artifact_store.write(artifact.read())
-    #     artifact_store.flush()
     testbed.command('copyup', (built_artifact, artifact_store))
 
 

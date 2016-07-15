@@ -450,7 +450,7 @@ class Testbed:
 
         return (proc.returncode, out, err)
 
-    def check_exec(self, argv, stdout=False, kind='short'):
+    def check_exec(self, argv, stdout=False, kind='short', xenv=[]):
         '''Run argv in testbed.
 
         If stdout is True, capture stdout and return it. Otherwise, don't
@@ -459,12 +459,17 @@ class Testbed:
         argv must succeed and not print any stderr.
         '''
         (code, out, err) = self.execute(argv,
+                                        xenv=xenv,
                                         stdout=(stdout and subprocess.PIPE or None),
                                         stderr=subprocess.PIPE, kind=kind)
+        print('CHECK_EXEC')
+        print(code, out, err)
         if err:
             self.bomb('"%s" failed with stderr "%s"' % (' '.join(argv), err),
                       adtlog.AutopkgtestError)
         if code != 0:
+            print('SHOULD RAISE HERE')
+            import pdb; pdb.set_trace()
             self.bomb('"%s" failed with status %i' % (' '.join(argv), code),
                       adtlog.AutopkgtestError)
         return out
