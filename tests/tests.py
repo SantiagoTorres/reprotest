@@ -26,11 +26,11 @@ def virtual_server(request):
         raise ValueError(request.param)
 
 def test_simple_builds(virtual_server):
-    # check_return_code('python3 mock_build.py', virtual_server, 0)
+    check_return_code('python3 mock_build.py', virtual_server, 0)
     check_return_code('python3 mock_failure.py', virtual_server, 2)
-    # check_return_code('python3 mock_build.py irreproducible', virtual_server, 1)
+    check_return_code('python3 mock_build.py irreproducible', virtual_server, 1)
 
-@pytest.mark.parametrize('variation', ['fileordering', 'home', 'kernel', 'locales', 'path', 'timezone']) #, 'umask'
+@pytest.mark.parametrize('variation', ['fileordering', 'home', 'kernel', 'locales', 'path', 'timezone', 'umask'])
 def test_variations(virtual_server, variation):
     check_return_code('python3 mock_build.py ' + variation, virtual_server, 1)
 
