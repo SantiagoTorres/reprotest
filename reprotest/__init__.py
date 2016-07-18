@@ -4,7 +4,6 @@
 import argparse
 import collections
 import configparser
-import contextlib
 import logging
 import os
 import pathlib
@@ -18,76 +17,11 @@ import pkg_resources
 
 from reprotest.lib import adtlog
 from reprotest.lib import adt_testbed
+from reprotest import _contextlib
 from reprotest import _shell_ast
 
 
 adtlog.verbosity = 2
-
-
-# Monkey-patch contextlib.ExitStack
-
-# Patch from: https://bugs.python.org/file41216/Issue25786.patch
-
-# https://bugs.python.org/issue25782
-
-# https://bugs.python.org/issue25786
-
-# This code is from the standard library contextlib
-
-def monkey_patch_exit_stack():
-    def __exit__(self, *exc_details):
-        received_exc = exc_details[0] is not None
-
-        # We manipulate the exception state so it behaves as though
-        # we were actually nesting multiple with statements
-        frame_exc = sys.exc_info()[1]
-        def _fix_exception_context(new_exc, old_exc):
-            # Context may not be correct, so find the end of the chain
-            if new_exc is old_exc:
-                return
-            while 1:
-                exc_context = new_exc.__context__
-                if exc_context is old_exc:
-                    # Context is already set correctly (see issue 20317)
-                    return
-                if exc_context is None or exc_context is frame_exc:
-                    break
-                new_exc = exc_context
-            # Change the end of the chain to point to the exception
-            # we expect it to reference
-            new_exc.__context__ = old_exc
-
-        # Callbacks are invoked in LIFO order to match the behaviour of
-        # nested context managers
-        suppressed_exc = False
-        pending_raise = False
-        while self._exit_callbacks:
-            cb = self._exit_callbacks.pop()
-            try:
-                if cb(*exc_details):
-                    suppressed_exc = True
-                    pending_raise = False
-                    exc_details = (None, None, None)
-            except:
-                new_exc_details = sys.exc_info()
-                # simulate the stack of exceptions by setting the context
-                _fix_exception_context(new_exc_details[1], exc_details[1])
-                pending_raise = True
-                exc_details = new_exc_details
-        if pending_raise:
-            try:
-                # bare "raise exc_details[1]" replaces our carefully
-                # set-up context
-                fixed_ctx = exc_details[1].__context__
-                raise exc_details[1]
-            except BaseException:
-                exc_details[1].__context__ = fixed_ctx
-                raise
-        return received_exc and suppressed_exc
-
-    contextlib.ExitStack.__exit__ = __exit__
-
-monkey_patch_exit_stack()
 
 
 # chroot is the only form of OS virtualization that's available on
@@ -96,7 +30,7 @@ monkey_patch_exit_stack()
 # variety of other options including Docker etc that use different
 # approaches.
 
-@contextlib.contextmanager
+@_contextlib.contextmanager
 def start_testbed(args, temp_dir):
     '''This is a simple wrapper around adt_testbed that automates the
     initialization and cleanup.'''
@@ -127,22 +61,22 @@ def add(mapping, key, value):
 
 
 # TODO: relies on a pbuilder-specific command to parallelize
-# @contextlib.contextmanager
+# @_contextlib.contextmanager
 # def cpu(env, tree, testbed):
 #     yield script, env, tree
 
-@contextlib.contextmanager
+@_contextlib.contextmanager
 def captures_environment(script, env, tree, testbed):
     new_env = add(env.experiment, 'CAPTURE_ENVIRONMENT',
                   'i_capture_the_environment')
     yield script, Pair(env.control, new_env), tree
 
 # TODO: this requires superuser privileges.
-@contextlib.contextmanager
+@_contextlib.contextmanager
 def domain_host(script, env, tree, testbed):
     yield script, env, tree
 
-@contextlib.contextmanager
+@_contextlib.contextmanager
 def fileordering(script, env, tree, testbed):
     new_tree = os.path.dirname(os.path.dirname(tree.control)) + '/disorderfs/'
     testbed.execute(['mkdir', '-p', new_tree])
@@ -156,11 +90,11 @@ def fileordering(script, env, tree, testbed):
         # subprocess.check_call(['fusermount', '-u', str(disorderfs)])
         testbed.execute(['fusermount', '-u', new_tree])
 
-# @contextlib.contextmanager
+# @_contextlib.contextmanager
 # def fileordering(script, env, tree, testbed):
 #     yield script, env, tree
 
-@contextlib.contextmanager
+@_contextlib.contextmanager
 def home(script, env, tree, testbed):
     control = add(env.control, 'HOME', '/nonexistent/first-build')
     experiment = add(env.experiment, 'HOME', '/nonexistent/second-build')
@@ -171,7 +105,7 @@ def home(script, env, tree, testbed):
 # FreeBSD changes uname with environment variables.  Wikipedia has a
 # reference to a setname command on another Unix variant:
 # https://en.wikipedia.org/wiki/Uname
-@contextlib.contextmanager
+@_contextlib.contextmanager
 def kernel(script, env, tree, testbed):
     setarch = _shell_ast.SimpleCommand(
         '', 'linux64', _shell_ast.CmdSuffix(
@@ -192,7 +126,7 @@ def kernel(script, env, tree, testbed):
 
 # TODO: what exact locales and how to many test is probably a mailing
 # list question.
-@contextlib.contextmanager
+@_contextlib.contextmanager
 def locales(script, env, tree, testbed):
     # env1['LANG'] = 'C'
     new_env = add(add(env.experiment, 'LANG', 'fr_CH.UTF-8'),
@@ -208,7 +142,7 @@ def locales(script, env, tree, testbed):
 #     # command2 = ['unshare', '--uts'] + command2
 #     yield script, env, tree
 
-@contextlib.contextmanager
+@_contextlib.contextmanager
 def path(script, env, tree, testbed):
     new_env = add(env.experiment, 'PATH', env.control['PATH'] +
                   '/i_capture_the_path')
@@ -216,11 +150,11 @@ def path(script, env, tree, testbed):
 
 # This doesn't require superuser privileges, but the chsh command
 # affects all user shells, which would be bad.
-@contextlib.contextmanager
+@_contextlib.contextmanager
 def shell(script, env, tree, testbed):
     yield script, env, tree
 
-@contextlib.contextmanager
+@_contextlib.contextmanager
 def timezone(script, env, tree, testbed):
     # These time zones are theoretically in the POSIX time zone format
     # (http://pubs.opengroup.org/onlinepubs/9699919799/basedefs/V1_chap08.html#tag_08),
@@ -229,7 +163,7 @@ def timezone(script, env, tree, testbed):
     experiment = add(env.experiment, 'TZ', 'GMT-14')
     yield script, Pair(control, experiment), tree
 
-@contextlib.contextmanager
+@_contextlib.contextmanager
 def umask(script, env, tree, testbed):
     umask = _shell_ast.SimpleCommand('', 'umask', _shell_ast.CmdSuffix(['0002']))
     new_script = (_shell_ast.List([_shell_ast.Term(umask, ';')])
@@ -237,7 +171,7 @@ def umask(script, env, tree, testbed):
     yield Pair(script.control, new_script), env, tree
 
 # TODO: This requires superuser privileges.
-@contextlib.contextmanager
+@_contextlib.contextmanager
 def user_group(script, env, tree, testbed):
     yield script, env, tree
 
@@ -289,7 +223,7 @@ def check(build_command, artifact_name, virtual_server_args, source_root,
         # print(pathlib.Path.cwd())
         # print(source_root)
         try:
-            with contextlib.ExitStack() as stack:
+            with _contextlib.ExitStack() as stack:
                 for variation in variations:
                     # print('START')
                     # print(variation)
