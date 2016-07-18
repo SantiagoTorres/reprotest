@@ -3,9 +3,10 @@
 '''This files monkey-patches contextlib.ExitStack to work around
 CPython bugs, https://bugs.python.org/issue25782 and
 https://bugs.python.org/issue25786.  Assigning an exception
-__context__ to itself causes CPython to hang.  This is scheduled to be
-fixed in 3.5.3.  This code is from the standard library contextlib,
-patched with https://bugs.python.org/file41216/Issue25786.patch.
+__context__ to itself causes CPython to hang.  This is currently
+scheduled to be fixed in 3.5.3.  This code is from the standard
+library contextlib, patched with
+https://bugs.python.org/file41216/Issue25786.patch.
 
 '''
 

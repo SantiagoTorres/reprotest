@@ -46,7 +46,7 @@ class _SequenceNode(tuple):
         if self.__class__ is other.__class__:
             return self.__class__(itertools.chain(other, self))
         else:
-            raise TypeError('Cannot add two shell AST nodes of different types.')
+            raise TypeError('Cannot add two shell AST nodes of different types: %s, %s' % (repr(self), repr(other)))
 
     def __getitem__(self, index):
         if isinstance(index, slice):
@@ -221,6 +221,12 @@ class SimpleCommand(Command,
         return ((str(self.cmd_prefix) + ' ' if self.cmd_prefix else '') +
                 str(self.cmd_name) +
                 (' ' + str(self.cmd_suffix) if self.cmd_suffix else ''))
+
+    @classmethod
+    def make(cls, *args):
+        '''Convenience constructor for generating SimpleCommand nodes.'''
+        return cls('', args[0], CmdSuffix(args[1:]))
+
 
 class CmdPrefix(BaseNode, _SequenceNode):
     '''The recursion in this rule is flatted into a sequence.

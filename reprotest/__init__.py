@@ -48,17 +48,81 @@ def start_testbed(args, temp_dir):
         testbed.stop()
 
 
-# time zone, locales, disorderfs, host name, user/group, shell, CPU
-# number, architecture for uname (using linux64), umask, HOME, see
-# also: https://tests.reproducible-builds.org/index_variations.html
-
 Pair = collections.namedtuple('Pair', 'control experiment')
+Pair.__doc__ = ('Holds one object for each run of the build process.'
+                + Pair.__doc__)
 
 def add(mapping, key, value):
+    '''Helper function for adding a key-value pair to an immutable mapping.'''
     new_mapping = mapping.copy()
     new_mapping[key] = value
     return types.MappingProxyType(new_mapping)
 
+class Script(collections.namedtuple('_Script', 'build_command setup cleanup')):
+    '''Holds the shell ASTs used to construct the final build script.
+
+    Args:
+        build_command (_shell_ast.Command): The build command itself, including
+            all commands that accept other commands as arguments.  Examples:
+            setarch.
+        setup (_shell_ast.AndList): These are shell commands that change the
+            shell environment and need to be run as part of the same script as
+            the main build command but don't take other commands as arguments.  
+            They use conditional execution because if one command fails,
+            the whole script should fail.  Examples: cd, umask.
+        cleanup (_shell_ast.List): All commands that have to be run to return
+            the testbed to its initial state, before the testbed does its own
+            cleanup.  These use unconditional execution because all clean should
+            be done irrespective of whether the build command itself or other
+            clean up command succeed.  Examples: fileordering.
+    '''
+
+    def __new__(cls, build_command, setup=_shell_ast.AndList(),
+                cleanup=_shell_ast.List()):
+        return super().__new__(cls, build_command, setup, cleanup)
+
+    def append_command(self, command):
+        '''Passes the current build command as the last argument to a given
+        _shell_ast.SimpleCommand.
+
+        '''
+        new_suffix = (command.cmd_suffix +
+                      _shell_ast.CmdSuffix([self.build_command]))
+        new_command = _shell_ast.SimpleCommand(command.cmd_prefix,
+                                               command.cmd_name,
+                                               new_suffix)
+        return self._replace(build_command=new_command)
+
+    def append_setup(self, command):
+        '''Adds a command to the setup phase.
+
+        '''
+        new_setup = _shell_ast.AndList([command]) + self.setup
+        return self._replace(setup=new_setup)
+
+    def append_cleanup(self, command):
+        '''Adds a command to the cleanup phase.
+
+        '''
+        new_cleanup = (_shell_ast.List([_shell_ast.Term(command, ';')])
+                       + self.cleanup)
+        return self._replace(cleanup=new_cleanup)
+
+    def __str__(self):
+        '''Generates the shell code for the script.
+
+        The build command is only executed if all the setup commands
+        finish without errors, while the cleanup is executed
+        unconditionally.
+
+        '''
+        return (str(self.setup) + ' &&\n' + str(self.build_command) + '\n'
+                + str(self.cleanup))
+
+
+# time zone, locales, disorderfs, host name, user/group, shell, CPU
+# number, architecture for uname (using linux64), umask, HOME, see
+# also: https://tests.reproducible-builds.org/index_variations.html
 
 # TODO: relies on a pbuilder-specific command to parallelize
 # @_contextlib.contextmanager
@@ -79,13 +143,18 @@ def domain_host(script, env, tree, testbed):
 @_contextlib.contextmanager
 def fileordering(script, env, tree, testbed):
     new_tree = os.path.dirname(os.path.dirname(tree.control)) + '/disorderfs/'
-    testbed.execute(['mkdir', '-p', new_tree])
-    # disorderfs = tree2.parent/'disorderfs'
-    # disorderfs.mkdir()
-    testbed.execute(['disorderfs', '--shuffle-dirents=yes',
-                     tree.experiment, new_tree])
+    testbed.check_exec(['mkdir', '-p', new_tree])
+    testbed.check_exec(['disorderfs', '--shuffle-dirents=yes',
+                        tree.experiment, new_tree])
+    # If there's an error in the build process, the virt/ program will
+    # try to delete the temporary directory containing disorderfs
+    # before it's unmounted unless it's unmounted in the script
+    # itself.
+    # new_script = script.experiment.append_cleanup(
+    #     _shell_ast.SimpleCommand.make('fusermount', '-u', new_tree))
+    # yield Pair(script.control, new_script), env, Pair(tree.control, new_tree)
     try:
-        yield script, env, Pair(tree.control, new_tree)
+       yield script, env, Pair(tree.control, new_tree)
     finally:
         # subprocess.check_call(['fusermount', '-u', str(disorderfs)])
         testbed.execute(['fusermount', '-u', new_tree])
@@ -107,11 +176,13 @@ def home(script, env, tree, testbed):
 # https://en.wikipedia.org/wiki/Uname
 @_contextlib.contextmanager
 def kernel(script, env, tree, testbed):
-    setarch = _shell_ast.SimpleCommand(
-        '', 'linux64', _shell_ast.CmdSuffix(
-            ['--uname-2.6', script.experiment[0].command]))
-    new_script = (script.experiment[:-1] +
-                  _shell_ast.List([_shell_ast.Term(setarch, ';')]))
+    setarch = _shell_ast.SimpleCommand.make('linux64', '--uname-2.6')
+    # setarch = _shell_ast.SimpleCommand(
+    #     '', 'linux64', _shell_ast.CmdSuffix(
+    #         ['--uname-2.6', script.experiment[0].command]))
+    # new_script = (script.experiment[:-1] +
+    #               _shell_ast.List([_shell_ast.Term(setarch, ';')]))
+    new_script = script.experiment.append_command(setarch)
     yield Pair(script.control, new_script), env, tree
 
 # TODO: if this locale doesn't exist on the system, Python's
@@ -165,9 +236,11 @@ def timezone(script, env, tree, testbed):
 
 @_contextlib.contextmanager
 def umask(script, env, tree, testbed):
-    umask = _shell_ast.SimpleCommand('', 'umask', _shell_ast.CmdSuffix(['0002']))
-    new_script = (_shell_ast.List([_shell_ast.Term(umask, ';')])
-                  + script.experiment)
+    # umask = _shell_ast.SimpleCommand('', 'umask', _shell_ast.CmdSuffix(['0002']))
+    # new_script = (_shell_ast.List([_shell_ast.Term(umask, ';')])
+    #               + script.experiment)
+    umask = _shell_ast.SimpleCommand.make('umask', '0002')
+    new_script = script.experiment.append_setup(umask)
     yield Pair(script.control, new_script), env, tree
 
 # TODO: This requires superuser privileges.
@@ -195,15 +268,17 @@ def build(script, source_root, built_artifact, testbed, artifact_store, env):
     testbed.execute(['ls', '-l', source_root])
     # testbed.execute(['pwd'])
     print(built_artifact)
-    cd = _shell_ast.SimpleCommand('', 'cd', _shell_ast.CmdSuffix([source_root]))
-    new_script = (_shell_ast.List([_shell_ast.Term(cd, ';')]) + script)
+    # cd = _shell_ast.SimpleCommand('', 'cd', _shell_ast.CmdSuffix([source_root]))
+    # new_script = (_shell_ast.List([_shell_ast.Term(cd, ';')]) + script)
+    cd = _shell_ast.SimpleCommand.make('cd', source_root)
+    new_script = script.append_setup(cd)
     print(new_script)
     # exit_code, stdout, stderr = testbed.execute(['sh', '-ec', str(new_script)], xenv=[str(k) + '=' + str(v) for k, v in env.items()], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     testbed.check_exec(['sh', '-ec', str(new_script)], xenv=[str(k) + '=' + str(v) for k, v in env.items()])
     # print(exit_code, stdout, stderr)
-    testbed.execute(['ls', '-l', source_root])
-    testbed.execute(['stat', source_root])
-    testbed.execute(['stat', built_artifact])
+    # testbed.execute(['ls', '-l', source_root])
+    # testbed.execute(['stat', source_root])
+    # testbed.execute(['stat', built_artifact])
     testbed.command('copyup', (built_artifact, artifact_store))
 
 
@@ -211,9 +286,10 @@ def check(build_command, artifact_name, virtual_server_args, source_root,
           variations=VARIATIONS):
     # print(virtual_server_args)
     with tempfile.TemporaryDirectory() as temp_dir, start_testbed(virtual_server_args, temp_dir) as testbed:
-        ast = _shell_ast.List(
-            [_shell_ast.Term(build_command, ';')])
-        script = Pair(ast, ast)
+        # ast = _shell_ast.List(
+        #     [_shell_ast.Term(build_command, ';')])
+        # script = Pair(ast, ast)
+        script = Pair(Script(build_command), Script(build_command))
         env = Pair(types.MappingProxyType(os.environ.copy()),
                    types.MappingProxyType(os.environ.copy()))
         # TODO, why?: directories need explicit '/' appended for VirtSubproc
