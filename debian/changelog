@@ -1,4 +1,10 @@
-reprotest (0.1) wily; urgency=medium
+reprotest (0.2) unstable; urgency=medium
+
+  * Add support for schroot and qemu.
+
+ -- Ceridwen <ceridwenv@gmail.com>  Sat, 11 Jun 2016 18:05:05 -0400
+
+reprotest (0.1) unstable; urgency=medium
 
   * Initial release.
 

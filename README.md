@@ -25,7 +25,7 @@ directory.  A sample config file is below.
 
     [basics]
     build_command = setup.py sdist
-    artifact = dist/reprotest-0.1.tar.gz
+    artifact = dist/reprotest-0.2.tar.gz
     source_root = reprotest/
     variations =
       captures_environment
