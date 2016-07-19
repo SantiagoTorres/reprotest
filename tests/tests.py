@@ -4,9 +4,12 @@
 import os
 import subprocess
 
+import pkg_resources
 import pytest
 
 import reprotest
+
+VERSION = pkg_resources.require('reprotest')[0].version
 
 def check_return_code(command, virtual_server, code):
     try:
@@ -35,5 +38,5 @@ def test_variations(virtual_server, variation):
     check_return_code('python3 mock_build.py ' + variation, virtual_server, 1)
 
 def test_self_build(virtual_server):
-    assert(subprocess.call(['reprotest', 'python3 setup.py bdist', 'dist/reprotest-0.1.linux-x86_64.tar.gz'] + virtual_server) == 1)
-    # assert(subprocess.call(['reprotest', 'debuild -b -uc -us', '../reprotest_0.1_all.deb'] + virtual_server) == 1)
+    assert(subprocess.call(['reprotest', 'python3 setup.py bdist', 'dist/reprotest-' + VERSION + '.linux-x86_64.tar.gz'] + virtual_server) == 1)
+    # assert(subprocess.call(['reprotest', 'debuild -b -uc -us', '../reprotest_' + VERSION + '_all.deb'] + virtual_server) == 1)
