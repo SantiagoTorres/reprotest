@@ -21,7 +21,7 @@ from reprotest import _contextlib
 from reprotest import _shell_ast
 
 
-adtlog.verbosity = 2
+adtlog.verbosity = 1
 
 
 # chroot is the only form of OS virtualization that's available on
@@ -68,13 +68,15 @@ class Script(collections.namedtuple('_Script', 'build_command setup cleanup')):
         setup (_shell_ast.AndList): These are shell commands that change the
             shell environment and need to be run as part of the same script as
             the main build command but don't take other commands as arguments.  
-            They use conditional execution because if one command fails,
+            These execute conditionally because if one command fails,
             the whole script should fail.  Examples: cd, umask.
         cleanup (_shell_ast.List): All commands that have to be run to return
             the testbed to its initial state, before the testbed does its own
-            cleanup.  These use unconditional execution because all clean should
-            be done irrespective of whether the build command itself or other
-            clean up command succeed.  Examples: fileordering.
+            cleanup.  These are executed only if the build command fails,
+            because otherwise the cleanup has to occur after the build artifact
+            is copied out.  These execution unconditionally, one after another,
+            because all cleanup commands should be attempted irrespective of
+            whether others succeed.  Examples: fileordering.
     '''
 
     def __new__(cls, build_command, setup=_shell_ast.AndList(),
@@ -97,27 +99,34 @@ class Script(collections.namedtuple('_Script', 'build_command setup cleanup')):
         '''Adds a command to the setup phase.
 
         '''
-        new_setup = _shell_ast.AndList([command]) + self.setup
+        new_setup = self.setup + _shell_ast.AndList([command])
         return self._replace(setup=new_setup)
 
     def append_cleanup(self, command):
         '''Adds a command to the cleanup phase.
 
         '''
-        new_cleanup = (_shell_ast.List([_shell_ast.Term(command, ';')])
-                       + self.cleanup)
+        new_cleanup = (self.cleanup +
+                       _shell_ast.List([_shell_ast.Term(command, ';')]))
         return self._replace(cleanup=new_cleanup)
 
     def __str__(self):
         '''Generates the shell code for the script.
 
         The build command is only executed if all the setup commands
-        finish without errors, while the cleanup is executed
-        unconditionally.
+        finish without errors.  The setup and build commands are
+        executed in a subshell so that changes they make to the shell
+        don't affect the cleanup commands.  (This avoids the problem
+        with the disorderfs mount being kept open as a current working
+        directory when the cleanup tries to unmount it.)  The cleanup
+        is executed only if any of the setup commands or the build
+        command fails.
 
         '''
-        return (str(self.setup) + ' &&\n' + str(self.build_command) + '\n'
-                + str(self.cleanup))
+        subshell = _shell_ast.Subshell(self.setup +
+                                       _shell_ast.AndList([self.build_command]))
+        return (str(subshell) +
+                (' ||\n' + str(self.cleanup) if self.cleanup else ''))
 
 
 # time zone, locales, disorderfs, host name, user/group, shell, CPU
@@ -146,18 +155,26 @@ def fileordering(script, env, tree, testbed):
     testbed.check_exec(['mkdir', '-p', new_tree])
     testbed.check_exec(['disorderfs', '--shuffle-dirents=yes',
                         tree.experiment, new_tree])
+    unmount = _shell_ast.SimpleCommand.make('fusermount', '-u', new_tree)
     # If there's an error in the build process, the virt/ program will
     # try to delete the temporary directory containing disorderfs
     # before it's unmounted unless it's unmounted in the script
-    # itself.
+    # itself.  cd to / is required so that disorderfs is no longer the current
+    # working directory when unmount is called.
     # new_script = script.experiment.append_cleanup(
-    #     _shell_ast.SimpleCommand.make('fusermount', '-u', new_tree))
-    # yield Pair(script.control, new_script), env, Pair(tree.control, new_tree)
+    #     _shell_ast.SimpleCommand.make('cd', '/'))
+    # new_script = new_script.append_cleanup(unmount)
+    new_script = script.experiment.append_cleanup(unmount)
     try:
-       yield script, env, Pair(tree.control, new_tree)
+        yield Pair(script.control, new_script), env, Pair(tree.control, new_tree)
     finally:
-        # subprocess.check_call(['fusermount', '-u', str(disorderfs)])
-        testbed.execute(['fusermount', '-u', new_tree])
+        testbed.check_exec(str(unmount).split())
+        # testbed.check_exec(['fusermount', '-u', new_tree])
+    # try:
+    #     yield script, env, Pair(tree.control, new_tree)
+    # finally:
+    #     # subprocess.check_call(['fusermount', '-u', str(disorderfs)])
+    #     testbed.execute(['fusermount', '-u', new_tree])
 
 # @_contextlib.contextmanager
 # def fileordering(script, env, tree, testbed):
@@ -272,9 +289,16 @@ def build(script, source_root, built_artifact, testbed, artifact_store, env):
     # new_script = (_shell_ast.List([_shell_ast.Term(cd, ';')]) + script)
     cd = _shell_ast.SimpleCommand.make('cd', source_root)
     new_script = script.append_setup(cd)
+    # lsof = _shell_ast.SimpleCommand.make('lsof', '-w', source_root)
+    # new_script = new_script.append_cleanup(lsof)
+    # ls = _shell_ast.SimpleCommand.make('ls', '-l', testbed.scratch)
+    # new_script = new_script.append_cleanup(ls)
+    # cd2 = _shell_ast.SimpleCommand.make('cd', '/')
+    # new_script = new_script.append_cleanup(cd2)
     print(new_script)
     # exit_code, stdout, stderr = testbed.execute(['sh', '-ec', str(new_script)], xenv=[str(k) + '=' + str(v) for k, v in env.items()], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     testbed.check_exec(['sh', '-ec', str(new_script)], xenv=[str(k) + '=' + str(v) for k, v in env.items()])
+    # exit_code, stdout, stderr = testbed.execute(['lsof', source_root], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     # print(exit_code, stdout, stderr)
     # testbed.execute(['ls', '-l', source_root])
     # testbed.execute(['stat', source_root])

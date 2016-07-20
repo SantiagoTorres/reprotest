@@ -399,7 +399,7 @@ class BraceGroup(Command, collections.namedtuple('_BraceGroup', 'list')):
         return '{ ' + str(self.list) + ' }'
 
 
-class Subshell(Command, collections.namedtuple('_BraceGroup', 'list')):
+class Subshell(Command, collections.namedtuple('_Subshell', 'list')):
     '''Grammar rule:
 
     '(' compound_list ')'

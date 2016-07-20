@@ -17,7 +17,8 @@ def check_return_code(command, virtual_server, code):
     except SystemExit as system_exit:
         assert(system_exit.args[0] == code)
 
-@pytest.fixture(scope='module', params=['null', 'qemu', 'schroot'])
+# @pytest.fixture(scope='module', params=['null'])# , 'qemu', 'schroot'])
+@pytest.fixture(scope='module', params=['null' , 'qemu', 'schroot'])
 def virtual_server(request):
     if request.param == 'null':
         return [request.param]
