@@ -21,7 +21,7 @@ from reprotest import _contextlib
 from reprotest import _shell_ast
 
 
-adtlog.verbosity = 1
+adtlog.verbosity = 2
 
 
 # chroot is the only form of OS virtualization that's available on
@@ -152,29 +152,28 @@ def domain_host(script, env, tree, testbed):
 @_contextlib.contextmanager
 def fileordering(script, env, tree, testbed):
     new_tree = os.path.dirname(os.path.dirname(tree.control)) + '/disorderfs/'
+    # testbed.check_exec(['id'])
     testbed.check_exec(['mkdir', '-p', new_tree])
-    testbed.check_exec(['disorderfs', '--shuffle-dirents=yes',
-                        tree.experiment, new_tree])
+    # TODO: this is a temporary hack, there will eventually be
+    # multiple variations that depend on whether the testbed has root
+    # privileges.
+    if 'root-on-testbed' in testbed.capabilities:
+        disorderfs = ['disorderfs', '--shuffle-dirents=yes',
+                      '--multi-user=yes', tree.experiment, new_tree]
+    else:
+        disorderfs = ['disorderfs', '--shuffle-dirents=yes',
+                      tree.experiment, new_tree]
+    testbed.check_exec(disorderfs)
     unmount = _shell_ast.SimpleCommand.make('fusermount', '-u', new_tree)
     # If there's an error in the build process, the virt/ program will
     # try to delete the temporary directory containing disorderfs
     # before it's unmounted unless it's unmounted in the script
-    # itself.  cd to / is required so that disorderfs is no longer the current
-    # working directory when unmount is called.
-    # new_script = script.experiment.append_cleanup(
-    #     _shell_ast.SimpleCommand.make('cd', '/'))
-    # new_script = new_script.append_cleanup(unmount)
+    # itself.
     new_script = script.experiment.append_cleanup(unmount)
     try:
         yield Pair(script.control, new_script), env, Pair(tree.control, new_tree)
     finally:
         testbed.check_exec(str(unmount).split())
-        # testbed.check_exec(['fusermount', '-u', new_tree])
-    # try:
-    #     yield script, env, Pair(tree.control, new_tree)
-    # finally:
-    #     # subprocess.check_call(['fusermount', '-u', str(disorderfs)])
-    #     testbed.execute(['fusermount', '-u', new_tree])
 
 # @_contextlib.contextmanager
 # def fileordering(script, env, tree, testbed):
@@ -282,7 +281,7 @@ VARIATIONS = types.MappingProxyType(collections.OrderedDict([
 
 def build(script, source_root, built_artifact, testbed, artifact_store, env):
     print(source_root)
-    testbed.execute(['ls', '-l', source_root])
+    # testbed.execute(['ls', '-l', source_root])
     # testbed.execute(['pwd'])
     print(built_artifact)
     # cd = _shell_ast.SimpleCommand('', 'cd', _shell_ast.CmdSuffix([source_root]))
@@ -310,9 +309,6 @@ def check(build_command, artifact_name, virtual_server_args, source_root,
           variations=VARIATIONS):
     # print(virtual_server_args)
     with tempfile.TemporaryDirectory() as temp_dir, start_testbed(virtual_server_args, temp_dir) as testbed:
-        # ast = _shell_ast.List(
-        #     [_shell_ast.Term(build_command, ';')])
-        # script = Pair(ast, ast)
         script = Pair(Script(build_command), Script(build_command))
         env = Pair(types.MappingProxyType(os.environ.copy()),
                    types.MappingProxyType(os.environ.copy()))
@@ -320,7 +316,6 @@ def check(build_command, artifact_name, virtual_server_args, source_root,
         tree = Pair(testbed.scratch + '/control/', testbed.scratch + '/experiment/')
         testbed.command('copydown', (str(source_root) + '/', tree.control))
         testbed.command('copydown', (str(source_root) + '/', tree.experiment))
-        # print(pathlib.Path.cwd())
         # print(source_root)
         try:
             with _contextlib.ExitStack() as stack:
@@ -331,10 +326,6 @@ def check(build_command, artifact_name, virtual_server_args, source_root,
                     # print(script)
                     # print(env)
                     # print(tree)
-                # I would prefer to use pathlib here but
-                # .resolve(), to eliminate ../ references, doesn't
-                # work on nonexistent paths.
-                # print(env)
                 build(script.control, tree.control,
                       os.path.normpath(tree.control + artifact_name),
                       testbed,
