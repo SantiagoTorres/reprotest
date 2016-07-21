@@ -1,24 +1,5 @@
-# VirtSubproc is part of autopkgtest
-# autopkgtest is a tool for testing Debian binary packages
-#
-# autopkgtest is Copyright (C) 2006-2007 Canonical Ltd.
-#
-# This program is free software; you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation; either version 2 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program; if not, write to the Free Software
-# Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
-#
-# See the file CREDITS for a full list of credits information (often
-# installed as /usr/share/doc/autopkgtest/CREDITS).
+# Licensed under the GPL: https://www.gnu.org/licenses/gpl-3.0.en.html
+# For details: reprotest/debian/copyright
 
 import __main__
 
@@ -35,7 +16,7 @@ import pipes
 import socket
 import shutil
 
-import adtlog
+from reprotest.lib import adtlog
 
 progname = "<VirtSubproc>"
 devnull_read = open('/dev/null', 'r')
@@ -183,8 +164,8 @@ def check_exec(argv, downp=False, outp=False, timeout=0):
                                          stdout=stdout, stderr=subprocess.PIPE)
 
     if status:
-        bomb("%s%s failed (exit status %d)" %
-             ((downp and "(down) " or ""), argv, status))
+        bomb("%s%s failed (exit status %d)\n%s" %
+             ((downp and "(down) " or ""), argv, status, err))
     if err:
         bomb("%s unexpectedly produced stderr output `%s'" %
              (argv, err))

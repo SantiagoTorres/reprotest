@@ -4,7 +4,7 @@
 from setuptools import setup, find_packages
 
 setup(name='reprotest',
-      version='0.1',
+      version='0.2',
       description='Build packages and check them for reproducibility.',
       long_description=open('README.md', encoding='utf-8').read(),
       author='Ceridwen',
@@ -12,6 +12,8 @@ setup(name='reprotest',
       license='GPL-3+',
       url='https://anonscm.debian.org/cgit/reproducible/reprotest.git/',
       packages=find_packages(),
+      # This layout is badly broken at the moment, something must be
+      # done to make the scripts in virt/ install executable.
       entry_points={
           'console_scripts': [
               'reprotest = reprotest:main'

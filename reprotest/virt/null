@@ -1,0 +1,56 @@
+#!/usr/bin/python3
+#
+# Licensed under the GPL: https://www.gnu.org/licenses/gpl-3.0.en.html
+# For details: reprotest/debian/copyright
+
+import sys
+import os
+import argparse
+
+
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(
+    os.path.abspath(__file__)))))
+
+from reprotest.lib import VirtSubproc
+from reprotest.lib import adtlog
+
+
+capabilities = ['isolation-machine']
+if os.getuid() == 0:
+    capabilities.append('root-on-testbed')
+
+
+def parse_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-d', '--debug', action='store_true',
+                        help='Enable debugging output')
+    args = parser.parse_args()
+    if args.debug:
+        adtlog.verbosity = 2
+
+
+def hook_open():
+    VirtSubproc.auxverb = ['env']  # no-op, but must not be empty
+
+
+def hook_downtmp(path):
+    global capabilities
+
+    d = VirtSubproc.downtmp_mktemp(path)
+    capabilities.append('downtmp-host=' + d)
+    return d
+
+
+def hook_cleanup():
+    global capabilities
+
+    VirtSubproc.downtmp_remove()
+    capabilities = [c for c in capabilities if not c.startswith('downtmp-host')]
+
+
+def hook_capabilities():
+    return capabilities
+
+
+parse_args()
+VirtSubproc.main()

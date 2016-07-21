@@ -1,34 +1,42 @@
 # Licensed under the GPL: https://www.gnu.org/licenses/gpl-3.0.en.html
 # For details: reprotest/debian/copyright
 
-import argparse
+import os
 import subprocess
+
+import pkg_resources
+import pytest
 
 import reprotest
 
-def test_return_code(command, code):
+VERSION = pkg_resources.require('reprotest')[0].version
+
+def check_return_code(command, virtual_server, code):
     try:
-        reprotest.check(command, 'artifact', 'tests/')
+        reprotest.check(command, 'artifact', virtual_server, 'tests')
     except SystemExit as system_exit:
         assert(system_exit.args[0] == code)
 
-if __name__ == '__main__':
-    arg_parser = argparse.ArgumentParser()
-    arg_parser.add_argument('--test-build', dest='test_build',
-                            action='store_true',
-                            help='Test setuptools and debuild.')
-    args = arg_parser.parse_args()
-    test_return_code(['python', 'mock_build.py'], 0)
-    test_return_code(['python', 'mock_failure.py'], 2)
-    test_return_code(['python', 'mock_build.py', 'irreproducible'], 1)
-    test_return_code(['python', 'mock_build.py', 'fileordering'], 1)
-    test_return_code(['python', 'mock_build.py', 'home'], 1)
-    test_return_code(['python', 'mock_build.py', 'kernel'], 1)
-    test_return_code(['python', 'mock_build.py', 'locales'], 1)
-    test_return_code(['python', 'mock_build.py', 'path'], 1)
-    test_return_code(['python', 'mock_build.py', 'timezone'], 1)
-    test_return_code(['python', 'mock_build.py', 'umask'], 1)
+@pytest.fixture(scope='module', params=['null' , 'qemu', 'schroot'])
+def virtual_server(request):
+    if request.param == 'null':
+        return [request.param]
+    elif request.param == 'schroot':
+        return [request.param, 'stable-amd64']
+    elif request.param == 'qemu':
+        return [request.param, os.path.expanduser('~/linux/reproducible_builds/adt-sid.img')]
+    else:
+        raise ValueError(request.param)
 
-    if args.test_build:
-        assert(subprocess.call(['reprotest', 'python setup.py bdist', 'dist/reprotest-0.1.linux-x86_64.tar.gz']) == 1)
-        assert(subprocess.call(['reprotest', 'debuild -b -uc -us', '../reprotest_0.1_all.deb']) == 1)
+def test_simple_builds(virtual_server):
+    check_return_code('python3 mock_build.py', virtual_server, 0)
+    check_return_code('python3 mock_failure.py', virtual_server, 2)
+    check_return_code('python3 mock_build.py irreproducible', virtual_server, 1)
+
+@pytest.mark.parametrize('variation', ['fileordering', 'home', 'kernel', 'locales', 'path', 'timezone', 'umask'])
+def test_variations(virtual_server, variation):
+    check_return_code('python3 mock_build.py ' + variation, virtual_server, 1)
+
+def test_self_build(virtual_server):
+    assert(subprocess.call(['reprotest', 'python3 setup.py bdist', 'dist/reprotest-' + VERSION + '.linux-x86_64.tar.gz'] + virtual_server) == 1)
+    assert(subprocess.call(['reprotest', 'debuild -b -uc -us', '../reprotest_' + VERSION + '_all.deb'] + virtual_server) == 1)
