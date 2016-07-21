@@ -17,7 +17,6 @@ def check_return_code(command, virtual_server, code):
     except SystemExit as system_exit:
         assert(system_exit.args[0] == code)
 
-# @pytest.fixture(scope='module', params=['null'])# , 'qemu', 'schroot'])
 @pytest.fixture(scope='module', params=['null' , 'qemu', 'schroot'])
 def virtual_server(request):
     if request.param == 'null':
@@ -40,4 +39,4 @@ def test_variations(virtual_server, variation):
 
 def test_self_build(virtual_server):
     assert(subprocess.call(['reprotest', 'python3 setup.py bdist', 'dist/reprotest-' + VERSION + '.linux-x86_64.tar.gz'] + virtual_server) == 1)
-    # assert(subprocess.call(['reprotest', 'debuild -b -uc -us', '../reprotest_' + VERSION + '_all.deb'] + virtual_server) == 1)
+    assert(subprocess.call(['reprotest', 'debuild -b -uc -us', '../reprotest_' + VERSION + '_all.deb'] + virtual_server) == 1)
