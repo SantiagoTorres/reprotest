@@ -21,7 +21,7 @@ from reprotest import _contextlib
 from reprotest import _shell_ast
 
 
-adtlog.verbosity = 2
+adtlog.verbosity = 1
 
 
 # chroot is the only form of OS virtualization that's available on
