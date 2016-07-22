@@ -39,4 +39,9 @@ def test_variations(virtual_server, variation):
 
 def test_self_build(virtual_server):
     assert(subprocess.call(['reprotest', 'python3 setup.py bdist', 'dist/reprotest-' + VERSION + '.linux-x86_64.tar.gz'] + virtual_server) == 1)
+    # setup.py complains there's no README.rst, README, or README.txt.
+    # Why that's hard-coded, I have no idea.  This command eats the
+    # error so the build doesn't crash.
+    assert(subprocess.call(['reprotest', 'python3 setup.py sdist 2>/dev/null', 'dist/reprotest-' + VERSION + '.tar.gz'] + virtual_server) == 1)
+    assert(subprocess.call(['reprotest', 'python3 setup.py bdist_wheel', 'dist/reprotest-' + VERSION + '-py3-none-any.whl'] + virtual_server) == 1)
     assert(subprocess.call(['reprotest', 'debuild -b -uc -us', '../reprotest_' + VERSION + '_all.deb'] + virtual_server) == 1)
