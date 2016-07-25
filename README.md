@@ -15,8 +15,12 @@ any variations in the given list (the default is to run all
 variations); `--source_root`, which accepts a directory to run the
 build command in and defaults to the current working directory; and
 --verbose, which will eventually enable more detailed logging.  To get
-help for the CLI, run `reprotest -h` or `reprotest --help`.
+help for the CLI, run `reprotest -h` or `reprotest --help`.  Here are
+some sample command-line invocations for running reprotest on itself:
 
+    reprotest 'python3 setup.py bdist' dist/reprotest-0.2.linux-x86_64.tar.gz null
+    reprotest 'python3 setup.py bdist_wheel' dist/reprotest-0.2-py3-none-any.whl qemu /path/to/qemu.img
+    reprotest 'debuild -b -uc -us' '../reprotest_0.2_all.deb' schroot unstable-amd64
 
 
 Config File
