@@ -9,7 +9,7 @@ License: GPL-3+
 Files: reprotest/lib/*
        reprotest/runner/*
        reprotest/tools/*       
-       reprotest/virt-subproc/*       
+       reprotest/virt/*       
 Copyright: 2006-2016 Canonical Ltd.
 License: GPL-2+
 
