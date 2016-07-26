@@ -23,10 +23,14 @@ if __name__ == '__main__':
     # random bits in both runs, but it is extremely unlikely.
     if 'irreproducible' in variations:
         output.append(os.urandom(1024))
+    if 'build_path' in variations:
+        output.append(os.getcwd().encode('ascii'))
+    if 'captures_environment' in variations:
+        output.append(str(os.environ).encode('ascii'))
     # Like the above test, this test can theoretically fail by
     # producing the same file order, but this is unlikely, if not
     # as unlikely as in the above test.
-    if 'fileordering' in variations:
+    if 'file_ordering' in variations:
         # Ensure this temporary directory is created in the disorders
         # mount point by passing the dir argument.
         with tempfile.TemporaryDirectory(dir=str(pathlib.Path.cwd())) as temp:
@@ -42,7 +46,7 @@ if __name__ == '__main__':
         output.extend(l.encode('ascii') for l in locale.getlocale())
     if 'path' in variations:
         output.extend(p.encode('ascii') for p in os.get_exec_path())
-    if 'timezone' in variations:
+    if 'time_zone' in variations:
         output.append(str(time.timezone).encode('ascii'))
     if 'umask' in variations:
         with tempfile.TemporaryDirectory(dir=str(pathlib.Path.cwd())) as temp:
