@@ -182,6 +182,34 @@ def build_path(script, env, build_path, testbed):
     yield script, env, new_build_path
 build_path.__doc__ += VARIATION_DOCSTRING
 
+def domain_host(what_to_change):
+    '''Creates a context manager that changes and reverts the domain or
+    host name.
+
+    Args:
+         what_to_change (str): host or domain.
+
+    '''
+    command = what_to_change + 'name'
+    new_name = 'i-capture-the-' + what_to_change
+    @_contextlib.contextmanager
+    def change_name(script, env, build_path, testbed):
+        '''Change and revert domain or host name before and after building,
+        respectively.'''
+        # Save the previous name in a local variable.
+        old_name = testbed.check_exec([command])
+        testbed.check_exec([command, new_name])
+        if old_name is not None:
+            revert = _shell_ast.SimpleCommand.make(command, old_name)
+            try:
+                yield script.append_cleanup(revert), env, build_path
+            finally:
+                testbed.check_exec(str(revert).split())
+        else:
+            yield script, env, build_path
+    change_name.__doc__ += VARIATION_DOCSTRING
+    return change_name
+
 def file_ordering(disorderfs_mount):
     '''Generate a context manager that mounts and unmounts disorderfs.
 
@@ -304,6 +332,10 @@ VARIATIONS = types.MappingProxyType(MultipleDispatch([
       environment_variable_variation(
           'CAPTURE_ENVIRONMENT', 'i_capture_the_environment'))),
     # TODO: this requires superuser privileges.
+    ('domain', (identity,
+    types.MappingProxyType(collections.OrderedDict(
+        [('user', identity),
+         ('root', domain_host('domain'))])))),
     ('file_ordering',
      (identity,
       types.MappingProxyType(collections.OrderedDict(
@@ -314,6 +346,10 @@ VARIATIONS = types.MappingProxyType(MultipleDispatch([
     ('home',
      (environment_variable_variation('HOME', '/nonexistent/first-build'),
       environment_variable_variation('HOME', '/nonexistent/second-build'))),
+    ('host', (identity,
+    types.MappingProxyType(collections.OrderedDict(
+        [('user', identity),
+         ('root', domain_host('host'))])))),
     ('kernel', (identity, kernel)),
     ('locales', (identity, locales)),
     ('path', (identity, path)),

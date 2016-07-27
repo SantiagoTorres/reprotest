@@ -27,6 +27,8 @@ if __name__ == '__main__':
         output.append(os.getcwd().encode('ascii'))
     if 'captures_environment' in variations:
         output.append(str(os.environ).encode('ascii'))
+    if 'domain' in variations:
+        output.append(subprocess.check_output(['domainname']))
     # Like the above test, this test can theoretically fail by
     # producing the same file order, but this is unlikely, if not
     # as unlikely as in the above test.
@@ -40,6 +42,8 @@ if __name__ == '__main__':
             output.extend(p.name.encode('ascii') for p in test_file_order.iterdir())
     if 'home' in variations:
         output.append(os.path.expanduser('~').encode('ascii'))
+    if 'host' in variations:
+        output.append(subprocess.check_output(['hostname']))
     if 'kernel' in variations:
         output.append(subprocess.check_output(['uname', '-r']))
     if 'locales' in variations:
