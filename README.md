@@ -1,54 +1,108 @@
+Introduction
+============
+
+reprotest is a command-line tool for building the same source code
+in different environments.  It builds two binaries then checks the
+binaries produced to see if changing the environment, without changing
+the source code, changed the produced binaries.  reprotest can run
+builds on an existing system but can also do so with virtualization.
+
+
+
 Command Line Interface
 =====================
 
-reprotest's CLI takes two mandatory arguments, the build command to
-run and the build artifact file to test after running the build.  If
-the build command or build artifact have spaces, they have to be
-passed as strings, e.g. `"debuild -b -uc -us"`.  For optional
-arguments, it has `--variations`, which accepts a list of possible
-build variations to test, one or more of 'captures_environment',
-'domain_host', 'filesystem', 'home', 'kernel', 'locales', 'path',
-'shell', 'time', 'timezone', 'umask', and 'user_group' (see
-[variations](https://tests.reproducible-builds.org/index_variations.html)
-for more information); `--dont_vary`, which makes reprotest *not* test
-any variations in the given list (the default is to run all
-variations); `--source_root`, which accepts a directory to run the
-build command in and defaults to the current working directory; and
---verbose, which will eventually enable more detailed logging.  To get
-help for the CLI, run `reprotest -h` or `reprotest --help`.
+reprotest's CLI takes at least three mandatory arguments, the build
+command to run, a build artifact file to test for differences after
+running the build, and an argument or arguments describing the
+virtualization tool.  If the build command or build artifact have
+spaces, they have to be passed as strings, e.g. `"python3 setup.py
+sdist"`.  The valid values for the kind of virtualization are null (no
+virtualization), chroot, schroot, and qemu (http://qemu.org/).
+(reprotest will also accept lxc and lxd, for Linux containers, and
+ssh, for a remote server, but these are as-yet untested and may not
+work.)  The non-null virtualization arguments require an additional
+argument, either the path to the chroot or qemu image or the name of
+the schroot.  Here are some sample command-line invocations for
+running reprotest on itself:
+
+    reprotest 'python3 setup.py bdist' dist/reprotest-0.2.linux-x86_64.tar.gz null
+    reprotest 'python3 setup.py sdist 2>/dev/null' dist/reprotest-0.2.tar.gz chroot /path/to/chroot
+    reprotest 'python3 setup.py bdist_wheel' dist/reprotest-0.2-py3-none-any.whl qemu /path/to/qemu.img
+    reprotest 'debuild -b -uc -us' ../reprotest_0.2_all.deb schroot unstable-amd64
+
+For optional arguments, it has `--variations`, which accepts a list of
+possible build variations to test, one or more of
+'captures_environment', 'file_ordering', 'home', 'kernel', 'locales',
+'path', 'time', 'time_zone', and 'umask' (see
+https://tests.reproducible-builds.org/index_variations.html for more
+information); `--dont_vary`, which makes reprotest *not* test any
+variations in the given list (the default is to run all variations);
+`--source_root`, which accepts a path to use as a directory to copy
+the source from and run the build command in, and defaults to the
+current working directory; and --verbose, which will eventually enable
+more detailed logging.  To get help for the CLI, run `reprotest -h` or
+`reprotest --help`.
+
+reprotest accepts additional optional arguments for the
+virtualization.  It uses virtualization code from autopkgtest
+(https://people.debian.org/~mpitt/autopkgtest/README.virtualisation-server.html),
+so accepts the same optional virtualization arguments as described in
+http://manpages.ubuntu.com/manpages/xenial/man1/adt-virt-null.1.html
+http://manpages.ubuntu.com/manpages/xenial/man1/adt-virt-chroot.1.html,
+http://manpages.ubuntu.com/manpages/xenial/man1/adt-virt-schroot.1.html,
+and
+http://manpages.ubuntu.com/manpages/xenial/man1/adt-virt-qemu.1.html.
 
 
 
 Config File
 ===========
 
-The config file has one section, basics, and the same options as the
-CLI, except there's no dont_vary option, and there are `build_command`
-and `artifact` options.  If `build_command` and/or `artifact` are set
-in the config file, reprotest can be run without passing those as
-command-line arguments.  Command-line arguments always override config
-file options.  Reprotest currently searches the working directory for
-the config file, but it will also eventually search the user's home
-directory.  A sample config file is below.
+reprotest will read a config file from the current working directory.
+This config file has one section, basics, and the same options as the
+CLI except that it also has `build_command`, `artifact`, and
+`virtualization_args` options.  If `build_command`, `artifact`, and/or
+`virtualization_args` are set in the config file, reprotest can be run
+without passing those as command-line arguments.  Command-line
+arguments always override config file options.  A sample config file
+is below.
 
     [basics]
-    build_command = setup.py sdist
+    build_command = python3 setup.py sdist
     artifact = dist/reprotest-0.2.tar.gz
     source_root = reprotest/
+    virtualization_args = qemu /path/to/qemu.img
     variations =
       captures_environment
-      domain_host
-      filesystem
+      file_ordering
       home
-      host
       kernel
       locales
       path
-      shell
-      time
-      timezone
+      time_zone
       umask
-      user_group
+
+
+
+Setting up a Virtualization Environment
+=======================================
+
+To set up a virtualization for using reprotest, first set up the
+environment (chroot, schroot, or qemu).  For Debian, the autopkgtest
+documentation recommends using mk-sbuild for schroot or vmdebootstrap
+for qemu.  (autopkgtest also includes a script to use in setting up
+qemu with vmdebootstrap, `setup-testbed`.)
+
+1. Install the `fr_CH.UTF-8` locale.  (`apt-get install locales-all`
+on Debian/Ubuntu.)
+
+2. Install disorderfs
+(https://anonscm.debian.org/cgit/reproducible/disorderfs.git). (`apt-get
+install disorderfs` on Debian/Ubuntu) In chroots, also run `mknod -m
+666 /dev/fuse c 10 229`.  (disorderfs is Linux-specific at the moment.
+For non-Linux systems, use `--dont-vary=file_ordering` instead.)
+
 
 
 
