@@ -120,68 +120,97 @@ class Script(collections.namedtuple('_Script', 'build_command setup cleanup')):
 
 
 
-# time zone, locales, disorderfs, host name, user/group, shell, CPU
-# number, architecture for uname (using linux64), umask, HOME, see
-# also: https://tests.reproducible-builds.org/index_variations.html
-
-# TODO: relies on a pbuilder-specific command to parallelize
-# @_contextlib.contextmanager
-# def cpu(env, build_dir, testbed):
-#     yield script, env, build_dir
-
 # TODO: Linux-specific.  unshare --uts requires superuser privileges.
 # How is this related to host/domainname?
-# def namespace(script, env, build_dir, testbed):
+# def namespace(script, env, build_path, testbed):
 #     # command1 = ['unshare', '--uts'] + command1
 #     # command2 = ['unshare', '--uts'] + command2
-#     yield script, env, build_dir
+#     yield script, env, build_path
 
+# See also: https://tests.reproducible-builds.org/index_variations.html
+
+# This string describes the arguments and return values for all the
+# variation context managers.
+VARIATION_DOCSTRING = '''
+    Args:
+        script (Script): The build script to be executed.
+        env (types.MappingProxyType[dict[str, str]]): A mapping of environment
+            variable names to values.
+        build_path (str): The absolute path to the directory on the testbed
+            containing the source tree.
+        testbed (adt_testbed.Testbed): The testbed instance, for running
+            commands in the variations.
+
+    Returns:
+        A three-tuple containing a script, a mapping of environment variables,
+        and an absolute path to a directory on the testbed.
+'''
 
 @_contextlib.contextmanager
-def identity(script, env, build_dir, testbed):
+def identity(script, env, build_path, testbed):
     '''Identity context manager for variations that don't need to do anything.'''
-    yield script, env, build_dir
+    yield script, env, build_path
+identity.__doc__ += VARIATION_DOCSTRING
 
 def add(mapping, key, value):
-    '''Helper function for adding a key-value pair to an immutable mapping.'''
+    '''Helper function for adding a key-value pair to an immutable mapping.
+
+    Args:
+         mapping (types.MappingProxyType[collections.Mapping]): The mapping to
+             add keys to.
+         key (typing.Hashable)
+         value (object)
+    '''
     new_mapping = mapping.copy()
     new_mapping[key] = value
     return types.MappingProxyType(new_mapping)
 
 def environment_variable_variation(name, value):
-    '''Create a context manager to set an environment variable to a value.'''
+    '''Creates a context manager to set an environment variable to a value.'''
     @_contextlib.contextmanager
-    def set_environment_variable(script, env, build_dir, testbed):
-        yield script, add(env, name, value), build_dir
+    def set_environment_variable(script, env, build_path, testbed):
+        yield script, add(env, name, value), build_path
+    set_environment_variable.__doc__ = ('Set %s to %s.%s' %
+                                        (name, value, VARIATION_DOCSTRING))
     return set_environment_variable
 
 @_contextlib.contextmanager
-def build_path(script, env, build_dir, testbed):
-    new_build_dir = os.path.dirname(os.path.dirname(build_dir)) + '/other/'
-    testbed.check_exec(['mv', build_dir, new_build_dir])
-    yield script, env, new_build_dir
+def build_path(script, env, build_path, testbed):
+    '''Change the name of the build path on the testbed.'''
+    new_build_path = os.path.dirname(os.path.dirname(build_path)) + '/other/'
+    testbed.check_exec(['mv', build_path, new_build_path])
+    yield script, env, new_build_path
+build_path.__doc__ += VARIATION_DOCSTRING
 
 def file_ordering(disorderfs_mount):
+    '''Generate a context manager that mounts and unmounts disorderfs.
+
+    Args:
+         disorderfs_mount (list[str]): The command for mounting disorderfs.
+    '''
     @_contextlib.contextmanager
-    def file_ordering(script, env, build_dir, testbed):
+    def file_ordering(script, env, build_path, testbed):
+        '''Mount the source tree with disorderfs at the build path, then
+        unmount it after the build.'''
         # testbed.check_exec(['id'])
         # Move the directory holding the source tree to a new path.
-        real_dir = os.path.dirname(os.path.dirname(build_dir)) + '/real/'
-        testbed.check_exec(['mv', build_dir, real_dir])
+        real_dir = os.path.dirname(os.path.dirname(build_path)) + '/real/'
+        testbed.check_exec(['mv', build_path, real_dir])
         # Recreate the original build directory and mount the real
         # source tree there.
-        testbed.check_exec(['mkdir', '-p', build_dir])
-        testbed.check_exec(disorderfs_mount + [real_dir, build_dir])
-        unmount = _shell_ast.SimpleCommand.make('fusermount', '-u', build_dir)
+        testbed.check_exec(['mkdir', '-p', build_path])
+        testbed.check_exec(disorderfs_mount + [real_dir, build_path])
+        unmount = _shell_ast.SimpleCommand.make('fusermount', '-u', build_path)
         # If there's an error in the build process, the virt/ program will
         # try to delete the temporary directory containing disorderfs
         # before it's unmounted unless it's unmounted in the script
         # itself.
         new_script = script.append_cleanup(unmount)
         try:
-            yield new_script, env, build_dir
+            yield new_script, env, build_path
         finally:
             testbed.check_exec(str(unmount).split())
+    file_ordering.__doc__ += VARIATION_DOCSTRING
     return file_ordering
 
 # TODO: uname is a POSIX standard.  The related Linux command
@@ -190,14 +219,16 @@ def file_ordering(disorderfs_mount):
 # reference to a setname command on another Unix variant:
 # https://en.wikipedia.org/wiki/Uname
 @_contextlib.contextmanager
-def kernel(script, env, build_dir, testbed):
+def kernel(script, env, build_path, testbed):
+    '''Mock the value that uname returns for the system kernel.'''
     setarch = _shell_ast.SimpleCommand.make('linux64', '--uname-2.6')
     # setarch = _shell_ast.SimpleCommand(
     #     '', 'linux64', _shell_ast.CmdSuffix(
     #         ['--uname-2.6', script.experiment[0].command]))
     # new_script = (script.experiment[:-1] +
     #               _shell_ast.List([_shell_ast.Term(setarch, ';')]))
-    yield script.append_command(setarch), env, build_dir
+    yield script.append_command(setarch), env, build_path
+kernel.__doc__ += VARIATION_DOCSTRING
 
 # TODO: what exact locales and how to many test is probably a mailing
 # list question.
@@ -212,22 +243,28 @@ def kernel(script, env, build_dir, testbed):
 # is to figure out what locales are installed (how?) and use another
 # locale if this one isn't installed.
 @_contextlib.contextmanager
-def locales(script, env, build_dir, testbed):
+def locales(script, env, build_path, testbed):
+    '''Change the locales environment variables LANG and LC_ALL.'''
     # env1['LANG'] = 'C'
     new_env = add(add(env, 'LANG', 'fr_CH.UTF-8'), 'LC_ALL', 'fr_CH.UTF-8')
     # env1['LANGUAGE'] = 'en_US:en'
     # env2['LANGUAGE'] = 'fr_CH:fr'
-    yield script, new_env, build_dir
+    yield script, new_env, build_path
+locales.__doc__ += VARIATION_DOCSTRING
 
 @_contextlib.contextmanager
-def path(script, env, build_dir, testbed):
+def path(script, env, build_path, testbed):
+    '''Add a directory to the PATH environment variable.'''
     new_env = add(env, 'PATH', env['PATH'] + '/i_capture_the_path')
-    yield script, new_env, build_dir
+    yield script, new_env, build_path
+path.__doc__ += VARIATION_DOCSTRING
 
 @_contextlib.contextmanager
-def umask(script, env, build_dir, testbed):
+def umask(script, env, build_path, testbed):
+    '''Change the umask that the build script is executed with.'''
     umask = _shell_ast.SimpleCommand.make('umask', '0002')
-    yield script.append_setup(umask), env, build_dir
+    yield script.append_setup(umask), env, build_path
+umask.__doc__ += VARIATION_DOCSTRING
 
 
 class MultipleDispatch(collections.OrderedDict):
@@ -257,9 +294,9 @@ class MultipleDispatch(collections.OrderedDict):
 # The last, OS/system, is not implemented at the moment but only has
 # one variation I know of.
 
-# TODO: still true?
-# The order of the variations *is* important, because the command to
-# be executed in the container needs to be built from the inside out.
+# The order of the variations is important.  At the moment, the only
+# constraint is that build_path must appear before file_ordering so
+# that the build path is changed before disorderfs is mounted.
 VARIATIONS = types.MappingProxyType(MultipleDispatch([
     ('build_path', (identity, build_path)),
     ('captures_environment',
@@ -267,7 +304,6 @@ VARIATIONS = types.MappingProxyType(MultipleDispatch([
       environment_variable_variation(
           'CAPTURE_ENVIRONMENT', 'i_capture_the_environment'))),
     # TODO: this requires superuser privileges.
-    ('domain_host', identity),
     ('file_ordering',
      (identity,
       types.MappingProxyType(collections.OrderedDict(
@@ -296,16 +332,16 @@ VARIATIONS = types.MappingProxyType(MultipleDispatch([
 ]))
 
 
-def build(script, source_root, build_dir, built_artifact, testbed,
+def build(script, source_root, build_path, built_artifact, testbed,
           artifact_store, env):
     # print(source_root)
-    # print(build_dir)
-    # testbed.execute(['ls', '-l', build_dir])
+    # print(build_path)
+    # testbed.execute(['ls', '-l', build_path])
     # testbed.execute(['pwd'])
     # print(built_artifact)
-    cd = _shell_ast.SimpleCommand.make('cd', build_dir)
+    cd = _shell_ast.SimpleCommand.make('cd', build_path)
     new_script = script.append_setup(cd)
-    # lsof = _shell_ast.SimpleCommand.make('lsof', '-w', build_dir)
+    # lsof = _shell_ast.SimpleCommand.make('lsof', '-w', build_path)
     # new_script = new_script.append_cleanup(lsof)
     # ls = _shell_ast.SimpleCommand.make('ls', '-l', testbed.scratch)
     # new_script = new_script.append_cleanup(ls)
@@ -314,47 +350,47 @@ def build(script, source_root, build_dir, built_artifact, testbed,
     print(new_script)
     # exit_code, stdout, stderr = testbed.execute(['sh', '-ec', str(new_script)], xenv=[str(k) + '=' + str(v) for k, v in env.items()], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     testbed.check_exec(['sh', '-ec', str(new_script)], xenv=[str(k) + '=' + str(v) for k, v in env.items()])
-    # exit_code, stdout, stderr = testbed.execute(['lsof', build_dir], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    # exit_code, stdout, stderr = testbed.execute(['lsof', build_path], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     # print(exit_code, stdout, stderr)
-    # testbed.execute(['ls', '-l', build_dir])
-    # testbed.execute(['stat', build_dir])
+    # testbed.execute(['ls', '-l', build_path])
+    # testbed.execute(['stat', build_path])
     # testbed.execute(['stat', built_artifact])
     testbed.command('copyup', (built_artifact, artifact_store))
 
 
-def check(build_command, artifact_name, virtual_server_args, source_root,
+def check(build_command, artifact_name, virtualization_args, source_root,
           variations=VARIATIONS):
-    # print(virtual_server_args)
-    with tempfile.TemporaryDirectory() as temp_dir, start_testbed(virtual_server_args, temp_dir) as testbed:
+    # print(virtualization_args)
+    with tempfile.TemporaryDirectory() as temp_dir, start_testbed(virtualization_args, temp_dir) as testbed:
         script = Script(build_command)
         env = types.MappingProxyType(os.environ.copy())
         # TODO, why?: directories need explicit '/' appended for VirtSubproc
-        build_dir = testbed.scratch + '/build/'
+        build_path = testbed.scratch + '/build/'
         if 'root-on-testbed' in testbed.capabilities:
             user = 'root'
         else:
             user = 'user'
         try:
             for i in range(2):
-                testbed.command('copydown', (str(source_root) + '/', build_dir))
-                new_script, new_env, new_build_dir = script, env, build_dir
+                testbed.command('copydown', (str(source_root) + '/', build_path))
+                new_script, new_env, new_build_path = script, env, build_path
                 with _contextlib.ExitStack() as stack:
                     for variation in variations:
                         # print('START')
                         # print(variation)
-                        new_script, new_env, new_build_dir = stack.enter_context(VARIATIONS[(variation, i, user)](new_script, new_env, new_build_dir, testbed))
+                        new_script, new_env, new_build_path = stack.enter_context(VARIATIONS[(variation, i, user)](new_script, new_env, new_build_path, testbed))
                         # print(new_script)
                         # print(new_env)
-                        # print(new_build_dir)
-                    build(new_script, str(source_root), new_build_dir,
-                          os.path.normpath(new_build_dir + artifact_name),
+                        # print(new_build_path)
+                    build(new_script, str(source_root), new_build_path,
+                          os.path.normpath(new_build_path + artifact_name),
                           testbed,
                           os.path.normpath(temp_dir + '/artifact' + str(i)),
                           env=new_env)
         except Exception:
             traceback.print_exc()
             sys.exit(2)
-        # sys.exit(subprocess.call(['diffoscope', temp_dir + '/artifact0', temp_dir + '/artifact1']))
+        sys.exit(subprocess.call(['diffoscope', temp_dir + '/artifact0', temp_dir + '/artifact1']))
 
 
 COMMAND_LINE_OPTIONS = types.MappingProxyType(collections.OrderedDict([
@@ -364,9 +400,9 @@ COMMAND_LINE_OPTIONS = types.MappingProxyType(collections.OrderedDict([
     ('artifact', types.MappingProxyType({
         'default': None, 'nargs': '?',
         'help': 'Build artifact to test for reproducibility.'})),
-    ('virtual_server_args', types.MappingProxyType({
+    ('virtualization_args', types.MappingProxyType({
         'default': None, 'nargs': '*',
-        'help': 'Arguments to pass to the virtual_server.'})),
+        'help': 'The virtual server and any arguments to pass to it.'})),
     ('--source-root', types.MappingProxyType({
         'dest': 'source_root', 'type': pathlib.Path,
         'help': 'Root of the source tree, if not the '
@@ -387,7 +423,7 @@ COMMAND_LINE_OPTIONS = types.MappingProxyType(collections.OrderedDict([
     ]))
 
 MULTIPLET_OPTIONS = frozenset(['build_command', 'dont_vary',
-                               'variations', 'virtual_server_args'])
+                               'variations', 'virtualization_args'])
 
 CONFIG_OPTIONS = []
 for option in COMMAND_LINE_OPTIONS.keys():
@@ -436,9 +472,9 @@ def main():
     artifact = command_line_options.get(
         'artifact',
         config_options.get('artifact'))
-    virtual_server_args = command_line_options.get(
-        'virtual_server_args',
-        config_options.get('virtual_server_args'))
+    virtualization_args = command_line_options.get(
+        'virtualization_args',
+        config_options.get('virtualization_args'))
     # Reprotest will copy this tree and then run the build command.
     # If a source root isn't provided, assume it's the current working
     # directory.
@@ -467,11 +503,11 @@ def main():
     if not artifact:
         print("No build artifact to test for differences provided.")
         sys.exit(2)
-    if not virtual_server_args:
+    if not virtualization_args:
         print("No virtual_server to run the build in specified.")
         sys.exit(2)
     logging.basicConfig(
         format='%(message)s', level=30-10*verbosity, stream=sys.stdout)
 
-    # print(build_command, artifact, virtual_server_args)
-    check(build_command, artifact, virtual_server_args, source_root, variations)
+    # print(build_command, artifact, virtualization_args)
+    check(build_command, artifact, virtualization_args, source_root, variations)
