@@ -33,7 +33,7 @@ def test_simple_builds(virtual_server):
     check_return_code('python3 mock_failure.py', virtual_server, 2)
     check_return_code('python3 mock_build.py irreproducible', virtual_server, 1)
 
-@pytest.mark.parametrize('variation', reprotest.VARIATIONS.keys())
+@pytest.mark.parametrize('variation', reprotest.VARIATIONS)
 def test_variations(virtual_server, variation):
     check_return_code('python3 mock_build.py ' + variation, virtual_server, 1)
 

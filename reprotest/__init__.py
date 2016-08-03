@@ -7,6 +7,7 @@ import configparser
 import logging
 import os
 import pathlib
+import shlex
 import subprocess
 import sys
 import tempfile
@@ -115,8 +116,9 @@ class Script(collections.namedtuple('_Script', 'build_command setup cleanup')):
         '''
         subshell = _shell_ast.Subshell(self.setup +
                                        _shell_ast.AndList([self.build_command]))
+        cleanup = _shell_ast.BraceGroup(self.cleanup)
         return (str(subshell) +
-                (' ||\n' + str(self.cleanup) if self.cleanup else ''))
+                (' ||\n' + str(cleanup) if self.cleanup else ''))
 
 
 
@@ -126,8 +128,6 @@ class Script(collections.namedtuple('_Script', 'build_command setup cleanup')):
 #     # command1 = ['unshare', '--uts'] + command1
 #     # command2 = ['unshare', '--uts'] + command2
 #     yield script, env, build_path
-
-# See also: https://tests.reproducible-builds.org/index_variations.html
 
 # This string describes the arguments and return values for all the
 # variation context managers.
@@ -196,17 +196,23 @@ def domain_host(what_to_change):
     def change_name(script, env, build_path, testbed):
         '''Change and revert domain or host name before and after building,
         respectively.'''
-        # Save the previous name in a local variable.
-        old_name = testbed.check_exec([command])
+        # Save the previous name in a local variable.  strip() is
+        # necessary because the output of domainname/hostname contains
+        # a newline.
+        old_name = testbed.check_exec([command], stdout=True).strip()
+        # print('DOMAIN_HOST')
+        # print(command)
+        # print(new_name)
+        # print(old_name)
         testbed.check_exec([command, new_name])
-        if old_name is not None:
-            revert = _shell_ast.SimpleCommand.make(command, old_name)
-            try:
-                yield script.append_cleanup(revert), env, build_path
-            finally:
-                testbed.check_exec(str(revert).split())
-        else:
-            yield script, env, build_path
+        # domainname when not set seems to be rendered as '(none)',
+        # which will cause errors when the shell script is run if not
+        # quoted.
+        revert = _shell_ast.SimpleCommand.make(command, shlex.quote(old_name))
+        try:
+            yield script.append_cleanup(revert), env, build_path
+        finally:
+            testbed.check_exec(str(revert).split())
     change_name.__doc__ += VARIATION_DOCSTRING
     return change_name
 
@@ -288,6 +294,12 @@ def path(script, env, build_path, testbed):
 path.__doc__ += VARIATION_DOCSTRING
 
 @_contextlib.contextmanager
+def login_shell(script, env, build_path, testbed):
+    '''Change the'''
+    yield script, new_env, build_path
+login_shell.__doc__ += VARIATION_DOCSTRING
+
+@_contextlib.contextmanager
 def umask(script, env, build_path, testbed):
     '''Change the umask that the build script is executed with.'''
     umask = _shell_ast.SimpleCommand.make('umask', '0002')
@@ -296,19 +308,23 @@ umask.__doc__ += VARIATION_DOCSTRING
 
 
 class MultipleDispatch(collections.OrderedDict):
-    '''This is a mapping that imitates a dictionary with tuple keys using
-    nested mappings and sequences, to make it easier to specify the
-    full set of combinations without needing to write out a tuple for
-    every possible combination.
+    '''This mapping holds the functions for creating the variations.
+
+    This is intended to hold tuple keys.  To make it easier to specify
+    the full set of combinations without needing to write out a tuple
+    for every possible combination, when a tuple is not found, it will
+    search to see if there's a shorter tuple in the mapping that the
+    given tuple contains.  If so, it will return that function.  If
+    not, it will return the identity variation.
 
     '''
 
-    def __getitem__(self, keys):
-        value = super().__getitem__(keys[0])
-        for key in keys[1:]:
-            try:
-                value = value[key]
-            except (IndexError, KeyError, TypeError):
+    def __missing__(self, keys):
+        value = identity
+        for index in range(len(keys), 1, -1):
+            key = keys[:index]
+            if key in self:
+                value = self[key]
                 break
         return value
 
@@ -319,53 +335,49 @@ class MultipleDispatch(collections.OrderedDict):
 # different code for each of control and experiment.  (Note: at the
 # moment, two builds are hard-coded.)  Root privileges is third
 # because only some variations change depending on root privileges.
-# The last, OS/system, is not implemented at the moment but only has
-# one variation I know of.
+# The fourth is execution environment, because some environments
+# always offer root privileges.  The last is OS, because most of the
+# OS-specific code occurs in variations that depend on root privileges
+# and execution environment.
+
+# See also: https://tests.reproducible-builds.org/index_variations.html
+DISPATCH = types.MappingProxyType(MultipleDispatch([
+    (('bin_sh', 1), identity),
+    (('build_path', 1), build_path),
+    (('captures_environment', 1), 
+      environment_variable_variation(
+          'CAPTURE_ENVIRONMENT', 'i_capture_the_environment')),
+    (('domain', 1, 'root', 'qemu'), domain_host('domain')),
+    (('file_ordering', 1, 'user'), file_ordering(['disorderfs', '--shuffle-dirents=yes'])),
+    (('file_ordering', 1, 'root'), file_ordering(['disorderfs', '--shuffle-dirents=yes', '--multi-user=yes'])),
+    (('home', 0), environment_variable_variation('HOME', '/nonexistent/first-build')),
+    (('home', 1), environment_variable_variation('HOME', '/nonexistent/second-build')),
+    (('domain', 1, 'root', 'qemu'), domain_host('host')),
+    (('kernel', 1), kernel),
+    (('locales', 1), locales),
+    (('login_shell', 1), identity),
+    (('path', 1), path),
+    # These time zones are theoretically in the POSIX time zone format
+    # (http://pubs.opengroup.org/onlinepubs/9699919799/basedefs/V1_chap08.html#tag_08),
+    # so they should be cross-platform compatible.
+    (('time', 1), identity),
+    (('time_zone', 0), environment_variable_variation('TZ', 'GMT+12')),
+    (('time_zone', 1), environment_variable_variation('TZ', 'GMT-14')),
+    (('umask', 1), umask),
+    (('user_group', 1, 'root'), identity)]))
+
+
+# TODO: keeping the variations constant separate from the dispatch
+# functions violates DRY in a way that will be easy to desynch.  This
+# probably needs to be constructed from dispatch table.
 
 # The order of the variations is important.  At the moment, the only
 # constraint is that build_path must appear before file_ordering so
 # that the build path is changed before disorderfs is mounted.
-VARIATIONS = types.MappingProxyType(MultipleDispatch([
-    ('build_path', (identity, build_path)),
-    ('captures_environment',
-     (identity,
-      environment_variable_variation(
-          'CAPTURE_ENVIRONMENT', 'i_capture_the_environment'))),
-    # TODO: this requires superuser privileges.
-    ('domain', (identity,
-    types.MappingProxyType(collections.OrderedDict(
-        [('user', identity),
-         ('root', domain_host('domain'))])))),
-    ('file_ordering',
-     (identity,
-      types.MappingProxyType(collections.OrderedDict(
-          [('user', file_ordering(['disorderfs', '--shuffle-dirents=yes'])),
-           ('root', file_ordering(
-                ['disorderfs', '--shuffle-dirents=yes', '--multi-user=yes']))
-           ])))),
-    ('home',
-     (environment_variable_variation('HOME', '/nonexistent/first-build'),
-      environment_variable_variation('HOME', '/nonexistent/second-build'))),
-    ('host', (identity,
-    types.MappingProxyType(collections.OrderedDict(
-        [('user', identity),
-         ('root', domain_host('host'))])))),
-    ('kernel', (identity, kernel)),
-    ('locales', (identity, locales)),
-    ('path', (identity, path)),
-    # TODO: This doesn't require superuser privileges, but the chsh command
-    # affects all user shells, which would be bad.
-    ('shell', identity),
-    # These time zones are theoretically in the POSIX time zone format
-    # (http://pubs.opengroup.org/onlinepubs/9699919799/basedefs/V1_chap08.html#tag_08),
-    # so they should be cross-platform compatible.
-    ('time_zone',
-     (environment_variable_variation('TZ', 'GMT+12'),
-      environment_variable_variation('TZ', 'GMT-14'))),
-    ('umask', (identity, umask)),
-    # TODO: This requires superuser privileges.
-    ('user_group', identity)
-]))
+VARIATIONS = ('bin_sh', 'build_path', 'captures_environment',
+              'domain', 'file_ordering', 'home', 'host', 'kernel',
+              'locales', 'login_shell', 'path', 'time', 'time_zone',
+              'umask', 'user_group')
 
 
 def build(script, source_root, build_path, built_artifact, testbed,
@@ -383,6 +395,7 @@ def build(script, source_root, build_path, built_artifact, testbed,
     # new_script = new_script.append_cleanup(ls)
     # cd2 = _shell_ast.SimpleCommand.make('cd', '/')
     # new_script = new_script.append_cleanup(cd2)
+    print('SCRIPT')
     print(new_script)
     # exit_code, stdout, stderr = testbed.execute(['sh', '-ec', str(new_script)], xenv=[str(k) + '=' + str(v) for k, v in env.items()], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     testbed.check_exec(['sh', '-ec', str(new_script)], xenv=[str(k) + '=' + str(v) for k, v in env.items()])
@@ -414,7 +427,8 @@ def check(build_command, artifact_name, virtualization_args, source_root,
                     for variation in variations:
                         # print('START')
                         # print(variation)
-                        new_script, new_env, new_build_path = stack.enter_context(VARIATIONS[(variation, i, user)](new_script, new_env, new_build_path, testbed))
+                        # new_script, new_env, new_build_path, past_variations = stack.enter_context(DISPATCH[(variation, i, user)](new_script, new_env, new_build_path, testbed, types.MappingProxyType({})))
+                        new_script, new_env, new_build_path = stack.enter_context(DISPATCH[(variation, i, user)](new_script, new_env, new_build_path, testbed))
                         # print(new_script)
                         # print(new_env)
                         # print(new_build_path)
@@ -518,7 +532,7 @@ def main():
         'source_root',
         config_options.get('source_root', pathlib.Path.cwd()))
     # The default is to try all variations.
-    variations = frozenset(VARIATIONS.keys())
+    variations = frozenset(VARIATIONS)
     if 'variations' in config_options:
         variations = frozenset(config_options['variations'])
     if 'dont_vary' in config_options:
