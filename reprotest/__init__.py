@@ -7,6 +7,7 @@ import configparser
 import logging
 import os
 import pathlib
+import random
 import shlex
 import subprocess
 import sys
@@ -140,6 +141,8 @@ VARIATION_DOCSTRING = '''
             containing the source tree.
         testbed (adt_testbed.Testbed): The testbed instance, for running
             commands in the variations.
+        past_variations (dict[str, object]): Information about the values
+            assigned to variations in previous runs.
 
     Returns:
         A three-tuple containing a script, a mapping of environment variables,
@@ -147,9 +150,9 @@ VARIATION_DOCSTRING = '''
 '''
 
 @_contextlib.contextmanager
-def identity(script, env, build_path, testbed):
+def identity(script, env, build_path, testbed, past_variations):
     '''Identity context manager for variations that don't need to do anything.'''
-    yield script, env, build_path
+    yield script, env, build_path, past_variations
 identity.__doc__ += VARIATION_DOCSTRING
 
 def add(mapping, key, value):
@@ -168,18 +171,27 @@ def add(mapping, key, value):
 def environment_variable_variation(name, value):
     '''Creates a context manager to set an environment variable to a value.'''
     @_contextlib.contextmanager
-    def set_environment_variable(script, env, build_path, testbed):
-        yield script, add(env, name, value), build_path
+    def set_environment_variable(script, env, build_path, testbed, past_variations):
+        yield script, add(env, name, value), build_path, past_variations
     set_environment_variable.__doc__ = ('Set %s to %s.%s' %
                                         (name, value, VARIATION_DOCSTRING))
     return set_environment_variable
 
 @_contextlib.contextmanager
-def build_path(script, env, build_path, testbed):
-    '''Change the name of the build path on the testbed.'''
+def bin_sh(script, env, build_path, testbed, past_variations):
+    '''Change the shell that /bin/sh points to.'''
+    
+    # new_build_path = os.path.dirname(os.path.dirname(build_path)) + '/other/'
+    # testbed.check_exec(['mv', build_path, new_build_path])
+    yield script, env, build_path, past_variations
+bin_sh.__doc__ += VARIATION_DOCSTRING
+
+@_contextlib.contextmanager
+def build_path(script, env, build_path, testbed, past_variations):
+    '''Change the name of the build path.'''
     new_build_path = os.path.dirname(os.path.dirname(build_path)) + '/other/'
     testbed.check_exec(['mv', build_path, new_build_path])
-    yield script, env, new_build_path
+    yield script, env, new_build_path, past_variations
 build_path.__doc__ += VARIATION_DOCSTRING
 
 def domain_host(what_to_change):
@@ -193,7 +205,7 @@ def domain_host(what_to_change):
     command = what_to_change + 'name'
     new_name = 'i-capture-the-' + what_to_change
     @_contextlib.contextmanager
-    def change_name(script, env, build_path, testbed):
+    def change_name(script, env, build_path, testbed, past_variations):
         '''Change and revert domain or host name before and after building,
         respectively.'''
         # Save the previous name in a local variable.  strip() is
@@ -210,7 +222,7 @@ def domain_host(what_to_change):
         # quoted.
         revert = _shell_ast.SimpleCommand.make(command, shlex.quote(old_name))
         try:
-            yield script.append_cleanup(revert), env, build_path
+            yield script.append_cleanup(revert), env, build_path, past_variations
         finally:
             testbed.check_exec(str(revert).split())
     change_name.__doc__ += VARIATION_DOCSTRING
@@ -223,7 +235,7 @@ def file_ordering(disorderfs_mount):
          disorderfs_mount (list[str]): The command for mounting disorderfs.
     '''
     @_contextlib.contextmanager
-    def file_ordering(script, env, build_path, testbed):
+    def file_ordering(script, env, build_path, testbed, past_variations):
         '''Mount the source tree with disorderfs at the build path, then
         unmount it after the build.'''
         # testbed.check_exec(['id'])
@@ -241,7 +253,7 @@ def file_ordering(disorderfs_mount):
         # itself.
         new_script = script.append_cleanup(unmount)
         try:
-            yield new_script, env, build_path
+            yield new_script, env, build_path, past_variations
         finally:
             testbed.check_exec(str(unmount).split())
     file_ordering.__doc__ += VARIATION_DOCSTRING
@@ -253,7 +265,7 @@ def file_ordering(disorderfs_mount):
 # reference to a setname command on another Unix variant:
 # https://en.wikipedia.org/wiki/Uname
 @_contextlib.contextmanager
-def kernel(script, env, build_path, testbed):
+def kernel(script, env, build_path, testbed, past_variations):
     '''Mock the value that uname returns for the system kernel.'''
     setarch = _shell_ast.SimpleCommand.make('linux64', '--uname-2.6')
     # setarch = _shell_ast.SimpleCommand(
@@ -261,7 +273,7 @@ def kernel(script, env, build_path, testbed):
     #         ['--uname-2.6', script.experiment[0].command]))
     # new_script = (script.experiment[:-1] +
     #               _shell_ast.List([_shell_ast.Term(setarch, ';')]))
-    yield script.append_command(setarch), env, build_path
+    yield script.append_command(setarch), env, build_path, past_variations
 kernel.__doc__ += VARIATION_DOCSTRING
 
 # TODO: what exact locales and how to many test is probably a mailing
@@ -276,34 +288,59 @@ kernel.__doc__ += VARIATION_DOCSTRING
 # installs the right locale.  A weaker but still reasonable solution
 # is to figure out what locales are installed (how?) and use another
 # locale if this one isn't installed.
-@_contextlib.contextmanager
-def locales(script, env, build_path, testbed):
-    '''Change the locales environment variables LANG and LC_ALL.'''
-    # env1['LANG'] = 'C'
-    new_env = add(add(env, 'LANG', 'fr_CH.UTF-8'), 'LC_ALL', 'fr_CH.UTF-8')
-    # env1['LANGUAGE'] = 'en_US:en'
-    # env2['LANGUAGE'] = 'fr_CH:fr'
-    yield script, new_env, build_path
-locales.__doc__ += VARIATION_DOCSTRING
+def locales(first_choices):
+    '''Generate a context manager for changing the locales environment
+    variables.  
+
+    Args:
+         first_choices (dict[str, str]): A mapping of environment variable names
+             to default choices for their values.
+    '''
+    @_contextlib.contextmanager
+    def locales(script, env, build_path, testbed, past_variations):
+        '''Change the locales environment variables LANG, LANGUAGE, and LC_ALL.
+
+        '''
+        # locale -a is specified in the POSIX standard.
+        locales = frozenset(testbed.check_exec(['locale', '-a'], True).split())
+        new_env = env
+        # The values of locales used for this build.
+        saved_locales = {}
+        for variable in ('LANG', 'LANGUAGE', 'LC_ALL'):
+            # If this variable isn't set, leave it unset.
+            if variable in first_choices:
+                # If the first choice is installed *and* it wasn't
+                # used in a previous build, use it as the value.
+                if first_choices[variable] in (locales - past_variations.keys()):
+                    value = first_choices[variable]
+                # If not, pick a random locale from those installed.
+                else:
+                    value = random.choice(tuple(locales - past_variations.keys()))
+                new_env = add(new_env, variable, value)
+                saved_locales[variable] = frozenset([value])
+        yield (script, new_env, build_path, add(
+            past_variations, 'locales', types.MappingProxyType(saved_locales)))
+    locales.__doc__ += VARIATION_DOCSTRING
+    return locales
 
 @_contextlib.contextmanager
-def path(script, env, build_path, testbed):
-    '''Add a directory to the PATH environment variable.'''
-    new_env = add(env, 'PATH', env['PATH'] + '/i_capture_the_path')
-    yield script, new_env, build_path
-path.__doc__ += VARIATION_DOCSTRING
-
-@_contextlib.contextmanager
-def login_shell(script, env, build_path, testbed):
+def login_shell(script, env, build_path, testbed, past_variations):
     '''Change the'''
-    yield script, new_env, build_path
+    yield script, new_env, build_path, past_variations
 login_shell.__doc__ += VARIATION_DOCSTRING
 
 @_contextlib.contextmanager
-def umask(script, env, build_path, testbed):
+def path(script, env, build_path, testbed, past_variations):
+    '''Add a directory to the PATH environment variable.'''
+    new_env = add(env, 'PATH', env['PATH'] + '/i_capture_the_path')
+    yield script, new_env, build_path, past_variations
+path.__doc__ += VARIATION_DOCSTRING
+
+@_contextlib.contextmanager
+def umask(script, env, build_path, testbed, past_variations):
     '''Change the umask that the build script is executed with.'''
     umask = _shell_ast.SimpleCommand.make('umask', '0002')
-    yield script.append_setup(umask), env, build_path
+    yield script.append_setup(umask), env, build_path, past_variations
 umask.__doc__ += VARIATION_DOCSTRING
 
 
@@ -340,6 +377,10 @@ class MultipleDispatch(collections.OrderedDict):
 # OS-specific code occurs in variations that depend on root privileges
 # and execution environment.
 
+# The order of the variations is important.  At the moment, the only
+# constraint is that build_path must appear before file_ordering so
+# that the build path is changed before disorderfs is mounted.
+
 # See also: https://tests.reproducible-builds.org/index_variations.html
 DISPATCH = types.MappingProxyType(MultipleDispatch([
     (('bin_sh', 1), identity),
@@ -354,7 +395,11 @@ DISPATCH = types.MappingProxyType(MultipleDispatch([
     (('home', 1), environment_variable_variation('HOME', '/nonexistent/second-build')),
     (('domain', 1, 'root', 'qemu'), domain_host('host')),
     (('kernel', 1), kernel),
-    (('locales', 1), locales),
+    (('locales', 0), locales(types.MappingProxyType(
+        {'LANG': 'C', 'LANGUAGE': 'en_US:en'}))),
+    (('locales', 1), locales(types.MappingProxyType(
+        {'LANG': 'fr_CH.utf8', 'LANGUAGE': 'fr_CH.utf8',
+         'LC_ALL': 'fr_CH.utf8'}))),
     (('login_shell', 1), identity),
     (('path', 1), path),
     # These time zones are theoretically in the POSIX time zone format
@@ -370,10 +415,6 @@ DISPATCH = types.MappingProxyType(MultipleDispatch([
 # TODO: keeping the variations constant separate from the dispatch
 # functions violates DRY in a way that will be easy to desynch.  This
 # probably needs to be constructed from dispatch table.
-
-# The order of the variations is important.  At the moment, the only
-# constraint is that build_path must appear before file_ordering so
-# that the build path is changed before disorderfs is mounted.
 VARIATIONS = ('bin_sh', 'build_path', 'captures_environment',
               'domain', 'file_ordering', 'home', 'host', 'kernel',
               'locales', 'login_shell', 'path', 'time', 'time_zone',
@@ -397,6 +438,7 @@ def build(script, source_root, build_path, built_artifact, testbed,
     # new_script = new_script.append_cleanup(cd2)
     print('SCRIPT')
     print(new_script)
+    print(env)
     # exit_code, stdout, stderr = testbed.execute(['sh', '-ec', str(new_script)], xenv=[str(k) + '=' + str(v) for k, v in env.items()], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     testbed.check_exec(['sh', '-ec', str(new_script)], xenv=[str(k) + '=' + str(v) for k, v in env.items()])
     # exit_code, stdout, stderr = testbed.execute(['lsof', build_path], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -419,6 +461,9 @@ def check(build_command, artifact_name, virtualization_args, source_root,
             user = 'root'
         else:
             user = 'user'
+        # The POSIX standard specifies that the first word of the
+        # uname's output should be the OS name.
+        testbed_os = testbed.initial_kernel_version.split()[0]
         try:
             for i in range(2):
                 testbed.command('copydown', (str(source_root) + '/', build_path))
@@ -427,8 +472,7 @@ def check(build_command, artifact_name, virtualization_args, source_root,
                     for variation in variations:
                         # print('START')
                         # print(variation)
-                        # new_script, new_env, new_build_path, past_variations = stack.enter_context(DISPATCH[(variation, i, user)](new_script, new_env, new_build_path, testbed, types.MappingProxyType({})))
-                        new_script, new_env, new_build_path = stack.enter_context(DISPATCH[(variation, i, user)](new_script, new_env, new_build_path, testbed))
+                        new_script, new_env, new_build_path, past_variations = stack.enter_context(DISPATCH[(variation, i, user)](new_script, new_env, new_build_path, testbed, types.MappingProxyType({})))
                         # print(new_script)
                         # print(new_env)
                         # print(new_build_path)
