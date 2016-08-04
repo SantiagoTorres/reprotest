@@ -377,13 +377,9 @@ class MultipleDispatch(collections.OrderedDict):
 # OS-specific code occurs in variations that depend on root privileges
 # and execution environment.
 
-# The order of the variations is important.  At the moment, the only
-# constraint is that build_path must appear before file_ordering so
-# that the build path is changed before disorderfs is mounted.
-
 # See also: https://tests.reproducible-builds.org/index_variations.html
-DISPATCH = types.MappingProxyType(MultipleDispatch([
-    (('bin_sh', 1), identity),
+VARIATIONS_DISPATCH = types.MappingProxyType(MultipleDispatch([
+    # (('bin_sh', 1), identity),
     (('build_path', 1), build_path),
     (('captures_environment', 1), 
       environment_variable_variation(
@@ -400,7 +396,7 @@ DISPATCH = types.MappingProxyType(MultipleDispatch([
     (('locales', 1), locales(types.MappingProxyType(
         {'LANG': 'fr_CH.utf8', 'LANGUAGE': 'fr_CH.utf8',
          'LC_ALL': 'fr_CH.utf8'}))),
-    (('login_shell', 1), identity),
+    # (('login_shell', 1), identity),
     (('path', 1), path),
     # These time zones are theoretically in the POSIX time zone format
     # (http://pubs.opengroup.org/onlinepubs/9699919799/basedefs/V1_chap08.html#tag_08),
@@ -412,13 +408,18 @@ DISPATCH = types.MappingProxyType(MultipleDispatch([
     (('user_group', 1, 'root'), identity)]))
 
 
-# TODO: keeping the variations constant separate from the dispatch
-# functions violates DRY in a way that will be easy to desynch.  This
-# probably needs to be constructed from dispatch table.
-VARIATIONS = ('bin_sh', 'build_path', 'captures_environment',
-              'domain', 'file_ordering', 'home', 'host', 'kernel',
-              'locales', 'login_shell', 'path', 'time', 'time_zone',
-              'umask', 'user_group')
+# The order of the variations is important.  At the moment, the only
+# constraint is that build_path must appear before file_ordering so
+# that the build path is changed before disorderfs is mounted.  This
+# uses an OrderedDict to simulate an ordered set when flattening the
+# dispatch table into a tuple of available variations.
+VARIATIONS = tuple(collections.OrderedDict((k[0], None) for k in VARIATIONS_DISPATCH))
+
+
+# ('bin_sh', 'build_path', 'captures_environment',
+#               'domain', 'file_ordering', 'home', 'host', 'kernel',
+#               'locales', 'login_shell', 'path', 'time', 'time_zone',
+#               'umask', 'user_group')
 
 
 def build(script, source_root, build_path, built_artifact, testbed,
@@ -472,7 +473,7 @@ def check(build_command, artifact_name, virtualization_args, source_root,
                     for variation in variations:
                         # print('START')
                         # print(variation)
-                        new_script, new_env, new_build_path, past_variations = stack.enter_context(DISPATCH[(variation, i, user)](new_script, new_env, new_build_path, testbed, types.MappingProxyType({})))
+                        new_script, new_env, new_build_path, past_variations = stack.enter_context(VARIATIONS_DISPATCH[(variation, i, user)](new_script, new_env, new_build_path, testbed, types.MappingProxyType({})))
                         # print(new_script)
                         # print(new_env)
                         # print(new_build_path)
