@@ -177,14 +177,14 @@ def environment_variable_variation(name, value):
                                         (name, value, VARIATION_DOCSTRING))
     return set_environment_variable
 
-@_contextlib.contextmanager
-def bin_sh(script, env, build_path, testbed, past_variations):
-    '''Change the shell that /bin/sh points to.'''
+# @_contextlib.contextmanager
+# def bin_sh(script, env, build_path, testbed, past_variations):
+#     '''Change the shell that /bin/sh points to.'''
     
-    # new_build_path = os.path.dirname(os.path.dirname(build_path)) + '/other/'
-    # testbed.check_exec(['mv', build_path, new_build_path])
-    yield script, env, build_path, past_variations
-bin_sh.__doc__ += VARIATION_DOCSTRING
+#     # new_build_path = os.path.dirname(os.path.dirname(build_path)) + '/other/'
+#     # testbed.check_exec(['mv', build_path, new_build_path])
+#     yield script, env, build_path, past_variations
+# bin_sh.__doc__ += VARIATION_DOCSTRING
 
 @_contextlib.contextmanager
 def build_path(script, env, build_path, testbed, past_variations):
@@ -224,7 +224,7 @@ def domain_host(what_to_change):
         try:
             yield script.append_cleanup(revert), env, build_path, past_variations
         finally:
-            testbed.check_exec(str(revert).split())
+            testbed.check_exec(['sh', '-ec', str(revert)])
     change_name.__doc__ += VARIATION_DOCSTRING
     return change_name
 
@@ -323,18 +323,24 @@ def locales(first_choices):
     locales.__doc__ += VARIATION_DOCSTRING
     return locales
 
-@_contextlib.contextmanager
-def login_shell(script, env, build_path, testbed, past_variations):
-    '''Change the'''
-    yield script, new_env, build_path, past_variations
-login_shell.__doc__ += VARIATION_DOCSTRING
+# @_contextlib.contextmanager
+# def login_shell(script, env, build_path, testbed, past_variations):
+#     '''Change the'''
+#     yield script, new_env, build_path, past_variations
+# login_shell.__doc__ += VARIATION_DOCSTRING
 
 @_contextlib.contextmanager
 def path(script, env, build_path, testbed, past_variations):
     '''Add a directory to the PATH environment variable.'''
-    new_env = add(env, 'PATH', env['PATH'] + '/i_capture_the_path')
+    new_env = add(env, 'PATH', env['PATH'] + ':/i_capture_the_path')
     yield script, new_env, build_path, past_variations
 path.__doc__ += VARIATION_DOCSTRING
+
+@_contextlib.contextmanager
+def time(script, env, build_path, testbed, past_variations):
+    '''Change the time.'''
+    yield script, new_env, build_path, past_variations
+time.__doc__ += VARIATION_DOCSTRING
 
 @_contextlib.contextmanager
 def umask(script, env, build_path, testbed, past_variations):
@@ -342,6 +348,38 @@ def umask(script, env, build_path, testbed, past_variations):
     umask = _shell_ast.SimpleCommand.make('umask', '0002')
     yield script.append_setup(umask), env, build_path, past_variations
 umask.__doc__ += VARIATION_DOCSTRING
+
+def user_group(user, group, uid, gid):
+    '''Create a context manager to create new user with a new group.'''
+    @_contextlib.contextmanager
+    def user_group(script, env, build_path, testbed, past_variations):
+        # Save the original owner of build_path.
+        owner = tuple(testbed.check_exec(['stat', '--format=%g %u', build_path], stdout=True).strip().split())
+        testbed.check_exec(['groupadd', '-g', str(gid), '-o', group])
+        testbed.check_exec(['useradd', '-g', group, '-u', str(uid), '-d', build_path, '-o', user])
+        testbed.check_exec(['chown', '-R', '%d:%d' % (uid, gid), build_path])
+        su = _shell_ast.SimpleCommand.make('su', '-p', user, '-c')
+        # This cleanup script first changes the ownership of the build
+        # directory back to its original owner, then removes the
+        # created user, then removes the group.  Each command should
+        # only execute if the previous is successful.
+
+        # TODO: this causes permission problems on chroot, because
+        # again the Python process with user privileges can't copy
+        # something with root privileges.
+        chown = _shell_ast.SimpleCommand.make('chown', '-R', '%s:%s' % owner, build_path)
+        deluser = _shell_ast.SimpleCommand.make('userdel', user)
+        delgroup = _shell_ast.SimpleCommand.make('groupdel', group)
+        cleanup = _shell_ast.AndList([chown, deluser, delgroup])
+        new_script = script.append_command(su).append_cleanup(cleanup)
+        try:
+            yield new_script, env, build_path, past_variations
+        finally:
+            testbed.check_exec(['sh', '-ec', str(cleanup)])
+    user_group.__doc__ = ('Make user %s with uid %s as a member of group %s '
+                          ' with gid %s.%s' %
+                          (user, group, uid, gid, VARIATION_DOCSTRING))
+    return user_group
 
 
 class MultipleDispatch(collections.OrderedDict):
@@ -381,7 +419,7 @@ class MultipleDispatch(collections.OrderedDict):
 VARIATIONS_DISPATCH = types.MappingProxyType(MultipleDispatch([
     # (('bin_sh', 1), identity),
     (('build_path', 1), build_path),
-    (('captures_environment', 1), 
+    (('captures_environment', 1),
       environment_variable_variation(
           'CAPTURE_ENVIRONMENT', 'i_capture_the_environment')),
     (('domain', 1, 'root', 'qemu'), domain_host('domain')),
@@ -389,7 +427,7 @@ VARIATIONS_DISPATCH = types.MappingProxyType(MultipleDispatch([
     (('file_ordering', 1, 'root'), file_ordering(['disorderfs', '--shuffle-dirents=yes', '--multi-user=yes'])),
     (('home', 0), environment_variable_variation('HOME', '/nonexistent/first-build')),
     (('home', 1), environment_variable_variation('HOME', '/nonexistent/second-build')),
-    (('domain', 1, 'root', 'qemu'), domain_host('host')),
+    (('host', 1, 'root', 'qemu'), domain_host('host')),
     (('kernel', 1), kernel),
     (('locales', 0), locales(types.MappingProxyType(
         {'LANG': 'C', 'LANGUAGE': 'en_US:en'}))),
@@ -401,11 +439,13 @@ VARIATIONS_DISPATCH = types.MappingProxyType(MultipleDispatch([
     # These time zones are theoretically in the POSIX time zone format
     # (http://pubs.opengroup.org/onlinepubs/9699919799/basedefs/V1_chap08.html#tag_08),
     # so they should be cross-platform compatible.
-    (('time', 1), identity),
+    # (('time', 1), identity),
     (('time_zone', 0), environment_variable_variation('TZ', 'GMT+12')),
     (('time_zone', 1), environment_variable_variation('TZ', 'GMT-14')),
     (('umask', 1), umask),
-    (('user_group', 1, 'root'), identity)]))
+    (('user_group', 0, 'root'), user_group('a-user', 'a-group', 20001, 20001)),
+    (('user_group', 1, 'root'), user_group('another-user', 'another-group', 20002, 20002))
+]))
 
 
 # The order of the variations is important.  At the moment, the only
@@ -426,7 +466,7 @@ def build(script, source_root, build_path, built_artifact, testbed,
           artifact_store, env):
     # print(source_root)
     # print(build_path)
-    # testbed.execute(['ls', '-l', build_path])
+    testbed.execute(['ls', '-l', build_path])
     # testbed.execute(['pwd'])
     # print(built_artifact)
     cd = _shell_ast.SimpleCommand.make('cd', build_path)
@@ -439,12 +479,13 @@ def build(script, source_root, build_path, built_artifact, testbed,
     # new_script = new_script.append_cleanup(cd2)
     print('SCRIPT')
     print(new_script)
+    print('ENVIRONMENT VARIABLES')
     print(env)
     # exit_code, stdout, stderr = testbed.execute(['sh', '-ec', str(new_script)], xenv=[str(k) + '=' + str(v) for k, v in env.items()], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     testbed.check_exec(['sh', '-ec', str(new_script)], xenv=[str(k) + '=' + str(v) for k, v in env.items()])
     # exit_code, stdout, stderr = testbed.execute(['lsof', build_path], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     # print(exit_code, stdout, stderr)
-    # testbed.execute(['ls', '-l', build_path])
+    testbed.execute(['ls', '-l', build_path])
     # testbed.execute(['stat', build_path])
     # testbed.execute(['stat', built_artifact])
     testbed.command('copyup', (built_artifact, artifact_store))
@@ -473,7 +514,7 @@ def check(build_command, artifact_name, virtualization_args, source_root,
                     for variation in variations:
                         # print('START')
                         # print(variation)
-                        new_script, new_env, new_build_path, past_variations = stack.enter_context(VARIATIONS_DISPATCH[(variation, i, user)](new_script, new_env, new_build_path, testbed, types.MappingProxyType({})))
+                        new_script, new_env, new_build_path, past_variations = stack.enter_context(VARIATIONS_DISPATCH[(variation, i, user, virtualization_args[0])](new_script, new_env, new_build_path, testbed, types.MappingProxyType({})))
                         # print(new_script)
                         # print(new_env)
                         # print(new_build_path)

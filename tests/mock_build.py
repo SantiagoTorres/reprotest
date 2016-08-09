@@ -47,7 +47,7 @@ if __name__ == '__main__':
     if 'kernel' in variations:
         output.append(subprocess.check_output(['uname', '-r']))
     if 'locales' in variations:
-        output.extend(l.encode('ascii') for l in locale.getlocale())
+        output.extend(l.encode('ascii') if isinstance(l, str) else b'' for l in locale.getlocale())
     if 'path' in variations:
         output.extend(p.encode('ascii') for p in os.get_exec_path())
     if 'time_zone' in variations:
@@ -57,5 +57,8 @@ if __name__ == '__main__':
             test_permissions = pathlib.Path(temp)/'test_permissions'
             test_permissions.touch()
             output.append(stat.filemode(test_permissions.stat().st_mode).encode('ascii'))
+    if 'user_group' in variations:
+        output.append(str(os.getgid()).encode('ascii'))
+        output.append(str(os.getuid()).encode('ascii'))
     with open('artifact', 'wb') as artifact:
         artifact.write(b''.join(output))

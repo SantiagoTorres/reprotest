@@ -33,7 +33,7 @@ running reprotest on itself:
 
 For optional arguments, it has `--variations`, which accepts a list of
 possible build variations to test, one or more of
-'captures_environment', 'file_ordering', 'home', 'kernel', 'locales',
+'captures\_environment', 'file\_ordering', 'home', 'kernel', 'locales',
 'path', 'time', 'time_zone', and 'umask' (see
 https://tests.reproducible-builds.org/index_variations.html for more
 information); `--dont_vary`, which makes reprotest *not* test any
