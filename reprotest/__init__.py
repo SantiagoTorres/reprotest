@@ -74,6 +74,7 @@ class Script(collections.namedtuple('_Script', 'build_command setup cleanup')):
     def __new__(cls, build_command, setup=_shell_ast.AndList(),
                 cleanup=_shell_ast.List()):
         return super().__new__(cls, build_command, setup, cleanup)
+        # return super().__new__(cls, _shell_ast.Quote(build_command), setup, cleanup)
 
     def append_command(self, command):
         '''Passes the current build command as the last argument to a given
@@ -114,6 +115,13 @@ class Script(collections.namedtuple('_Script', 'build_command setup cleanup')):
         is executed only if any of the setup commands or the build
         command fails.
 
+        TODO: schematic sketch
+
+        (setup && build);
+        exit_code=$?;
+        if [ $exit_code -ne 0 ];
+        then {cleanup};
+        fi
         '''
         subshell = _shell_ast.Subshell(self.setup +
                                        _shell_ast.AndList([self.build_command]))
@@ -382,6 +390,8 @@ def user_group(user, group, uid, gid):
     return user_group
 
 
+
+# TODO: calculate subsets rather than using the current truncation.
 class MultipleDispatch(collections.OrderedDict):
     '''This mapping holds the functions for creating the variations.
 
@@ -419,15 +429,17 @@ class MultipleDispatch(collections.OrderedDict):
 VARIATIONS_DISPATCH = types.MappingProxyType(MultipleDispatch([
     # (('bin_sh', 1), identity),
     (('build_path', 1), build_path),
+    (('file_ordering', 1, 'user'), file_ordering(['disorderfs', '--shuffle-dirents=yes'])),
+    (('file_ordering', 1, 'root'), file_ordering(['disorderfs', '--shuffle-dirents=yes', '--multi-user=yes'])),
+    # (('user_group', 0, 'root'), user_group('a-user', 'a-group', 20001, 20001)),
+    # (('user_group', 1, 'root'), user_group('another-user', 'another-group', 20002, 20002)),
     (('captures_environment', 1),
       environment_variable_variation(
           'CAPTURE_ENVIRONMENT', 'i_capture_the_environment')),
     (('domain', 1, 'root', 'qemu'), domain_host('domain')),
-    (('file_ordering', 1, 'user'), file_ordering(['disorderfs', '--shuffle-dirents=yes'])),
-    (('file_ordering', 1, 'root'), file_ordering(['disorderfs', '--shuffle-dirents=yes', '--multi-user=yes'])),
+    (('host', 1, 'root', 'qemu'), domain_host('host')),
     (('home', 0), environment_variable_variation('HOME', '/nonexistent/first-build')),
     (('home', 1), environment_variable_variation('HOME', '/nonexistent/second-build')),
-    (('host', 1, 'root', 'qemu'), domain_host('host')),
     (('kernel', 1), kernel),
     (('locales', 0), locales(types.MappingProxyType(
         {'LANG': 'C', 'LANGUAGE': 'en_US:en'}))),
@@ -443,23 +455,21 @@ VARIATIONS_DISPATCH = types.MappingProxyType(MultipleDispatch([
     (('time_zone', 0), environment_variable_variation('TZ', 'GMT+12')),
     (('time_zone', 1), environment_variable_variation('TZ', 'GMT-14')),
     (('umask', 1), umask),
-    (('user_group', 0, 'root'), user_group('a-user', 'a-group', 20001, 20001)),
-    (('user_group', 1, 'root'), user_group('another-user', 'another-group', 20002, 20002))
 ]))
 
 
-# The order of the variations is important.  At the moment, the only
-# constraint is that build_path must appear before file_ordering so
-# that the build path is changed before disorderfs is mounted.  This
-# uses an OrderedDict to simulate an ordered set when flattening the
-# dispatch table into a tuple of available variations.
+# The order of the variations is important.  build_path must appear
+# before file_ordering so that the build path is changed before
+# disorderfs is mounted; and user_group must appear before kernel, so
+# that su is added to the central build command first, executing the
+# quoted build command.  This could be changed so that the script can
+# handle having both execv-like commands (like setarch) and shell-like
+# commands (like su) added, but defining the order removes the
+# necessity of adding that functionality and makes the resulting
+# scripts easier to read, with fewer layers of shell-quoting.  This
+# calculation uses an OrderedDict to simulate an ordered set when
+# flattening the dispatch table into a tuple of available variations.
 VARIATIONS = tuple(collections.OrderedDict((k[0], None) for k in VARIATIONS_DISPATCH))
-
-
-# ('bin_sh', 'build_path', 'captures_environment',
-#               'domain', 'file_ordering', 'home', 'host', 'kernel',
-#               'locales', 'login_shell', 'path', 'time', 'time_zone',
-#               'umask', 'user_group')
 
 
 def build(script, source_root, build_path, built_artifact, testbed,

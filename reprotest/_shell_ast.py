@@ -245,12 +245,11 @@ class CmdPrefix(BaseNode, _SequenceNode):
 
 class AssignmentWord(BaseNode,
                      collections.namedtuple('_AssignmentWord', 'target value')):
-    '''Corresponds to environment variable assignments of the form
-    target=value.
+    '''Corresponds to variable assignments of the form target=value.
 
     Attributes:
-        target (str): Environment variable name.
-        value (str): Environment variable value.
+        target (str): Variable name.
+        value (str): Variable value.
     '''
     __slots__ = ()
 
