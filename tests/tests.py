@@ -17,7 +17,9 @@ def check_return_code(command, virtual_server, code):
     except SystemExit as system_exit:
         assert(system_exit.args[0] == code)
 
-@pytest.fixture(scope='module', params=['null' , 'qemu', 'schroot'])
+VIRTUALIZATION_TYPES = ('null' , 'qemu', 'schroot')
+
+@pytest.fixture(scope='module', params=VIRTUALIZATION_TYPES)
 def virtual_server(request):
     if request.param == 'null':
         return [request.param]
@@ -33,7 +35,17 @@ def test_simple_builds(virtual_server):
     check_return_code('python3 mock_failure.py', virtual_server, 2)
     check_return_code('python3 mock_build.py irreproducible', virtual_server, 1)
 
-@pytest.mark.parametrize('variation', reprotest.VARIATIONS)
+# This generates only the relevant tests for virtualization-variation
+# combinations by excluding all the ones that will dispatch to the
+# identity.
+VARIATIONS = tuple(
+    (virtualization_type, variation) for privileges, virtualization_type in
+    zip(('user', 'root', 'root'), VIRTUALIZATION_TYPES)
+    for variation in reprotest.VARIATIONS if
+    reprotest.VARIATIONS_DISPATCH[(variation, 1, privileges, virtualization_type)]
+    is not reprotest.identity)
+
+@pytest.mark.parametrize(('virtual_server', 'variation'), VARIATIONS, indirect=('virtual_server',))
 def test_variations(virtual_server, variation):
     check_return_code('python3 mock_build.py ' + variation, virtual_server, 1)
 

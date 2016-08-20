@@ -26,7 +26,7 @@ if __name__ == '__main__':
     if 'build_path' in variations:
         output.append(os.getcwd().encode('ascii'))
     if 'captures_environment' in variations:
-        output.append(str(os.environ).encode('ascii'))
+        output.append(str(sorted(os.environ.items())).encode('ascii'))
     if 'domain' in variations:
         output.append(subprocess.check_output(['domainname']))
     # Like the above test, this test can theoretically fail by
