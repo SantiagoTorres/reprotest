@@ -73,16 +73,40 @@ class Script(collections.namedtuple('_Script', 'build_command setup cleanup')):
 
     def __new__(cls, build_command, setup=_shell_ast.AndList(),
                 cleanup=_shell_ast.List()):
-        return super().__new__(cls, build_command, setup, cleanup)
-        # return super().__new__(cls, _shell_ast.Quote(build_command), setup, cleanup)
+        '''Creates a template for the shell script reprotest runs.
 
-    def append_command(self, command):
-        '''Passes the current build command as the last argument to a given
+        This shell-quotes the build command as it's passed and wraps
+        it in a call to sh, so that reprotest can run arbitrary shell
+        code in the build command.
+
+        '''
+        return super().__new__(cls, _shell_ast.SimpleCommand.make('sh', '-ec', _shell_ast.Quote(build_command)), setup, cleanup)
+
+    def append_exec_command(self, command):
+        '''Passes the current build command as the last arguments to a given
         _shell_ast.SimpleCommand.
+
+        Use this for calling a command that takes an additional
+        command as additional arguments, like exec.
 
         '''
         new_suffix = (command.cmd_suffix +
                       _shell_ast.CmdSuffix([self.build_command]))
+        new_command = _shell_ast.SimpleCommand(command.cmd_prefix,
+                                               command.cmd_name,
+                                               new_suffix)
+        return self._replace(build_command=new_command)
+
+    def append_shell_command(self, command):
+        '''Passes the current build command, quoted, as the last argument to a
+        given _shell_ast.SimpleCommand.
+
+        Use this for calling a command that takes shell code, like sh.
+
+        '''
+        new_suffix = (command.cmd_suffix +
+                      _shell_ast.CmdSuffix(
+                          [_shell_ast.Quote(self.build_command)]))
         new_command = _shell_ast.SimpleCommand(command.cmd_prefix,
                                                command.cmd_name,
                                                new_suffix)
@@ -114,14 +138,6 @@ class Script(collections.namedtuple('_Script', 'build_command setup cleanup')):
         directory when the cleanup tries to unmount it.)  The cleanup
         is executed only if any of the setup commands or the build
         command fails.
-
-        TODO: schematic sketch
-
-        (setup && build);
-        exit_code=$?;
-        if [ $exit_code -ne 0 ];
-        then {cleanup};
-        fi
         '''
         subshell = _shell_ast.Subshell(self.setup +
                                        _shell_ast.AndList([self.build_command]))
@@ -188,7 +204,7 @@ def environment_variable_variation(name, value):
 # @_contextlib.contextmanager
 # def bin_sh(script, env, build_path, testbed, past_variations):
 #     '''Change the shell that /bin/sh points to.'''
-    
+
 #     # new_build_path = os.path.dirname(os.path.dirname(build_path)) + '/other/'
 #     # testbed.check_exec(['mv', build_path, new_build_path])
 #     yield script, env, build_path, past_variations
@@ -281,7 +297,7 @@ def kernel(script, env, build_path, testbed, past_variations):
     #         ['--uname-2.6', script.experiment[0].command]))
     # new_script = (script.experiment[:-1] +
     #               _shell_ast.List([_shell_ast.Term(setarch, ';')]))
-    yield script.append_command(setarch), env, build_path, past_variations
+    yield script.append_exec_command(setarch), env, build_path, past_variations
 kernel.__doc__ += VARIATION_DOCSTRING
 
 # TODO: what exact locales and how to many test is probably a mailing
@@ -371,15 +387,11 @@ def user_group(user, group, uid, gid):
         # directory back to its original owner, then removes the
         # created user, then removes the group.  Each command should
         # only execute if the previous is successful.
-
-        # TODO: this causes permission problems on chroot, because
-        # again the Python process with user privileges can't copy
-        # something with root privileges.
         chown = _shell_ast.SimpleCommand.make('chown', '-R', '%s:%s' % owner, build_path)
         deluser = _shell_ast.SimpleCommand.make('userdel', user)
         delgroup = _shell_ast.SimpleCommand.make('groupdel', group)
         cleanup = _shell_ast.AndList([chown, deluser, delgroup])
-        new_script = script.append_command(su).append_cleanup(cleanup)
+        new_script = script.append_shell_command(su).append_cleanup(cleanup)
         try:
             yield new_script, env, build_path, past_variations
         finally:
@@ -425,14 +437,29 @@ class MultipleDispatch(collections.OrderedDict):
 # OS-specific code occurs in variations that depend on root privileges
 # and execution environment.
 
+# TODO: At the moment, the code depends on there being no cleanup done
+# in the script for the first run, because if there is and the first
+# build fails, the exit value of the script as a whole will be the
+# exit value of the cleanup code, causing the second run to be
+# attempted even though the first failed.  This also means that if the
+# second run fails but the first didn't, the exit value of the script
+# will be the exit value of the cleanup, and there will be no useful
+# debugging output.
+
+# TODO: schematic sketch
+
+#         (setup && build);
+#         exit_code=$?;
+#         if [ $exit_code -ne 0 ];
+#         then {cleanup};
+#         fi
+
 # See also: https://tests.reproducible-builds.org/index_variations.html
 VARIATIONS_DISPATCH = types.MappingProxyType(MultipleDispatch([
     # (('bin_sh', 1), identity),
     (('build_path', 1), build_path),
     (('file_ordering', 1, 'user'), file_ordering(['disorderfs', '--shuffle-dirents=yes'])),
     (('file_ordering', 1, 'root'), file_ordering(['disorderfs', '--shuffle-dirents=yes', '--multi-user=yes'])),
-    # (('user_group', 0, 'root'), user_group('a-user', 'a-group', 20001, 20001)),
-    # (('user_group', 1, 'root'), user_group('another-user', 'another-group', 20002, 20002)),
     (('captures_environment', 1),
       environment_variable_variation(
           'CAPTURE_ENVIRONMENT', 'i_capture_the_environment')),
@@ -448,34 +475,32 @@ VARIATIONS_DISPATCH = types.MappingProxyType(MultipleDispatch([
          'LC_ALL': 'fr_CH.utf8'}))),
     # (('login_shell', 1), identity),
     (('path', 1), path),
+    # (('time', 1), identity),
     # These time zones are theoretically in the POSIX time zone format
     # (http://pubs.opengroup.org/onlinepubs/9699919799/basedefs/V1_chap08.html#tag_08),
     # so they should be cross-platform compatible.
-    # (('time', 1), identity),
     (('time_zone', 0), environment_variable_variation('TZ', 'GMT+12')),
     (('time_zone', 1), environment_variable_variation('TZ', 'GMT-14')),
     (('umask', 1), umask),
+    # This is disabled because it's not necessary and because it adds
+    # cleanup to the first run.
+    # (('user_group', 0, 'root'), user_group('a-user', 'a-group', 20001, 20001)),
+    (('user_group', 1, 'root'), user_group('another-user', 'another-group', 20002, 20002)),
 ]))
 
 
 # The order of the variations is important.  build_path must appear
 # before file_ordering so that the build path is changed before
-# disorderfs is mounted; and user_group must appear before kernel, so
-# that su is added to the central build command first, executing the
-# quoted build command.  This could be changed so that the script can
-# handle having both execv-like commands (like setarch) and shell-like
-# commands (like su) added, but defining the order removes the
-# necessity of adding that functionality and makes the resulting
-# scripts easier to read, with fewer layers of shell-quoting.  This
-# calculation uses an OrderedDict to simulate an ordered set when
-# flattening the dispatch table into a tuple of available variations.
+# disorderfs is mounted.  This calculation uses an OrderedDict to
+# simulate an ordered set when flattening the dispatch table into a
+# tuple of available variations.
 VARIATIONS = tuple(collections.OrderedDict((k[0], None) for k in VARIATIONS_DISPATCH))
 
 
 def build(script, source_root, build_path, built_artifact, testbed,
           artifact_store, env):
     # print(source_root)
-    # print(build_path)
+    print(build_path)
     testbed.execute(['ls', '-l', build_path])
     # testbed.execute(['pwd'])
     # print(built_artifact)
@@ -489,8 +514,8 @@ def build(script, source_root, build_path, built_artifact, testbed,
     # new_script = new_script.append_cleanup(cd2)
     print('SCRIPT')
     print(new_script)
-    print('ENVIRONMENT VARIABLES')
-    print(env)
+    # print('ENVIRONMENT VARIABLES')
+    # print(env)
     # exit_code, stdout, stderr = testbed.execute(['sh', '-ec', str(new_script)], xenv=[str(k) + '=' + str(v) for k, v in env.items()], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     testbed.check_exec(['sh', '-ec', str(new_script)], xenv=[str(k) + '=' + str(v) for k, v in env.items()])
     # exit_code, stdout, stderr = testbed.execute(['lsof', build_path], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -499,7 +524,6 @@ def build(script, source_root, build_path, built_artifact, testbed,
     # testbed.execute(['stat', build_path])
     # testbed.execute(['stat', built_artifact])
     testbed.command('copyup', (built_artifact, artifact_store))
-
 
 def check(build_command, artifact_name, virtualization_args, source_root,
           variations=VARIATIONS):
@@ -518,6 +542,9 @@ def check(build_command, artifact_name, virtualization_args, source_root,
         testbed_os = testbed.initial_kernel_version.split()[0]
         try:
             for i in range(2):
+                # This is outside build() because the disorderfs
+                # variation needs to do file system manipulation to
+                # preserve the same build path.
                 testbed.command('copydown', (str(source_root) + '/', build_path))
                 new_script, new_env, new_build_path = script, env, build_path
                 with _contextlib.ExitStack() as stack:
@@ -533,8 +560,17 @@ def check(build_command, artifact_name, virtualization_args, source_root,
                           testbed,
                           os.path.normpath(temp_dir + '/artifact' + str(i)),
                           env=new_env)
-        except Exception:
-            traceback.print_exc()
+                # This is outside build() so that removing the source
+                # tree, to ensure any subsequent build is clean,
+                # occurs after any disorderfs, user/group, or other
+                # file-system-related cleanup occurs.  The source tree
+                # is in a temporary directory on the testbed, so it
+                # doesn't matter if the source tree isn't removed when
+                # exceptions are thrown before this code is reached.
+                testbed.check_exec(['rm', '-rf', new_build_path])
+        except Exception as error:
+            # traceback.print_exc()
+            print(error)
             sys.exit(2)
         sys.exit(subprocess.call(['diffoscope', temp_dir + '/artifact0', temp_dir + '/artifact1']))
 
