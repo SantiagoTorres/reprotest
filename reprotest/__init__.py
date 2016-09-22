@@ -52,7 +52,7 @@ def start_testbed(args, temp_dir, no_clean_on_error):
     finally:
         if should_clean:
             # TODO: we could probably do *some* level of cleanup even if
-            # should_clean is True; investigate this further...
+            # should_clean is False; investigate this further...
             testbed.stop()
 
 
@@ -314,7 +314,7 @@ def build(script, source_root, dist_root, artifact_pattern, testbed, artifact_st
     # testbed.execute(['stat', source_root])
     # testbed.execute(['stat', built_artifact])
     testbed.check_exec(
-        ['sh', '-ec', 'mkdir -p "%s" && cd "%s" && cp -R -t "%s" %s && touch -d@0 "%s" "%s"/*' %
+        ['sh', '-ec', 'mkdir -p "%s" && cd "%s" && cp -a -t "%s" %s && touch -d@0 "%s" "%s"/*' %
         (dist_root, source_root, dist_root, artifact_pattern, dist_root, dist_root)])
     testbed.command('copyup', (dist_root, artifact_store))
 
@@ -330,6 +330,8 @@ def check(build_command, artifact_pattern, virtual_server_args, source_root,
         # TODO, why?: directories need explicit '/' appended for VirtSubproc
         tree = Pair(testbed.scratch + '/control/', testbed.scratch + '/experiment/')
         dist = Pair(testbed.scratch + '/control-dist/', testbed.scratch + '/experiment-dist/')
+        result = Pair(os.path.join(temp_dir, 'control_artifact/'),
+                      os.path.join(temp_dir, 'experiment_artifact/'))
         testbed.command('copydown', (str(source_root) + '/', tree.control))
         testbed.command('copydown', (str(source_root) + '/', tree.experiment))
         # print(source_root)
@@ -345,17 +347,23 @@ def check(build_command, artifact_pattern, virtual_server_args, source_root,
                 build(script.control, tree.control, dist.control,
                       artifact_pattern,
                       testbed,
-                      os.path.join(temp_dir, 'control_artifact/'),
+                      result.control,
                       env=env.control)
                 build(script.experiment, tree.experiment, dist.experiment,
                       artifact_pattern,
                       testbed,
-                      os.path.join(temp_dir, 'experiment_artifact/'),
+                      result.experiment,
                       env=env.experiment)
         except Exception:
             traceback.print_exc()
             return 2
-        return subprocess.check_call(['diffoscope', temp_dir + '/control_artifact', temp_dir + '/experiment_artifact'])
+        subprocess.check_call(['diffoscope', result.control, result.experiment])
+        print("=======================")
+        print("Reproduction successful")
+        print("=======================")
+        print("No differences in %s" % artifact_pattern)
+        subprocess.call(['find', '.', '-type', 'f', '-exec', 'sha256sum', '{}', ';'], cwd=result.control)
+        return 0
 
 
 COMMAND_LINE_OPTIONS = types.MappingProxyType(collections.OrderedDict([
