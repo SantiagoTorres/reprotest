@@ -31,7 +31,7 @@ adtlog.verbosity = 1
 # approaches.
 
 @_contextlib.contextmanager
-def start_testbed(args, temp_dir):
+def start_testbed(args, temp_dir, no_clean_on_error):
     '''This is a simple wrapper around adt_testbed that automates the
     initialization and cleanup.'''
     # Find the location of reprotest using setuptools and then get the
@@ -42,10 +42,18 @@ def start_testbed(args, temp_dir):
     testbed = adt_testbed.Testbed([server_path] + args[1:], temp_dir, None)
     testbed.start()
     testbed.open()
+    should_clean = True
     try:
         yield testbed
+    except:
+        if no_clean_on_error:
+            should_clean = False
+        raise
     finally:
-        testbed.stop()
+        if should_clean:
+            # TODO: we could probably do *some* level of cleanup even if
+            # should_clean is True; investigate this further...
+            testbed.stop()
 
 
 Pair = collections.namedtuple('Pair', 'control experiment')
@@ -312,9 +320,10 @@ def build(script, source_root, dist_root, artifact_pattern, testbed, artifact_st
 
 
 def check(build_command, artifact_name, virtual_server_args, source_root,
-          variations=VARIATIONS):
+          no_clean_on_error, variations=VARIATIONS):
     # print(virtual_server_args)
-    with tempfile.TemporaryDirectory() as temp_dir, start_testbed(virtual_server_args, temp_dir) as testbed:
+    with tempfile.TemporaryDirectory() as temp_dir, \
+         start_testbed(virtual_server_args, temp_dir, no_clean_on_error) as testbed:
         script = Pair(Script(build_command), Script(build_command))
         env = Pair(types.MappingProxyType(os.environ.copy()),
                    types.MappingProxyType(os.environ.copy()))
@@ -346,7 +355,7 @@ def check(build_command, artifact_name, virtual_server_args, source_root,
         except Exception:
             traceback.print_exc()
             return 2
-        return subprocess.call(['diffoscope', temp_dir + '/control_artifact', temp_dir + '/experiment_artifact'])
+        return subprocess.check_call(['diffoscope', temp_dir + '/control_artifact', temp_dir + '/experiment_artifact'])
 
 
 COMMAND_LINE_OPTIONS = types.MappingProxyType(collections.OrderedDict([
@@ -356,7 +365,7 @@ COMMAND_LINE_OPTIONS = types.MappingProxyType(collections.OrderedDict([
     ('artifact', types.MappingProxyType({
         'default': None, 'nargs': '?',
         'help': 'Build artifact to test for reproducibility. May be a shell '
-                'pattern such as "*.changes".'})),
+                'pattern such as "*.deb *.changes".'})),
     ('virtual_server_args', types.MappingProxyType({
         'default': ["null"], 'nargs': '*',
         'help': 'Arguments to pass to the virtual_server. If this itself '
@@ -377,6 +386,11 @@ COMMAND_LINE_OPTIONS = types.MappingProxyType(collections.OrderedDict([
         'help': 'Build variations *not* to test as a comma-separated'
         ' list (without spaces).  Default is to test all available '
         ' variations.'})),
+    ('--no-clean-on-error', types.MappingProxyType({
+        'action': 'store_true', 'default': False,
+        'help': 'Don\'t clean the virtual_server if there was an error. '
+                'Useful for debugging, but WARNING: this is currently not '
+                'implemented very well and may leave cruft on your system.'})),
     ('--verbosity', types.MappingProxyType({
         'type': int, 'default': 0,
         'help': 'An integer.  Control which messages are displayed.'}))
@@ -441,6 +455,9 @@ def main():
     source_root = command_line_options.get(
         'source_root',
         config_options.get('source_root', pathlib.Path.cwd()))
+    no_clean_on_error = command_line_options.get(
+        'no_clean_on_error',
+        config_options.get('no_clean_on_error'))
     # The default is to try all variations.
     variations = frozenset(VARIATIONS.keys())
     if 'variations' in config_options:
@@ -470,4 +487,4 @@ def main():
         format='%(message)s', level=30-10*verbosity, stream=sys.stdout)
 
     # print(build_command, artifact, virtual_server_args)
-    sys.exit(check(build_command, artifact, virtual_server_args, source_root, variations))
+    sys.exit(check(build_command, artifact, virtual_server_args, source_root, no_clean_on_error, variations))
