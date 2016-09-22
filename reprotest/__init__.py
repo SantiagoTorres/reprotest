@@ -7,6 +7,7 @@ import configparser
 import logging
 import os
 import pathlib
+import shlex
 import subprocess
 import sys
 import tempfile
@@ -313,9 +314,10 @@ def build(script, source_root, dist_root, artifact_pattern, testbed, artifact_st
     # testbed.execute(['ls', '-l', source_root])
     # testbed.execute(['stat', source_root])
     # testbed.execute(['stat', built_artifact])
+    patterns = " ".join(map(lambda x: os.path.join(source_root, x), shlex.split(artifact_pattern)))
     testbed.check_exec(
         ['sh', '-ec', 'mkdir -p "%s" && cp -R -t "%s" %s && touch -d@0 "%s" "%s"/*' %
-        (dist_root, dist_root, os.path.join(source_root, artifact_pattern), dist_root, dist_root)])
+        (dist_root, dist_root, patterns, dist_root, dist_root)])
     testbed.command('copyup', (dist_root, artifact_store))
 
 
