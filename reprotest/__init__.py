@@ -296,7 +296,10 @@ def build(script, source_root, built_artifact, testbed, artifact_store, env):
     # new_script = new_script.append_cleanup(cd2)
     print(new_script)
     # exit_code, stdout, stderr = testbed.execute(['sh', '-ec', str(new_script)], xenv=[str(k) + '=' + str(v) for k, v in env.items()], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    testbed.check_exec(['sh', '-ec', str(new_script)], xenv=[str(k) + '=' + str(v) for k, v in env.items()])
+    testbed.check_exec(
+        ['sh', '-ec', str(new_script)],
+        xenv=[str(k) + '=' + str(v) for k, v in env.items()],
+        kind='build')
     # exit_code, stdout, stderr = testbed.execute(['lsof', source_root], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     # print(exit_code, stdout, stderr)
     # testbed.execute(['ls', '-l', source_root])
