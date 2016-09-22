@@ -314,7 +314,7 @@ def build(script, source_root, dist_root, artifact_pattern, testbed, artifact_st
     # testbed.execute(['ls', '-l', source_root])
     # testbed.execute(['stat', source_root])
     # testbed.execute(['stat', built_artifact])
-    patterns = " ".join(map(lambda x: os.path.join(source_root, x), shlex.split(artifact_pattern)))
+    patterns = " ".join(os.path.join(source_root, part) for part in shlex.split(artifact_pattern))
     testbed.check_exec(
         ['sh', '-ec', 'mkdir -p "%s" && cp -R -t "%s" %s && touch -d@0 "%s" "%s"/*' %
         (dist_root, dist_root, patterns, dist_root, dist_root)])
