@@ -279,11 +279,11 @@ VARIATIONS = types.MappingProxyType(collections.OrderedDict([
 ]))
 
 
-def build(script, source_root, built_artifact, testbed, artifact_store, env):
+def build(script, source_root, dist_root, artifact_pattern, testbed, artifact_store, env):
     print(source_root)
     # testbed.execute(['ls', '-l', source_root])
     # testbed.execute(['pwd'])
-    print(built_artifact)
+    print(artifact_pattern)
     # cd = _shell_ast.SimpleCommand('', 'cd', _shell_ast.CmdSuffix([source_root]))
     # new_script = (_shell_ast.List([_shell_ast.Term(cd, ';')]) + script)
     cd = _shell_ast.SimpleCommand.make('cd', source_root)
@@ -305,7 +305,10 @@ def build(script, source_root, built_artifact, testbed, artifact_store, env):
     # testbed.execute(['ls', '-l', source_root])
     # testbed.execute(['stat', source_root])
     # testbed.execute(['stat', built_artifact])
-    testbed.command('copyup', (built_artifact, artifact_store))
+    testbed.check_exec(
+        ['sh', '-ec', 'mkdir -p "%s" && cp -R -t "%s" %s && touch -d@0 "%s" "%s"/*' %
+        (dist_root, dist_root, os.path.join(source_root, artifact_pattern), dist_root, dist_root)])
+    testbed.command('copyup', (dist_root, artifact_store))
 
 
 def check(build_command, artifact_name, virtual_server_args, source_root,
@@ -317,6 +320,7 @@ def check(build_command, artifact_name, virtual_server_args, source_root,
                    types.MappingProxyType(os.environ.copy()))
         # TODO, why?: directories need explicit '/' appended for VirtSubproc
         tree = Pair(testbed.scratch + '/control/', testbed.scratch + '/experiment/')
+        dist = Pair(testbed.scratch + '/control-dist/', testbed.scratch + '/experiment-dist/')
         testbed.command('copydown', (str(source_root) + '/', tree.control))
         testbed.command('copydown', (str(source_root) + '/', tree.experiment))
         # print(source_root)
@@ -329,15 +333,15 @@ def check(build_command, artifact_name, virtual_server_args, source_root,
                     # print(script)
                     # print(env)
                     # print(tree)
-                build(script.control, tree.control,
-                      os.path.normpath(tree.control + artifact_name),
+                build(script.control, tree.control, dist.control,
+                      os.path.join(tree.control, artifact_name),
                       testbed,
-                      os.path.normpath(temp_dir + '/control_artifact'),
+                      os.path.join(temp_dir, 'control_artifact/'),
                       env=env.control)
-                build(script.experiment, tree.experiment,
-                      os.path.normpath(tree.experiment + artifact_name),
+                build(script.experiment, tree.experiment, dist.experiment,
+                      os.path.join(tree.experiment, artifact_name),
                       testbed,
-                      os.path.normpath(temp_dir + '/experiment_artifact'),
+                      os.path.join(temp_dir, 'experiment_artifact/'),
                       env=env.experiment)
         except Exception:
             traceback.print_exc()
@@ -351,7 +355,8 @@ COMMAND_LINE_OPTIONS = types.MappingProxyType(collections.OrderedDict([
         'help': 'Build command to execute.'})),
     ('artifact', types.MappingProxyType({
         'default': None, 'nargs': '?',
-        'help': 'Build artifact to test for reproducibility.'})),
+        'help': 'Build artifact to test for reproducibility. May be a shell '
+                'pattern such as "*.changes".'})),
     ('virtual_server_args', types.MappingProxyType({
         'default': ["null"], 'nargs': '*',
         'help': 'Arguments to pass to the virtual_server.'})),
