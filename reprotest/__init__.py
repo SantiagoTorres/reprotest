@@ -67,7 +67,7 @@ class Script(collections.namedtuple('_Script', 'build_command setup cleanup')):
             setarch.
         setup (_shell_ast.AndList): These are shell commands that change the
             shell environment and need to be run as part of the same script as
-            the main build command but don't take other commands as arguments.  
+            the main build command but don't take other commands as arguments.
             These execute conditionally because if one command fails,
             the whole script should fail.  Examples: cd, umask.
         cleanup (_shell_ast.List): All commands that have to be run to return
@@ -350,7 +350,7 @@ COMMAND_LINE_OPTIONS = types.MappingProxyType(collections.OrderedDict([
         'default': None, 'nargs': '?',
         'help': 'Build artifact to test for reproducibility.'})),
     ('virtual_server_args', types.MappingProxyType({
-        'default': None, 'nargs': '*',
+        'default': ["null"], 'nargs': '*',
         'help': 'Arguments to pass to the virtual_server.'})),
     ('--source-root', types.MappingProxyType({
         'dest': 'source_root', 'type': pathlib.Path,
@@ -406,10 +406,10 @@ def command_line():
 
     return types.MappingProxyType({k:v for k, v in vars(args).items() if v is not None})
 
-        
+
 def main():
     config_options = config()
-    
+
     # Argparse exits with status code 2 if something goes wrong, which
     # is already the right status exit code for reprotest.
     command_line_options = command_line()
