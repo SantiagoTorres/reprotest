@@ -341,8 +341,8 @@ def check(build_command, artifact_name, virtual_server_args, source_root,
                       env=env.experiment)
         except Exception:
             traceback.print_exc()
-            sys.exit(2)
-        sys.exit(subprocess.call(['diffoscope', temp_dir + '/control_artifact', temp_dir + '/experiment_artifact']))
+            return 2
+        return subprocess.call(['diffoscope', temp_dir + '/control_artifact', temp_dir + '/experiment_artifact'])
 
 
 COMMAND_LINE_OPTIONS = types.MappingProxyType(collections.OrderedDict([
@@ -462,4 +462,4 @@ def main():
         format='%(message)s', level=30-10*verbosity, stream=sys.stdout)
 
     # print(build_command, artifact, virtual_server_args)
-    check(build_command, artifact, virtual_server_args, source_root, variations)
+    sys.exit(check(build_command, artifact, virtual_server_args, source_root, variations))
