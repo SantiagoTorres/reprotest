@@ -427,7 +427,12 @@ class Testbed:
         adtlog.debug('testbed command exited with code %i' % proc.returncode)
 
         if proc.returncode in (254, 255):
-            self.bomb('testbed auxverb failed with exit code %i' % proc.returncode)
+            msg = 'testbed auxverb failed with exit code %i' % proc.returncode
+            if out:
+                msg += '\n---- stdout ----\n%s----------------\n' % out
+            if err:
+                msg += '\n---- stderr ----\n%s----------------\n' % err
+            self.bomb(msg)
 
         return (proc.returncode, out, err)
 
