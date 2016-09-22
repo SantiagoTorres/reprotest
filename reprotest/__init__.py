@@ -378,14 +378,19 @@ COMMAND_LINE_OPTIONS = types.MappingProxyType(collections.OrderedDict([
         'current working directory.'})),
     ('--variations', types.MappingProxyType({
         'type': lambda s: frozenset(s.split(',')),
-        'help': 'Build variations to test as a comma-separated list'
-        ' (without spaces).  Default is to test all available '
-        'variations.'})),
+        'default': frozenset(VARIATIONS.keys()),
+        'help': 'Build variations to test as a comma-separated list '
+        '(without spaces).  Default is to test all available '
+        'variations: %s; see https://tests.reproducible-builds.org/index_variations.html '
+        'for more information.' % ', '.join(VARIATIONS.keys())})),
     ('--dont-vary', types.MappingProxyType({
-        'dest': 'dont_vary', 'type': lambda s: frozenset(s.split(',')),
-        'help': 'Build variations *not* to test as a comma-separated'
-        ' list (without spaces).  Default is to test all available '
-        ' variations.'})),
+        'dest': 'dont_vary',
+        'type': lambda s: frozenset(s.split(',')),
+        'default': frozenset(),
+        'help': 'Build variations *not* to test as a comma-separated '
+        'list (without spaces).  These take precedence over what '
+        'you set for "variations". Default is nothing, i.e. test '
+        'whatever you set for "variations".'})),
     ('--no-clean-on-error', types.MappingProxyType({
         'action': 'store_true', 'default': False,
         'help': 'Don\'t clean the virtual_server if there was an error. '

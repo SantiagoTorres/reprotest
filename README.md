@@ -23,24 +23,8 @@ If your build artifacts have spaces in their names, you will need to
 quote these twice, e.g. `'"a file with spaces.gz"'` for a single
 artifact or `'"dir 1"/* "dir 2"/*'` for multiple patterns.
 
-For optional arguments, it has:
-
-`--variations`, which accepts a list of possible build variations to
-test, one or more of 'captures_environment', 'domain_host',
-'filesystem', 'home', 'kernel', 'locales', 'path', 'shell', 'time',
-'timezone', 'umask', and 'user_group' (see
-[variations](https://tests.reproducible-builds.org/index_variations.html)
-for more information);
-
-`--dont_vary`, which makes reprotest *not* test any variations in the
-given list (the default is to run all variations);
-
-`--source_root`, which accepts a directory to run the build command
-in and defaults to the current working directory; and
-
-`--verbose`, which will eventually enable more detailed logging.
-
-To get help for the CLI, run `reprotest -h` or `reprotest --help`.
+To get more help for the CLI, including documentation on optional
+arguments and what they do, run `reprotest --help`.
 
 
 Config File
@@ -48,7 +32,7 @@ Config File
 
 The config file has one section, basics, and the same options as the
 CLI, except there's no dont_vary option, and there are `build_command`
-and `artifact` options.  If `build_command` and/or `artifact` are set
+and `artifact` fields.  If `build_command` and/or `artifact` are set
 in the config file, reprotest can be run without passing those as
 command-line arguments.  Command-line arguments always override config
 file options.  Reprotest currently searches the working directory for
