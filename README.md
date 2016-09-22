@@ -1,26 +1,46 @@
 Command Line Interface
-=====================
+======================
 
 reprotest's CLI takes two mandatory arguments, the build command to
-run and the build artifact file to test after running the build.  If
-the build command or build artifact have spaces, they have to be
-passed as strings, e.g. `"debuild -b -uc -us"`.  For optional
-arguments, it has `--variations`, which accepts a list of possible
-build variations to test, one or more of 'captures_environment',
-'domain_host', 'filesystem', 'home', 'kernel', 'locales', 'path',
-'shell', 'time', 'timezone', 'umask', and 'user_group' (see
-[variations](https://tests.reproducible-builds.org/index_variations.html)
-for more information); `--dont_vary`, which makes reprotest *not* test
-any variations in the given list (the default is to run all
-variations); `--source_root`, which accepts a directory to run the
-build command in and defaults to the current working directory; and
---verbose, which will eventually enable more detailed logging.  To get
-help for the CLI, run `reprotest -h` or `reprotest --help`.  Here are
-some sample command-line invocations for running reprotest on itself:
+run and the build artifact file/pattern to test after running the
+build. Here are some sample invocations for running reprotest on
+itself:
 
-    reprotest 'python3 setup.py bdist' dist/reprotest-0.2.linux-x86_64.tar.gz null
-    reprotest 'python3 setup.py bdist_wheel' dist/reprotest-0.2-py3-none-any.whl qemu /path/to/qemu.img
-    reprotest 'debuild -b -uc -us' '../reprotest_0.2_all.deb' schroot unstable-amd64
+    reprotest 'python3 setup.py bdist' 'dist/*.tar.gz'
+    reprotest 'python3 setup.py bdist_wheel' 'dist/*.whl' qemu /path/to/qemu.img
+    reprotest 'debuild -b -uc -us' '../*.deb' schroot unstable-amd64
+    reprotest 'debuild -b -uc -us' '../*.deb' -- null -d
+
+When using reprotest from a shell:
+
+If the build command has spaces, you will need to quote them, e.g.
+`reprotest "debuild -b -uc -us" [..]`.
+
+If you want to use several build artifact patterns, you will also
+need to quote them, e.g. `reprotest [..] "*.tar.gz *.tar.xz"`.
+
+If your build artifacts have spaces in their names, you will need to
+quote these twice, e.g. `'"a file with spaces.gz"'` for a single
+artifact or `'"dir 1"/* "dir 2"/*'` for multiple patterns.
+
+For optional arguments, it has:
+
+`--variations`, which accepts a list of possible build variations to
+test, one or more of 'captures_environment', 'domain_host',
+'filesystem', 'home', 'kernel', 'locales', 'path', 'shell', 'time',
+'timezone', 'umask', and 'user_group' (see
+[variations](https://tests.reproducible-builds.org/index_variations.html)
+for more information);
+
+`--dont_vary`, which makes reprotest *not* test any variations in the
+given list (the default is to run all variations);
+
+`--source_root`, which accepts a directory to run the build command
+in and defaults to the current working directory; and
+
+`--verbose`, which will eventually enable more detailed logging.
+
+To get help for the CLI, run `reprotest -h` or `reprotest --help`.
 
 
 Config File

@@ -7,7 +7,6 @@ import configparser
 import logging
 import os
 import pathlib
-import shlex
 import subprocess
 import sys
 import tempfile
@@ -314,14 +313,13 @@ def build(script, source_root, dist_root, artifact_pattern, testbed, artifact_st
     # testbed.execute(['ls', '-l', source_root])
     # testbed.execute(['stat', source_root])
     # testbed.execute(['stat', built_artifact])
-    patterns = " ".join(os.path.join(source_root, part) for part in shlex.split(artifact_pattern))
     testbed.check_exec(
-        ['sh', '-ec', 'mkdir -p "%s" && cp -R -t "%s" %s && touch -d@0 "%s" "%s"/*' %
-        (dist_root, dist_root, patterns, dist_root, dist_root)])
+        ['sh', '-ec', 'mkdir -p "%s" && cd "%s" && cp -R -t "%s" %s && touch -d@0 "%s" "%s"/*' %
+        (dist_root, source_root, dist_root, artifact_pattern, dist_root, dist_root)])
     testbed.command('copyup', (dist_root, artifact_store))
 
 
-def check(build_command, artifact_name, virtual_server_args, source_root,
+def check(build_command, artifact_pattern, virtual_server_args, source_root,
           no_clean_on_error, variations=VARIATIONS):
     # print(virtual_server_args)
     with tempfile.TemporaryDirectory() as temp_dir, \
@@ -345,12 +343,12 @@ def check(build_command, artifact_name, virtual_server_args, source_root,
                     # print(env)
                     # print(tree)
                 build(script.control, tree.control, dist.control,
-                      os.path.join(tree.control, artifact_name),
+                      artifact_pattern,
                       testbed,
                       os.path.join(temp_dir, 'control_artifact/'),
                       env=env.control)
                 build(script.experiment, tree.experiment, dist.experiment,
-                      os.path.join(tree.experiment, artifact_name),
+                      artifact_pattern,
                       testbed,
                       os.path.join(temp_dir, 'experiment_artifact/'),
                       env=env.experiment)
