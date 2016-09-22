@@ -359,7 +359,10 @@ COMMAND_LINE_OPTIONS = types.MappingProxyType(collections.OrderedDict([
                 'pattern such as "*.changes".'})),
     ('virtual_server_args', types.MappingProxyType({
         'default': ["null"], 'nargs': '*',
-        'help': 'Arguments to pass to the virtual_server.'})),
+        'help': 'Arguments to pass to the virtual_server. If this itself '
+                'contains options (of the form -xxx or --xxx), you should put '
+                'a "--" between these arguments and reprotest\'s own options. '
+                'Default: "null", to run directly in /tmp.'})),
     ('--source-root', types.MappingProxyType({
         'dest': 'source_root', 'type': pathlib.Path,
         'help': 'Root of the source tree, if not the '
