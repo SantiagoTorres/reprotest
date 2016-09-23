@@ -365,7 +365,7 @@ def check(build_command, artifact_pattern, virtual_server_args, source_root,
             print("=======================")
             print("Reproduction successful")
             print("=======================")
-            print("No differences in %s" % artifact_pattern)
+            print("No differences in %s" % artifact_pattern, flush=True)
             subprocess.call(['find', '.', '-type', 'f', '-exec', 'sha256sum', '{}', ';'], cwd=result.control)
         else:
             # a slight hack, to trigger no_clean_on_error
