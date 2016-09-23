@@ -9,15 +9,25 @@ import pytest
 import reprotest
 
 REPROTEST = [sys.executable, "-m", "reprotest"]
+REPROTEST_TEST_SERVERS = os.getenv("REPROTEST_TEST_SERVERS", "null").split(",")
+REPROTEST_TEST_DONTVARY = os.getenv("REPROTEST_TEST_DONTVARY", "").split(",")
+
+if REPROTEST_TEST_DONTVARY:
+    REPROTEST += ["--dont-vary", ",".join(REPROTEST_TEST_DONTVARY)]
+
+TEST_VARIATIONS = frozenset(reprotest.VARIATIONS.keys()) - frozenset(REPROTEST_TEST_DONTVARY)
 
 def check_return_code(command, virtual_server, code):
     try:
-        retcode = reprotest.check(command, 'artifact', virtual_server, 'tests')
-        assert(code == retcode)
+        retcode = reprotest.check(command, 'artifact', virtual_server, 'tests', variations=TEST_VARIATIONS)
     except SystemExit as system_exit:
-        assert(system_exit.args[0] == code)
+        retcode = system_exit.args[0]
+    finally:
+        if isinstance(code, int):
+            assert(retcode == code)
+        else:
+            assert(retcode in code)
 
-REPROTEST_TEST_SERVERS = os.getenv("REPROTEST_TEST_SERVERS", "null").split(",")
 @pytest.fixture(scope='module', params=REPROTEST_TEST_SERVERS)
 def virtual_server(request):
     if request.param == 'null':
@@ -30,20 +40,21 @@ def virtual_server(request):
         raise ValueError(request.param)
 
 def test_simple_builds(virtual_server):
-    # mock_build is not expected to reproduce when disorderfs is active, though
-    # we should probably change "1" to int(is_disorderfs_active)
-    check_return_code('python3 mock_build.py', virtual_server, 1)
+    check_return_code('python3 mock_build.py', virtual_server, 0)
     check_return_code('python3 mock_failure.py', virtual_server, 2)
     check_return_code('python3 mock_build.py irreproducible', virtual_server, 1)
 
-@pytest.mark.parametrize('variation', ['fileordering', 'home', 'kernel', 'locales', 'path', 'timezone', 'umask'])
-def test_variations(virtual_server, variation):
-    check_return_code('python3 mock_build.py ' + variation, virtual_server, 1)
+@pytest.mark.parametrize('captures', ['fileordering', 'home', 'kernel', 'locales', 'path', 'timezone', 'umask'])
+def test_variations(virtual_server, captures):
+    expected = 1 if captures in TEST_VARIATIONS else 0
+    check_return_code('python3 mock_build.py ' + captures, virtual_server, expected)
 
 def test_self_build(virtual_server):
-    assert(1 == subprocess.call(REPROTEST + ['python3 setup.py bdist', 'dist/*.tar.gz'] + virtual_server))
     # at time of writing (2016-09-23) these are not expected to reproduce;
-    # strip-nondeterminism normalises them for Debian
+    # if these start failing then you should change 1 == to 0 == but please
+    # figure out which version of setuptools made things reproduce and add a
+    # versioned dependency on that one
+    assert(1 == subprocess.call(REPROTEST + ['python3 setup.py bdist', 'dist/*.tar.gz'] + virtual_server))
     assert(1 == subprocess.call(REPROTEST + ['python3 setup.py sdist 2>/dev/null', 'dist/*.tar.gz'] + virtual_server))
     assert(1 == subprocess.call(REPROTEST + ['python3 setup.py bdist_wheel', 'dist/*.whl'] + virtual_server))
 
