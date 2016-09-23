@@ -7,6 +7,7 @@ import configparser
 import logging
 import os
 import pathlib
+import re
 import subprocess
 import sys
 import tempfile
@@ -294,6 +295,8 @@ def build(script, source_root, dist_root, artifact_pattern, testbed, artifact_st
     print(artifact_pattern)
     # remove any existing artifact, in case the build script doesn't overwrite
     # it e.g. like how make(1) sometimes works.
+    if re.search(r"""(^| )['"]*/""", artifact_pattern):
+        raise ValueError("artifact_pattern is possibly dangerous; refusing to continue")
     testbed.check_exec(
         ['sh', '-ec', 'cd "%s" && rm -rf %s' %
         (source_root, artifact_pattern)])
