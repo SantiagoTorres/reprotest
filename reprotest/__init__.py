@@ -359,13 +359,17 @@ def check(build_command, artifact_pattern, virtual_server_args, source_root,
         except Exception:
             traceback.print_exc()
             return 2
-        subprocess.check_call(['diffoscope', result.control, result.experiment])
-        print("=======================")
-        print("Reproduction successful")
-        print("=======================")
-        print("No differences in %s" % artifact_pattern)
-        subprocess.call(['find', '.', '-type', 'f', '-exec', 'sha256sum', '{}', ';'], cwd=result.control)
-        return 0
+        retcode = subprocess.call(['diffoscope', result.control, result.experiment])
+        if retcode == 0:
+            print("=======================")
+            print("Reproduction successful")
+            print("=======================")
+            print("No differences in %s" % artifact_pattern)
+            subprocess.call(['find', '.', '-type', 'f', '-exec', 'sha256sum', '{}', ';'], cwd=result.control)
+        else:
+            # a slight hack, to trigger no_clean_on_error
+            raise SystemExit(retcode)
+        return retcode
 
 
 COMMAND_LINE_OPTIONS = types.MappingProxyType(collections.OrderedDict([

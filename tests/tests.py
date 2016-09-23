@@ -13,11 +13,13 @@ VERSION = pkg_resources.require('reprotest')[0].version
 
 def check_return_code(command, virtual_server, code):
     try:
-        reprotest.check(command, 'artifact', virtual_server, 'tests')
+        retcode = reprotest.check(command, 'artifact', virtual_server, 'tests')
+        assert(code == retcode)
     except SystemExit as system_exit:
         assert(system_exit.args[0] == code)
 
-@pytest.fixture(scope='module', params=['null' , 'qemu', 'schroot'])
+REPROTEST_TEST_SERVERS = os.getenv("REPROTEST_TEST_SERVERS", "null,qemu,schroot").split(",")
+@pytest.fixture(scope='module', params=REPROTEST_TEST_SERVERS)
 def virtual_server(request):
     if request.param == 'null':
         return [request.param]
@@ -39,9 +41,16 @@ def test_variations(virtual_server, variation):
 
 def test_self_build(virtual_server):
     assert(subprocess.call(['reprotest', 'python3 setup.py bdist', 'dist/reprotest-' + VERSION + '.linux-x86_64.tar.gz'] + virtual_server) == 1)
-    # setup.py complains there's no README.rst, README, or README.txt.
-    # Why that's hard-coded, I have no idea.  This command eats the
-    # error so the build doesn't crash.
-    assert(subprocess.call(['reprotest', 'python3 setup.py sdist 2>/dev/null', 'dist/reprotest-' + VERSION + '.tar.gz'] + virtual_server) == 1)
-    assert(subprocess.call(['reprotest', 'python3 setup.py bdist_wheel', 'dist/reprotest-' + VERSION + '-py3-none-any.whl'] + virtual_server) == 1)
-    assert(subprocess.call(['reprotest', 'debuild -b -uc -us', '../reprotest_' + VERSION + '_all.deb'] + virtual_server) == 1)
+    # at time of writing (2016-09-23) these are not expected to reproduce;
+    # strip-nondeterminism normalises them for Debian
+    assert(1 == subprocess.call(['reprotest', 'python3 setup.py sdist 2>/dev/null', 'dist/*.tar.gz'] + virtual_server))
+    assert(1 == subprocess.call(['reprotest', 'python3 setup.py bdist_wheel', 'dist/*.whl'] + virtual_server))
+    # This is a bit dirty though it works - when building the debian package,
+    # debian/rules will call this, which will call debian/rules, so ../*.deb
+    # gets written twice and the second one is the "real" one, but since it
+    # should all be reproducible, this should be OK.
+    # TODO: don't call it if we don't have debian/, e.g. for other distros
+    assert(0 == subprocess.call(
+        ['reprotest', 'debuild -b -uc -us', '../*.deb'] + virtual_server,
+        # "nocheck" to stop tests recursing into themselves
+        env=dict(list(os.environ.items()) + [("DEB_BUILD_OPTIONS", "nocheck")])))
