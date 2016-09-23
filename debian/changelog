@@ -1,4 +1,4 @@
-reprotest (0.3) UNRELEASED; urgency=medium
+reprotest (0.3) unstable; urgency=medium
 
   [ Daniel Kahn Gillmor ]
   * Add README.md to the binary package. (Closes: #834299)
@@ -12,7 +12,7 @@ reprotest (0.3) UNRELEASED; urgency=medium
   * Fix tests, and run them during the build. disorderfs is disabled for now,
     but only when running the tests via debian/rules.
 
- -- Ximin Luo <infinity0@debian.org>  Fri, 23 Sep 2016 20:22:24 +0200
+ -- Ximin Luo <infinity0@debian.org>  Fri, 23 Sep 2016 20:39:09 +0200
 
 reprotest (0.2) unstable; urgency=medium
 
