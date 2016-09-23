@@ -39,7 +39,7 @@ if __name__ == '__main__':
     if 'kernel' in variations:
         output.append(subprocess.check_output(['uname', '-r']))
     if 'locales' in variations:
-        output.extend(l.encode('ascii') for l in locale.getlocale())
+        output.extend(l.encode('ascii') if l else b'(None)' for l in locale.getlocale())
     if 'path' in variations:
         output.extend(p.encode('ascii') for p in os.get_exec_path())
     if 'timezone' in variations:
