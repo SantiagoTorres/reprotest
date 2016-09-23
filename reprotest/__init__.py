@@ -31,7 +31,7 @@ adtlog.verbosity = 1
 # approaches.
 
 @_contextlib.contextmanager
-def start_testbed(args, temp_dir, no_clean_on_error):
+def start_testbed(args, temp_dir, no_clean_on_error=False):
     '''This is a simple wrapper around adt_testbed that automates the
     initialization and cleanup.'''
     # Find the location of reprotest using setuptools and then get the
@@ -322,7 +322,7 @@ def build(script, source_root, dist_root, artifact_pattern, testbed, artifact_st
 
 
 def check(build_command, artifact_pattern, virtual_server_args, source_root,
-          no_clean_on_error, variations=VARIATIONS):
+          no_clean_on_error=False, variations=VARIATIONS):
     # print(virtual_server_args)
     with tempfile.TemporaryDirectory() as temp_dir, \
          start_testbed(virtual_server_args, temp_dir, no_clean_on_error) as testbed:
