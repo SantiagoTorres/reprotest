@@ -1,3 +1,19 @@
+reprotest (0.3) UNRELEASED; urgency=medium
+
+  [ Daniel Kahn Gillmor ]
+  * Add README.md to the binary package. (Closes: #834299)
+
+  [ Ximin Luo ]
+  * Support pattern matching in the build artifact, which can match more than
+    one build artifact; see README.md for details on using this.
+  * Add a --no-clean-on-error flag so you can analyse anything that failed or
+    did not reproduce.
+  * Don't fail when the build process has stderr. (Closes: #836517)
+  * Fix tests, and run them during the build. disorderfs is disabled for now,
+    but only when running the tests via debian/rules.
+
+ -- Ximin Luo <infinity0@debian.org>  Fri, 23 Sep 2016 20:22:24 +0200
+
 reprotest (0.2) unstable; urgency=medium
 
   * Add support for schroot and qemu.
