@@ -68,8 +68,13 @@ The easiest way to run the tests is with
 [Coverage](https://pypi.python.org/pypi/coverage), and
 [pytest](https://pypi.python.org/pypi/pytest).  (On Debian, this can
 be done with `apt-get install python3-coverage tox python3-pytest`.)
-Next, setup the virtualization servers, for null (no virtualization),
-schroot, and qemu.
+
+To run the tests, go to the root of the repository, where `tox.ini` is
+and run `tox`.  For more verbose output, run `tox -- -s`.
+
+However, this runs the tests with no virtualization. To test that
+reprotest works correctly with virtualization, you'll need to setup
+the virtualization servers schroot and qemu.
 
 Some of the following instructions rely on Debian utilities.  For
 schroot, run `mk-sbuild --debootstrap-include=devscripts stable`.  (If
@@ -101,6 +106,6 @@ For the host system and the two containers, run:
     apt-get install python3 python3-pip
     apt-get install locales-all
 
-Then, clone the repository.  Go to the root of the repository, where
-`tox.ini` is, and run `tox`.  For more verbose output, run `tox --
--s`.
+Now, finally run the tests:
+
+    REPROTEST_TEST_SERVERS=null,qemu,schroot tox -- -s

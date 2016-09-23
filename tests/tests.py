@@ -18,7 +18,7 @@ def check_return_code(command, virtual_server, code):
     except SystemExit as system_exit:
         assert(system_exit.args[0] == code)
 
-REPROTEST_TEST_SERVERS = os.getenv("REPROTEST_TEST_SERVERS", "null,qemu,schroot").split(",")
+REPROTEST_TEST_SERVERS = os.getenv("REPROTEST_TEST_SERVERS", "null").split(",")
 @pytest.fixture(scope='module', params=REPROTEST_TEST_SERVERS)
 def virtual_server(request):
     if request.param == 'null':
