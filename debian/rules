@@ -9,6 +9,9 @@ export PYBUILD_NAME = reprotest
 override_dh_auto_test:
 ifeq (,$(filter nocheck,$(DEB_BUILD_OPTIONS)))
 # FIXME: The patch from #838663 is also required for this to work on pbuilder
+	VIRTUALENV_DOWNLOAD=no \
+	http_proxy=http://127.0.9.1:9 \
+	https_proxy=https://127.0.9.1:9 \
 	TOX_TESTENV_PASSENV=PYTHONIOENCODING PYTHONIOENCODING=utf-8 \
 	REPROTEST_TEST_SERVERS=null tox -r --sitepackages -- -s
 endif
