@@ -10,6 +10,7 @@ Build-Depends: debhelper (>= 9),
  python3-setuptools,
 # tests.py uses debuild from devscripts
  devscripts <!nocheck>,
+ diffoscope <!nocheck>,
 # test this variation as well
  disorderfs <!nocheck>,
  python3-coverage <!nocheck>,

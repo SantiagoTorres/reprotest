@@ -240,7 +240,7 @@ def locales(script, env, tree, testbed):
 @_contextlib.contextmanager
 def path(script, env, tree, testbed):
     new_env = add(env.experiment, 'PATH', env.control['PATH'] +
-                  '/i_capture_the_path')
+                  ':/i_capture_the_path')
     yield script, Pair(env.control, new_env), tree
 
 # This doesn't require superuser privileges, but the chsh command

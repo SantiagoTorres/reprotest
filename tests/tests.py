@@ -3,10 +3,12 @@
 
 import os
 import subprocess
+import sys
 
 import pytest
-
 import reprotest
+
+REPROTEST = [sys.executable, "-m", "reprotest"]
 
 def check_return_code(command, virtual_server, code):
     try:
@@ -39,11 +41,11 @@ def test_variations(virtual_server, variation):
     check_return_code('python3 mock_build.py ' + variation, virtual_server, 1)
 
 def test_self_build(virtual_server):
-    assert(1 == subprocess.call(['reprotest', 'python3 setup.py bdist', 'dist/*.tar.gz'] + virtual_server))
+    assert(1 == subprocess.call(REPROTEST + ['python3 setup.py bdist', 'dist/*.tar.gz'] + virtual_server))
     # at time of writing (2016-09-23) these are not expected to reproduce;
     # strip-nondeterminism normalises them for Debian
-    assert(1 == subprocess.call(['reprotest', 'python3 setup.py sdist 2>/dev/null', 'dist/*.tar.gz'] + virtual_server))
-    assert(1 == subprocess.call(['reprotest', 'python3 setup.py bdist_wheel', 'dist/*.whl'] + virtual_server))
+    assert(1 == subprocess.call(REPROTEST + ['python3 setup.py sdist 2>/dev/null', 'dist/*.tar.gz'] + virtual_server))
+    assert(1 == subprocess.call(REPROTEST + ['python3 setup.py bdist_wheel', 'dist/*.whl'] + virtual_server))
 
 # TODO: don't call it if we don't have debian/, e.g. for other distros
 def test_debian_build(virtual_server):
@@ -52,6 +54,6 @@ def test_debian_build(virtual_server):
     # gets written twice and the second one is the "real" one, but since it
     # should all be reproducible, this should be OK.
     assert(0 == subprocess.call(
-        ['reprotest', 'debuild -b -uc -us', '../*.deb'] + virtual_server,
+        REPROTEST + ['debuild -b -uc -us', '../*.deb'] + virtual_server,
         # "nocheck" to stop tests recursing into themselves
         env=dict(list(os.environ.items()) + [("DEB_BUILD_OPTIONS", "nocheck")])))
