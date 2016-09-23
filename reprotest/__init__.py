@@ -288,12 +288,15 @@ VARIATIONS = types.MappingProxyType(collections.OrderedDict([
 
 
 def build(script, source_root, dist_root, artifact_pattern, testbed, artifact_store, env):
-    # TODO: we should probably `rm -f artifact_pattern` in case the
-    # build script doesn't overwrite like how make(1) sometimes works.
     print(source_root)
     # testbed.execute(['ls', '-l', source_root])
     # testbed.execute(['pwd'])
     print(artifact_pattern)
+    # remove any existing artifact, in case the build script doesn't overwrite
+    # it e.g. like how make(1) sometimes works.
+    testbed.check_exec(
+        ['sh', '-ec', 'cd "%s" && rm -rf %s' %
+        (source_root, artifact_pattern)])
     # cd = _shell_ast.SimpleCommand('', 'cd', _shell_ast.CmdSuffix([source_root]))
     # new_script = (_shell_ast.List([_shell_ast.Term(cd, ';')]) + script)
     cd = _shell_ast.SimpleCommand.make('cd', source_root)
