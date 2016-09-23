@@ -26,6 +26,7 @@ Depends: ${python3:Depends},
  apt-utils,
  libdpkg-perl,
  procps,
+ python3-pkg-resources,
  diffoscope,
  ${misc:Depends}
 Recommends: autodep8, schroot, qemu-system, qemu-utils, disorderfs, locales-all

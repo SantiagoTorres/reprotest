@@ -4,12 +4,9 @@
 import os
 import subprocess
 
-import pkg_resources
 import pytest
 
 import reprotest
-
-VERSION = pkg_resources.require('reprotest')[0].version
 
 def check_return_code(command, virtual_server, code):
     try:
@@ -31,7 +28,9 @@ def virtual_server(request):
         raise ValueError(request.param)
 
 def test_simple_builds(virtual_server):
-    check_return_code('python3 mock_build.py', virtual_server, 0)
+    # mock_build is not expected to reproduce when disorderfs is active, though
+    # we should probably change "1" to int(is_disorderfs_active)
+    check_return_code('python3 mock_build.py', virtual_server, 1)
     check_return_code('python3 mock_failure.py', virtual_server, 2)
     check_return_code('python3 mock_build.py irreproducible', virtual_server, 1)
 
@@ -40,16 +39,18 @@ def test_variations(virtual_server, variation):
     check_return_code('python3 mock_build.py ' + variation, virtual_server, 1)
 
 def test_self_build(virtual_server):
-    assert(subprocess.call(['reprotest', 'python3 setup.py bdist', 'dist/reprotest-' + VERSION + '.linux-x86_64.tar.gz'] + virtual_server) == 1)
+    assert(1 == subprocess.call(['reprotest', 'python3 setup.py bdist', 'dist/*.tar.gz'] + virtual_server))
     # at time of writing (2016-09-23) these are not expected to reproduce;
     # strip-nondeterminism normalises them for Debian
     assert(1 == subprocess.call(['reprotest', 'python3 setup.py sdist 2>/dev/null', 'dist/*.tar.gz'] + virtual_server))
     assert(1 == subprocess.call(['reprotest', 'python3 setup.py bdist_wheel', 'dist/*.whl'] + virtual_server))
+
+# TODO: don't call it if we don't have debian/, e.g. for other distros
+def test_debian_build(virtual_server):
     # This is a bit dirty though it works - when building the debian package,
     # debian/rules will call this, which will call debian/rules, so ../*.deb
     # gets written twice and the second one is the "real" one, but since it
     # should all be reproducible, this should be OK.
-    # TODO: don't call it if we don't have debian/, e.g. for other distros
     assert(0 == subprocess.call(
         ['reprotest', 'debuild -b -uc -us', '../*.deb'] + virtual_server,
         # "nocheck" to stop tests recursing into themselves

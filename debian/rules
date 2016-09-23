@@ -8,5 +8,6 @@ export PYBUILD_NAME = reprotest
 
 override_dh_auto_test:
 ifeq (,$(filter nocheck,$(DEB_BUILD_OPTIONS)))
-	REPROTEST_TEST_SERVERS=null tox -- -s
+# FIXME: doesn't work on pbuilder atm, tox wants network even with --sitepackages for some reason >:[
+	REPROTEST_TEST_SERVERS=null tox -r --sitepackages -- -s
 endif
