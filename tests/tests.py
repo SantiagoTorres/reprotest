@@ -55,7 +55,7 @@ def test_self_build(virtual_server):
     # figure out which version of setuptools made things reproduce and add a
     # versioned dependency on that one
     assert(1 == subprocess.call(REPROTEST + ['python3 setup.py bdist', 'dist/*.tar.gz'] + virtual_server))
-    assert(1 == subprocess.call(REPROTEST + ['python3 setup.py sdist 2>/dev/null', 'dist/*.tar.gz'] + virtual_server))
+    assert(1 == subprocess.call(REPROTEST + ['python3 setup.py sdist; sleep 2', 'dist/*.tar.gz'] + virtual_server))
     assert(1 == subprocess.call(REPROTEST + ['python3 setup.py bdist_wheel', 'dist/*.whl'] + virtual_server))
 
 # TODO: don't call it if we don't have debian/, e.g. for other distros

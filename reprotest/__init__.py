@@ -141,6 +141,8 @@ class Script(collections.namedtuple('_Script', 'build_command setup cleanup')):
 # time zone, locales, disorderfs, host name, user/group, shell, CPU
 # number, architecture for uname (using linux64), umask, HOME, see
 # also: https://tests.reproducible-builds.org/index_variations.html
+# TODO: the below ideally should *read the current value*, and pick
+# something that's different for the experiment.
 
 # TODO: relies on a pbuilder-specific command to parallelize
 # @_contextlib.contextmanager
@@ -225,11 +227,12 @@ def kernel(script, env, tree, testbed):
 @_contextlib.contextmanager
 def locales(script, env, tree, testbed):
     # env1['LANG'] = 'C'
-    new_env = add(add(env.experiment, 'LANG', 'fr_CH.UTF-8'),
-                  'LC_ALL', 'fr_CH.UTF-8')
+    new_control = add(env.control, 'LC_ALL', 'C')
+    new_experiment = add(add(env.experiment, 'LANG', 'fr_CH.UTF-8'),
+                         'LC_ALL', 'fr_CH.UTF-8')
     # env1['LANGUAGE'] = 'en_US:en'
     # env2['LANGUAGE'] = 'fr_CH:fr'
-    yield script, Pair(env.control, new_env), tree
+    yield script, Pair(new_control, new_experiment), tree
 
 # TODO: Linux-specific.  unshare --uts requires superuser privileges.
 # How is this related to host/domainname?
@@ -264,9 +267,11 @@ def umask(script, env, tree, testbed):
     # umask = _shell_ast.SimpleCommand('', 'umask', _shell_ast.CmdSuffix(['0002']))
     # new_script = (_shell_ast.List([_shell_ast.Term(umask, ';')])
     #               + script.experiment)
-    umask = _shell_ast.SimpleCommand.make('umask', '0002')
-    new_script = script.experiment.append_setup(umask)
-    yield Pair(script.control, new_script), env, tree
+    new_control = script.control.append_setup(
+        _shell_ast.SimpleCommand.make('umask', '0022'))
+    new_experiment = script.experiment.append_setup(
+        _shell_ast.SimpleCommand.make('umask', '0002'))
+    yield Pair(new_control, new_experiment), env, tree
 
 # TODO: This requires superuser privileges.
 @_contextlib.contextmanager
