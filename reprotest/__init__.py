@@ -306,10 +306,11 @@ def build(script, source_root, dist_root, artifact_pattern, testbed, artifact_st
     # new_script = new_script.append_cleanup(cd2)
     print(new_script)
     # exit_code, stdout, stderr = testbed.execute(['sh', '-ec', str(new_script)], xenv=[str(k) + '=' + str(v) for k, v in env.items()], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    testbed.check_exec(
-        ['sh', '-ec', str(new_script)],
-        xenv=[str(k) + '=' + str(v) for k, v in env.items()],
-        kind='build')
+    argv = ['sh', '-ec', str(new_script)]
+    (code, _, _) = testbed.execute(
+        argv, xenv=['%s=%s' % (k, v) for k, v in env.items()], kind='build')
+    if code != 0:
+        testbed.bomb('"%s" failed with status %i' % (' '.join(argv), code), adtlog.AutopkgtestError)
     # exit_code, stdout, stderr = testbed.execute(['lsof', source_root], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     # print(exit_code, stdout, stderr)
     # testbed.execute(['ls', '-l', source_root])
