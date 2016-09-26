@@ -334,7 +334,7 @@ def build(script, source_root, dist_root, artifact_pattern, testbed, artifact_st
 
 
 def check(build_command, artifact_pattern, virtual_server_args, source_root,
-          no_clean_on_error=False, variations=VARIATIONS):
+          no_clean_on_error=False, variations=VARIATIONS, diffoscope_args=[]):
     # print(virtual_server_args)
     with tempfile.TemporaryDirectory() as temp_dir, \
          start_testbed(virtual_server_args, temp_dir, no_clean_on_error) as testbed:
@@ -371,7 +371,9 @@ def check(build_command, artifact_pattern, virtual_server_args, source_root,
         except Exception:
             traceback.print_exc()
             return 2
-        retcode = subprocess.call(['diffoscope', result.control, result.experiment])
+        diffoscope = ['diffoscope', result.control, result.experiment] + diffoscope_args
+        print("Running diffoscope: ", diffoscope)
+        retcode = subprocess.call(diffoscope)
         if retcode == 0:
             print("=======================")
             print("Reproduction successful")
@@ -402,6 +404,9 @@ COMMAND_LINE_OPTIONS = types.MappingProxyType(collections.OrderedDict([
         'dest': 'source_root', 'type': pathlib.Path,
         'help': 'Root of the source tree, if not the '
         'current working directory.'})),
+    ('--diffoscope-arg', types.MappingProxyType({
+        'default': [], 'action': 'append',
+        'help': 'Give extra arguments to diffoscope when running it.'})),
     ('--variations', types.MappingProxyType({
         'type': lambda s: frozenset(s.split(',')),
         'default': frozenset(VARIATIONS.keys()),
@@ -489,6 +494,7 @@ def main():
     no_clean_on_error = command_line_options.get(
         'no_clean_on_error',
         config_options.get('no_clean_on_error'))
+    diffoscope_args = command_line_options.get('diffoscope_arg')
     # The default is to try all variations.
     variations = frozenset(VARIATIONS.keys())
     if 'variations' in config_options:
@@ -518,4 +524,5 @@ def main():
         format='%(message)s', level=30-10*verbosity, stream=sys.stdout)
 
     # print(build_command, artifact, virtual_server_args)
-    sys.exit(check(build_command, artifact, virtual_server_args, source_root, no_clean_on_error, variations))
+    sys.exit(check(build_command, artifact, virtual_server_args, source_root,
+                   no_clean_on_error, variations, diffoscope_args))
