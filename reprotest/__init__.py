@@ -334,7 +334,9 @@ def build(script, source_root, dist_root, artifact_pattern, testbed, artifact_st
 
 
 def check(build_command, artifact_pattern, virtual_server_args, source_root,
-          no_clean_on_error=False, variations=VARIATIONS, diffoscope_args=[]):
+          no_clean_on_error=False, variations=VARIATIONS, diffoscope_args=None):
+    if diffoscope_args is None:
+        diffoscope_args = []
     # print(virtual_server_args)
     with tempfile.TemporaryDirectory() as temp_dir, \
          start_testbed(virtual_server_args, temp_dir, no_clean_on_error) as testbed:
