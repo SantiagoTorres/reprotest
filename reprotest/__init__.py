@@ -25,6 +25,18 @@ from reprotest import _shell_ast
 adtlog.verbosity = 1
 
 
+def get_server_path(server_name):
+    return pkg_resources.resource_filename(__name__, os.path.join("virt", server_name))
+
+def is_executable(parent, fn):
+    path = os.path.join(parent, fn)
+    return os.path.isfile(path) and os.access(path, os.X_OK)
+
+def get_all_servers():
+    server_dir = get_server_path("")
+    return sorted(fn for fn in os.listdir(server_dir) if is_executable(server_dir, fn))
+
+
 # chroot is the only form of OS virtualization that's available on
 # most POSIX OSes.  Linux containers (lxc) and namespaces are specific
 # to Linux.  Some versions of BSD have jails (MacOS X?).  There are a
@@ -37,8 +49,7 @@ def start_testbed(args, temp_dir, no_clean_on_error=False):
     initialization and cleanup.'''
     # Find the location of reprotest using setuptools and then get the
     # path for the correct virt-server script.
-    server_path = pkg_resources.resource_filename(__name__, 'virt/' +
-                                                  args[0])
+    server_path = get_server_path(args[0])
     print('VIRTUAL SERVER', [server_path] + args[1:])
     testbed = adt_testbed.Testbed([server_path] + args[1:], temp_dir, None)
     testbed.start()
@@ -398,10 +409,18 @@ COMMAND_LINE_OPTIONS = types.MappingProxyType(collections.OrderedDict([
                 'pattern such as "*.deb *.changes".'})),
     ('virtual_server_args', types.MappingProxyType({
         'default': ["null"], 'nargs': '*',
-        'help': 'Arguments to pass to the virtual_server. If this itself '
-                'contains options (of the form -xxx or --xxx), you should put '
-                'a "--" between these arguments and reprotest\'s own options. '
+        'help': 'Arguments to pass to the virtual_server, the first argument '
+                'being the name of the server. If this itself contains options '
+                '(of the form -xxx or --xxx), you should put a "--" between '
+                'these arguments and reprotest\'s own options. '
                 'Default: "null", to run directly in /tmp.'})),
+    ('--help', types.MappingProxyType({
+        'dest': 'help', 'default': None, 'const': True, 'nargs': '?',
+        'choices': get_all_servers(),
+        'metavar': 'VIRTUAL_SERVER_NAME',
+        'help': 'Show this help message and exit. When given an argument, '
+        'show instead the help message for that virtual server and exit. '
+        'Choices: %(choices)s'})),
     ('--source-root', types.MappingProxyType({
         'dest': 'source_root', 'type': pathlib.Path,
         'help': 'Root of the source tree, if not the '
@@ -461,11 +480,17 @@ def config():
 def command_line():
     arg_parser = argparse.ArgumentParser(
         description='Build packages and check them for reproducibility.',
-        formatter_class=argparse.RawDescriptionHelpFormatter)
+        formatter_class=argparse.RawDescriptionHelpFormatter, add_help=False)
     for option in COMMAND_LINE_OPTIONS:
         arg_parser.add_argument(option, **COMMAND_LINE_OPTIONS[option])
     args = arg_parser.parse_args()
     # print(args)
+    if args.help:
+        if args.help == True:
+            arg_parser.print_help()
+            sys.exit(0)
+        else:
+            sys.exit(subprocess.call([get_server_path(args.help), "-h"]))
 
     return types.MappingProxyType({k:v for k, v in vars(args).items() if v is not None})
 
@@ -514,7 +539,7 @@ def main():
         config_options.get('verbosity', 0))
 
     if not build_command:
-        print("No build command provided.")
+        print("No build command provided. See --help for options.")
         sys.exit(2)
     if not artifact:
         print("No build artifact to test for differences provided.")
