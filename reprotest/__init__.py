@@ -425,11 +425,13 @@ def check(build_command, artifact_pattern, virtual_server_args, source_root,
 COMMAND_LINE_OPTIONS = types.MappingProxyType(collections.OrderedDict([
     ('build_command', types.MappingProxyType({
         'default': None, 'nargs': '?', # 'type': str.split
-        'help': 'Build command to execute.'})),
+        'help': 'Build command to execute, or "auto" to guess this.'})),
     ('artifact', types.MappingProxyType({
         'default': None, 'nargs': '?',
         'help': 'Build artifact to test for reproducibility. May be a shell '
-                'pattern such as "*.deb *.changes".'})),
+                'pattern such as "*.deb *.changes". However, if you chose '
+                '"auto" as the build_command then this is not the artifact but '
+                'instead the source to build, e.g. "." or some other path.'})),
     ('virtual_server_args', types.MappingProxyType({
         'default': ["null"], 'nargs': '*',
         'help': 'Arguments to pass to the virtual_server, the first argument '
@@ -602,6 +604,7 @@ def main():
     testbed_init = command_line_options.get("testbed_init")
 
     if build_command == 'auto':
+        source_root = os.path.dirname(artifact)
         auto_preset_expr = command_line_options.get("auto_preset_expr")
         values = presets.get_presets(artifact, virtual_server_args[0])
         values = eval(auto_preset_expr, {'_':values}, {})

@@ -64,8 +64,8 @@ PRESET_DEB_DIR = ReprotestPreset(
 )
 
 def preset_deb_schroot(preset):
-    return preset.prepend.build_command(
-        'PATH=/sbin:/usr/sbin:$PATH apt-get -y --no-install-recommends build-dep ./; '
+    return preset.str_replace.build_command("dpkg-buildpackage",
+        'PATH=/sbin:/usr/sbin:$PATH apt-get -y --no-install-recommends build-dep ./; dpkg-buildpackage'
     ).set.testbed_init(
         'apt-get -y --no-install-recommends install util-linux disorderfs 2>/dev/null; \
         test -c /dev/fuse || mknod -m 666 /dev/fuse c 10 229'
