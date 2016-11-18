@@ -425,13 +425,14 @@ def check(build_command, artifact_pattern, virtual_server_args, source_root,
 COMMAND_LINE_OPTIONS = types.MappingProxyType(collections.OrderedDict([
     ('build_command', types.MappingProxyType({
         'default': None, 'nargs': '?', # 'type': str.split
-        'help': 'Build command to execute, or "auto" to guess this.'})),
+        'help': 'Build command to execute, or "auto" to guess this - in '
+                'the latter case then the subsequent argument will not be '
+                'interpreted as an artifact but rather as the source to build, '
+                'e.g. "." or some other path.'})),
     ('artifact', types.MappingProxyType({
         'default': None, 'nargs': '?',
         'help': 'Build artifact to test for reproducibility. May be a shell '
-                'pattern such as "*.deb *.changes". However, if you chose '
-                '"auto" as the build_command then this is not the artifact but '
-                'instead the source to build, e.g. "." or some other path.'})),
+                'pattern such as "*.deb *.changes".'})),
     ('virtual_server_args', types.MappingProxyType({
         'default': ["null"], 'nargs': '*',
         'help': 'Arguments to pass to the virtual_server, the first argument '
@@ -446,6 +447,9 @@ COMMAND_LINE_OPTIONS = types.MappingProxyType(collections.OrderedDict([
         'metavar': 'VIRTUAL_SERVER_NAME',
         'help': 'Show this help message and exit. When given an argument, '
         'show instead the help message for that virtual server and exit. '})),
+    ('--verbosity', types.MappingProxyType({
+        'type': int, 'default': 0,
+        'help': 'An integer.  Control which messages are displayed.'})),
     ('--source-root', types.MappingProxyType({
         'dest': 'source_root', 'type': pathlib.Path,
         'help': 'Root of the source tree, if not the '
@@ -464,12 +468,9 @@ COMMAND_LINE_OPTIONS = types.MappingProxyType(collections.OrderedDict([
         'default': "_", 'metavar': 'PYTHON_EXPRESSION',
         'help': 'This may be used to transform the presets returned by the '
         'auto-detection feature. The value should be a python expression '
-        'that transforms the _ variable, which is a value of type '
-        'reprotest.presets.ReprotestPreset. See that class\'s documentation '
-        'for ways you can write this expression. Default: %(default)s'})),
-    ('--diffoscope-arg', types.MappingProxyType({
-        'default': [], 'action': 'append',
-        'help': 'Give extra arguments to diffoscope when running it.'})),
+        'that transforms the _ variable, which is of type reprotest.presets.ReprotestPreset. '
+        'See that class\'s documentation for ways you can write this '
+        'expression. Default: %(default)s'})),
     ('--variations', types.MappingProxyType({
         'type': lambda s: frozenset(s.split(',')),
         'default': frozenset(VARIATIONS.keys()),
@@ -485,6 +486,9 @@ COMMAND_LINE_OPTIONS = types.MappingProxyType(collections.OrderedDict([
         'list (without spaces).  These take precedence over what '
         'you set for "variations". Default is nothing, i.e. test '
         'whatever you set for "variations".'})),
+    ('--diffoscope-arg', types.MappingProxyType({
+        'default': [], 'action': 'append',
+        'help': 'Give extra arguments to diffoscope when running it.'})),
     ('--no-diffoscope', types.MappingProxyType({
         'action': 'store_true', 'default': False,
         'help': 'Don\'t run diffoscope; instead run diff(1). Useful if you '
@@ -496,9 +500,6 @@ COMMAND_LINE_OPTIONS = types.MappingProxyType(collections.OrderedDict([
         'help': 'Don\'t clean the virtual_server if there was an error. '
                 'Useful for debugging, but WARNING: this is currently not '
                 'implemented very well and may leave cruft on your system.'})),
-    ('--verbosity', types.MappingProxyType({
-        'type': int, 'default': 0,
-        'help': 'An integer.  Control which messages are displayed.'}))
     ]))
 
 MULTIPLET_OPTIONS = frozenset(['build_command', 'dont_vary',
