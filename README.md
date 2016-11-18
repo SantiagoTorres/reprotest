@@ -4,7 +4,8 @@ Command Line Interface
 The easiest way to run reprotest is via our presets:
 
     # Build the current directory in a null server (/tmp)
-    reprotest auto . -- null -d
+    reprotest auto .
+    reprotest auto . -- null -d # for more verbose output
 
     # Build the given Debian source package in an schroot
     # See https://wiki.debian.org/sbuild for instructions on setting that up.
