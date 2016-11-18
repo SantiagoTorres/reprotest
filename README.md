@@ -53,6 +53,11 @@ TODO: fix this, e.g. by copying what sbuild does / running sbuild. In
 particular, the above example command installs devscripts and other unnecessary
 dependencies which might pollute the build, so it is not the ideal method.
 
+TODO: also the command is run *after* setting up the variations, which is why
+we need to disable the fileordering/kernel variations above - they use
+disorderfs and /usr/bin/linux64 (from util-linux) which aren't available even
+if we add "apt-get install disorderfs util-linux" into the build command.
+
 
 Config File
 ===========
