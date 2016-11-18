@@ -10,6 +10,10 @@ export PYBUILD_NAME = reprotest
 # The build user needs fuse access and this is not easily arranged.
 export REPROTEST_TEST_DONTVARY = fileordering
 
+override_dh_auto_configure:
+	test $$(python3 setup.py --version) = $$(dpkg-parsechangelog -SVersion)
+	dh_auto_configure
+
 override_dh_auto_test:
 ifeq (,$(filter nocheck,$(DEB_BUILD_OPTIONS)))
 	VIRTUALENV_DOWNLOAD=no \
