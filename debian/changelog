@@ -1,4 +1,4 @@
-reprotest (0.3.3) UNRELEASED; urgency=medium
+reprotest (0.4) UNRELEASED; urgency=medium
 
   * Document virtual servers and caveats better.
   * Add a --help [virtual server] option.
