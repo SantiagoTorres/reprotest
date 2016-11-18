@@ -222,14 +222,15 @@ def home(script, env, tree, testbed):
 # https://en.wikipedia.org/wiki/Uname
 @_contextlib.contextmanager
 def kernel(script, env, tree, testbed):
+    # set these two explicitly different. otherwise, when reprotest is
+    # reprotesting itself, then one of the builds will fail its tests, because
+    # its two child reprotests will see the same value for "uname" but the
+    # tests expect different values.
     setarch = _shell_ast.SimpleCommand.make('linux64', '--uname-2.6')
-    # setarch = _shell_ast.SimpleCommand(
-    #     '', 'linux64', _shell_ast.CmdSuffix(
-    #         ['--uname-2.6', script.experiment[0].command]))
-    # new_script = (script.experiment[:-1] +
-    #               _shell_ast.List([_shell_ast.Term(setarch, ';')]))
-    new_script = script.experiment.append_command(setarch)
-    yield Pair(script.control, new_script), env, tree
+    setarch2 = _shell_ast.SimpleCommand.make('linux32')
+    new_control = script.control.append_command(setarch)
+    new_experiment = script.experiment.append_command(setarch2)
+    yield Pair(new_control, new_experiment), env, tree
 
 # TODO: if this locale doesn't exist on the system, Python's
 # locales.getlocale() will return (None, None) rather than this
