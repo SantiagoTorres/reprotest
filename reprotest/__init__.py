@@ -101,6 +101,8 @@ class Script(collections.namedtuple('_Script', 'build_command setup cleanup')):
 
     def __new__(cls, build_command, setup=_shell_ast.AndList(),
                 cleanup=_shell_ast.List()):
+        build_command = _shell_ast.SimpleCommand(
+            "sh", "-ec", _shell_ast.Quote(build_command))
         return super().__new__(cls, build_command, setup, cleanup)
 
     def append_command(self, command):
