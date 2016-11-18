@@ -450,7 +450,10 @@ COMMAND_LINE_OPTIONS = types.MappingProxyType(collections.OrderedDict([
         'whatever you set for "variations".'})),
     ('--no-diffoscope', types.MappingProxyType({
         'action': 'store_true', 'default': False,
-        'help': 'Don\'t run diffoscope.'})),
+        'help': 'Don\'t run diffoscope; instead run diff(1). Useful if you '
+        'don\'t want to install diffoscope and/or just want a quick answer '
+        'on whether the reproduction was successful or not, without spending '
+        'time to compute all the detailed differences.'})),
     ('--no-clean-on-error', types.MappingProxyType({
         'action': 'store_true', 'default': False,
         'help': 'Don\'t clean the virtual_server if there was an error. '

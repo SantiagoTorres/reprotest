@@ -1,5 +1,7 @@
 reprotest (0.3.3) UNRELEASED; urgency=medium
 
+  * Document virtual servers and caveats better.
+  * Add a --help [virtual server] option.
   * Add a --no-diffoscope option. (Closes: #844512)
 
  -- Ximin Luo <infinity0@debian.org>  Fri, 18 Nov 2016 17:13:49 +0100
