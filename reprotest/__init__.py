@@ -32,9 +32,13 @@ def is_executable(parent, fn):
     path = os.path.join(parent, fn)
     return os.path.isfile(path) and os.access(path, os.X_OK)
 
+all_servers = None
 def get_all_servers():
-    server_dir = get_server_path("")
-    return sorted(fn for fn in os.listdir(server_dir) if is_executable(server_dir, fn))
+    global all_servers
+    if all_servers is None:
+        server_dir = get_server_path("")
+        all_servers = sorted(fn for fn in os.listdir(server_dir) if is_executable(server_dir, fn))
+    return all_servers
 
 
 # chroot is the only form of OS virtualization that's available on
@@ -418,14 +422,14 @@ COMMAND_LINE_OPTIONS = types.MappingProxyType(collections.OrderedDict([
                 'being the name of the server. If this itself contains options '
                 '(of the form -xxx or --xxx), you should put a "--" between '
                 'these arguments and reprotest\'s own options. '
-                'Default: "null", to run directly in /tmp.'})),
+                'Default: "null", to run directly in /tmp. Choices: %s' %
+                ', '.join(get_all_servers())})),
     ('--help', types.MappingProxyType({
         'dest': 'help', 'default': None, 'const': True, 'nargs': '?',
         'choices': get_all_servers(),
         'metavar': 'VIRTUAL_SERVER_NAME',
         'help': 'Show this help message and exit. When given an argument, '
-        'show instead the help message for that virtual server and exit. '
-        'Choices: %(choices)s'})),
+        'show instead the help message for that virtual server and exit. '})),
     ('--source-root', types.MappingProxyType({
         'dest': 'source_root', 'type': pathlib.Path,
         'help': 'Root of the source tree, if not the '

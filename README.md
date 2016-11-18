@@ -29,15 +29,14 @@ Running in a virtual server
 ===========================
 
 You can also run the build inside what is called a "virtual server". This could
-be a container, a chroot, etc. There are different ones available, look under
-reprotest/virt (or $PYTHONPATH/reprotest/virt) for a full list. You run them
-like this:
+be a container, a chroot, etc. There are different ones available, see `--help`
+full list. You run them like this:
 
     reprotest 'python3 setup.py bdist_wheel' 'dist/*.whl' qemu /path/to/qemu.img
     reprotest 'debuild -b -uc -us' '../*.deb' schroot unstable-amd64
 
-You can run `reprotest/virt/$SERVER --help` for a full list of options.
-TODO: add these to reprotest's `--help`.
+You can also run `reprotest --help <virtual_server_name>` for a full list of
+options for that particular virtual server.
 
 Unfortunately we currently don't set up build dependencies inside the virtual
 server so you will have to either do that yourself before running reprotest,
