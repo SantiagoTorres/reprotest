@@ -318,7 +318,7 @@ def build(script, source_root, dist_root, artifact_pattern, testbed, artifact_st
     # remove any existing artifact, in case the build script doesn't overwrite
     # it e.g. like how make(1) sometimes works.
     if re.search(r"""(^| )['"]*/""", artifact_pattern):
-        raise ValueError("artifact_pattern is possibly dangerous; refusing to continue")
+        raise ValueError("artifact_pattern is possibly dangerous; maybe use a relative path instead?")
     testbed.check_exec(
         ['sh', '-ec', 'cd "%s" && rm -rf %s' %
         (source_root, artifact_pattern)])
