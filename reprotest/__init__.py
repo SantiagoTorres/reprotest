@@ -8,6 +8,7 @@ import logging
 import os
 import pathlib
 import re
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -351,12 +352,17 @@ def build(script, source_root, dist_root, artifact_pattern, testbed, artifact_st
 
 
 def check(build_command, artifact_pattern, virtual_server_args, source_root,
-          no_clean_on_error=False, variations=VARIATIONS, diffoscope_args=[]):
+          no_clean_on_error=False, variations=VARIATIONS, diffoscope_args=[],
+          testbed_pre=None, testbed_init=None):
     # default argument [] is safe here because we never mutate it.
     # print(virtual_server_args)
     with tempfile.TemporaryDirectory() as temp_dir, \
          start_testbed(virtual_server_args, temp_dir, no_clean_on_error) as testbed:
-        script = Pair(Script(build_command), Script(build_command))
+        script = Script(build_command)
+        if testbed_init:
+            script = script.append_setup(_shell_ast.SimpleCommand(
+                "sh", "-ec", _shell_ast.Quote(testbed_init)))
+        script = Pair(script, script)
         env = Pair(types.MappingProxyType(os.environ.copy()),
                    types.MappingProxyType(os.environ.copy()))
         # TODO, why?: directories need explicit '/' appended for VirtSubproc
@@ -364,8 +370,14 @@ def check(build_command, artifact_pattern, virtual_server_args, source_root,
         dist = Pair(testbed.scratch + '/control-dist/', testbed.scratch + '/experiment-dist/')
         result = Pair(os.path.join(temp_dir, 'control_artifact/'),
                       os.path.join(temp_dir, 'experiment_artifact/'))
-        testbed.command('copydown', (str(source_root) + '/', tree.control))
-        testbed.command('copydown', (str(source_root) + '/', tree.experiment))
+        source_root = str(source_root)
+        if testbed_pre:
+            new_source_root = os.path.join(temp_dir, "testbed_pre")
+            shutil.copytree(source_root, new_source_root, symlinks=True)
+            subprocess.check_call(["sh", "-ec", testbed_pre], cwd=new_source_root)
+            source_root = new_source_root
+        testbed.command('copydown', (source_root + '/', tree.control))
+        testbed.command('copydown', (source_root + '/', tree.experiment))
         # print(source_root)
         try:
             with _contextlib.ExitStack() as stack:
@@ -434,6 +446,16 @@ COMMAND_LINE_OPTIONS = types.MappingProxyType(collections.OrderedDict([
         'dest': 'source_root', 'type': pathlib.Path,
         'help': 'Root of the source tree, if not the '
         'current working directory.'})),
+    ('--testbed-pre', types.MappingProxyType({
+        'default': None, 'metavar': 'COMMANDS',
+        'help': 'Shell commands to run before starting the test bed, in the '
+        'context of the current system environment. This may be used to e.g. '
+        'compute information needed by the build, where the computation needs '
+        'packages you don\'t want installed in the testbed itself.'})),
+    ('--testbed-init', types.MappingProxyType({
+        'default': None, 'metavar': 'COMMANDS',
+        'help': 'Shell commands to run after starting the test bed, but before '
+        'applying variations. Used to e.g. install disorderfs in a chroot.'})),
     ('--diffoscope-arg', types.MappingProxyType({
         'default': [], 'action': 'append',
         'help': 'Give extra arguments to diffoscope when running it.'})),
@@ -567,6 +589,10 @@ def main():
     logging.basicConfig(
         format='%(message)s', level=30-10*verbosity, stream=sys.stdout)
 
+    testbed_pre = command_line_options.get("testbed_pre")
+    testbed_init = command_line_options.get("testbed_init")
+
     # print(build_command, artifact, virtual_server_args)
     sys.exit(check(build_command, artifact, virtual_server_args, source_root,
-                   no_clean_on_error, variations, diffoscope_args))
+                   no_clean_on_error, variations, diffoscope_args,
+                   testbed_pre, testbed_init))
