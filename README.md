@@ -7,8 +7,6 @@ build. Here are some sample invocations for running reprotest on
 itself:
 
     reprotest 'python3 setup.py bdist' 'dist/*.tar.gz'
-    reprotest 'python3 setup.py bdist_wheel' 'dist/*.whl' qemu /path/to/qemu.img
-    reprotest 'debuild -b -uc -us' '../*.deb' schroot unstable-amd64
     reprotest 'debuild -b -uc -us' '../*.deb' -- null -d
 
 When using reprotest from a shell:
@@ -25,6 +23,35 @@ artifact or `'"dir 1"/* "dir 2"/*'` for multiple patterns.
 
 To get more help for the CLI, including documentation on optional
 arguments and what they do, run `reprotest --help`.
+
+
+Running in a virtual server
+===========================
+
+You can also run the build inside what is called a "virtual server". This could
+be a container, a chroot, etc. There are different ones available, look under
+reprotest/virt (or $PYTHONPATH/reprotest/virt) for a full list. You run them
+like this:
+
+    reprotest 'python3 setup.py bdist_wheel' 'dist/*.whl' qemu /path/to/qemu.img
+    reprotest 'debuild -b -uc -us' '../*.deb' schroot unstable-amd64
+
+You can run `reprotest/virt/$SERVER --help` for a full list of options.
+TODO: add these to reprotest's `--help`.
+
+Unfortunately we currently don't set up build dependencies inside the virtual
+server so you will have to either do that yourself before running reprotest,
+or by giving the set-up command to reprotest manually. For example:
+
+    reprotest --dont-vary=fileordering,kernel \
+        'PATH=/sbin:/usr/sbin:$PATH apt-get install --no-install-recommends -y devscripts equivs;\
+         PATH=/sbin:/usr/sbin:$PATH mk-build-deps -t "apt-get --no-install-recommends -y" -ir;\
+         debuild -b -uc -us' '../*.deb' \
+         schroot unstable-amd64-sbuild
+
+TODO: fix this, e.g. by copying what sbuild does / running sbuild. In
+particular, the above example command installs devscripts and other unnecessary
+dependencies which might pollute the build, so it is not the ideal method.
 
 
 Config File
