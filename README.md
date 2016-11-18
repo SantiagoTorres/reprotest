@@ -1,15 +1,27 @@
 Command Line Interface
 ======================
 
-reprotest's CLI takes two mandatory arguments, the build command to
-run and the build artifact file/pattern to test after running the
-build. Here are some sample invocations for running reprotest on
-itself:
+The easiest way to run reprotest is via our presets:
+
+    # Build the current directory in a null server (/tmp)
+    reprotest auto . -- null -d
+
+    # Build the given Debian source package in an schroot
+    # See https://wiki.debian.org/sbuild for instructions on setting that up.
+    reprotest auto reprotest_0.3.3.dsc -- schroot unstable-amd64-sbuild
+
+Currently, we only support this for Debian packages, but are keen on adding
+more. If we don't have knowledge on how to build your file or directory, you
+can send a patch to us on adding this intelligence - see the reprotest.presets
+python module, and adapt the existing logic.
+
+Before that happens, you can use the more advanced CLI to build arbitrary
+things. This takes two mandatory arguments, the build command to run and the
+build artifact file/pattern to test after running the build. For example:
 
     reprotest 'python3 setup.py bdist' 'dist/*.tar.gz'
-    reprotest 'debuild -b -uc -us' '../*.deb' -- null -d
 
-When using reprotest from a shell:
+When using this from a shell:
 
 If the build command has spaces, you will need to quote them, e.g.
 `reprotest "debuild -b -uc -us" [..]`.
@@ -22,7 +34,10 @@ quote these twice, e.g. `'"a file with spaces.gz"'` for a single
 artifact or `'"dir 1"/* "dir 2"/*'` for multiple patterns.
 
 To get more help for the CLI, including documentation on optional
-arguments and what they do, run `reprotest --help`.
+arguments and what they do, run:
+
+    reprotest --help
+    reprotest --help schroot
 
 
 Running in a virtual server
@@ -38,24 +53,37 @@ full list. You run them like this:
 You can also run `reprotest --help <virtual_server_name>` for a full list of
 options for that particular virtual server.
 
-Unfortunately we currently don't set up build dependencies inside the virtual
-server so you will have to either do that yourself before running reprotest,
-or by giving the set-up command to reprotest manually. For example:
+You will probably have to give extra commands to reprotest, in order to set up
+your build dependencies inside the virtual server. For example, to take you
+through what the "Debian directory" preset would look like, if we ran it via
+the advanced CLI:
 
-    reprotest --dont-vary=fileordering,kernel \
-        'PATH=/sbin:/usr/sbin:$PATH apt-get install --no-install-recommends -y devscripts equivs;\
-         PATH=/sbin:/usr/sbin:$PATH mk-build-deps -t "apt-get --no-install-recommends -y" -ir;\
-         debuild -b -uc -us' '../*.deb' \
-         schroot unstable-amd64-sbuild
+    reprotest auto . -- schroot unstable-amd64-sbuild
+    # equivalent to:
+    reprotest \
+        --testbed-init 'apt-get -y --no-install-recommends install \
+                        util-linux disorderfs 2>/dev/null; \
+                        test -c /dev/fuse || mknod -m 666 /dev/fuse c 10 229' \
+        'PATH=/sbin:/usr/sbin:$PATH apt-get -y --no-install-recommends build-dep ./; \
+         dpkg-buildpackage -uc -us -b' \
+        '../*.deb' \
+        -- \
+        schroot unstable-amd64-sbuild
 
-TODO: fix this, e.g. by copying what sbuild does / running sbuild. In
-particular, the above example command installs devscripts and other unnecessary
-dependencies which might pollute the build, so it is not the ideal method.
+The `--testbed-init` argument is needed to set up basic tools, which reprotest
+needs in order to make the variations in the first place. This should be the
+same regardless of what package is being built, but might differ depending on
+what virtual_server is being used.
 
-TODO: also the command is run *after* setting up the variations, which is why
-we need to disable the fileordering/kernel variations above - they use
-disorderfs and /usr/bin/linux64 (from util-linux) which aren't available even
-if we add "apt-get install disorderfs util-linux" into the build command.
+Next, we have the build_command. For our Debian directory, we install
+build-dependencies using apt-get, then we run the actual build command itself
+using dpkg-buildpackage(1).
+
+Then, we have the artifact pattern. For reproducibility, we're only interested
+in the binary packages.
+
+Finally, we specify that this is to take place in the "schroot" virtual_server
+with arguments "unstable-amd64-sbuild".
 
 
 Config File

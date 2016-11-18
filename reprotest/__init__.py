@@ -21,6 +21,7 @@ from reprotest.lib import adtlog
 from reprotest.lib import adt_testbed
 from reprotest import _contextlib
 from reprotest import _shell_ast
+from reprotest import presets
 
 
 adtlog.verbosity = 1
@@ -359,9 +360,6 @@ def check(build_command, artifact_pattern, virtual_server_args, source_root,
     with tempfile.TemporaryDirectory() as temp_dir, \
          start_testbed(virtual_server_args, temp_dir, no_clean_on_error) as testbed:
         script = Script(build_command)
-        if testbed_init:
-            script = script.append_setup(_shell_ast.SimpleCommand(
-                "sh", "-ec", _shell_ast.Quote(testbed_init)))
         script = Pair(script, script)
         env = Pair(types.MappingProxyType(os.environ.copy()),
                    types.MappingProxyType(os.environ.copy()))
@@ -378,13 +376,16 @@ def check(build_command, artifact_pattern, virtual_server_args, source_root,
             source_root = new_source_root
         testbed.command('copydown', (source_root + '/', tree.control))
         testbed.command('copydown', (source_root + '/', tree.experiment))
+        if testbed_init:
+            testbed.check_exec(["sh", "-ec", testbed_init])
         # print(source_root)
         try:
             with _contextlib.ExitStack() as stack:
                 for variation in variations:
                     # print('START')
                     # print(variation)
-                    script, env, tree = stack.enter_context(VARIATIONS[variation](script, env, tree, testbed))
+                    script, env, tree = stack.enter_context(
+                        VARIATIONS[variation](script, env, tree, testbed))
                     # print(script)
                     # print(env)
                     # print(tree)
@@ -456,6 +457,13 @@ COMMAND_LINE_OPTIONS = types.MappingProxyType(collections.OrderedDict([
         'default': None, 'metavar': 'COMMANDS',
         'help': 'Shell commands to run after starting the test bed, but before '
         'applying variations. Used to e.g. install disorderfs in a chroot.'})),
+    ('--auto-preset-expr', types.MappingProxyType({
+        'default': "_", 'metavar': 'PYTHON_EXPRESSION',
+        'help': 'This may be used to transform the presets returned by the '
+        'auto-detection feature. The value should be a python expression '
+        'that transforms the _ variable, which is a value of type '
+        'reprotest.presets.ReprotestPreset. See that class\'s documentation '
+        'for ways you can write this expression. Default: %(default)s'})),
     ('--diffoscope-arg', types.MappingProxyType({
         'default': [], 'action': 'append',
         'help': 'Give extra arguments to diffoscope when running it.'})),
@@ -591,6 +599,16 @@ def main():
 
     testbed_pre = command_line_options.get("testbed_pre")
     testbed_init = command_line_options.get("testbed_init")
+
+    if build_command == 'auto':
+        auto_preset_expr = command_line_options.get("auto_preset_expr")
+        values = presets.get_presets(artifact, virtual_server_args[0])
+        values = eval(auto_preset_expr, {'_':values}, {})
+        print(values)
+        build_command = values.build_command
+        artifact = values.artifact
+        testbed_pre = values.testbed_pre
+        testbed_init = values.testbed_init
 
     # print(build_command, artifact, virtual_server_args)
     sys.exit(check(build_command, artifact, virtual_server_args, source_root,

@@ -3,6 +3,10 @@ reprotest (0.3.3) UNRELEASED; urgency=medium
   * Document virtual servers and caveats better.
   * Add a --help [virtual server] option.
   * Add a --no-diffoscope option. (Closes: #844512)
+  * Add a --testbed-init option to allow the user to install dependencies that
+    are needed to make the variations in the first place.
+  * Add an "auto" feature to the CLI, plus a presets module so it's easier to
+    use, and other non-Debian systems can start populating this too.
 
  -- Ximin Luo <infinity0@debian.org>  Fri, 18 Nov 2016 17:13:49 +0100
 
