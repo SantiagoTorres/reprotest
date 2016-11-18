@@ -347,9 +347,8 @@ def build(script, source_root, dist_root, artifact_pattern, testbed, artifact_st
 
 
 def check(build_command, artifact_pattern, virtual_server_args, source_root,
-          no_clean_on_error=False, variations=VARIATIONS, diffoscope_args=None):
-    if diffoscope_args is None:
-        diffoscope_args = []
+          no_clean_on_error=False, variations=VARIATIONS, diffoscope_args=[]):
+    # default argument [] is safe here because we never mutate it.
     # print(virtual_server_args)
     with tempfile.TemporaryDirectory() as temp_dir, \
          start_testbed(virtual_server_args, temp_dir, no_clean_on_error) as testbed:
@@ -386,9 +385,13 @@ def check(build_command, artifact_pattern, virtual_server_args, source_root,
         except Exception:
             traceback.print_exc()
             return 2
-        diffoscope = ['diffoscope', result.control, result.experiment] + diffoscope_args
-        print("Running diffoscope: ", diffoscope)
-        retcode = subprocess.call(diffoscope)
+        if diffoscope_args is None: # don't run diffoscope
+            diffprogram = ['diff', '-ru', result.control, result.experiment]
+            print("Running diff: ", diffprogram)
+        else:
+            diffprogram = ['diffoscope', result.control, result.experiment] + diffoscope_args
+            print("Running diffoscope: ", diffprogram)
+        retcode = subprocess.call(diffprogram)
         if retcode == 0:
             print("=======================")
             print("Reproduction successful")
@@ -445,6 +448,9 @@ COMMAND_LINE_OPTIONS = types.MappingProxyType(collections.OrderedDict([
         'list (without spaces).  These take precedence over what '
         'you set for "variations". Default is nothing, i.e. test '
         'whatever you set for "variations".'})),
+    ('--no-diffoscope', types.MappingProxyType({
+        'action': 'store_true', 'default': False,
+        'help': 'Don\'t run diffoscope.'})),
     ('--no-clean-on-error', types.MappingProxyType({
         'action': 'store_true', 'default': False,
         'help': 'Don\'t clean the virtual_server if there was an error. '
@@ -524,6 +530,8 @@ def main():
         'no_clean_on_error',
         config_options.get('no_clean_on_error'))
     diffoscope_args = command_line_options.get('diffoscope_arg')
+    if command_line_options.get('no_diffoscope'):
+        diffoscope_args = None
     # The default is to try all variations.
     variations = frozenset(VARIATIONS.keys())
     if 'variations' in config_options:
