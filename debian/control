@@ -9,9 +9,10 @@ Build-Depends: debhelper (>= 9.20141010),
  dh-python,
  python3-all,
  python3-setuptools,
-# tests.py uses debuild from devscripts
+# tests.py uses debuild from devscripts, which itself uses lintian
  devscripts <!nocheck>,
  diffoscope <!nocheck>,
+ lintian <!nocheck>,
  python3-coverage <!nocheck>,
  python3-pytest <!nocheck>,
  tox <!nocheck>,
@@ -32,7 +33,7 @@ Depends: ${python3:Depends},
  procps,
  python3-pkg-resources,
  ${misc:Depends}
-Recommends: diffutils | diffoscope, util-linux, disorderfs, locales-all
+Recommends: diffutils | diffoscope, disorderfs, locales-all
 Suggests: autodep8, schroot, qemu-system, qemu-utils
 Description: Build software and check it for reproducibility.
  reprotest builds the same source code in different environments and
