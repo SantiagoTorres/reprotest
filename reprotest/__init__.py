@@ -357,6 +357,8 @@ def check(build_command, artifact_pattern, virtual_server_args, source_root,
           no_clean_on_error=False, variations=VARIATIONS, diffoscope_args=[],
           testbed_pre=None, testbed_init=None):
     # default argument [] is safe here because we never mutate it.
+    if not source_root:
+        raise ValueError("invalid source root: %s" % source_root)
     # print(virtual_server_args)
     with tempfile.TemporaryDirectory() as temp_dir, \
          start_testbed(virtual_server_args, temp_dir, no_clean_on_error) as testbed:
@@ -618,7 +620,7 @@ def main(*args):
     testbed_init = command_line_options.get("testbed_init")
 
     if build_command == 'auto':
-        source_root = os.path.dirname(artifact)
+        source_root = os.path.dirname(artifact) if os.path.isfile(artifact) else artifact
         auto_preset_expr = command_line_options.get("auto_preset_expr")
         values = presets.get_presets(artifact, virtual_server_args[0])
         values = eval(auto_preset_expr, {'_':values}, {})
