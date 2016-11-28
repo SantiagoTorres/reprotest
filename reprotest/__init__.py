@@ -534,7 +534,7 @@ def command_line(*argv):
         formatter_class=argparse.RawDescriptionHelpFormatter, add_help=False)
     for option in COMMAND_LINE_OPTIONS:
         arg_parser.add_argument(option, **COMMAND_LINE_OPTIONS[option])
-    args, remainder = arg_parser.parse_known_args(*argv)
+    args, remainder = arg_parser.parse_known_args(argv)
 
     # work around python issue 14191; this allows us to accept command lines like
     # $ reprotest build stuff --option=val --option=val -- schroot unstable-amd64-sbuild
@@ -544,7 +544,7 @@ def command_line(*argv):
             # however we disallow split command lines that don't have '--', e.g.:
             # $ reprotest build stuff --option=val --option=val schroot unstable-amd64-sbuild
             # since it's too complex to support that in a way that's not counter-intuitive
-            arg_parser.parse_args(*argv)
+            arg_parser.parse_args(argv)
         args.virtual_server_args = (args.virtual_server_args or []) + remainder[1:]
     args.virtual_server_args = args.virtual_server_args or ["null"]
     # print(args)
