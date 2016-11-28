@@ -1,5 +1,24 @@
-# Licensed under the GPL: https://www.gnu.org/licenses/gpl-3.0.en.html
-# For details: reprotest/debian/copyright
+# adt_testbed.py is part of autopkgtest
+# autopkgtest is a tool for testing Debian binary packages
+#
+# autopkgtest is Copyright (C) 2006-2015 Canonical Ltd.
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+#
+# See the file CREDITS for a full list of credits information (often
+# installed as /usr/share/doc/autopkgtest/CREDITS).
 
 import os
 import sys
@@ -123,7 +142,7 @@ class Testbed:
 
         # provide autopkgtest-reboot command, if reboot is supported; /run is
         # usually "noexec" and /[s]bin might be readonly, so create in /tmp
-        if 'reboot' in self.capabilities and 'root-on-testbed' in self.capabilities:
+        if 'reboot' in self.caps and 'root-on-testbed' in self.caps:
             adtlog.debug('testbed supports reboot, creating /tmp/autopkgtest-reboot')
             self.execute(['sh', '-ecC', '''[ ! -e /tmp/autopkgtest-reboot ] || exit 0; '''
                           '''/bin/echo -e '#!/bin/sh -e\\n'''
@@ -178,16 +197,16 @@ class Testbed:
         self.apt_pin_for_pockets = []
         self.recommends_installed = False
         self.exec_cmd = list(map(urllib.parse.unquote, self.command('print-execute-command', (), 1)[0].split(',')))
-        self.capabilities = self.command('capabilities', (), None)
-        adtlog.debug('testbed capabilities: %s' % self.capabilities)
-        for c in self.capabilities:
+        self.caps = self.command('capabilities', (), None)
+        adtlog.debug('testbed capabilities: %s' % self.caps)
+        for c in self.caps:
             if c.startswith('downtmp-host='):
                 self.shared_downtmp = c.split('=', 1)[1]
 
         # provide a default for --user
-        if self.user is None and 'root-on-testbed' in self.capabilities:
+        if self.user is None and 'root-on-testbed' in self.caps:
             self.user = ''
-            for c in self.capabilities:
+            for c in self.caps:
                 if c.startswith('suggested-normal-user='):
                     self.user = c.split('=', 1)[1]
 
@@ -269,7 +288,7 @@ class Testbed:
                 self.bomb('testbed setup commands failed with status %i' % rc)
 
         # if the setup commands affected the boot, then reboot
-        if self.setup_commands and 'reboot' in self.capabilities:
+        if self.setup_commands and 'reboot' in self.caps:
             boot_affected = self.execute(
                 ['bash', '-ec', '[ ! -e /run/autopkgtest_no_reboot.stamp ] || exit 0;'
                  'for d in %s; do s=%s/${d//\//_}.stamp;'
@@ -285,7 +304,7 @@ class Testbed:
         adtlog.debug('testbed reset: modified=%s, deps_installed=%s(r: %s), deps_new=%s(r: %s)' %
                      (self.modified, self.deps_installed, self.recommends_installed,
                       deps_new, with_recommends))
-        if 'revert' in self.capabilities and (
+        if 'revert' in self.caps and (
                 self.modified or self.recommends_installed != with_recommends or
                 [d for d in self.deps_installed if d not in deps_new]):
             adtlog.debug('testbed reset')
@@ -739,7 +758,7 @@ fi
         if 'ADT_CLICK_NO_FRAMEWORK_CHECK' in os.environ:
             # this is mostly for testing
             clickopts.append('--force-missing-framework')
-        if 'root-on-testbed' in self.capabilities:
+        if 'root-on-testbed' in self.caps:
             rc = self.execute(['click', 'install', '--allow-unauthenticated'] +
                               clickopts + [tp.tb], kind='install')[0]
         else:
@@ -772,7 +791,7 @@ fi
             return False
         adtlog.debug('testbed has AppArmor/click')
 
-        if 'root-on-testbed' not in self.capabilities:
+        if 'root-on-testbed' not in self.caps:
             adtlog.warning('Cannot adjust AppArmor rules without root/sudo '
                            'privileges; Autopilot tests will fail and test '
                            'dependencies will not be available!')
@@ -860,7 +879,7 @@ fi
 
         # check if we can use apt-get
         can_apt_get = False
-        if 'root-on-testbed' in self.capabilities:
+        if 'root-on-testbed' in self.caps:
             rc = self.execute(['test', '-w', '/var/lib/dpkg/status'])[0]
             if rc == 0:
                 can_apt_get = True
@@ -967,7 +986,7 @@ fi
                   % {'t': test_cmd, 'o': so.tb, 'e': se.tb}
 
         if 'needs-root' not in test.restrictions and self.user is not None:
-            if 'root-on-testbed' not in self.capabilities:
+            if 'root-on-testbed' not in self.caps:
                 self.bomb('cannot change to user %s without root-on-testbed' % self.user,
                           adtlog.AutopkgtestError)
             # we don't want -l here which resets the environment from
@@ -981,7 +1000,7 @@ fi
             # this ensures that we have a PAM/logind session for root tests as
             # well; with some interfaces like ttyS1 or lxc_attach we don't log
             # in to the testbed
-            if 'root-on-testbed' in self.capabilities:
+            if 'root-on-testbed' in self.caps:
                 test_argv = ['su', '-s', '/bin/bash', 'root', '-c']
             else:
                 test_argv = ['bash', '-c']
@@ -1007,7 +1026,7 @@ fi
                 break
 
             # did the test invoke autopkgtest-reboot?
-            if os.WIFSIGNALED(rc) and os.WTERMSIG(rc) == signal.SIGKILL and 'reboot' in self.capabilities:
+            if os.WIFSIGNALED(rc) and os.WTERMSIG(rc) == signal.SIGKILL and 'reboot' in self.caps:
                 adtlog.debug('test process SIGKILLed, checking for reboot marker')
                 (code, reboot_marker, err) = self.execute(
                     ['cat', '/run/autopkgtest-reboot-mark'],

@@ -187,7 +187,7 @@ def fileordering(script, env, tree, testbed):
     # TODO: this is a temporary hack, there will eventually be
     # multiple variations that depend on whether the testbed has root
     # privileges.
-    if 'root-on-testbed' in testbed.capabilities:
+    if 'root-on-testbed' in testbed.caps:
         disorderfs = ['disorderfs', '--shuffle-dirents=yes',
                       '--multi-user=yes', tree.experiment, new_tree]
     else:
