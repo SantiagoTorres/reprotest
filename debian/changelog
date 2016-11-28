@@ -1,4 +1,4 @@
-reprotest (0.4) UNRELEASED; urgency=medium
+reprotest (0.4) unstable; urgency=medium
 
   * Document virtual servers and caveats better.
   * Add a --help [virtual server] option.
@@ -9,7 +9,7 @@ reprotest (0.4) UNRELEASED; urgency=medium
     use, and other non-Debian systems can start populating this too.
   * Remove autopkgtest manpages and other unused files. (Closes: #834300)
 
- -- Ximin Luo <infinity0@debian.org>  Fri, 18 Nov 2016 17:13:49 +0100
+ -- Ximin Luo <infinity0@debian.org>  Mon, 28 Nov 2016 21:34:04 +0100
 
 reprotest (0.3.2) unstable; urgency=medium
 
