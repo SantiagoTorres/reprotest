@@ -434,7 +434,7 @@ COMMAND_LINE_OPTIONS = types.MappingProxyType(collections.OrderedDict([
         'help': 'Build artifact to test for reproducibility. May be a shell '
                 'pattern such as "*.deb *.changes".'})),
     ('virtual_server_args', types.MappingProxyType({
-        'default': ["null"], 'nargs': '*',
+        'default': None, 'nargs': '*',
         'help': 'Arguments to pass to the virtual_server, the first argument '
                 'being the name of the server. If this itself contains options '
                 '(of the form -xxx or --xxx), you should put a "--" between '
@@ -526,14 +526,27 @@ def config():
                 options[option] = config['basics'][option]
     return types.MappingProxyType(options)
 
-def command_line():
+def command_line(*argv):
     arg_parser = argparse.ArgumentParser(
         description='Build packages and check them for reproducibility.',
         formatter_class=argparse.RawDescriptionHelpFormatter, add_help=False)
     for option in COMMAND_LINE_OPTIONS:
         arg_parser.add_argument(option, **COMMAND_LINE_OPTIONS[option])
-    args = arg_parser.parse_args()
+    args, remainder = arg_parser.parse_known_args(*argv)
+
+    # work around python issue 14191; this allows us to accept command lines like
+    # $ reprotest build stuff --option=val --option=val -- schroot unstable-amd64-sbuild
+    # where optional args appear in between positional args, but there must be a '--'
+    if remainder:
+        if remainder[0] != '--':
+            # however we disallow split command lines that don't have '--', e.g.:
+            # $ reprotest build stuff --option=val --option=val schroot unstable-amd64-sbuild
+            # since it's too complex to support that in a way that's not counter-intuitive
+            arg_parser.parse_args(*argv)
+        args.virtual_server_args = (args.virtual_server_args or []) + remainder[1:]
+    args.virtual_server_args = args.virtual_server_args or ["null"]
     # print(args)
+
     if args.help:
         if args.help == True:
             arg_parser.print_help()
@@ -544,12 +557,12 @@ def command_line():
     return types.MappingProxyType({k:v for k, v in vars(args).items() if v is not None})
 
 
-def main():
+def main(*args):
     config_options = config()
 
     # Argparse exits with status code 2 if something goes wrong, which
     # is already the right status exit code for reprotest.
-    command_line_options = command_line()
+    command_line_options = command_line(*args)
 
     # Command-line arguments override config file settings.
     build_command = command_line_options.get(
@@ -616,6 +629,6 @@ def main():
         testbed_init = values.testbed_init
 
     # print(build_command, artifact, virtual_server_args)
-    sys.exit(check(build_command, artifact, virtual_server_args, source_root,
-                   no_clean_on_error, variations, diffoscope_args,
-                   testbed_pre, testbed_init))
+    return check(build_command, artifact, virtual_server_args, source_root,
+                 no_clean_on_error, variations, diffoscope_args,
+                 testbed_pre, testbed_init)
