@@ -559,12 +559,12 @@ def command_line(*argv):
     return types.MappingProxyType({k:v for k, v in vars(args).items() if v is not None})
 
 
-def main(*args):
+def main():
     config_options = config()
 
     # Argparse exits with status code 2 if something goes wrong, which
     # is already the right status exit code for reprotest.
-    command_line_options = command_line(*args)
+    command_line_options = command_line(*sys.argv[1:])
 
     # Command-line arguments override config file settings.
     build_command = command_line_options.get(

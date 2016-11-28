@@ -5,4 +5,4 @@ import sys
 from reprotest import main
 
 if __name__ == '__main__':
-    sys.exit(main(*sys.argv[1:]))
+    sys.exit(main())
