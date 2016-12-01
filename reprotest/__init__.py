@@ -624,7 +624,7 @@ def main():
     testbed_init = command_line_options.get("testbed_init")
 
     if build_command == 'auto':
-        source_root = os.path.dirname(artifact) if os.path.isfile(artifact) else artifact
+        source_root = os.path.normpath(os.path.dirname(artifact)) if os.path.isfile(artifact) else artifact
         auto_preset_expr = command_line_options.get("auto_preset_expr")
         values = presets.get_presets(artifact, virtual_server_args[0])
         values = eval(auto_preset_expr, {'_':values}, {})
