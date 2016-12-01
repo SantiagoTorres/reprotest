@@ -169,7 +169,7 @@ class Script(collections.namedtuple('_Script', 'build_command setup cleanup')):
 #     yield script, env, tree
 
 @_contextlib.contextmanager
-def captures_environment(script, env, tree, testbed):
+def environment(script, env, tree, testbed):
     new_env = add(env.experiment, 'CAPTURE_ENVIRONMENT',
                   'i_capture_the_environment')
     yield script, Pair(env.control, new_env), tree
@@ -302,7 +302,7 @@ def umask(script, env, tree, testbed):
 # The order of the variations *is* important, because the command to
 # be executed in the container needs to be built from the inside out.
 VARIATIONS = types.MappingProxyType(collections.OrderedDict([
-    ('captures_environment', captures_environment),
+    ('environment', environment),
     # ('cpu', cpu),
     # ('domain_host', domain_host),
     ('fileordering', fileordering),

@@ -104,7 +104,7 @@ directory.  A sample config file is below.
     artifact = dist/reprotest-0.2.tar.gz
     source_root = reprotest/
     variations =
-      captures_environment
+      environment
       domain_host
       filesystem
       home
