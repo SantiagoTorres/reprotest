@@ -483,8 +483,7 @@ COMMAND_LINE_OPTIONS = types.MappingProxyType(collections.OrderedDict([
         'default': frozenset(VARIATIONS.keys()),
         'help': 'Build variations to test as a comma-separated list '
         '(without spaces).  Default is to test all available '
-        'variations: %s; see https://tests.reproducible-builds.org/index_variations.html '
-        'for more information.' % ', '.join(VARIATIONS.keys())})),
+        'variations: %s.' % ', '.join(VARIATIONS.keys())})),
     ('--dont-vary', types.MappingProxyType({
         'dest': 'dont_vary',
         'type': lambda s: frozenset(s.split(',')),
