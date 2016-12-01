@@ -3,6 +3,7 @@ reprotest (0.5) UNRELEASED; urgency=medium
   * Stop advertising variations that we're not actually varying.
     That is: domain_host, shell, user_group.
   * Fix auto-presets in the case of a file in the current directory.
+  * Allow disabling build-path variations. (Closes: #833284)
 
  -- Ximin Luo <infinity0@debian.org>  Thu, 01 Dec 2016 19:31:55 +0100
 

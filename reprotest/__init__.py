@@ -218,12 +218,13 @@ def environment(script, env, tree, testbed):
 # of the current virtual servers. (It's theoretically possible to make it work)
 @_contextlib.contextmanager
 def build_path_same(script, env, tree, testbed):
-    const_path = os.path.join(dirname(tree.control), 'build')
-    assert const_path == os.path.join(dirname(tree.experiment), 'build')
+    const_path = os.path.join(dirname(tree.control), 'const_build_path')
+    assert const_path == os.path.join(dirname(tree.experiment), 'const_build_path')
     new_control = script.control.move_tree(tree.control, const_path)
     new_experiment = script.experiment.move_tree(tree.experiment, const_path)
     const_path_dir = os.path.join(const_path, '')
     yield Pair(new_control, new_experiment), env, Pair(const_path_dir, const_path_dir)
+build_path_same.negative = True
 
 @_contextlib.contextmanager
 def fileordering(script, env, tree, testbed):
@@ -343,7 +344,7 @@ def umask(script, env, tree, testbed):
 # be executed in the container needs to be built from the inside out.
 VARIATIONS = types.MappingProxyType(collections.OrderedDict([
     ('environment', environment),
-    ('build_path_same', build_path_same),
+    ('build_path', build_path_same),
     # ('cpu', cpu),
     # ('domain_host', domain_host),
     ('fileordering', fileordering),
@@ -418,14 +419,17 @@ def check(build_command, artifact_pattern, virtual_server_args, source_root,
         try:
             with _contextlib.ExitStack() as stack:
                 orig_tree = tree
-                for variation in variations:
-                    # print('START')
-                    # print(variation)
-                    script, env, tree = stack.enter_context(
-                        VARIATIONS[variation](script, env, tree, testbed))
-                    # print(script)
-                    # print(env)
-                    # print(tree)
+                for variation in VARIATIONS:
+                    vary = VARIATIONS[variation]
+                    negative = hasattr(vary, "negative") and vary.negative
+                    if (variation in variations) != negative:
+                        # print('START')
+                        # print(variation)
+                        script, env, tree = stack.enter_context(
+                            vary(script, env, tree, testbed))
+                        # print(script)
+                        # print(env)
+                        # print(tree)
                 build(script.control, orig_tree.control, tree.control, dist.control,
                       artifact_pattern,
                       testbed,
@@ -631,8 +635,6 @@ def main():
         variations = command_line_options['variations']
     if 'dont_vary' in command_line_options:
         variations = variations - frozenset(command_line_options['dont_vary'])
-    # Restore the order
-    variations = [v for v in VARIATIONS if v in variations]
     verbosity = command_line_options.get(
         'verbosity',
         config_options.get('verbosity', 0))
