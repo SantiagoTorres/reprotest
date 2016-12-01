@@ -127,7 +127,7 @@ class Term(BaseNode, collections.namedtuple('_Term', 'command separator')):
     __slots__ = ()
 
     def __str__(self):
-        return str(self.command) + ' ' + self.separator + '\n'
+        return str(self.command) + self.separator
 
 
 class AndList(BaseNode, _SequenceNode):

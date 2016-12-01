@@ -130,13 +130,27 @@ class Script(collections.namedtuple('_Script', 'build_command setup cleanup')):
         new_setup = self.setup + _shell_ast.AndList([command])
         return self._replace(setup=new_setup)
 
-    def append_cleanup(self, command):
+    def append_setup_exec(self, *args):
+        return self.append_setup(_shell_ast.SimpleCommand.make(*args))
+
+    def prepend_cleanup(self, command):
         '''Adds a command to the cleanup phase.
 
         '''
-        new_cleanup = (self.cleanup +
-                       _shell_ast.List([_shell_ast.Term(command, ';')]))
+        # if this command fails, save the exit code but keep executing
+        # we run with -e, so it would fail otherwise
+        new_cleanup = (_shell_ast.List([_shell_ast.Term(
+                            "{0} || __c=$?".format(command), ';')])
+                       + self.cleanup)
         return self._replace(cleanup=new_cleanup)
+
+    def prepend_cleanup_exec(self, *args):
+        return self.prepend_cleanup(_shell_ast.SimpleCommand.make(*args))
+
+    def move_tree(self, source, target):
+        return self.append_setup_exec(
+            'mv', source, target).prepend_cleanup_exec(
+            'mv', target, source)
 
     def __str__(self):
         '''Generates the shell code for the script.
@@ -146,15 +160,35 @@ class Script(collections.namedtuple('_Script', 'build_command setup cleanup')):
         executed in a subshell so that changes they make to the shell
         don't affect the cleanup commands.  (This avoids the problem
         with the disorderfs mount being kept open as a current working
-        directory when the cleanup tries to unmount it.)  The cleanup
-        is executed only if any of the setup commands or the build
-        command fails.
+        directory when the cleanup tries to unmount it.)
 
         '''
         subshell = _shell_ast.Subshell(self.setup +
                                        _shell_ast.AndList([self.build_command]))
-        return (str(subshell) +
-                (' ||\n' + str(self.cleanup) if self.cleanup else ''))
+
+        if self.cleanup:
+            cleanup = """( __c=0; {0} exit $__c; )""".format(str(self.cleanup))
+            return """\
+if {0}; then
+    {1};
+else
+    __x=$?;
+    if {1}; then exit $__x; else
+        echo >&2; "cleanup failed with exit code $?"; exit $__x;
+    fi;
+fi
+""".format(str(subshell), str(cleanup))
+        else:
+            return str(subshell)
+
+
+def dirname(p):
+    # works more intuitively for paths with a trailing /
+    return os.path.normpath(os.path.dirname(os.path.normpath(p)))
+
+def basename(p):
+    # works more intuitively for paths with a trailing /
+    return os.path.normpath(os.path.basename(os.path.normpath(p)))
 
 
 # time zone, locales, disorderfs, host name, user/group, shell, CPU
@@ -179,31 +213,37 @@ def environment(script, env, tree, testbed):
 # def domain_host(script, env, tree, testbed):
 #     yield script, env, tree
 
+# Note: this has to go before fileordering because we can't move mountpoints
+# TODO: this variation makes it impossible to parallelise the build, for most
+# of the current virtual servers. (It's theoretically possible to make it work)
+@_contextlib.contextmanager
+def build_path_same(script, env, tree, testbed):
+    const_path = os.path.join(dirname(tree.control), 'build')
+    assert const_path == os.path.join(dirname(tree.experiment), 'build')
+    new_control = script.control.move_tree(tree.control, const_path)
+    new_experiment = script.experiment.move_tree(tree.experiment, const_path)
+    const_path_dir = os.path.join(const_path, '')
+    yield Pair(new_control, new_experiment), env, Pair(const_path_dir, const_path_dir)
+
 @_contextlib.contextmanager
 def fileordering(script, env, tree, testbed):
-    new_tree = os.path.dirname(os.path.dirname(tree.control)) + '/disorderfs/'
-    # testbed.check_exec(['id'])
-    testbed.check_exec(['mkdir', '-p', new_tree])
+    old_tree = os.path.join(dirname(tree.experiment), basename(tree.experiment) + '-before-disorderfs', '')
     # TODO: this is a temporary hack, there will eventually be
     # multiple variations that depend on whether the testbed has root
     # privileges.
     if 'root-on-testbed' in testbed.caps:
         disorderfs = ['disorderfs', '--shuffle-dirents=yes',
-                      '--multi-user=yes', tree.experiment, new_tree]
+                      '--multi-user=yes', old_tree, tree.experiment]
     else:
         disorderfs = ['disorderfs', '--shuffle-dirents=yes',
-                      tree.experiment, new_tree]
-    testbed.check_exec(disorderfs)
-    unmount = _shell_ast.SimpleCommand.make('fusermount', '-u', new_tree)
-    # If there's an error in the build process, the virt/ program will
-    # try to delete the temporary directory containing disorderfs
-    # before it's unmounted unless it's unmounted in the script
-    # itself.
-    new_script = script.experiment.append_cleanup(unmount)
-    try:
-        yield Pair(script.control, new_script), env, Pair(tree.control, new_tree)
-    finally:
-        testbed.check_exec(str(unmount).split())
+                      old_tree, tree.experiment]
+    _ = script.experiment.move_tree(tree.experiment, old_tree)
+    _ = _.append_setup_exec('mkdir', '-p', tree.experiment)
+    _ = _.prepend_cleanup_exec('rmdir', tree.experiment)
+    _ = _.append_setup_exec(*disorderfs)
+    _ = _.prepend_cleanup_exec('fusermount', '-u', tree.experiment)
+    new_script = _
+    yield Pair(script.control, new_script), env, tree
 
 # @_contextlib.contextmanager
 # def fileordering(script, env, tree, testbed):
@@ -303,6 +343,7 @@ def umask(script, env, tree, testbed):
 # be executed in the container needs to be built from the inside out.
 VARIATIONS = types.MappingProxyType(collections.OrderedDict([
     ('environment', environment),
+    ('build_path_same', build_path_same),
     # ('cpu', cpu),
     # ('domain_host', domain_host),
     ('fileordering', fileordering),
@@ -314,47 +355,34 @@ VARIATIONS = types.MappingProxyType(collections.OrderedDict([
     # ('shell', shell),
     ('timezone', timezone),
     ('umask', umask),
-    # ('user_group', user_group)
+    # ('user_group', user_group),
 ]))
 
 
-def build(script, source_root, dist_root, artifact_pattern, testbed, artifact_store, env):
-    print(source_root)
+def build(script, source_root_orig, source_root_build, dist_root, artifact_pattern, testbed, artifact_store, env):
+    print("source directory:", source_root_orig)
     # testbed.execute(['ls', '-l', source_root])
     # testbed.execute(['pwd'])
-    print(artifact_pattern)
+    print("artifact_pattern:", artifact_pattern)
     # remove any existing artifact, in case the build script doesn't overwrite
     # it e.g. like how make(1) sometimes works.
     if re.search(r"""(^| )['"]*/""", artifact_pattern):
         raise ValueError("artifact_pattern is possibly dangerous; maybe use a relative path instead?")
     testbed.check_exec(
         ['sh', '-ec', 'cd "%s" && rm -rf %s' %
-        (source_root, artifact_pattern)])
-    # cd = _shell_ast.SimpleCommand('', 'cd', _shell_ast.CmdSuffix([source_root]))
-    # new_script = (_shell_ast.List([_shell_ast.Term(cd, ';')]) + script)
-    cd = _shell_ast.SimpleCommand.make('cd', source_root)
-    new_script = script.append_setup(cd)
-    # lsof = _shell_ast.SimpleCommand.make('lsof', '-w', source_root)
-    # new_script = new_script.append_cleanup(lsof)
-    # ls = _shell_ast.SimpleCommand.make('ls', '-l', testbed.scratch)
-    # new_script = new_script.append_cleanup(ls)
-    # cd2 = _shell_ast.SimpleCommand.make('cd', '/')
-    # new_script = new_script.append_cleanup(cd2)
-    print(new_script)
-    # exit_code, stdout, stderr = testbed.execute(['sh', '-ec', str(new_script)], xenv=[str(k) + '=' + str(v) for k, v in env.items()], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        (source_root_orig, artifact_pattern)])
+    new_script = script.append_setup_exec('cd', source_root_build)
+    print("executing:", new_script)
     argv = ['sh', '-ec', str(new_script)]
-    (code, _, _) = testbed.execute(
-        argv, xenv=['%s=%s' % (k, v) for k, v in env.items()], kind='build')
+    xenv = ['%s=%s' % (k, v) for k, v in env.items()]
+    (code, _, _) = testbed.execute(argv, xenv=xenv, kind='build')
     if code != 0:
         testbed.bomb('"%s" failed with status %i' % (' '.join(argv), code), adtlog.AutopkgtestError)
     # exit_code, stdout, stderr = testbed.execute(['lsof', source_root], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     # print(exit_code, stdout, stderr)
-    # testbed.execute(['ls', '-l', source_root])
-    # testbed.execute(['stat', source_root])
-    # testbed.execute(['stat', built_artifact])
     testbed.check_exec(
         ['sh', '-ec', 'mkdir -p "%s" && cd "%s" && cp -a -t "%s" %s && touch -d@0 "%s" "%s"/*' %
-        (dist_root, source_root, dist_root, artifact_pattern, dist_root, dist_root)])
+        (dist_root, source_root_orig, dist_root, artifact_pattern, dist_root, dist_root)])
     testbed.command('copyup', (dist_root, artifact_store))
 
 
@@ -389,6 +417,7 @@ def check(build_command, artifact_pattern, virtual_server_args, source_root,
         # print(source_root)
         try:
             with _contextlib.ExitStack() as stack:
+                orig_tree = tree
                 for variation in variations:
                     # print('START')
                     # print(variation)
@@ -397,12 +426,12 @@ def check(build_command, artifact_pattern, virtual_server_args, source_root,
                     # print(script)
                     # print(env)
                     # print(tree)
-                build(script.control, tree.control, dist.control,
+                build(script.control, orig_tree.control, tree.control, dist.control,
                       artifact_pattern,
                       testbed,
                       result.control,
                       env=env.control)
-                build(script.experiment, tree.experiment, dist.experiment,
+                build(script.experiment, orig_tree.experiment, tree.experiment, dist.experiment,
                       artifact_pattern,
                       testbed,
                       result.experiment,
