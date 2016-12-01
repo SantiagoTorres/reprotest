@@ -175,9 +175,9 @@ def captures_environment(script, env, tree, testbed):
     yield script, Pair(env.control, new_env), tree
 
 # TODO: this requires superuser privileges.
-@_contextlib.contextmanager
-def domain_host(script, env, tree, testbed):
-    yield script, env, tree
+# @_contextlib.contextmanager
+# def domain_host(script, env, tree, testbed):
+#     yield script, env, tree
 
 @_contextlib.contextmanager
 def fileordering(script, env, tree, testbed):
@@ -269,9 +269,9 @@ def path(script, env, tree, testbed):
 
 # This doesn't require superuser privileges, but the chsh command
 # affects all user shells, which would be bad.
-@_contextlib.contextmanager
-def shell(script, env, tree, testbed):
-    yield script, env, tree
+# @_contextlib.contextmanager
+# def shell(script, env, tree, testbed):
+#     yield script, env, tree
 
 @_contextlib.contextmanager
 def timezone(script, env, tree, testbed):
@@ -294,22 +294,27 @@ def umask(script, env, tree, testbed):
     yield Pair(new_control, new_experiment), env, tree
 
 # TODO: This requires superuser privileges.
-@_contextlib.contextmanager
-def user_group(script, env, tree, testbed):
-    yield script, env, tree
+# @_contextlib.contextmanager
+# def user_group(script, env, tree, testbed):
+#     yield script, env, tree
 
 
 # The order of the variations *is* important, because the command to
 # be executed in the container needs to be built from the inside out.
 VARIATIONS = types.MappingProxyType(collections.OrderedDict([
     ('captures_environment', captures_environment),
-    # 'cpu': cpu,
-    ('domain_host', domain_host), ('fileordering', fileordering),
-    ('home', home), ('kernel', kernel), ('locales', locales),
-    # 'namespace': namespace,
-    ('path', path), ('shell', shell),
-    ('timezone', timezone), ('umask', umask),
-    ('user_group', user_group)
+    # ('cpu', cpu),
+    # ('domain_host', domain_host),
+    ('fileordering', fileordering),
+    ('home', home),
+    ('kernel', kernel),
+    ('locales', locales),
+    # ('namespace', namespace),
+    ('path', path),
+    # ('shell', shell),
+    ('timezone', timezone),
+    ('umask', umask),
+    # ('user_group', user_group)
 ]))
 
 
