@@ -131,7 +131,7 @@ class Script(collections.namedtuple('_Script', 'build_command setup cleanup')):
         return self._replace(setup=new_setup)
 
     def append_setup_exec(self, *args):
-        return self.append_setup(_shell_ast.SimpleCommand.make(*args))
+        return self.append_setup(_shell_ast.SimpleCommand.make(*map(_shell_ast.Quote, args)))
 
     def prepend_cleanup(self, command):
         '''Adds a command to the cleanup phase.
@@ -145,7 +145,7 @@ class Script(collections.namedtuple('_Script', 'build_command setup cleanup')):
         return self._replace(cleanup=new_cleanup)
 
     def prepend_cleanup_exec(self, *args):
-        return self.prepend_cleanup(_shell_ast.SimpleCommand.make(*args))
+        return self.prepend_cleanup(_shell_ast.SimpleCommand.make(*map(_shell_ast.Quote, args)))
 
     def move_tree(self, source, target):
         return self.append_setup_exec(
@@ -223,21 +223,15 @@ def build_path_same(script, env, tree, testbed):
     new_control = script.control.move_tree(tree.control, const_path)
     new_experiment = script.experiment.move_tree(tree.experiment, const_path)
     const_path_dir = os.path.join(const_path, '')
-    yield Pair(new_control, new_experiment), env, Pair(const_path_dir, const_path_dir)
+    yield Pair(new_control, new_experiment), env, Pair.of(const_path_dir)
 build_path_same.negative = True
 
 @_contextlib.contextmanager
 def fileordering(script, env, tree, testbed):
     old_tree = os.path.join(dirname(tree.experiment), basename(tree.experiment) + '-before-disorderfs', '')
-    # TODO: this is a temporary hack, there will eventually be
-    # multiple variations that depend on whether the testbed has root
-    # privileges.
-    if 'root-on-testbed' in testbed.caps:
-        disorderfs = ['disorderfs', '--shuffle-dirents=yes',
-                      '--multi-user=yes', old_tree, tree.experiment]
-    else:
-        disorderfs = ['disorderfs', '--shuffle-dirents=yes',
-                      old_tree, tree.experiment]
+    disorderfs = ['sh', '-ec',
+        'disorderfs --shuffle-dirents=yes --multi-user="$(if [ $(id -u) = 0 ]; then echo yes; else echo no; fi)" "$@"',
+        '-', old_tree, tree.experiment]
     _ = script.experiment.move_tree(tree.experiment, old_tree)
     _ = _.append_setup_exec('mkdir', '-p', tree.experiment)
     _ = _.prepend_cleanup_exec('rmdir', tree.experiment)
