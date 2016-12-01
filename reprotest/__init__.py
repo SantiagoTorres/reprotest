@@ -74,9 +74,11 @@ def start_testbed(args, temp_dir, no_clean_on_error=False):
             testbed.stop()
 
 
-Pair = collections.namedtuple('Pair', 'control experiment')
-Pair.__doc__ = ('Holds one object for each run of the build process.'
-                + Pair.__doc__)
+class Pair(collections.namedtuple('_Pair', 'control experiment')):
+    """Holds one object for each run of the build process."""
+    @classmethod
+    def of(cls, x):
+        return cls(x, x)
 
 def add(mapping, key, value):
     '''Helper function for adding a key-value pair to an immutable mapping.'''
@@ -198,36 +200,31 @@ def basename(p):
 # something that's different for the experiment.
 
 # TODO: relies on a pbuilder-specific command to parallelize
-# @_contextlib.contextmanager
-# def cpu(env, tree, testbed):
-#     yield script, env, tree
+# def cpu(script, env, tree):
+#     return script, env, tree
 
-@_contextlib.contextmanager
-def environment(script, env, tree, testbed):
+def environment(script, env, tree):
     new_env = add(env.experiment, 'CAPTURE_ENVIRONMENT',
                   'i_capture_the_environment')
-    yield script, Pair(env.control, new_env), tree
+    return script, Pair(env.control, new_env), tree
 
 # TODO: this requires superuser privileges.
-# @_contextlib.contextmanager
-# def domain_host(script, env, tree, testbed):
-#     yield script, env, tree
+# def domain_host(script, env, tree):
+#     return script, env, tree
 
 # Note: this has to go before fileordering because we can't move mountpoints
 # TODO: this variation makes it impossible to parallelise the build, for most
 # of the current virtual servers. (It's theoretically possible to make it work)
-@_contextlib.contextmanager
-def build_path_same(script, env, tree, testbed):
+def build_path_same(script, env, tree):
     const_path = os.path.join(dirname(tree.control), 'const_build_path')
     assert const_path == os.path.join(dirname(tree.experiment), 'const_build_path')
     new_control = script.control.move_tree(tree.control, const_path)
     new_experiment = script.experiment.move_tree(tree.experiment, const_path)
     const_path_dir = os.path.join(const_path, '')
-    yield Pair(new_control, new_experiment), env, Pair.of(const_path_dir)
+    return Pair(new_control, new_experiment), env, Pair.of(const_path_dir)
 build_path_same.negative = True
 
-@_contextlib.contextmanager
-def fileordering(script, env, tree, testbed):
+def fileordering(script, env, tree):
     old_tree = os.path.join(dirname(tree.experiment), basename(tree.experiment) + '-before-disorderfs', '')
     disorderfs = ['sh', '-ec',
         'disorderfs --shuffle-dirents=yes --multi-user="$(if [ $(id -u) = 0 ]; then echo yes; else echo no; fi)" "$@"',
@@ -238,25 +235,22 @@ def fileordering(script, env, tree, testbed):
     _ = _.append_setup_exec(*disorderfs)
     _ = _.prepend_cleanup_exec('fusermount', '-u', tree.experiment)
     new_script = _
-    yield Pair(script.control, new_script), env, tree
+    return Pair(script.control, new_script), env, tree
 
-# @_contextlib.contextmanager
-# def fileordering(script, env, tree, testbed):
-#     yield script, env, tree
+# # def fileordering(script, env, tree):
+#     return script, env, tree
 
-@_contextlib.contextmanager
-def home(script, env, tree, testbed):
+def home(script, env, tree):
     control = add(env.control, 'HOME', '/nonexistent/first-build')
     experiment = add(env.experiment, 'HOME', '/nonexistent/second-build')
-    yield script, Pair(control, experiment), tree
+    return script, Pair(control, experiment), tree
 
 # TODO: uname is a POSIX standard.  The related Linux command
 # (setarch) only affects uname at the moment according to the docs.
 # FreeBSD changes uname with environment variables.  Wikipedia has a
 # reference to a setname command on another Unix variant:
 # https://en.wikipedia.org/wiki/Uname
-@_contextlib.contextmanager
-def kernel(script, env, tree, testbed):
+def kernel(script, env, tree):
     # set these two explicitly different. otherwise, when reprotest is
     # reprotesting itself, then one of the builds will fail its tests, because
     # its two child reprotests will see the same value for "uname" but the
@@ -265,7 +259,7 @@ def kernel(script, env, tree, testbed):
     setarch2 = _shell_ast.SimpleCommand.make('linux32')
     new_control = script.control.append_command(setarch)
     new_experiment = script.experiment.append_command(setarch2)
-    yield Pair(new_control, new_experiment), env, tree
+    return Pair(new_control, new_experiment), env, tree
 
 # TODO: if this locale doesn't exist on the system, Python's
 # locales.getlocale() will return (None, None) rather than this
@@ -279,59 +273,48 @@ def kernel(script, env, tree, testbed):
 
 # TODO: what exact locales and how to many test is probably a mailing
 # list question.
-@_contextlib.contextmanager
-def locales(script, env, tree, testbed):
+def locales(script, env, tree):
     # env1['LANG'] = 'C'
     new_control = add(env.control, 'LC_ALL', 'C')
     new_experiment = add(add(env.experiment, 'LANG', 'fr_CH.UTF-8'),
                          'LC_ALL', 'fr_CH.UTF-8')
     # env1['LANGUAGE'] = 'en_US:en'
     # env2['LANGUAGE'] = 'fr_CH:fr'
-    yield script, Pair(new_control, new_experiment), tree
+    return script, Pair(new_control, new_experiment), tree
 
 # TODO: Linux-specific.  unshare --uts requires superuser privileges.
 # How is this related to host/domainname?
-# def namespace(script, env, tree, testbed):
+# def namespace(script, env, tree):
 #     # command1 = ['unshare', '--uts'] + command1
 #     # command2 = ['unshare', '--uts'] + command2
-#     yield script, env, tree
+#     return script, env, tree
 
-@_contextlib.contextmanager
-def path(script, env, tree, testbed):
+def path(script, env, tree):
     new_env = add(env.experiment, 'PATH', env.control['PATH'] +
                   ':/i_capture_the_path')
-    yield script, Pair(env.control, new_env), tree
+    return script, Pair(env.control, new_env), tree
 
 # This doesn't require superuser privileges, but the chsh command
 # affects all user shells, which would be bad.
-# @_contextlib.contextmanager
-# def shell(script, env, tree, testbed):
-#     yield script, env, tree
+# # def shell(script, env, tree):
+#     return script, env, tree
 
-@_contextlib.contextmanager
-def timezone(script, env, tree, testbed):
+def timezone(script, env, tree):
     # These time zones are theoretically in the POSIX time zone format
     # (http://pubs.opengroup.org/onlinepubs/9699919799/basedefs/V1_chap08.html#tag_08),
     # so they should be cross-platform compatible.
     control = add(env.control, 'TZ', 'GMT+12')
     experiment = add(env.experiment, 'TZ', 'GMT-14')
-    yield script, Pair(control, experiment), tree
+    return script, Pair(control, experiment), tree
 
-@_contextlib.contextmanager
-def umask(script, env, tree, testbed):
-    # umask = _shell_ast.SimpleCommand('', 'umask', _shell_ast.CmdSuffix(['0002']))
-    # new_script = (_shell_ast.List([_shell_ast.Term(umask, ';')])
-    #               + script.experiment)
-    new_control = script.control.append_setup(
-        _shell_ast.SimpleCommand.make('umask', '0022'))
-    new_experiment = script.experiment.append_setup(
-        _shell_ast.SimpleCommand.make('umask', '0002'))
-    yield Pair(new_control, new_experiment), env, tree
+def umask(script, env, tree):
+    new_control = script.control.append_setup_exec('umask', '0022')
+    new_experiment = script.experiment.append_setup_exec('umask', '0002')
+    return Pair(new_control, new_experiment), env, tree
 
 # TODO: This requires superuser privileges.
-# @_contextlib.contextmanager
-# def user_group(script, env, tree, testbed):
-#     yield script, env, tree
+# # def user_group(script, env, tree):
+#     return script, env, tree
 
 
 # The order of the variations *is* important, because the command to
@@ -354,10 +337,8 @@ VARIATIONS = types.MappingProxyType(collections.OrderedDict([
 ]))
 
 
-def build(script, source_root_orig, source_root_build, dist_root, artifact_pattern, testbed, artifact_store, env):
+def build(script, env, source_root_orig, source_root_build, dist_root, artifact_store, artifact_pattern, testbed):
     print("source directory:", source_root_orig)
-    # testbed.execute(['ls', '-l', source_root])
-    # testbed.execute(['pwd'])
     print("artifact_pattern:", artifact_pattern)
     # remove any existing artifact, in case the build script doesn't overwrite
     # it e.g. like how make(1) sometimes works.
@@ -378,7 +359,6 @@ def build(script, source_root_orig, source_root_build, dist_root, artifact_patte
     testbed.check_exec(
         ['sh', '-ec', 'mkdir -p "%s" && cd "%s" && cp -a -t "%s" %s && touch -d@0 "%s" "%s"/*' %
         (dist_root, source_root_orig, dist_root, artifact_pattern, dist_root, dist_root)])
-    testbed.command('copyup', (dist_root, artifact_store))
 
 
 def check(build_command, artifact_pattern, virtual_server_args, source_root,
@@ -387,56 +367,61 @@ def check(build_command, artifact_pattern, virtual_server_args, source_root,
     # default argument [] is safe here because we never mutate it.
     if not source_root:
         raise ValueError("invalid source root: %s" % source_root)
+
     # print(virtual_server_args)
-    with tempfile.TemporaryDirectory() as temp_dir, \
-         start_testbed(virtual_server_args, temp_dir, no_clean_on_error) as testbed:
-        script = Script(build_command)
-        script = Pair(script, script)
-        env = Pair(types.MappingProxyType(os.environ.copy()),
-                   types.MappingProxyType(os.environ.copy()))
-        # TODO, why?: directories need explicit '/' appended for VirtSubproc
-        tree = Pair(testbed.scratch + '/control/', testbed.scratch + '/experiment/')
-        dist = Pair(testbed.scratch + '/control-dist/', testbed.scratch + '/experiment-dist/')
-        result = Pair(os.path.join(temp_dir, 'control_artifact/'),
-                      os.path.join(temp_dir, 'experiment_artifact/'))
-        source_root = str(source_root)
+    script = Pair.of(Script(build_command))
+    env = Pair(types.MappingProxyType(os.environ.copy()),
+               types.MappingProxyType(os.environ.copy()))
+
+    source_root = str(source_root)
+    with tempfile.TemporaryDirectory() as temp_dir:
         if testbed_pre:
             new_source_root = os.path.join(temp_dir, "testbed_pre")
             shutil.copytree(source_root, new_source_root, symlinks=True)
             subprocess.check_call(["sh", "-ec", testbed_pre], cwd=new_source_root)
             source_root = new_source_root
-        testbed.command('copydown', (source_root + '/', tree.control))
-        testbed.command('copydown', (source_root + '/', tree.experiment))
-        if testbed_init:
-            testbed.check_exec(["sh", "-ec", testbed_init])
         # print(source_root)
-        try:
-            with _contextlib.ExitStack() as stack:
-                orig_tree = tree
-                for variation in VARIATIONS:
-                    vary = VARIATIONS[variation]
-                    negative = hasattr(vary, "negative") and vary.negative
-                    if (variation in variations) != negative:
-                        # print('START')
-                        # print(variation)
-                        script, env, tree = stack.enter_context(
-                            vary(script, env, tree, testbed))
-                        # print(script)
-                        # print(env)
-                        # print(tree)
-                build(script.control, orig_tree.control, tree.control, dist.control,
-                      artifact_pattern,
-                      testbed,
-                      result.control,
-                      env=env.control)
-                build(script.experiment, orig_tree.experiment, tree.experiment, dist.experiment,
-                      artifact_pattern,
-                      testbed,
-                      result.experiment,
-                      env=env.experiment)
-        except Exception:
-            traceback.print_exc()
-            return 2
+
+        result = Pair(os.path.join(temp_dir, 'control_artifact/'),
+                      os.path.join(temp_dir, 'experiment_artifact/'))
+
+        # TODO: an alternative strategy is to run the testbed twice; not sure
+        # if it's worth implementing at this stage, but perhaps in the future.
+        with start_testbed(virtual_server_args, temp_dir, no_clean_on_error) as testbed:
+            # directories need explicit '/' appended for VirtSubproc
+            tree = Pair(testbed.scratch + '/control/', testbed.scratch + '/experiment/')
+            dist = Pair(testbed.scratch + '/control-dist/', testbed.scratch + '/experiment-dist/')
+            source_root = source_root + '/'
+
+            orig_tree = tree
+            # print(script, env, tree)
+            # build the scripts to run the variations
+            for variation in VARIATIONS:
+                vary = VARIATIONS[variation]
+                negative = hasattr(vary, "negative") and vary.negative
+                if (variation in variations) != negative:
+                    script, env, tree = vary(script, env, tree)
+                    print("== will %s %s ==" % ("FIX" if negative else "vary", variation))
+                    # print(script, env, tree)
+
+            try:
+                # run the scripts
+                if testbed_init:
+                    testbed.check_exec(["sh", "-ec", testbed_init])
+
+                for i in (0, 1):
+                    testbed.command('copydown', (source_root, orig_tree[i]))
+
+                for i in (0, 1):
+                    build(script[i], env[i], orig_tree[i], tree[i], dist[i], result[i],
+                          artifact_pattern, testbed)
+
+                for i in (0, 1):
+                    testbed.command('copyup', (dist[i], result[i]))
+            except Exception:
+                traceback.print_exc()
+                return 2
+
         if diffoscope_args is None: # don't run diffoscope
             diffprogram = ['diff', '-ru', result.control, result.experiment]
             print("Running diff: ", diffprogram)
