@@ -13,6 +13,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import time
 import traceback
 import types
 
@@ -313,8 +314,8 @@ def faketime(script, env, tree, source_root):
     # This tries hard to avoid bad interactions with faketime and make(1) etc.
     # However if you're building this too soon after changing one of the source
     # files then the effect of this variation is not very great.
-    shellstr = "find {0} -type f -printf '%T@ %p\n' | sort -n | tail -1 | cut -b1-10".format(shlex.quote(source_root))
-    t = int(subprocess.check_output(shellstr, shell=True).rstrip() or time.time())
+    filemtimes = (os.path.getmtime(os.path.join(root, f)) for root, dirs, files in os.walk(source_root) for f in files)
+    t = int(max(filemtimes, default=time.time()))
     settime = _shell_ast.SimpleCommand.make('faketime', '@%s'%t)
     new_experiment = script.experiment.append_command(settime)
     return Pair(script.control, new_experiment), env, tree
