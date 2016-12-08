@@ -318,7 +318,11 @@ def faketime(script, env, tree, source_root):
     t = int(max(filemtimes, default=time.time()))
     settime = _shell_ast.SimpleCommand.make('faketime', '@%s'%t)
     new_experiment = script.experiment.append_command(settime)
-    return Pair(script.control, new_experiment), env, tree
+    # faketime's manpages are stupidly misleading; it also modifies file timestamps.
+    # this is only mentioned in the README. we do not want this, it really really
+    # messes with GNU make and other buildsystems that look at timestamps.
+    new_experiment_env = add(env.experiment, 'NO_FAKE_STAT', '1')
+    return Pair(script.control, new_experiment), Pair(env.control, new_experiment_env), tree
 
 def umask(script, env, tree, *args):
     new_control = script.control.append_setup_exec('umask', '0022')
