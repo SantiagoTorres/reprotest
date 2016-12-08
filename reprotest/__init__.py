@@ -8,6 +8,7 @@ import logging
 import os
 import pathlib
 import re
+import shlex
 import shutil
 import subprocess
 import sys
@@ -203,7 +204,7 @@ def basename(p):
 # def cpu(script, env, tree):
 #     return script, env, tree
 
-def environment(script, env, tree):
+def environment(script, env, tree, *args):
     new_env = add(env.experiment, 'CAPTURE_ENVIRONMENT',
                   'i_capture_the_environment')
     return script, Pair(env.control, new_env), tree
@@ -215,7 +216,7 @@ def environment(script, env, tree):
 # Note: this has to go before fileordering because we can't move mountpoints
 # TODO: this variation makes it impossible to parallelise the build, for most
 # of the current virtual servers. (It's theoretically possible to make it work)
-def build_path_same(script, env, tree):
+def build_path_same(script, env, tree, *args):
     const_path = os.path.join(dirname(tree.control), 'const_build_path')
     assert const_path == os.path.join(dirname(tree.experiment), 'const_build_path')
     new_control = script.control.move_tree(tree.control, const_path)
@@ -224,7 +225,7 @@ def build_path_same(script, env, tree):
     return Pair(new_control, new_experiment), env, Pair.of(const_path_dir)
 build_path_same.negative = True
 
-def fileordering(script, env, tree):
+def fileordering(script, env, tree, *args):
     old_tree = os.path.join(dirname(tree.experiment), basename(tree.experiment) + '-before-disorderfs', '')
     disorderfs = ['sh', '-ec',
         'disorderfs --shuffle-dirents=yes --multi-user="$(if [ $(id -u) = 0 ]; then echo yes; else echo no; fi)" "$@"',
@@ -240,7 +241,7 @@ def fileordering(script, env, tree):
 # # def fileordering(script, env, tree):
 #     return script, env, tree
 
-def home(script, env, tree):
+def home(script, env, tree, *args):
     control = add(env.control, 'HOME', '/nonexistent/first-build')
     experiment = add(env.experiment, 'HOME', '/nonexistent/second-build')
     return script, Pair(control, experiment), tree
@@ -250,7 +251,7 @@ def home(script, env, tree):
 # FreeBSD changes uname with environment variables.  Wikipedia has a
 # reference to a setname command on another Unix variant:
 # https://en.wikipedia.org/wiki/Uname
-def kernel(script, env, tree):
+def kernel(script, env, tree, *args):
     # set these two explicitly different. otherwise, when reprotest is
     # reprotesting itself, then one of the builds will fail its tests, because
     # its two child reprotests will see the same value for "uname" but the
@@ -273,7 +274,7 @@ def kernel(script, env, tree):
 
 # TODO: what exact locales and how to many test is probably a mailing
 # list question.
-def locales(script, env, tree):
+def locales(script, env, tree, *args):
     # env1['LANG'] = 'C'
     new_control = add(env.control, 'LC_ALL', 'C')
     new_experiment = add(add(env.experiment, 'LANG', 'fr_CH.UTF-8'),
@@ -284,22 +285,22 @@ def locales(script, env, tree):
 
 # TODO: Linux-specific.  unshare --uts requires superuser privileges.
 # How is this related to host/domainname?
-# def namespace(script, env, tree):
+# def namespace(script, env, tree, *args):
 #     # command1 = ['unshare', '--uts'] + command1
 #     # command2 = ['unshare', '--uts'] + command2
 #     return script, env, tree
 
-def path(script, env, tree):
+def path(script, env, tree, *args):
     new_env = add(env.experiment, 'PATH', env.control['PATH'] +
                   ':/i_capture_the_path')
     return script, Pair(env.control, new_env), tree
 
 # This doesn't require superuser privileges, but the chsh command
 # affects all user shells, which would be bad.
-# # def shell(script, env, tree):
+# # def shell(script, env, tree, *args):
 #     return script, env, tree
 
-def timezone(script, env, tree):
+def timezone(script, env, tree, *args):
     # These time zones are theoretically in the POSIX time zone format
     # (http://pubs.opengroup.org/onlinepubs/9699919799/basedefs/V1_chap08.html#tag_08),
     # so they should be cross-platform compatible.
@@ -307,13 +308,24 @@ def timezone(script, env, tree):
     experiment = add(env.experiment, 'TZ', 'GMT-14')
     return script, Pair(control, experiment), tree
 
-def umask(script, env, tree):
+def faketime(script, env, tree, source_root):
+    # Get the latest modification date of all the files in the source root.
+    # This tries hard to avoid bad interactions with faketime and make(1) etc.
+    # However if you're building this too soon after changing one of the source
+    # files then the effect of this variation is not very great.
+    shellstr = "find {0} -type f -printf '%T@ %p\n' | sort -n | tail -1 | cut -b1-10".format(shlex.quote(source_root))
+    t = int(subprocess.check_output(shellstr, shell=True).rstrip() or time.time())
+    settime = _shell_ast.SimpleCommand.make('faketime', '@%s'%t)
+    new_experiment = script.experiment.append_command(settime)
+    return Pair(script.control, new_experiment), env, tree
+
+def umask(script, env, tree, *args):
     new_control = script.control.append_setup_exec('umask', '0022')
     new_experiment = script.experiment.append_setup_exec('umask', '0002')
     return Pair(new_control, new_experiment), env, tree
 
 # TODO: This requires superuser privileges.
-# # def user_group(script, env, tree):
+# # def user_group(script, env, tree, *args):
 #     return script, env, tree
 
 
@@ -332,6 +344,7 @@ VARIATIONS = types.MappingProxyType(collections.OrderedDict([
     ('path', path),
     # ('shell', shell),
     ('timezone', timezone),
+    ('faketime', faketime),
     ('umask', umask),
     # ('user_group', user_group),
 ]))
@@ -400,7 +413,7 @@ def check(build_command, artifact_pattern, virtual_server_args, source_root,
                 vary = VARIATIONS[variation]
                 negative = hasattr(vary, "negative") and vary.negative
                 if (variation in variations) != negative:
-                    script, env, tree = vary(script, env, tree)
+                    script, env, tree = vary(script, env, tree, source_root)
                     print("== will %s %s ==" % ("FIX" if negative else "vary", variation))
                     # print(script, env, tree)
 
