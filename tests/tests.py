@@ -8,7 +8,7 @@ import sys
 import pytest
 import reprotest
 
-REPROTEST = [sys.executable, "-m", "reprotest"]
+REPROTEST = [sys.executable, "-m", "reprotest", "--no-diffoscope"]
 REPROTEST_TEST_SERVERS = os.getenv("REPROTEST_TEST_SERVERS", "null").split(",")
 REPROTEST_TEST_DONTVARY = os.getenv("REPROTEST_TEST_DONTVARY", "").split(",")
 
