@@ -41,7 +41,7 @@ Description: Build software and check it for reproducibility.
  reprotest builds the same source code in different environments and
  then checks the binaries produced by the builds to see if changing
  the environment, without changing the source code, changed the
- produced binaries.
+ generated binaries.
  .
  reprotest is developed as part of the “reproducible builds” Debian
  project.
