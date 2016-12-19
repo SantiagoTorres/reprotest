@@ -315,8 +315,15 @@ def faketime(script, env, tree, source_root):
     # However if you're building this too soon after changing one of the source
     # files then the effect of this variation is not very great.
     filemtimes = (os.path.getmtime(os.path.join(root, f)) for root, dirs, files in os.walk(source_root) for f in files)
-    t = int(max(filemtimes, default=time.time()))
-    settime = _shell_ast.SimpleCommand.make('faketime', '@%s'%t)
+    now = time.time()
+    lastmt = int(max(filemtimes, default=now))
+    if lastmt < now - 18429180:
+        # if lastmt is far in the past, use that, it's a bit safer
+        faket = '@%s' % lastmt
+    else:
+        # otherwise use a date far in the future
+        faket = '+213days+7hours+13minutes'
+    settime = _shell_ast.SimpleCommand.make('faketime', faket)
     new_experiment = script.experiment.append_command(settime)
     # faketime's manpages are stupidly misleading; it also modifies file timestamps.
     # this is only mentioned in the README. we do not want this, it really really
