@@ -4,6 +4,9 @@ reprotest (0.5) UNRELEASED; urgency=medium
     That is: domain_host, shell, user_group.
   * Fix auto-presets in the case of a file in the current directory.
   * Allow disabling build-path variations. (Closes: #833284)
+  * Add a faketime variation, with NO_FAKE_STAT=1 to avoid messing with
+    various buildsystems. This is on by default; if it causes your builds
+    to mess up please do file a bug report.
   * Add a --store-dir option to save artifacts.
 
  -- Ximin Luo <infinity0@debian.org>  Thu, 01 Dec 2016 19:31:55 +0100
