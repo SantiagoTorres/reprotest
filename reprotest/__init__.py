@@ -7,6 +7,7 @@ import configparser
 import logging
 import os
 import pathlib
+import random
 import re
 import shlex
 import shutil
@@ -276,12 +277,11 @@ def kernel(script, env, tree, *args):
 # TODO: what exact locales and how to many test is probably a mailing
 # list question.
 def locales(script, env, tree, *args):
-    # env1['LANG'] = 'C'
-    new_control = add(env.control, 'LC_ALL', 'C')
-    new_experiment = add(add(env.experiment, 'LANG', 'fr_CH.UTF-8'),
-                         'LC_ALL', 'fr_CH.UTF-8')
-    # env1['LANGUAGE'] = 'en_US:en'
-    # env2['LANGUAGE'] = 'fr_CH:fr'
+    new_control = add(add(env.control, 'LANG', 'C.UTF-8'), 'LANGUAGE', 'en_US:en')
+    # if there is an issue with this being random, we could instead select it
+    # based on a deterministic hash of the inputs
+    loc = random.choice(['fr_CH.UTF-8', 'es_ES', 'ru_RU.CP1251', 'kk_KZ.RK1048', 'zh_CN'])
+    new_experiment = add(add(add(env.experiment, 'LANG', loc), 'LC_ALL', loc), 'LANGUAGE', '%s:fr' % loc)
     return script, Pair(new_control, new_experiment), tree
 
 # TODO: Linux-specific.  unshare --uts requires superuser privileges.
