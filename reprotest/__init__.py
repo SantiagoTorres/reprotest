@@ -386,12 +386,31 @@ def build(script, env, source_root_orig, source_root_build, dist_root, artifact_
         (dist_root, source_root_orig, dist_root, artifact_pattern, dist_root, dist_root)])
 
 
+def run_or_tee(progargs, filename, store_dir, *args, **kwargs):
+    if store_dir:
+        tee = subprocess.Popen(['tee', filename], stdin=subprocess.PIPE, cwd=store_dir)
+        r = subprocess.run(progargs, *args, stdout=tee.stdin, **kwargs)
+        tee.communicate()
+        return r
+    else:
+        return subprocess.run(progargs)
+
+
 def check(build_command, artifact_pattern, virtual_server_args, source_root,
-          no_clean_on_error=False, variations=VARIATIONS, diffoscope_args=[],
+          no_clean_on_error=False, variations=VARIATIONS,
+          store_dir=None, diffoscope_args=[],
           testbed_pre=None, testbed_init=None):
     # default argument [] is safe here because we never mutate it.
     if not source_root:
         raise ValueError("invalid source root: %s" % source_root)
+    if store_dir:
+        store_dir = str(store_dir)
+        if not os.path.exists(store_dir):
+            os.makedirs(store_dir, exist_ok=False)
+        elif os.listdir(store_dir):
+            raise ValueError("store_dir must be empty: %s" % store_dir)
+        store = Pair(os.path.join(store_dir, "control"),
+                     os.path.join(store_dir, "experiment"))
 
     # print(virtual_server_args)
     script = Pair.of(Script(build_command))
@@ -447,19 +466,30 @@ def check(build_command, artifact_pattern, virtual_server_args, source_root,
                 traceback.print_exc()
                 return 2
 
+        if store_dir:
+            shutil.copytree(result.control, store.control, symlinks=True)
+            shutil.copytree(result.experiment, store.experiment, symlinks=True)
+
         if diffoscope_args is None: # don't run diffoscope
             diffprogram = ['diff', '-ru', result.control, result.experiment]
             print("Running diff: ", diffprogram)
         else:
             diffprogram = ['diffoscope', result.control, result.experiment] + diffoscope_args
             print("Running diffoscope: ", diffprogram)
-        retcode = subprocess.call(diffprogram)
+
+        retcode = run_or_tee(diffprogram, 'diffoscope.out', store_dir).returncode
         if retcode == 0:
             print("=======================")
             print("Reproduction successful")
             print("=======================")
             print("No differences in %s" % artifact_pattern, flush=True)
-            subprocess.call(['find', '.', '-type', 'f', '-exec', 'sha256sum', '{}', ';'], cwd=result.control)
+            run_or_tee(['find', '.', '-type', 'f', '-exec', 'sha256sum', '{}', ';'],
+                'SHA256SUMS', store_dir,
+                cwd=result.control)
+
+            if store_dir:
+                shutil.rmtree(store.experiment)
+                os.symlink("control", store.experiment)
         else:
             # a slight hack, to trigger no_clean_on_error
             raise SystemExit(retcode)
@@ -498,6 +528,11 @@ COMMAND_LINE_OPTIONS = types.MappingProxyType(collections.OrderedDict([
         'dest': 'source_root', 'type': pathlib.Path,
         'help': 'Root of the source tree, if not the '
         'current working directory.'})),
+    ('--store-dir', types.MappingProxyType({
+        'default': None, 'type': pathlib.Path,
+        'help': 'Save the artifacts in this directory, which must be empty or '
+        'non-existent. Otherwise, the artifacts will be deleted and you only '
+        'see their hashes (if reproducible) or the diff output (if not).'})),
     ('--testbed-pre', types.MappingProxyType({
         'default': None, 'metavar': 'COMMANDS',
         'help': 'Shell commands to run before starting the test bed, in the '
@@ -655,6 +690,7 @@ def main():
     logging.basicConfig(
         format='%(message)s', level=30-10*verbosity, stream=sys.stdout)
 
+    store_dir = command_line_options.get("store_dir")
     testbed_pre = command_line_options.get("testbed_pre")
     testbed_init = command_line_options.get("testbed_init")
 
@@ -671,5 +707,5 @@ def main():
 
     # print(build_command, artifact, virtual_server_args)
     return check(build_command, artifact, virtual_server_args, source_root,
-                 no_clean_on_error, variations, diffoscope_args,
+                 no_clean_on_error, variations, store_dir, diffoscope_args,
                  testbed_pre, testbed_init)
