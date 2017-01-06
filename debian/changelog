@@ -1,4 +1,4 @@
-reprotest (0.5) UNRELEASED; urgency=medium
+reprotest (0.5) unstable; urgency=medium
 
   * Stop advertising variations that we're not actually varying.
     That is: domain_host, shell, user_group.
@@ -9,7 +9,7 @@ reprotest (0.5) UNRELEASED; urgency=medium
     to mess up please do file a bug report.
   * Add a --store-dir option to save artifacts.
 
- -- Ximin Luo <infinity0@debian.org>  Thu, 01 Dec 2016 19:31:55 +0100
+ -- Ximin Luo <infinity0@debian.org>  Fri, 06 Jan 2017 20:18:45 +0100
 
 reprotest (0.4) unstable; urgency=medium
 
