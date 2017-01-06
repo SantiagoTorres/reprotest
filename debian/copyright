@@ -7,8 +7,6 @@ Copyright: 2016 Ceridwen <ceridwenv@gmail.com>
 License: GPL-3+
 
 Files: reprotest/lib/*
-       reprotest/runner/*
-       reprotest/tools/*       
        reprotest/virt/*       
 Copyright: 2006-2016 Canonical Ltd.
 License: GPL-2+
