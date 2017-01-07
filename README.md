@@ -105,18 +105,14 @@ directory.  A sample config file is below.
     source_root = reprotest/
     variations =
       environment
-      domain_host
-      filesystem
+      build_path
       home
-      host
       kernel
       locales
-      path
-      shell
+      exec_path
       time
       timezone
       umask
-      user_group
 
 
 

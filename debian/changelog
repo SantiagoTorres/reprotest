@@ -2,6 +2,10 @@ reprotest (0.6) UNRELEASED; urgency=medium
 
   * When a reproduction succeeds, only output hashes of the artifacts rather
     than everything in the current directory.
+  * Remove unimplemented variations from README.
+  * Rename some variations:
+      path -> exec_path, to distinguish it from build_path
+      faketime -> time, since users care about interface not implementation
 
  -- Ximin Luo <infinity0@debian.org>  Sat, 07 Jan 2017 17:15:42 +0100
 

@@ -291,7 +291,7 @@ def locales(script, env, tree, *args):
 #     # command2 = ['unshare', '--uts'] + command2
 #     return script, env, tree
 
-def path(script, env, tree, *args):
+def exec_path(script, env, tree, *args):
     new_env = add(env.experiment, 'PATH', env.control['PATH'] +
                   ':/i_capture_the_path')
     return script, Pair(env.control, new_env), tree
@@ -353,10 +353,10 @@ VARIATIONS = types.MappingProxyType(collections.OrderedDict([
     ('kernel', kernel),
     ('locales', locales),
     # ('namespace', namespace),
-    ('path', path),
+    ('exec_path', exec_path),
     # ('shell', shell),
+    ('time', faketime),
     ('timezone', timezone),
-    ('faketime', faketime),
     ('umask', umask),
     # ('user_group', user_group),
 ]))

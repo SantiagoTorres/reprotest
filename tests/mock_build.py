@@ -41,7 +41,7 @@ if __name__ == '__main__':
     if 'locales' in captures:
         output.extend(l.encode('ascii') if l else b'(None)' for l in locale.getlocale())
         output.append(subprocess.check_output(['locale']))
-    if 'path' in captures:
+    if 'exec_path' in captures:
         output.extend(p.encode('ascii') for p in os.get_exec_path())
     if 'timezone' in captures:
         output.append(str(time.timezone).encode('ascii'))

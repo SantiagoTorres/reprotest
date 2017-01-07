@@ -44,7 +44,8 @@ def test_simple_builds(virtual_server):
     check_return_code('python3 mock_failure.py', virtual_server, 2)
     check_return_code('python3 mock_build.py irreproducible', virtual_server, 1)
 
-@pytest.mark.parametrize('captures', ['fileordering', 'home', 'kernel', 'locales', 'path', 'timezone', 'umask'])
+# TODO: test all variations that we support
+@pytest.mark.parametrize('captures', ['fileordering', 'home', 'kernel', 'locales', 'exec_path', 'timezone', 'umask'])
 def test_variations(virtual_server, captures):
     expected = 1 if captures in TEST_VARIATIONS else 0
     check_return_code('python3 mock_build.py ' + captures, virtual_server, expected)
