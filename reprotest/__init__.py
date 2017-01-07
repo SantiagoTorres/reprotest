@@ -483,7 +483,7 @@ def check(build_command, artifact_pattern, virtual_server_args, source_root,
             print("Reproduction successful")
             print("=======================")
             print("No differences in %s" % artifact_pattern, flush=True)
-            run_or_tee(['find', '.', '-type', 'f', '-exec', 'sha256sum', '{}', ';'],
+            run_or_tee(['sh', '-ec', 'find %s -type f -exec sha256sum "{}" \;' % artifact_pattern],
                 'SHA256SUMS', store_dir,
                 cwd=result.control)
 
