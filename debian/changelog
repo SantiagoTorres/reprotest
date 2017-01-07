@@ -1,3 +1,9 @@
+reprotest (0.6) UNRELEASED; urgency=medium
+
+  * 
+
+ -- Ximin Luo <infinity0@debian.org>  Sat, 07 Jan 2017 17:15:42 +0100
+
 reprotest (0.5) unstable; urgency=medium
 
   * Stop advertising variations that we're not actually varying.
