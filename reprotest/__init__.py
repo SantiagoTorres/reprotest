@@ -393,7 +393,7 @@ def run_or_tee(progargs, filename, store_dir, *args, **kwargs):
         tee.communicate()
         return r
     else:
-        return subprocess.run(progargs)
+        return subprocess.run(progargs, *args, **kwargs)
 
 
 def check(build_command, artifact_pattern, virtual_server_args, source_root,
