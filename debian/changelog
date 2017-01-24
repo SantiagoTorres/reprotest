@@ -1,4 +1,4 @@
-reprotest (0.6) UNRELEASED; urgency=medium
+reprotest (0.6) unstable; urgency=medium
 
   * When a reproduction succeeds, only output hashes of the artifacts rather
     than everything in the current directory.
@@ -11,7 +11,7 @@ reprotest (0.6) UNRELEASED; urgency=medium
   * Add a man page. (Closes: #833282)
   * Improve logging so it's properly controlled by --verbosity.
 
- -- Ximin Luo <infinity0@debian.org>  Sat, 07 Jan 2017 17:15:42 +0100
+ -- Ximin Luo <infinity0@debian.org>  Tue, 24 Jan 2017 22:19:34 +0100
 
 reprotest (0.5) unstable; urgency=medium
 
