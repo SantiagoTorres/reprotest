@@ -6,12 +6,12 @@ The easiest way to run reprotest is via our presets:
 ::
 
     # Build the current directory in a null server (/tmp)
-    reprotest auto .
-    reprotest auto . -- null -d # for more verbose output
+    $ reprotest auto .
+    $ reprotest auto . -- null -d # for more verbose output
 
     # Build the given Debian source package in an schroot
     # See https://wiki.debian.org/sbuild for instructions on setting that up.
-    reprotest auto reprotest_0.3.3.dsc -- schroot unstable-amd64-sbuild
+    $ reprotest auto reprotest_0.3.3.dsc -- schroot unstable-amd64-sbuild
 
 Currently, we only support this for Debian packages, but are keen on
 adding more. If we don't have knowledge on how to build your file or
@@ -25,7 +25,7 @@ example:
 
 ::
 
-    reprotest 'python3 setup.py bdist' 'dist/*.tar.gz'
+    $ reprotest 'python3 setup.py bdist' 'dist/*.tar.gz'
 
 When using this from a shell:
 
@@ -45,7 +45,7 @@ arguments and what they do, run:
 
 ::
 
-    reprotest --help
+    $ reprotest --help
 
 Running in a virtual server
 ===========================
@@ -55,8 +55,8 @@ This could be a container, a chroot, etc. You run them like this:
 
 ::
 
-    reprotest 'python3 setup.py bdist_wheel' 'dist/*.whl' qemu    /path/to/qemu.img
-    reprotest 'debuild -b -uc -us'           '../*.deb'   schroot unstable-amd64
+    $ reprotest 'python3 setup.py bdist_wheel' 'dist/*.whl' qemu    /path/to/qemu.img
+    $ reprotest 'debuild -b -uc -us'           '../*.deb'   schroot unstable-amd64
 
 There are different server types available. See ``--help`` for a list of
 them, which appears near the top, in the "virtual\_server\_args" part of
@@ -67,7 +67,7 @@ it supports:
 
 ::
 
-    reprotest --help schroot
+    $ reprotest --help schroot
 
 When running builds inside a virtual server, you will probably have to
 give extra commands, in order to set up your build dependencies inside
@@ -77,9 +77,9 @@ directory" preset would look like, if we ran it via the advanced CLI:
 ::
 
     # "Debian directory" preset
-    reprotest auto . -- schroot unstable-amd64-sbuild
+    $ reprotest auto . -- schroot unstable-amd64-sbuild
     # In the advanced CLI, this is equivalent to roughly:
-    reprotest \
+    $ reprotest \
         --testbed-init 'apt-get -y --no-install-recommends install \
                         util-linux disorderfs 2>/dev/null; \
                         test -c /dev/fuse || mknod -m 666 /dev/fuse c 10 229' \
@@ -168,11 +168,11 @@ first ``apt-get install autopkgtest vmdebootstrap qemu``, then run:
 
 ::
 
-    vmdebootstrap --verbose --serial-console --distribution=sid \
+    $ vmdebootstrap --verbose --serial-console --distribution=sid \
         --customize=/usr/share/autopkgtest/setup-commands/setup-testbed \
         --user=adt/adt --size=10000000000 --grub --image=adt-sid.raw
-    qemu-img convert -O qcow2 adt-sid.raw  adt-sid.img
-    rm adt-sid.raw
+    $ qemu-img convert -O qcow2 adt-sid.raw  adt-sid.img
+    $ rm adt-sid.raw
 
 The last two commands reduce the size of the image but aren't strictly
 necessary. Move ``adt-sid.img`` to ``linux/`` under your home directory.
@@ -181,8 +181,8 @@ To log into the schroot and qemu containers, respectively, run:
 
 ::
 
-    sudo schroot -c source:stable-amd64
-    qemu-system-x86_64 -enable-kvm -drive file=~/linux/adt-sid.img,if=virtio \
+    $ sudo schroot -c source:stable-amd64
+    $ qemu-system-x86_64 -enable-kvm -drive file=~/linux/adt-sid.img,if=virtio \
         -net user -net nic,model=virtio -m 1024
 
 After replacing ``~`` with your home directory.
@@ -191,15 +191,15 @@ For the host system and the two containers, run:
 
 ::
 
-    apt-get install disorderfs
-    (Additionally for mk-sbuild stable,  enable the backports repository.)
+    $ apt-get install disorderfs
+    (Additionally for mk-sbuild stable, enable the backports repository.)
     (Additionally for chroot, run:
-    mknod -m 666 /dev/fuse c 10 229)
-    apt-get install python3 python3-pip
-    apt-get install locales-all
+    $ mknod -m 666 /dev/fuse c 10 229)
+    $ apt-get install python3 python3-pip
+    $ apt-get install locales-all
 
 Now, finally run the tests:
 
 ::
 
-    REPROTEST_TEST_SERVERS=null,qemu,schroot tox -- -s
+    $ REPROTEST_TEST_SERVERS=null,qemu,schroot tox -- -s
