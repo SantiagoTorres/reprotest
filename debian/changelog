@@ -6,6 +6,7 @@ reprotest (0.6) UNRELEASED; urgency=medium
   * Rename some variations:
       path -> exec_path, to distinguish it from build_path
       faketime -> time, since users care about interface not implementation
+  * Fix a bug involving --store-dir and hash output.
   * Add a --config-file option and fix the loading of configs.
   * Add a man page. (Closes: #833282)
   * Improve logging so it's properly controlled by --verbosity.
