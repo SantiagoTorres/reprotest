@@ -14,6 +14,10 @@ override_dh_auto_configure:
 	test $$(python3 setup.py --version) = $$(dpkg-parsechangelog -SVersion)
 	dh_auto_configure
 
+override_dh_auto_build:
+	dh_auto_build
+	cd doc && $(MAKE)
+
 override_dh_auto_test:
 ifeq (,$(filter nocheck,$(DEB_BUILD_OPTIONS)))
 	VIRTUALENV_DOWNLOAD=no \

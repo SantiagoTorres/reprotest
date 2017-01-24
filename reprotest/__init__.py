@@ -499,9 +499,9 @@ def check(build_command, artifact_pattern, virtual_server_args, source_root,
 COMMAND_LINE_OPTIONS = types.MappingProxyType(collections.OrderedDict([
     ('build_command', types.MappingProxyType({
         'default': None, 'nargs': '?', # 'type': str.split
-        'help': 'Build command to execute, or "auto" to guess this - in '
-                'the latter case then the subsequent argument will not be '
-                'interpreted as an artifact but rather as the source to build, '
+        'help': 'Build command to execute, or "auto" to guess this. In '
+                'the latter case, the next argument \'artifact\' will not be '
+                'interpreted that way but instead as the source to build, '
                 'e.g. "." or some other path.'})),
     ('artifact', types.MappingProxyType({
         'default': None, 'nargs': '?',
@@ -609,6 +609,12 @@ def config(filename):
 
 def command_line(*argv):
     arg_parser = argparse.ArgumentParser(
+        prog='reprotest',
+        usage='''%(prog)s --help [<virtual_server_name>]
+       %(prog)s [options] auto  <source_file_or_dir> [[more options] --|--]
+                 [<virtual_server_args> [<virtual_server_args> ...]]
+       %(prog)s [options] <build_command> <artifact> [[more options] --|--]
+                 [<virtual_server_args> [<virtual_server_args> ...]]''',
         description='Build packages and check them for reproducibility.',
         formatter_class=argparse.RawDescriptionHelpFormatter, add_help=False)
     for option in COMMAND_LINE_OPTIONS:

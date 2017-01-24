@@ -8,7 +8,7 @@ from setuptools import setup, find_packages
 setup(name='reprotest',
       version='0.6',
       description='Build packages and check them for reproducibility.',
-      long_description=open('README.md', encoding='utf-8').read(),
+      long_description=open('README.rst', encoding='utf-8').read(),
       author='Ceridwen',
       author_email='ceridwenv@gmail.com',
       license='GPL-3+',

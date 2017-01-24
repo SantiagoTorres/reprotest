@@ -1,0 +1,24 @@
+[NAME]
+reprotest \- Build packages and check them for reproducibility.
+[SYNOPSIS]
+.nf
+\fBreprotest\fR \-\-help\ [<virtual_server_name>]
+\fBreprotest\fR [options] \fIauto\fR  <source_file_or_dir> [[more options] --|--] \
+[<virtual_server_args> [<virtual_server_args> ...]]
+\fBreprotest\fR [options] <build_command> <artifact> [[more options] --|--] \
+[<virtual_server_args> [<virtual_server_args> ...]]
+.fi
+[<DESCRIPTION]
+.B reprotest
+builds the same source code twice in different environments, and then checks
+the binaries produced by each build for differences. If any are found, then
+\fBdiffoscope\fR(1) (or if unavailable then \fBdiff\fR(1)) is used to display
+them in detail for later analysis.
+.sp
+See the \fBCOMMAND-LINE EXAMPLES\fR section further below to get you started,
+as well as more detailed explanations of all the command-line options. The same
+information is also available in \fI/usr/share/doc/reprotest/README.rst\fR or
+similar.
+.\" the below hack gets rid of the python "usage" message in favour of the above
+.SS positional arguments:
+.\" end_of_description_header

@@ -9,6 +9,8 @@ Build-Depends: debhelper (>= 9.20141010),
  dh-python,
  python3-all,
  python3-setuptools,
+ help2man <!nodoc>,
+ python3-docutils <!nodoc>,
 # tests.py uses debuild from devscripts, which itself uses lintian
  devscripts <!nocheck>,
  diffoscope <!nocheck>,
@@ -38,10 +40,13 @@ Depends: ${python3:Depends},
 Recommends: diffutils | diffoscope, disorderfs, locales-all, faketime
 Suggests: autodep8, schroot, qemu-system, qemu-utils
 Description: Build software and check it for reproducibility.
- reprotest builds the same source code in different environments and
- then checks the binaries produced by the builds to see if changing
- the environment, without changing the source code, changed the
- generated binaries.
+ reprotest builds the same source code twice in different environments, and
+ then checks the binaries produced by each build for differences. If any are
+ found, then diffoscope (or if unavailable then diff) is used to display them
+ in detail for later analysis.
  .
- reprotest is developed as part of the “reproducible builds” Debian
- project.
+ It supports different types of environment such as a "null" environment (i.e.
+ doing the builds directly in /tmp) or various other virtual servers, for
+ example schroot, ssh, qemu, and several others.
+ .
+ reprotest is developed as part of the “reproducible builds” Debian project.

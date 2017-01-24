@@ -7,6 +7,7 @@ reprotest (0.6) UNRELEASED; urgency=medium
       path -> exec_path, to distinguish it from build_path
       faketime -> time, since users care about interface not implementation
   * Add a --config-file option and fix the loading of configs.
+  * Add a man page. (Closes: #833282)
 
  -- Ximin Luo <infinity0@debian.org>  Sat, 07 Jan 2017 17:15:42 +0100
 

@@ -1,2 +1,3 @@
-- reprotest man page
+- better logging messages
+  - in particular, tell the user that all of ./ is getting copied into /tmp, etc
 - make mock_build capture more stuff and test it in tests.py:test_variations
