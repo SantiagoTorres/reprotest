@@ -580,8 +580,7 @@ COMMAND_LINE_OPTIONS = types.MappingProxyType(collections.OrderedDict([
                 'implemented very well and may leave cruft on your system.'})),
     ]))
 
-MULTIPLET_OPTIONS = frozenset(['build_command', 'dont_vary',
-                               'variations', 'virtual_server_args'])
+MULTIPLET_OPTIONS = frozenset(['dont_vary', 'variations', 'virtual_server_args'])
 
 CONFIG_OPTIONS = []
 for option in COMMAND_LINE_OPTIONS.keys():
@@ -598,10 +597,11 @@ def config():
     options = collections.OrderedDict()
     if 'basics' in config:
         for option in CONFIG_OPTIONS:
-            if option in config['basics'] and option in MULTIPLET_OPTIONS:
-                options[option] = config['basics'][option].split()
-            else:
-                options[option] = config['basics'][option]
+            if option in config['basics']:
+                if option in MULTIPLET_OPTIONS:
+                    options[option] = config['basics'][option].split()
+                else:
+                    options[option] = config['basics'][option]
     return types.MappingProxyType(options)
 
 def command_line(*argv):
