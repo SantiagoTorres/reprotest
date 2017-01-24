@@ -26,6 +26,10 @@ if __name__ == '__main__':
     # Like the above test, this test can theoretically fail by
     # producing the same file order, but this is unlikely, if not
     # as unlikely as in the above test.
+    if 'environment' in captures:
+        output.append("\n".join(os.environ.keys()).encode("ascii"))
+    if 'build_path' in captures:
+        output.append(os.getcwd().encode("ascii"))
     if 'fileordering' in captures:
         # Ensure this temporary directory is created in the disorders
         # mount point by passing the dir argument.
@@ -43,6 +47,8 @@ if __name__ == '__main__':
         output.append(subprocess.check_output(['locale']))
     if 'exec_path' in captures:
         output.extend(p.encode('ascii') for p in os.get_exec_path())
+    if 'time' in captures:
+        output.append(str(time.time()).encode('ascii'))
     if 'timezone' in captures:
         output.append(str(time.timezone).encode('ascii'))
     if 'umask' in captures:
