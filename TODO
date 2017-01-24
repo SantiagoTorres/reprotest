@@ -1,2 +1,2 @@
-- reprotest man page, reprotest -c config argument
+- reprotest man page
 - make mock_build capture more stuff and test it in tests.py:test_variations

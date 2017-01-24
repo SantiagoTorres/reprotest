@@ -110,8 +110,10 @@ except there's no `dont_vary` option, and there are `build_command` and
 file, reprotest can be run without passing those as command-line arguments.
 Command-line arguments always override config file options.
 
-Reprotest searches the working directory for `.reprotestrc`; other locations
-will be supported in the future.  A sample config file is below.
+Reprotest by default loads `./.reprotestrc`, or you can tell it to load another
+file with the `--config-file` command line option.
+
+A sample config file is below.
 
     [basics]
     build_command = setup.py sdist

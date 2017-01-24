@@ -524,6 +524,9 @@ COMMAND_LINE_OPTIONS = types.MappingProxyType(collections.OrderedDict([
     ('--verbosity', types.MappingProxyType({
         'type': int, 'default': 0,
         'help': 'An integer.  Control which messages are displayed.'})),
+    ('--config-file', types.MappingProxyType({
+        'type': str, 'default': '.reprotestrc',
+        'help': 'File to load configuration from. (Default: %(default)s)'})),
     ('--source-root', types.MappingProxyType({
         'dest': 'source_root', 'type': pathlib.Path,
         'help': 'Root of the source tree, if not the '
@@ -590,10 +593,10 @@ for option in COMMAND_LINE_OPTIONS.keys():
         CONFIG_OPTIONS.append(option.strip('-'))
 CONFIG_OPTIONS = tuple(CONFIG_OPTIONS)
 
-def config():
+def config(filename):
     # Config file.
     config = configparser.ConfigParser()
-    config.read('.reprotestrc')
+    config.read(filename)
     options = collections.OrderedDict()
     if 'basics' in config:
         for option in CONFIG_OPTIONS:
@@ -636,11 +639,10 @@ def command_line(*argv):
 
 
 def main():
-    config_options = config()
-
     # Argparse exits with status code 2 if something goes wrong, which
     # is already the right status exit code for reprotest.
     command_line_options = command_line(*sys.argv[1:])
+    config_options = config(command_line_options.get('config_file'))
 
     # Command-line arguments override config file settings.
     build_command = command_line_options.get(
