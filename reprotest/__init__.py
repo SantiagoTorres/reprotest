@@ -27,9 +27,6 @@ from reprotest import _shell_ast
 from reprotest import presets
 
 
-adtlog.verbosity = 1
-
-
 def get_server_path(server_name):
     return pkg_resources.resource_filename(__name__, os.path.join("virt", server_name))
 
@@ -59,7 +56,7 @@ def start_testbed(args, temp_dir, no_clean_on_error=False):
     # Find the location of reprotest using setuptools and then get the
     # path for the correct virt-server script.
     server_path = get_server_path(args[0])
-    print('VIRTUAL SERVER', [server_path] + args[1:])
+    logging.info('STARTING VIRTUAL SERVER %r', [server_path] + args[1:])
     testbed = adt_testbed.Testbed([server_path] + args[1:], temp_dir, None)
     testbed.start()
     testbed.open()
@@ -363,8 +360,8 @@ VARIATIONS = types.MappingProxyType(collections.OrderedDict([
 
 
 def build(script, env, source_root_orig, source_root_build, dist_root, artifact_store, artifact_pattern, testbed):
-    print("source directory:", source_root_orig)
-    print("artifact_pattern:", artifact_pattern)
+    logging.info("starting build with source directory: %s, artifact pattern: %s",
+        source_root_orig, artifact_pattern)
     # remove any existing artifact, in case the build script doesn't overwrite
     # it e.g. like how make(1) sometimes works.
     if re.search(r"""(^| )['"]*/""", artifact_pattern):
@@ -373,7 +370,7 @@ def build(script, env, source_root_orig, source_root_build, dist_root, artifact_
         ['sh', '-ec', 'cd "%s" && rm -rf %s' %
         (source_root_orig, artifact_pattern)])
     new_script = script.append_setup_exec('cd', source_root_build)
-    print("executing:", new_script)
+    logging.info("executing: %s", new_script)
     argv = ['sh', '-ec', str(new_script)]
     xenv = ['%s=%s' % (k, v) for k, v in env.items()]
     (code, _, _) = testbed.execute(argv, xenv=xenv, kind='build')
@@ -412,7 +409,7 @@ def check(build_command, artifact_pattern, virtual_server_args, source_root,
         store = Pair(os.path.join(store_dir, "control"),
                      os.path.join(store_dir, "experiment"))
 
-    # print(virtual_server_args)
+    logging.debug("virtual_server_args: %r", virtual_server_args)
     script = Pair.of(Script(build_command))
     env = Pair(types.MappingProxyType(os.environ.copy()),
                types.MappingProxyType(os.environ.copy()))
@@ -424,7 +421,7 @@ def check(build_command, artifact_pattern, virtual_server_args, source_root,
             shutil.copytree(source_root, new_source_root, symlinks=True)
             subprocess.check_call(["sh", "-ec", testbed_pre], cwd=new_source_root)
             source_root = new_source_root
-        # print(source_root)
+        logging.debug("source_root: %s", source_root)
 
         result = Pair(os.path.join(temp_dir, 'control_artifact/'),
                       os.path.join(temp_dir, 'experiment_artifact/'))
@@ -438,15 +435,15 @@ def check(build_command, artifact_pattern, virtual_server_args, source_root,
             source_root = source_root + '/'
 
             orig_tree = tree
-            # print(script, env, tree)
+            logging.log(5, "builds: %r", (script, env, tree))
             # build the scripts to run the variations
             for variation in VARIATIONS:
                 vary = VARIATIONS[variation]
                 negative = hasattr(vary, "negative") and vary.negative
                 if (variation in variations) != negative:
                     script, env, tree = vary(script, env, tree, source_root)
-                    print("== will %s %s ==" % ("FIX" if negative else "vary", variation))
-                    # print(script, env, tree)
+                    logging.info("will %s: %s", "FIX" if negative else "vary", variation)
+                    logging.log(5, "builds: %r", (script, env, tree))
 
             try:
                 # run the scripts
@@ -454,6 +451,7 @@ def check(build_command, artifact_pattern, virtual_server_args, source_root,
                     testbed.check_exec(["sh", "-ec", testbed_init])
 
                 for i in (0, 1):
+                    logging.info("copying %s over to virtual server's %s", source_root, orig_tree[i])
                     testbed.command('copydown', (source_root, orig_tree[i]))
 
                 for i in (0, 1):
@@ -461,6 +459,7 @@ def check(build_command, artifact_pattern, virtual_server_args, source_root,
                           artifact_pattern, testbed)
 
                 for i in (0, 1):
+                    logging.info("copying %s back from virtual server's %s", dist[i], result[i])
                     testbed.command('copyup', (dist[i], result[i]))
             except Exception:
                 traceback.print_exc()
@@ -472,10 +471,10 @@ def check(build_command, artifact_pattern, virtual_server_args, source_root,
 
         if diffoscope_args is None: # don't run diffoscope
             diffprogram = ['diff', '-ru', result.control, result.experiment]
-            print("Running diff: ", diffprogram)
+            logging.info("Running diff: %r", diffprogram)
         else:
             diffprogram = ['diffoscope', result.control, result.experiment] + diffoscope_args
-            print("Running diffoscope: ", diffprogram)
+            logging.info("Running diffoscope: %r", diffprogram)
 
         retcode = run_or_tee(diffprogram, 'diffoscope.out', store_dir).returncode
         if retcode == 0:
@@ -522,7 +521,7 @@ COMMAND_LINE_OPTIONS = types.MappingProxyType(collections.OrderedDict([
         'help': 'Show this help message and exit. When given an argument, '
         'show instead the help message for that virtual server and exit. '})),
     ('--verbosity', types.MappingProxyType({
-        'type': int, 'default': 0,
+        'type': int, 'default': 1,
         'help': 'An integer.  Control which messages are displayed.'})),
     ('--config-file', types.MappingProxyType({
         'type': str, 'default': '.reprotestrc',
@@ -685,6 +684,7 @@ def main():
     verbosity = command_line_options.get(
         'verbosity',
         config_options.get('verbosity', 0))
+    adtlog.verbosity = verbosity
 
     if not build_command:
         print("No build command provided. See --help for options.")
@@ -707,7 +707,7 @@ def main():
         auto_preset_expr = command_line_options.get("auto_preset_expr")
         values = presets.get_presets(artifact, virtual_server_args[0])
         values = eval(auto_preset_expr, {'_':values}, {})
-        print(values)
+        logging.info("preset auto-selected: %r", values)
         build_command = values.build_command
         artifact = values.artifact
         testbed_pre = values.testbed_pre
