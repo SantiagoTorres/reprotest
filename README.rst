@@ -214,7 +214,7 @@ After releasing, please upload a signed tarball:
 
     $ VERSION=FIXME
 
-    $ git archive --format=tar --prefix=reprotest-${VERSION} ${VERSION} | bzip2 -9 > reprotest-${VERSION}.tar.bz2
+    $ git archive --format=tar --prefix=reprotest-${VERSION}/ ${VERSION} | bzip2 -9 > reprotest-${VERSION}.tar.bz2
 
     $ gpg --detach-sig --armor --output=reprotest-${VERSION}.tar.bz2.asc < reprotest-${VERSION}.tar.bz2
 
