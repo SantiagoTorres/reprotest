@@ -192,6 +192,9 @@ def basename(p):
     # works more intuitively for paths with a trailing /
     return os.path.normpath(os.path.basename(os.path.normpath(p)))
 
+# put build artifacts in ${dist}/source-root, to support tools that put artifacts in ..
+VSRC_DIR = "source-root"
+
 
 # time zone, locales, disorderfs, host name, user/group, shell, CPU
 # number, architecture for uname (using linux64), umask, HOME, see
@@ -359,7 +362,7 @@ VARIATIONS = types.MappingProxyType(collections.OrderedDict([
 ]))
 
 
-def build(script, env, source_root_orig, source_root_build, dist_root, artifact_store, artifact_pattern, testbed):
+def build(script, env, source_root_orig, source_root_build, dist_root, artifact_pattern, testbed):
     logging.info("starting build with source directory: %s, artifact pattern: %s",
         source_root_orig, artifact_pattern)
     # remove any existing artifact, in case the build script doesn't overwrite
@@ -376,11 +379,12 @@ def build(script, env, source_root_orig, source_root_build, dist_root, artifact_
     (code, _, _) = testbed.execute(argv, xenv=xenv, kind='build')
     if code != 0:
         testbed.bomb('"%s" failed with status %i' % (' '.join(argv), code), adtlog.AutopkgtestError)
-    # exit_code, stdout, stderr = testbed.execute(['lsof', source_root], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    # print(exit_code, stdout, stderr)
+    dist_base = os.path.join(dist_root, VSRC_DIR)
     testbed.check_exec(
-        ['sh', '-ec', 'mkdir -p "%s" && cd "%s" && cp -a -t "%s" %s && touch -d@0 "%s" "%s"/*' %
-        (dist_root, source_root_orig, dist_root, artifact_pattern, dist_root, dist_root)])
+        ['sh', '-ec', """mkdir -p "{0}"
+cd "{1}" && cp --parents -a -t "{0}" {2}
+cd "{0}" && touch -d@0 . .. {2}
+""".format(dist_base, source_root_orig, artifact_pattern)])
 
 
 def run_or_tee(progargs, filename, store_dir, *args, **kwargs):
@@ -455,7 +459,7 @@ def check(build_command, artifact_pattern, virtual_server_args, source_root,
                     testbed.command('copydown', (source_root, orig_tree[i]))
 
                 for i in (0, 1):
-                    build(script[i], env[i], orig_tree[i], tree[i], dist[i], result[i],
+                    build(script[i], env[i], orig_tree[i], tree[i], dist[i],
                           artifact_pattern, testbed)
 
                 for i in (0, 1):
@@ -484,7 +488,7 @@ def check(build_command, artifact_pattern, virtual_server_args, source_root,
             print("No differences in %s" % artifact_pattern, flush=True)
             run_or_tee(['sh', '-ec', 'find %s -type f -exec sha256sum "{}" \;' % artifact_pattern],
                 'SHA256SUMS', store_dir,
-                cwd=result.control)
+                cwd=os.path.join(result.control, VSRC_DIR))
 
             if store_dir:
                 shutil.rmtree(store.experiment)
