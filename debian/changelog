@@ -1,7 +1,7 @@
 reprotest (0.7) UNRELEASED; urgency=medium
 
   * Preserve directory structure when copying artifacts. Otherwise hash output
-    on a succesful reproduction sometimes fails, because find(1) can't find
+    on a successful reproduction sometimes fails, because find(1) can't find
     the artifacts using the original artifact_pattern.
 
  -- Ximin Luo <infinity0@debian.org>  Wed, 05 Apr 2017 04:11:34 +0200
