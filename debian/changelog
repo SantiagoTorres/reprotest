@@ -1,3 +1,10 @@
+reprotest (0.6.2) UNRELEASED; urgency=medium
+
+  * Add a documentation section on "Known bugs".
+  * Move developer documentation away from the man page.
+
+ -- Ximin Luo <infinity0@debian.org>  Tue, 09 May 2017 21:12:17 +0200
+
 reprotest (0.6.1) unstable; urgency=medium
 
   * Preserve directory structure when copying artifacts. Otherwise hash output
