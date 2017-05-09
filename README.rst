@@ -47,6 +47,7 @@ arguments and what they do, run:
 
     $ reprotest --help
 
+
 Running in a virtual server
 ===========================
 
@@ -108,6 +109,7 @@ Of course, all of this is a burden to remember, if you must run the same
 thing many times. So that is why adding new presets for new files would
 be good.
 
+
 Config File
 ===========
 
@@ -144,6 +146,7 @@ A sample config file is below.
       time
       timezone
       umask
+
 
 Running the Tests
 =================
