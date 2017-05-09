@@ -1,10 +1,10 @@
-reprotest (0.6.1) UNRELEASED; urgency=medium
+reprotest (0.6.1) unstable; urgency=medium
 
   * Preserve directory structure when copying artifacts. Otherwise hash output
     on a successful reproduction sometimes fails, because find(1) can't find
     the artifacts using the original artifact_pattern.
 
- -- Ximin Luo <infinity0@debian.org>  Wed, 05 Apr 2017 04:11:34 +0200
+ -- Ximin Luo <infinity0@debian.org>  Tue, 09 May 2017 19:56:29 +0200
 
 reprotest (0.6) unstable; urgency=medium
 
