@@ -26,3 +26,7 @@ ifeq (,$(filter nocheck,$(DEB_BUILD_OPTIONS)))
 	TOX_TESTENV_PASSENV=PYTHONIOENCODING PYTHONIOENCODING=utf-8 \
 	tox -r --sitepackages -- -s
 endif
+
+override_dh_auto_clean:
+	dh_auto_clean
+	cd doc && $(MAKE) clean
