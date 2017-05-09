@@ -229,14 +229,10 @@ Now, finally run the tests:
 Releasing
 =========
 
-After releasing, please upload a signed tarball:
+After releasing (with ``gbp buildpackage``), please upload a signed tarball:
 
 ::
 
-    $ VERSION=FIXME
-
-    $ git archive --format=tar --prefix=reprotest-${VERSION}/ ${VERSION} | bzip2 -9 > reprotest-${VERSION}.tar.bz2
-
-    $ gpg --detach-sig --armor --output=reprotest-${VERSION}.tar.bz2.asc < reprotest-${VERSION}.tar.bz2
-
-    $ scp reprotest-${VERSION}* alioth.debian.org:/home/groups/reproducible/htdocs/releases/reprotest
+    $ TARBALL=$(dpkg-parsechangelog -SSource)_$(dpkg-parsechangelog -SVersion).tar.xz
+    $ gpg --detach-sign --armor --output=../${TARBALL}.asc < ../${TARBALL}
+    $ scp ../${TARBALL}* alioth.debian.org:/home/groups/reproducible/htdocs/releases/reprotest
