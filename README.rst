@@ -109,6 +109,24 @@ Of course, all of this is a burden to remember, if you must run the same
 thing many times. So that is why adding new presets for new files would
 be good.
 
+Here is a more complex example. It tells reprotest to store the build products
+into ``./artifacts`` to analyse later; and also tweaks the "Debian dsc" preset
+so that it uses our `experimental toolchain
+<https://wiki.debian.org/ReproducibleBuilds/ExperimentalToolchain>`__.
+
+::
+
+    $ reprotest --store-dir=artifacts \
+        --auto-preset-expr '_.prepend.testbed_init("apt-get install -y wget 2>/dev/null; \
+            echo deb http://reproducible.alioth.debian.org/debian/ ./ >> /etc/apt/sources.list; \
+            wget -q -O- https://reproducible.alioth.debian.org/reproducible.asc | apt-key add -; \
+            apt-get update; apt-get upgrade -y 2>/dev/null; ")' \
+        auto ./bash_4.4-4.0~reproducible1.dsc \
+        -- \
+        schroot unstable-amd64-sbuild
+
+(Yes, this could be a lot nicer to achieve; we're working on it.)
+
 
 Config File
 ===========
