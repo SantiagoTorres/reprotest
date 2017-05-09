@@ -2,14 +2,19 @@ reprotest (0.6.2) UNRELEASED; urgency=medium
 
   * Add a documentation section on "Known bugs".
   * Move developer documentation away from the man page.
+  * Mention release instructions in the previous changelog.
 
  -- Ximin Luo <infinity0@debian.org>  Tue, 09 May 2017 21:12:17 +0200
 
 reprotest (0.6.1) unstable; urgency=medium
 
+  [ Ximin Luo ]
   * Preserve directory structure when copying artifacts. Otherwise hash output
     on a successful reproduction sometimes fails, because find(1) can't find
     the artifacts using the original artifact_pattern.
+
+  [ Chris Lamb ]
+  * Add proper release instructions and a keyring.
 
  -- Ximin Luo <infinity0@debian.org>  Tue, 09 May 2017 19:56:29 +0200
 
