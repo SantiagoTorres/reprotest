@@ -66,6 +66,6 @@ def test_debian_build(virtual_server):
     # gets written twice and the second one is the "real" one, but since it
     # should all be reproducible, this should be OK.
     assert(0 == subprocess.call(
-        REPROTEST + ['debuild -b -uc -us', '../*.deb'] + virtual_server,
+        REPROTEST + ['debuild -b -nc -uc -us', '../*.deb'] + virtual_server,
         # "nocheck" to stop tests recursing into themselves
         env=dict(list(os.environ.items()) + [("DEB_BUILD_OPTIONS", "nocheck")])))
