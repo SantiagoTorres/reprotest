@@ -30,12 +30,12 @@ class ReprotestPreset(collections.namedtuple('_ReprotestPreset',
     >>> _.prepend.build_command("setup; ")
     ReprotestPreset(build_command='setup; etc; etc2', artifact=None, testbed_pre=None, testbed_init=None)
 
-    >>> _.set.build_command("dpkg-buildpackage -us -uc -b")
-    ReprotestPreset(build_command='dpkg-buildpackage -us -uc -b', artifact=None, testbed_pre=None, testbed_init=None)
+    >>> _.set.build_command("dpkg-buildpackage --no-sign -b")
+    ReprotestPreset(build_command='dpkg-buildpackage --no-sign -b', artifact=None, testbed_pre=None, testbed_init=None)
 
     >>> _.str_replace.build_command(
     ...    "dpkg-buildpackage", "DEB_BUILD_OPTIONS=nocheck dpkg-buildpackage -Pnocheck")
-    ReprotestPreset(build_command='DEB_BUILD_OPTIONS=nocheck dpkg-buildpackage -Pnocheck -us -uc -b', artifact=None, testbed_pre=None, testbed_init=None)
+    ReprotestPreset(build_command='DEB_BUILD_OPTIONS=nocheck dpkg-buildpackage -Pnocheck --no-sign -b', artifact=None, testbed_pre=None, testbed_init=None)
     """
 
     @property
@@ -57,7 +57,7 @@ class ReprotestPreset(collections.namedtuple('_ReprotestPreset',
 
 
 PRESET_DEB_DIR = ReprotestPreset(
-    build_command = 'dpkg-buildpackage -uc -us -b',
+    build_command = 'dpkg-buildpackage --no-sign -b',
     artifact = '../*.deb',
     testbed_pre = None,
     testbed_init = None,
