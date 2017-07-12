@@ -37,9 +37,14 @@ import urllib.parse
 #from debian import debian_support
 
 from reprotest.lib.system_interface.debian import DebianInterface
+from reprotest.lib.system_interface.arch import ArchInterface
 from reprotest.lib import adtlog
 from reprotest.lib import VirtSubproc
 
+SYSTEM_INTERFACES = {
+        'debian': DebianInterface,
+        'arch': ArchInterface
+        }
 
 timeouts = {'short': 100, 'copy': 300, 'install': 3000, 'test': 10000,
             'build': 100000}
@@ -48,8 +53,7 @@ timeouts = {'short': 100, 'copy': 300, 'install': 3000, 'test': 10000,
 class Testbed:
     def __init__(self, vserver_argv, output_dir, user,
                  setup_commands=[], setup_commands_boot=[], add_apt_pockets=[],
-                 copy_files=[]):
-        self.system_interface = DebianInterface()
+                 copy_files=[], host_distro='debian'):
         self.sp = None
         self.lastsend = None
         self.scratch = None
@@ -83,6 +87,16 @@ class Testbed:
             self.devnull = subprocess.DEVNULL
         except AttributeError:
             self.devnull = open(os.devnull, 'rb')
+
+
+        if host_distro in SYSTEM_INTERFACES:
+            self.system_interface = SYSTEM_INTERFACES[host_distro]()
+        else:
+            # The host_distro provided is not available.
+            # Let's play it cool
+            adtlog.warning("Could not load target distro keychain. "
+                "Falling back to Debian")
+            self.system_interface = DebianInterface()
 
         adtlog.debug('testbed init')
 
