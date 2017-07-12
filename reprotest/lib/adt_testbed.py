@@ -36,6 +36,7 @@ import urllib.parse
 # Don't need this in reprotest, try to be distro-agnostic
 #from debian import debian_support
 
+from reprotest.lib.system_interface.debian import DebianInterface
 from reprotest.lib import adtlog
 from reprotest.lib import VirtSubproc
 
@@ -48,13 +49,14 @@ class Testbed:
     def __init__(self, vserver_argv, output_dir, user,
                  setup_commands=[], setup_commands_boot=[], add_apt_pockets=[],
                  copy_files=[]):
+        self.system_interface = DebianInterface()
         self.sp = None
         self.lastsend = None
         self.scratch = None
         self.modified = False
         self._need_reset_apt = False
         self.stop_sent = False
-        self.dpkg_arch = None
+        self.system_arch = None
         self.exec_cmd = None
         self.output_dir = output_dir
         self.shared_downtmp = None  # testbed's downtmp on the host, if supported
@@ -226,8 +228,8 @@ class Testbed:
         self.run_setup_commands()
 
         # determine testbed architecture
-        self.dpkg_arch = self.check_exec(['dpkg', '--print-architecture'], True).strip()
-        adtlog.info('testbed dpkg architecture: ' + self.dpkg_arch)
+        self.system_arch = self.check_exec(self.system_interface.get_arch(), True).strip()
+        adtlog.info('testbed package architecture: ' + self.system_arch)
 
         # do we have eatmydata?
         (code, out, err) = self.execute(['which', 'eatmydata'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -236,9 +238,9 @@ class Testbed:
             self.eatmydata_prefix = [out.strip()]
 
         # record package versions of pristine testbed
-        if self.output_dir and self.execute(['which', 'dpkg-query'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)[0] == 0:
+        if self.output_dir and self.system_interface.can_query_packages():
             pkglist = TempPath(self, 'testbed-packages', autoclean=False)
-            self.check_exec(['sh', '-ec', "dpkg-query --show -f '${Package}\\t${Version}\\n' > %s" % pkglist.tb])
+            self.check_exec(self.system_interface.get_installed_packages(pkglist))
             pkglist.copyup()
 
         self.post_boot_setup()
