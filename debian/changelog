@@ -1,3 +1,11 @@
+reprotest (0.6.3) UNRELEASED; urgency=medium
+
+  * Document when one should use --diffoscope-args=--exclude-directory-metadata
+    and do this in our Debian package presets.
+  * Bump diffoscope Recommends version to >= 84 to support this flag.
+
+ -- Ximin Luo <infinity0@debian.org>  Wed, 12 Jul 2017 13:53:05 +0200
+
 reprotest (0.6.2) unstable; urgency=medium
 
   * Add a documentation section on "Known bugs".

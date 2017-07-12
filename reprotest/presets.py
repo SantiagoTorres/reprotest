@@ -13,7 +13,7 @@ class AttributeFunctor(collections.namedtuple('_AttributeFunctor', 'x f')):
 
 
 class ReprotestPreset(collections.namedtuple('_ReprotestPreset',
-    'build_command artifact testbed_pre testbed_init')):
+    'build_command artifact testbed_pre testbed_init diffoscope_args')):
     """Named-tuple representing a reprotest command preset.
 
     You can manipulate it like this:
@@ -60,7 +60,8 @@ PRESET_DEB_DIR = ReprotestPreset(
     build_command = 'dpkg-buildpackage -uc -us -b',
     artifact = '../*.deb',
     testbed_pre = None,
-    testbed_init = None
+    testbed_init = None,
+    diffoscope_args = ["--exclude-directory-metadata"],
 )
 
 def preset_deb_schroot(preset):
@@ -72,12 +73,9 @@ def preset_deb_schroot(preset):
     )
 
 def preset_deb_dsc(fn):
-    return ReprotestPreset(
-        build_command = 'dpkg-source -x "%s" build && cd build && dpkg-buildpackage -uc -us -b' % fn,
-        artifact = '*.deb',
-        testbed_pre = None,
-        testbed_init = None
-    )
+    return PRESET_DEB_DIR.prepend.build_command(
+            'dpkg-source -x "%s" build && cd build && ' % fn
+        ).set.artifact("*.deb")
 
 def get_presets(buildfile, virtual_server):
     fn = os.path.basename(buildfile)

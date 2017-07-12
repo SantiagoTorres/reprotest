@@ -166,6 +166,28 @@ A sample config file is below.
       umask
 
 
+Analysing diff output
+=====================
+
+Normally when diffoscope compares directories, it also compares the metadata of
+files in those directories - file permissions, owners, and so on.
+
+However depending on the circumstance, this filesystem-level metadata may or
+may not be intended to be distributed to other systems. For example: for most
+distros' package builders, we don't care about the metadata of the resulting
+package files; only the file contents will be distributed to other systems. On
+the other hand, when running something like `make install`, we *do* care about
+the metadata, because this is what will be recreated on another system.
+
+In the first case (where only the file contents will be distributed) you should
+pass ``--diffoscope-args=--exclude-directory-metadata`` to reprotest, to tell
+diffoscope to ignore the metadata that will not be distributed. Otherwise, you
+may get a false-negative result on the reproducibility of your build.
+
+This flag is already set in our presets, in the situations where it is
+appropriate to do so.
+
+
 Known bugs
 ==========
 

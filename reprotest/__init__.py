@@ -716,6 +716,8 @@ def main():
         artifact = values.artifact
         testbed_pre = values.testbed_pre
         testbed_init = values.testbed_init
+        if diffoscope_args is not None:
+            diffoscope_args = values.diffoscope_args + diffoscope_args
 
     # print(build_command, artifact, virtual_server_args)
     return check(build_command, artifact, virtual_server_args, source_root,

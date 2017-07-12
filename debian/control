@@ -37,7 +37,7 @@ Depends: ${python3:Depends},
  procps,
  python3-pkg-resources,
  ${misc:Depends}
-Recommends: diffutils | diffoscope, disorderfs, locales-all, faketime
+Recommends: diffutils | diffoscope (>= 84), disorderfs, locales-all, faketime
 Suggests: autodep8, schroot, qemu-system, qemu-utils
 Description: Build software and check it for reproducibility.
  reprotest builds the same source code twice in different environments, and
