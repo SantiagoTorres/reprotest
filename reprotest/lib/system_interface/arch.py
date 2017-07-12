@@ -52,3 +52,6 @@ class arch_interface(system_interface):
             return subprocess.check_call(['which', 'pacman'], stdout=subprocess.DEVNULL) == 0
         except:
             return 0
+
+def get_interface():
+    return arch_interface

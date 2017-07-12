@@ -32,6 +32,7 @@ import subprocess
 import tempfile
 import shutil
 import urllib.parse
+import importlib
 
 
 # TODO: removing this import disables install_tmp, may want to restore
@@ -40,7 +41,6 @@ import urllib.parse
 
 # from debian import debian_support
 
-from reprotest.lib.system_interface.debian import debian_interface
 from reprotest.lib import adtlog
 from reprotest.lib import VirtSubproc
 from reprotest.lib.util import TempPath, Path, killtree
@@ -52,8 +52,8 @@ timeouts = {'short': 100, 'copy': 300, 'install': 3000, 'test': 10000,
 
 class Testbed:
     def __init__(self, vserver_argv, output_dir, user,
-                 setup_commands=[], add_apt_pockets=[], copy_files=[]):
-        self.system_interface = debian_interface()
+                 setup_commands=[], add_apt_pockets=[], copy_files=[],
+                 host_distro='debian'):
         self.sp = None
         self.lastsend = None
         self.scratch = None
@@ -86,6 +86,19 @@ class Testbed:
             self.devnull = subprocess.DEVNULL
         except AttributeError:
             self.devnull = open(os.devnull, 'rb')
+
+
+        try:
+            module_name = ".".join([__package__, 'system_interface', host_distro])
+            interface_class = importlib.import_module(module_name).get_interface()
+            self.system_interface = interface_class()
+        except:
+            # importlib couldn't import the system interface.
+            # Let's play it cool
+            adtlog.warning("Could not load target distro keychain. "
+                "Defaulting to Debian")
+            from reprotest.lib.system_interface import debian
+            self.system_interface = debian.get_interface()()
 
         adtlog.debug('testbed init')
 

@@ -54,3 +54,5 @@ class debian_interface(system_interface):
         except:
             return 0
 
+def get_interface():
+    return debian_interface
