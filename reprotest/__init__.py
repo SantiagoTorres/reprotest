@@ -50,14 +50,15 @@ def get_all_servers():
 # approaches.
 
 @_contextlib.contextmanager
-def start_testbed(args, temp_dir, no_clean_on_error=False):
+def start_testbed(args, temp_dir, no_clean_on_error=False, host_distro='debian'):
     '''This is a simple wrapper around adt_testbed that automates the
     initialization and cleanup.'''
     # Find the location of reprotest using setuptools and then get the
     # path for the correct virt-server script.
     server_path = get_server_path(args[0])
     logging.info('STARTING VIRTUAL SERVER %r', [server_path] + args[1:])
-    testbed = adt_testbed.Testbed([server_path] + args[1:], temp_dir, None)
+    testbed = adt_testbed.Testbed([server_path] + args[1:], temp_dir, None,
+            host_distro=host_distro)
     testbed.start()
     testbed.open()
     should_clean = True
@@ -400,7 +401,7 @@ def run_or_tee(progargs, filename, store_dir, *args, **kwargs):
 def check(build_command, artifact_pattern, virtual_server_args, source_root,
           no_clean_on_error=False, variations=VARIATIONS,
           store_dir=None, diffoscope_args=[],
-          testbed_pre=None, testbed_init=None):
+          testbed_pre=None, testbed_init=None, host_distro='debian'):
     # default argument [] is safe here because we never mutate it.
     if not source_root:
         raise ValueError("invalid source root: %s" % source_root)
@@ -432,7 +433,8 @@ def check(build_command, artifact_pattern, virtual_server_args, source_root,
 
         # TODO: an alternative strategy is to run the testbed twice; not sure
         # if it's worth implementing at this stage, but perhaps in the future.
-        with start_testbed(virtual_server_args, temp_dir, no_clean_on_error) as testbed:
+        with start_testbed(virtual_server_args, temp_dir, no_clean_on_error,
+                host_distro=host_distro) as testbed:
             # directories need explicit '/' appended for VirtSubproc
             tree = Pair(testbed.scratch + '/control/', testbed.scratch + '/experiment/')
             dist = Pair(testbed.scratch + '/control-dist/', testbed.scratch + '/experiment-dist/')
@@ -530,6 +532,9 @@ COMMAND_LINE_OPTIONS = types.MappingProxyType(collections.OrderedDict([
     ('--config-file', types.MappingProxyType({
         'type': str, 'default': '.reprotestrc',
         'help': 'File to load configuration from. (Default: %(default)s)'})),
+    ('--host-distro', types.MappingProxyType({
+        'type': str, 'default': 'debian',
+        'help': 'The distribution that will run the tests (Default: %(default)s)'})),
     ('--source-root', types.MappingProxyType({
         'dest': 'source_root', 'type': pathlib.Path,
         'help': 'Root of the source tree, if not the '
@@ -663,6 +668,9 @@ def main():
     virtual_server_args = command_line_options.get(
         'virtual_server_args',
         config_options.get('virtual_server_args'))
+
+    host_distro = command_line_options.get('host_distro', 'debian')
+
     # Reprotest will copy this tree and then run the build command.
     # If a source root isn't provided, assume it's the current working
     # directory.
@@ -720,4 +728,4 @@ def main():
     # print(build_command, artifact, virtual_server_args)
     return check(build_command, artifact, virtual_server_args, source_root,
                  no_clean_on_error, variations, store_dir, diffoscope_args,
-                 testbed_pre, testbed_init)
+                 testbed_pre, testbed_init, host_distro)
