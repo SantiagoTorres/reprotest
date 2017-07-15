@@ -4,7 +4,7 @@ Uploaders: Ceridwen <ceridwenv@gmail.com>, Ximin Luo <infinity0@debian.org>
 Section: devel
 Priority: optional
 Standards-Version: 4.0.0
-Build-Depends: debhelper (>= 9.20141010),
+Build-Depends: debhelper (>= 10),
  dpkg-dev (>= 1.17.14),
  dh-python,
  python3-all,
