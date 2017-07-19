@@ -27,8 +27,11 @@ from reprotest import _shell_ast
 from reprotest import presets
 
 
+VIRT_PREFIX = "autopkgtest-virt-"
+
 def get_server_path(server_name):
-    return pkg_resources.resource_filename(__name__, os.path.join("virt", server_name))
+    return pkg_resources.resource_filename(
+        __name__, os.path.join("virt", (VIRT_PREFIX + server_name) if server_name else ""))
 
 def is_executable(parent, fn):
     path = os.path.join(parent, fn)
@@ -38,8 +41,9 @@ all_servers = None
 def get_all_servers():
     global all_servers
     if all_servers is None:
-        server_dir = get_server_path("")
-        all_servers = sorted(fn for fn in os.listdir(server_dir) if is_executable(server_dir, fn))
+        server_dir = get_server_path(None)
+        all_servers = sorted(fn[:-len(VIRT_PREFIX)] for fn in os.listdir(server_dir)
+                             if is_executable(server_dir, fn) and fn.startswith(VIRT_PREFIX))
     return all_servers
 
 
