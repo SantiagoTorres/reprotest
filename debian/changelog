@@ -10,6 +10,9 @@ reprotest (0.6.3) UNRELEASED; urgency=medium
     + Use https for the Format URI in debian/copyright.
   * Bump debhelper compat level to 10.
 
+  [ Ximin Luo ]
+  * Import autopkgtest 4.4, with minimal patches.
+
  -- Ximin Luo <infinity0@debian.org>  Wed, 12 Jul 2017 13:53:05 +0200
 
 reprotest (0.6.2) unstable; urgency=medium
