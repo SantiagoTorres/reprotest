@@ -13,6 +13,7 @@ ourpatch() {
 	for i in $lib_imports; do
 		sed -i -e 's/^import '"$i"'/from reprotest.lib import '"$i"'/g' "$1"
 	done
+	sed -i -e "s,'/usr/share/autopkgtest/lib',os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),g" "$1"
 }
 
 last_import=$(git log --pretty="format:%H" --grep='Import autopkgtest')
