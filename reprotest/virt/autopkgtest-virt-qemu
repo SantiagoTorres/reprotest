@@ -1,11 +1,11 @@
 #!/usr/bin/python3
 #
-# adt-virt-qemu is part of autopkgtest
+# autopkgtest-virt-qemu is part of autopkgtest
 # autopkgtest is a tool for testing Debian binary packages
 #
 # autopkgtest is Copyright (C) 2006-2014 Canonical Ltd.
 #
-# adt-virt-qemu was developed by
+# autopkgtest-virt-qemu was developed by
 # Martin Pitt <martin.pitt@ubuntu.com>
 #
 # This program is free software; you can redistribute it and/or modify
@@ -37,9 +37,9 @@ import fcntl
 import re
 import argparse
 
-
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(
-    os.path.abspath(__file__)))))
+sys.path.insert(0, '/usr/share/autopkgtest/lib')
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(
+    os.path.abspath(__file__))), 'lib'))
 
 from reprotest.lib import VirtSubproc
 from reprotest.lib import adtlog
@@ -49,7 +49,6 @@ args = None
 workdir = None
 p_qemu = None
 ssh_port = None
-ssh_port_lock = None
 normal_user = None
 qemu_cmd_default = None
 
@@ -81,6 +80,8 @@ def parse_args():
                         help='Number of (virtual) CPUs in the VM (default: %(default)s)')
     parser.add_argument('--ram-size', type=int, default=1024,
                         help='VM RAM size in MiB (default: %(default)s)')
+    parser.add_argument('--timeout-reboot', type=int, metavar='SECONDS', default=60,
+                        help='timeout for waiting for reboot (default: %(default)ss)')
     parser.add_argument('--show-boot', action='store_true',
                         help='Show boot messages from serial console')
     parser.add_argument('-d', '--debug', action='store_true',
@@ -114,7 +115,7 @@ def prepare_overlay():
 
 def wait_boot():
     term = VirtSubproc.get_unix_socket(os.path.join(workdir, 'ttyS0'))
-    VirtSubproc.expect(term, b' login: ', 300, 'login prompt on ttyS0',
+    VirtSubproc.expect(term, b' login: ', args.timeout_reboot, 'login prompt on ttyS0',
                        echo=args.show_boot)
     # this is really ugly, but runlevel, "service status hwclock" etc. all
     # don't help to determine if the system is *really* booted; running
@@ -163,23 +164,27 @@ def login_tty_and_setup_shell():
     term = VirtSubproc.get_unix_socket(os.path.join(workdir, 'ttyS0'))
 
     # send user name
-    term.send(args.user.encode('UTF-8'))
-    term.send(b'\n')
-    # wait until we get some more data for the password prompt
-    VirtSubproc.expect(term, None, 10, 'password prompt')
+    term.send(args.user.encode('UTF-8') + b'\n')
+    VirtSubproc.expect(term, b'assword:', 10, 'password prompt')
     # send password
-    term.send(args.password.encode('UTF-8'))
-    term.send(b'\n')
-    adtlog.debug('login_tty: sent password')
+    passwd_b = args.password.encode('UTF-8')
+    term.send(passwd_b + b'\n')
+    VirtSubproc.expect(term, None, 10, 'acked password')
+    term.send(b'echo "LOG""IN""_"OK\n')
+    adtlog.debug('login_tty: logged in')
+    VirtSubproc.expect(term, b'LOGIN_OK', 120, 'logged in')
 
-    cmd = b'setsid sh </dev/ttyS1 >/dev/ttyS1 2>&1 &'
+    cmd = b'sh </dev/ttyS1 >/dev/ttyS1 2>&1'
 
     # if we are a non-root user, run through sudo
     if args.user != 'root':
-        cmd = b"sudo sh -c '" + cmd + "'"
+        cmd = b"echo '%s' | sudo --background --stdin sh -c '" % passwd_b + cmd + b"'"
+    else:
+        cmd = b'setsid ' + cmd
 
-    term.send(cmd)
-    term.send(b'\nexit\n')
+    term.send(cmd + b'\n')
+    VirtSubproc.expect(term, None, 10, 'accepted ttyS1 shell command')
+    term.send(b'exit\n')
     VirtSubproc.expect(term, b'\nlogout', 10)
 
 
@@ -190,11 +195,12 @@ def setup_baseimage():
 
     # Setup udev rules for /dev/baseimage; set link_priority to -1024 so
     # that the duplicate UUIDs of the partitions will have no effect.
-    term.send(b'''mkdir -p -m 0755 /run/udev/rules.d ; printf '# Created by adt-virt-qemu\\n%s\\n%s\\n' 'KERNEL=="vd*[!0-9]", ENV{ID_SERIAL}=="BASEIMAGE", OPTIONS+="link_priority=-1024", SYMLINK+="baseimage", MODE="0664"' 'KERNEL=="vd*[0-9]",  ENV{ID_SERIAL}=="BASEIMAGE", OPTIONS+="link_priority=-1024"' > /run/udev/rules.d/61-baseimage.rules\n''')
+    term.send(b'''mkdir -p -m 0755 /run/udev/rules.d ; printf '# Created by autopkgtest-virt-qemu\\n%s\\n%s\\n%s\\n' 'KERNEL=="vd*[!0-9]", ENV{ID_SERIAL}=="BASEIMAGE", OPTIONS+="link_priority=-1024", SYMLINK+="baseimage", MODE="0664"' 'KERNEL=="vd*[0-9]",  ENV{ID_SERIAL}=="BASEIMAGE", OPTIONS+="link_priority=-1024"' 'KERNEL=="vd*", ENV{ID_SERIAL}=="BASEIMAGE", ENV{ID_FS_TYPE}:="", ENV{ID_FS_USAGE}:="", ENV{ID_FS_UUID}:=""' > /run/udev/rules.d/61-baseimage.rules\n''')
     VirtSubproc.expect(term, b'#', 10)
     # Reload udev to make sure the rules take effect (udev only auto-
     # rereads rules every 3 seconds)
     term.send(b'udevadm control --reload\n')
+    VirtSubproc.expect(term, b'#', 10)
 
     # Add the base image as an additional drive
     monitor = VirtSubproc.get_unix_socket(os.path.join(workdir, 'monitor'))
@@ -212,10 +218,10 @@ def setup_shared(shared_dir):
 
     term = VirtSubproc.get_unix_socket(os.path.join(workdir, 'ttyS1'))
 
-    term.send(b'''mkdir -p -m 1777 /autopkgtest
-mount -t 9p -o trans=virtio,access=any autopkgtest /autopkgtest
-chmod 1777 /autopkgtest
-touch /autopkgtest/done_shared
+    term.send(b'''mkdir -p -m 1777 /run/autopkgtest/shared
+mount -t 9p -o trans=virtio,access=any autopkgtest /run/autopkgtest/shared
+chmod 1777 /run/autopkgtest/shared
+touch /run/autopkgtest/shared/done_shared
 ''')
 
     with VirtSubproc.timeout(10, 'timed out on client shared directory setup'):
@@ -228,48 +234,13 @@ touch /autopkgtest/done_shared
     term.send(b'[ -n "$HOME" ] || export HOME=`getent passwd root|cut -f6 -d:`\n')
     VirtSubproc.expect(term, b'#', 5)
 
-
-def setup_config(shared_dir):
-    '''Set up configuration files'''
-
-    term = VirtSubproc.get_unix_socket(os.path.join(workdir, 'ttyS1'))
-
-    # copy our timezone, to avoid time skews with the host
-    if os.path.exists('/etc/timezone'):
-        tz = None
-        with open('/etc/timezone', 'rb') as f:
-            for l in f:
-                if l.startswith(b'#'):
-                    continue
-                l = l.strip()
-                if l:
-                    tz = l
-                    break
-
-        if tz:
-            adtlog.debug('Copying host timezone %s to VM' % tz.decode())
-            term.send(b'echo ' + tz + b' > /etc/timezone; DEBIAN_FRONTEND=noninteractive dpkg-reconfigure tzdata\n')
-            VirtSubproc.expect(term, b'#', 30)
-        else:
-            adtlog.debug('Could not determine host timezone')
-
-    # ensure that we have Python for our the auxverb helpers
-    term.send(b'type python3 2>/dev/null || type python 2>/dev/null\n')
-    try:
-        out = VirtSubproc.expect(term, b'/python', 5)
-    except VirtSubproc.Timeout:
-        VirtSubproc.bomb('Neither python3 nor python is installed in the VM, '
-                         'one of them is required by autopkgtest')
-    if b'\n# ' not in out:
-        VirtSubproc.expect(term, b'# ', 5)
-
     # create helper for runcmd: cat data from its stdin (from a file) to stdout
     # eternally (like tail -f), but stop once either an "EOF" file exists and
     # we copied at least as many bytes as given in that EOF file (the first
     # arg), or an "exit flag" file exists.
-    # We don't run that from /autopkgtest/ as 9p from older QEMU versions is
-    # buggy and causes "invalid numeric result" errors on that.
-    term.send(b'''PYTHON=$(which python3) || PYTHON=$(which python); cat <<EOF > /bin/eofcat; chmod 755 /bin/eofcat
+    # We don't run that from /run/autopkgtest/shared as 9p from older QEMU
+    # versions is buggy and causes "invalid numeric result" errors on that.
+    term.send(b'''PYTHON=$(which python3) || PYTHON=$(which python); cat <<EOF > /tmp/eofcat; chmod 755 /tmp/eofcat
 #!$PYTHON
 import sys, os, fcntl, time, errno
 (feof, fexit) = sys.argv[1:]
@@ -302,6 +273,41 @@ EOF
     VirtSubproc.expect(term, b'# ', 5)
 
 
+def setup_config(shared_dir):
+    '''Set up configuration files'''
+
+    term = VirtSubproc.get_unix_socket(os.path.join(workdir, 'ttyS1'))
+
+    # copy our timezone, to avoid time skews with the host
+    if os.path.exists('/etc/timezone'):
+        tz = None
+        with open('/etc/timezone', 'rb') as f:
+            for line in f:
+                if line.startswith(b'#'):
+                    continue
+                line = line.strip()
+                if line:
+                    tz = line
+                    break
+
+        if tz:
+            adtlog.debug('Copying host timezone %s to VM' % tz.decode())
+            term.send(b'echo ' + tz + b' > /etc/timezone; DEBIAN_FRONTEND=noninteractive dpkg-reconfigure tzdata\n')
+            VirtSubproc.expect(term, b'#', 30)
+        else:
+            adtlog.debug('Could not determine host timezone')
+
+    # ensure that we have Python for our the auxverb helpers
+    term.send(b'type python3 2>/dev/null || type python 2>/dev/null\n')
+    try:
+        out = VirtSubproc.expect(term, b'/python', 5)
+    except VirtSubproc.Timeout:
+        VirtSubproc.bomb('Neither python3 nor python is installed in the VM, '
+                         'one of them is required by autopkgtest')
+    if b'\n# ' not in out:
+        VirtSubproc.expect(term, b'# ', 5)
+
+
 def make_auxverb(shared_dir):
     '''Create auxverb script'''
 
@@ -315,7 +321,7 @@ dir_host = '%(dir)s'
 job_host = tempfile.mkdtemp(prefix='job.', dir=dir_host)
 atexit.register(shutil.rmtree, job_host)
 os.chmod(job_host, 0o755)
-job_guest = '/autopkgtest/' + os.path.basename(job_host)
+job_guest = '/run/autopkgtest/shared/' + os.path.basename(job_host)
 running = True
 
 def shovel(fin, fout, flagfile_on_eof=None):
@@ -370,7 +376,7 @@ t_stderr.start()
 # "real" stdin behaviour.
 s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
 s.connect('%(tty)s')
-cmd = 'PYTHONHASHSEED=0 /bin/eofcat %%(d)s/stdin_eof %%(d)s/exit.tmp < %%(d)s/stdin | ' \\
+cmd = 'PYTHONHASHSEED=0 /tmp/eofcat %%(d)s/stdin_eof %%(d)s/exit.tmp < %%(d)s/stdin | ' \\
       '(%%(c)s >> %%(d)s/stdout 2>> %%(d)s/stderr; echo $? > %%(d)s/exit.tmp);' \\
       'mv %%(d)s/exit.tmp %%(d)s/exit\\n' %% \\
        {'d': job_guest, 'c': ' '.join(map(pipes.quote, sys.argv[1:]))}
@@ -444,26 +450,25 @@ def get_cpuflag():
 def find_free_port(start):
     '''Find an unused port in the range [start, start+50)'''
 
-    global ssh_port_lock
-
     for p in range(start, start + 50):
         adtlog.debug('find_free_port: trying %i' % p)
         try:
+            lockfile = '/tmp/autopkgtest-virt-qemu.port.%i' % p
+            f = None
             try:
-                ssh_port_lock = open('/run/lock/adt-virt-qemu.port.%i' % p, 'w')
-                fcntl.flock(ssh_port_lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                f = open(lockfile, 'x')
+                os.unlink(lockfile)
+                fcntl.flock(f, fcntl.LOCK_EX | fcntl.LOCK_NB)
             except (IOError, OSError):
                 adtlog.debug('find_free_port: %i is locked' % p)
-                if ssh_port_lock:
-                    ssh_port_lock.close()
-                ssh_port_lock = None
                 continue
+            finally:
+                if f:
+                    f.close()
 
             s = socket.create_connection(('127.0.0.1', p))
             # if that works, the port is taken
             s.close()
-            ssh_port_lock.close()
-            ssh_port_lock = None
             continue
         except socket.error as e:
             if e.errno == errno.ECONNREFUSED:
@@ -489,7 +494,7 @@ def determine_normal_user(shared_dir):
     term = VirtSubproc.get_unix_socket(os.path.join(workdir, 'ttyS1'))
     term.send(b"getent passwd | sort -t: -nk3 | "
               b"awk -F: '{if ($3 >= 500) { print $1; exit } }'"
-              b"> /autopkgtest/normal_user\n")
+              b"> /run/autopkgtest/shared/normal_user\n")
     with VirtSubproc.timeout(5, 'timed out on determining normal user'):
         outfile = os.path.join(shared_dir, 'normal_user')
         while not os.path.exists(outfile):
@@ -506,7 +511,7 @@ def determine_normal_user(shared_dir):
 def hook_open():
     global workdir, p_qemu, ssh_port
 
-    workdir = tempfile.mkdtemp(prefix='adt-virt-qemu.')
+    workdir = tempfile.mkdtemp(prefix='autopkgtest-virt-qemu.')
     os.chmod(workdir, 0o755)
 
     shareddir = os.path.join(workdir, 'shared')
@@ -514,13 +519,21 @@ def hook_open():
 
     overlay = prepare_overlay()
 
+    # find free port to forward VM port 22 (for SSH access)
+    ssh_port = find_free_port(10022)
+    if ssh_port:
+        adtlog.debug('Forwarding local port %i to VM ssh port 22' % ssh_port)
+        nic_opt = ',hostfwd=tcp::%i-:22' % ssh_port
+    else:
+        nic_opt = ''
+
     # start QEMU
     argv = [args.qemu_command,
             '-m', str(args.ram_size),
             '-smp', str(args.cpus),
             '-nographic',
-            '-net', 'user',
             '-net', 'nic,model=virtio',
+            '-net', 'user' + nic_opt,
             '-monitor', 'unix:%s/monitor,server,nowait' % workdir,
             '-serial', 'unix:%s/ttyS0,server,nowait' % workdir,
             '-serial', 'unix:%s/ttyS1,server,nowait' % workdir,
@@ -541,13 +554,6 @@ def hook_open():
     # pass through option to qemu
     if args.qemu_options:
         argv.extend(args.qemu_options.split())
-
-    # find free port to forward VM port 22 (for SSH access)
-    ssh_port = find_free_port(10022)
-    if ssh_port:
-        adtlog.debug('Forwarding local port %i to VM ssh port 22' % ssh_port)
-        argv.append('-redir')
-        argv.append('tcp:%i::22' % ssh_port)
 
     p_qemu = subprocess.Popen(argv)
 
@@ -573,7 +579,7 @@ def hook_open():
 def hook_downtmp(path):
     # we would like to do this, but 9p is currently way too slow for big source
     # trees
-    # downtmp = '/autopkgtest/tmp'
+    # downtmp = '/run/autopkgtest/shared/tmp'
     # VirtSubproc.check_exec(['mkdir', '-m', '1777', downtmp], downp=True)
     return VirtSubproc.downtmp_mktemp(path)
 
@@ -610,6 +616,7 @@ def hook_wait_reboot():
     shareddir = os.path.join(workdir, 'shared')
     os.unlink(os.path.join(shareddir, 'done_shared'))
     wait_boot()
+    setup_shell()
     setup_shared(shareddir)
     setup_baseimage()
 

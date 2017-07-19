@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 #
-# adt-virt-ssh is part of autopkgtest
+# autopkgtest-virt-ssh is part of autopkgtest
 # autopkgtest is a tool for testing Debian binary packages
 #
 # autopkgtest is Copyright (C) 2006-2015 Canonical Ltd.
@@ -36,9 +36,9 @@ import time
 import subprocess
 import socket
 
-
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(
-    os.path.abspath(__file__)))))
+sys.path.insert(0, '/usr/share/autopkgtest/lib')
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(
+    os.path.abspath(__file__))), 'lib'))
 
 from reprotest.lib import VirtSubproc
 from reprotest.lib import adtlog
@@ -87,7 +87,7 @@ KILL=""
 for pid in $PS; do
     [ $pid -ne $$ ] && [ $pid -ne $PPID ] && [ $pid -ne $PPPID ] || continue
     [ -r /proc/$pid/comm ] && [ "$(< /proc/$pid/comm)" != sshd ] || continue
-    #echo "XXXadt-ssh-wrapper($$ $PPID $PPPID $myout $myerr): killing $pid (`cat /proc/$pid/cmdline`)" >&2
+    #echo "XXXautopkgtest-ssh-wrapper($$ $PPID $PPPID $myout $myerr): killing $pid (`cat /proc/$pid/cmdline`)" >&2
     KILL="$KILL $pid"
 done
 
@@ -101,7 +101,7 @@ cleanup_paths = []  # paths on the device which we created
 
 
 def parse_args():
-    global args
+    global args, capabilities
 
     parser = argparse.ArgumentParser()
 
@@ -126,6 +126,10 @@ def parse_args():
                         help='Passed verbatim to ssh; see man ssh_config')
     parser.add_argument('-r', '--reboot', action='store_true',
                         help='Indicate that testbed supports reboot')
+    parser.add_argument('--capability', action='append',
+                        help='Indicate that testbed supports given capability.'
+                        ' Can be specified multiple times. Never use this on '
+                        'precious testbeds!')
     parser.add_argument('-s', '--setup-script',
                         help='Setup script to prepare testbed and ssh connection')
     parser.add_argument('--timeout-ssh', metavar='SECS', type=int, default=300,
@@ -155,8 +159,11 @@ def parse_args():
     if args.reboot:
         capabilities.append('reboot')
 
+    if args.capability:
+        capabilities += args.capability
 
-def execute_setup_script(command, fail_ok=False):
+
+def execute_setup_script(command, fail_ok=False, print_stderr=True):
     '''Run the --setup-script, if given.
 
     Arguments passed after -- to the main program are passed verbatim to the
@@ -166,10 +173,13 @@ def execute_setup_script(command, fail_ok=False):
 
     :param command: Command to execute. The command must match a function in
                     the ssh script
-    :param fail_ok: If True, failures will not cause bombing, and this function
-                    returns the exit code instead.
+    :param fail_ok: If True, failures will not cause bombing
+    :return: A tuple (return code, stdout, stderr). stdout and stderr may be
+             None, for example if the script fails and fail_ok is True.
     '''
     global sshconfig, args
+    out = None
+    err = None
 
     if args.setup_script:
         fpath = args.setup_script
@@ -188,13 +198,20 @@ def execute_setup_script(command, fail_ok=False):
 
         adtlog.debug('Executing setup script: %s' % ' '.join(cmd))
         (status, out, err) = VirtSubproc.execute_timeout(
-            None, 1800, cmd, stdout=subprocess.PIPE)
+            None,
+            1800,
+            cmd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE)
+        if print_stderr:
+            # Keep outputting the error on stderr as well as capturing it
+            sys.stderr.write(err)
         if status != 0:
             err = 'setup script failed with code %i: %s' % (status,
                                                             ' '.join(cmd))
             if fail_ok:
                 adtlog.debug(err)
-                return status
+                return (status, out, err)
             else:
                 execute_setup_script('debug-failure', fail_ok=True)
                 VirtSubproc.bomb(err)
@@ -211,7 +228,7 @@ def execute_setup_script(command, fail_ok=False):
         if a is not None:
             sshconfig[param] = a
 
-    return 0
+    return (0, out, err)
 
 
 def host_setup(command):
@@ -229,7 +246,7 @@ def host_setup(command):
 
     try:
         if workdir is None:
-            workdir = tempfile.mkdtemp(prefix='adt-virt-ssh.')
+            workdir = tempfile.mkdtemp(prefix='autopkgtest-virt-ssh.')
             os.chmod(workdir, 0o755)
         execute_setup_script(command)
         build_sshcmd()
@@ -327,16 +344,16 @@ def build_auxverb():
     # create remote wrapper
     rc = VirtSubproc.execute_timeout(
         terminal_kill_wrapper % extra_cmd, 30, sshcmd +
-        ['rm -f /tmp/adt-run-wrapper; set -C; cat > /tmp/adt-run-wrapper; chmod 755 /tmp/adt-run-wrapper'],
+        ['rm -f /tmp/autopkgtest-run-wrapper; set -C; cat > /tmp/autopkgtest-run-wrapper; chmod 755 /tmp/autopkgtest-run-wrapper'],
         stdin=subprocess.PIPE)[0]
     if rc != 0:
-        VirtSubproc.bomb('Failed to create /tmp/adt-run-wrapper')
+        VirtSubproc.bomb('Failed to create /tmp/autopkgtest-run-wrapper')
 
     # create local auxverb script
     auxverb = os.path.join(workdir, 'runcmd')
     with open(auxverb, 'w') as f:
         f.write('''#!/bin/bash
-exec %s -- %s /tmp/adt-run-wrapper $(printf '%%q ' "$@")
+exec %s -- %s /tmp/autopkgtest-run-wrapper $(printf '%%q ' "${@%% }")
 ''' % (" ".join(sshcmd), sudocmd or ''))
     os.chmod(auxverb, 0o755)
     VirtSubproc.auxverb = [auxverb]
@@ -392,6 +409,15 @@ def can_sudo(ssh_cmd):
     return (None, None)
 
 
+def hook_debug_fail():
+    # Don't print stderr; if we're being called for the hook, we assume the
+    # caller is going to do that.
+    (status, out, err) = execute_setup_script('debug-failure',
+                                              fail_ok=True,
+                                              print_stderr=False)
+    return err
+
+
 def hook_open():
     host_setup('open')
 
@@ -433,7 +459,7 @@ def hook_wait_reboot():
     global sshcmd
 
     if args.setup_script:
-        rc = execute_setup_script('wait-reboot', fail_ok=True)
+        (rc, _, _) = execute_setup_script('wait-reboot', fail_ok=True)
     else:
         # if we don't have a setup script, use the fallback below
         rc = 1
@@ -461,9 +487,14 @@ def hook_wait_reboot():
 def hook_cleanup():
     global capabilities, workdir, cleanup_paths, sshcmd
 
-    VirtSubproc.downtmp_remove()
-    if cleanup_paths:
-        VirtSubproc.check_exec(['rm', '-rf'] + cleanup_paths, downp=True, timeout=10)
+    try:
+        VirtSubproc.downtmp_remove()
+        if cleanup_paths:
+            VirtSubproc.check_exec(['rm', '-rf'] + cleanup_paths, downp=True,
+                                   timeout=VirtSubproc.copy_timeout)
+    except VirtSubproc.Timeout:
+        adtlog.error('Removing temporary files on testbed timed out')
+        # still do the remaining cleanup
 
     execute_setup_script('cleanup')
 

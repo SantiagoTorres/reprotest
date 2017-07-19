@@ -1,12 +1,12 @@
 #!/usr/bin/python3
 #
-# adt-virt-lxc is part of autopkgtest
+# autopkgtest-virt-lxc is part of autopkgtest
 # autopkgtest is a tool for testing Debian binary packages
 #
 # autopkgtest is Copyright (C) 2006-2014 Canonical Ltd.
 #
-# adt-virt-lxc was derived from adt-virt-schroot and modified to suit LXC by
-# Robie Basak <robie.basak@canonical.com>.
+# autopkgtest-virt-lxc was derived from autopkgtest-schroot and modified to suit LXC
+# by Robie Basak <robie.basak@canonical.com>.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -35,9 +35,9 @@ import tempfile
 import shutil
 import argparse
 
-
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(
-    os.path.abspath(__file__)))))
+sys.path.insert(0, '/usr/share/autopkgtest/lib')
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(
+    os.path.abspath(__file__))), 'lib'))
 
 from reprotest.lib import VirtSubproc
 from reprotest.lib import adtlog
@@ -64,8 +64,8 @@ def parse_args():
                         'errors in some corner cases)')
     parser.add_argument('-s', '--sudo', action='store_true',
                         help='Run lxc-* commands with sudo; use if you run '
-                        'adt-run as normal user')
-    parser.add_argument('--name', help='container name (adt-virt-lxc-XXXXXX by default)')
+                        'autopkgtest as normal user')
+    parser.add_argument('--name', help='container name (autopkgtest-lxc-XXXXXX by default)')
     parser.add_argument('template', help='LXC container name that will be '
                         'used as a template')
     parser.add_argument('lxcargs', nargs=argparse.REMAINDER,
@@ -98,7 +98,7 @@ def get_available_lxc_container_name():
     while True:
         # generate random container name
         rnd = [random.choice(string.ascii_lowercase) for i in range(6)]
-        candidate = 'adt-virt-lxc-' + ''.join(rnd)
+        candidate = 'autopkgtest-lxc-' + ''.join(rnd)
 
         containers = VirtSubproc.check_exec(sudoify(['lxc-ls']), outp=True,
                                             timeout=10)
@@ -221,7 +221,7 @@ def hook_open():
         # shared bind mount works poorly for unprivileged containers due to
         # mapped UIDs
         if args.sudo or os.geteuid() == 0:
-            shared_dir = tempfile.mkdtemp(prefix='adt-virt-lxc.shared.')
+            shared_dir = tempfile.mkdtemp(prefix='autopkgtest-virt-lxc.shared.')
     else:
         # don't change the name between resets, to provide stable downtmp paths
         os.makedirs(shared_dir)

@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 #
-# adt-virt-schroot is part of autopkgtest
+# autopkgtest-schroot is part of autopkgtest
 # autopkgtest is a tool for testing Debian binary packages
 #
 # autopkgtest is Copyright (C) 2006-2007 Canonical Ltd.
@@ -31,9 +31,9 @@ import subprocess
 import time
 import argparse
 
-
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(
-    os.path.abspath(__file__)))))
+sys.path.insert(0, '/usr/share/autopkgtest/lib')
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(
+    os.path.abspath(__file__))), 'lib'))
 
 from reprotest.lib import VirtSubproc
 from reprotest.lib import adtlog
@@ -99,7 +99,7 @@ def parse_args():
     # we don't want to clobber non-ephemeral schroots
     if cfg['type'] == 'directory' and cfg.get('union-type', 'none') in ('', 'none'):
         VirtSubproc.bomb(
-            'adt-virt-schroot requires ephemeral schroot sessions. Set a '
+            'autopkgtest-schroot requires ephemeral schroot sessions. Set a '
             '"union-type" or use a tarball schroot')
 
     if (match(cfg['root-users'], [os.getuid()], pw_uid) or
@@ -118,7 +118,7 @@ def hook_open():
     sessid = VirtSubproc.check_exec(['schroot', '--quiet', '--begin-session',
                                      '--chroot', schroot] +
                                     (sessid and ['--session-name', sessid] or []),
-                                    outp=True)
+                                    outp=True, fail_on_stderr=False)
     VirtSubproc.auxverb = ['schroot', '--run-session', '--quiet',
                            '--directory=/', '--chroot', sessid]
     if 'root-on-testbed' in capabilities:
@@ -165,7 +165,7 @@ def hook_cleanup():
     retries = 10
     while retries > 0:
         if VirtSubproc.execute_timeout(
-                None, 30, ['schroot', '--quiet', '--end-session', '--chroot', sessid])[0] == 0:
+                None, 300, ['schroot', '--quiet', '--end-session', '--chroot', sessid])[0] == 0:
             break
         retries -= 1
         adtlog.info('schroot --end-session failed, retrying')

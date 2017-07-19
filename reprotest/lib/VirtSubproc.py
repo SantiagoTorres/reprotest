@@ -38,9 +38,9 @@ import shutil
 from reprotest.lib import adtlog
 
 progname = "<VirtSubproc>"
-devnull_read = open('/dev/null', 'r')
+devnull_read = open('/dev/null', 'rb')
 caller = __main__
-copy_timeout = int(os.getenv('ADT_VIRT_COPY_TIMEOUT', '300'))
+copy_timeout = int(os.getenv('AUTOPKGTEST_VIRT_COPY_TIMEOUT', '300'))
 
 downtmp_open = None  # downtmp after opening testbed
 downtmp = None  # current downtmp (None after close)
@@ -159,7 +159,7 @@ def execute_timeout(instr, timeout, *popenargs, **popenargsk):
     return (status, out, err)
 
 
-def check_exec(argv, downp=False, outp=False, timeout=0):
+def check_exec(argv, downp=False, outp=False, timeout=0, fail_on_stderr=True):
     '''Run successful command (argv list)
 
     Command must succeed (exit code 0) and not produce any stderr. If downp is
@@ -183,9 +183,9 @@ def check_exec(argv, downp=False, outp=False, timeout=0):
                                          stdout=stdout, stderr=subprocess.PIPE)
 
     if status:
-        bomb("%s%s failed (exit status %d)\n%s" %
+        bomb("%s%s failed (exit status %d, stderr %r)" %
              ((downp and "(down) " or ""), argv, status, err))
-    if err:
+    if fail_on_stderr and err:
         bomb("%s unexpectedly produced stderr output `%s'" %
              (argv, err))
 
@@ -230,7 +230,7 @@ def get_unix_socket(path):
 
 
 def expect(sock, search_bytes, timeout_sec, description=None, echo=False):
-    adtlog.debug('expect: "%s"' % search_bytes.decode())
+    adtlog.debug('expect: "%s"' % (search_bytes or b'<none>').decode())
     what = '"%s"' % (description or search_bytes or 'data')
     out = b''
     with timeout(timeout_sec,
@@ -512,9 +512,9 @@ def copyupdown_internal(wh, sd, upp):
     if not dirsp:
         rune = 'cat %s%s' % ('><'[upp], remfileq)
         if upp:
-            deststdout = open(sd[idst], 'w')
+            deststdout = open(sd[idst], 'wb')
         else:
-            srcstdin = open(sd[isrc], 'r')
+            srcstdin = open(sd[isrc], 'rb')
             status = os.fstat(srcstdin.fileno())
             if status.st_mode & 0o111:
                 rune += '; chmod +x -- %s' % (remfileq)
@@ -651,6 +651,7 @@ def command():
         r = fc.e
     print(' '.join(r))
 
+
 signal_list = [	signal.SIGHUP, signal.SIGTERM,
                 signal.SIGINT, signal.SIGPIPE]
 
@@ -697,6 +698,14 @@ def prepare():
         cleanup()
         os.kill(os.getpid(), sig)
     sethandlers(handler)
+
+
+def cmd_auxverb_debug_fail(c, ce):
+    cmdnumargs(c, ce)
+    try:
+        adtlog.info(caller.hook_debug_fail())
+    except AttributeError:
+        pass
 
 
 def mainloop():

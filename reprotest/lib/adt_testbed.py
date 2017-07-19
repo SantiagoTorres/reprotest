@@ -33,12 +33,7 @@ import tempfile
 import shutil
 import urllib.parse
 
-
-# TODO: removing this import disables install_tmp, may want to restore
-# it at some point if I'm improving support for building Debian packages in
-# particular.
-
-# from debian import debian_support
+from debian import debian_support
 
 from reprotest.lib import adtlog
 from reprotest.lib import VirtSubproc
@@ -50,7 +45,8 @@ timeouts = {'short': 100, 'copy': 300, 'install': 3000, 'test': 10000,
 
 class Testbed:
     def __init__(self, vserver_argv, output_dir, user,
-                 setup_commands=[], add_apt_pockets=[], copy_files=[]):
+                 setup_commands=[], setup_commands_boot=[], add_apt_pockets=[],
+                 copy_files=[]):
         self.sp = None
         self.lastsend = None
         self.scratch = None
@@ -65,6 +61,7 @@ class Testbed:
         self.install_tmp_env = []
         self.user = user
         self.setup_commands = setup_commands
+        self.setup_commands_boot = setup_commands_boot
         self.add_apt_pockets = add_apt_pockets
         self.copy_files = copy_files
         self.initial_kernel_version = None
@@ -148,7 +145,7 @@ class Testbed:
                           '''/bin/echo -e '#!/bin/sh -e\\n'''
                           '''[ -n "$1" ] || { echo "Usage: $0 <mark>" >&2; exit 1; }\\n'''
                           '''echo "$1" > /run/autopkgtest-reboot-mark\\n'''
-                          '''test_script_pid=$(cat /tmp/adt_test_script_pid)\\n'''
+                          '''test_script_pid=$(cat /tmp/autopkgtest_script_pid)\\n'''
                           '''p=$PPID; while true; do read _ c _ pp _ < /proc/$p/stat;'''
                           '''  [ $pp -ne $test_script_pid ] || break; p=$pp; done\\n'''
                           '''kill -KILL $p\\n' > /tmp/autopkgtest-reboot;'''
@@ -160,7 +157,7 @@ class Testbed:
                           '''/bin/echo -e '#!/bin/sh -e\\n'''
                           '''[ -n "$1" ] || { echo "Usage: $0 <mark>" >&2; exit 1; }\\n'''
                           '''echo "$1" > /run/autopkgtest-reboot-prepare-mark\\n'''
-                          '''test_script_pid=$(cat /tmp/adt_test_script_pid)\\n'''
+                          '''test_script_pid=$(cat /tmp/autopkgtest_script_pid)\\n'''
                           '''kill -KILL $test_script_pid\\n'''
                           '''while [ -e /run/autopkgtest-reboot-prepare-mark ]; do sleep 0.5; done\\n'''
                           ''' '> /tmp/autopkgtest-reboot-prepare;'''
@@ -190,6 +187,21 @@ class Testbed:
             m = re.search('^(flags|features)\s*:\s*(.*)$', cpu_info, re.MULTILINE | re.IGNORECASE)
             if m:
                 self.cpu_flags = m.group(2)
+
+        xenv = ['AUTOPKGTEST_IS_SETUP_BOOT_COMMAND=1']
+        if self.user:
+            xenv.append('AUTOPKGTEST_NORMAL_USER=' + self.user)
+            xenv.append('ADT_NORMAL_USER=' + self.user)
+
+        for c in self.setup_commands_boot:
+            rc = self.execute(['sh', '-ec', c], xenv=xenv, kind='install')[0]
+            if rc:
+                # setup scripts should exit with 100 if it's the package's
+                # fault, otherwise it's considered a transient testbed failure
+                if rc == 100:
+                    self.badpkg('testbed boot setup commands failed with status 100')
+                else:
+                    self.bomb('testbed boot setup commands failed with status %i' % rc)
 
     def _opened(self, pl):
         self.scratch = pl[0]
@@ -260,7 +272,7 @@ class Testbed:
         # create apt sources for --apt-pocket
         for pocket in self.add_apt_pockets:
             pocket = pocket.split('=', 1)[0]  # strip off package list
-            script = '''sed -rn 's/^(deb|deb-src) +(\[.*\] *)?([^ ]*(ubuntu.com|debian.org|ftpmaster|file:\/\/\/tmp\/testarchive)[^ ]*) +([^ -]+) +(.*)$/\\1 \\2\\3 \\5-%s \\6/p' /etc/apt/sources.list `ls /etc/apt/sources.list.d/*.list 2>/dev/null|| true)` > /etc/apt/sources.list.d/%s.list; for retry in 1 2 3; do apt-get --no-list-cleanup -o Dir::Etc::sourcelist=/etc/apt/sources.list.d/%s.list -o Dir::Etc::sourceparts=/dev/null update 2>&1 && break || sleep 15; done''' % (pocket, pocket, pocket)
+            script = '''sed -rn 's/^(deb|deb-src) +(\[.*\] *)?([^ ]*(ubuntu.com|debian.org|ftpmaster|file:\/\/\/tmp\/testarchive)[^ ]*) +([^ -]+) +(.*)$/\\1 \\2\\3 \\5-%s \\6/p' /etc/apt/sources.list `ls /etc/apt/sources.list.d/*.list 2>/dev/null|| true` > /etc/apt/sources.list.d/%s.list; for retry in 1 2 3; do apt-get --no-list-cleanup -o Dir::Etc::sourcelist=/etc/apt/sources.list.d/%s.list -o Dir::Etc::sourceparts=/dev/null update 2>&1 && break || sleep 15; done''' % (pocket, pocket, pocket)
             self.check_exec(['sh', '-ec', script])
 
         # create apt pinning for --apt-pocket with package list
@@ -278,14 +290,20 @@ class Testbed:
                          'for d in %s; do [ ! -d $d ] || touch -r $d %s/${d//\//_}.stamp; done' % (
                              boot_dirs, self.scratch)])
 
-        xenv = ['ADT_IS_SETUP_COMMAND=1']
+        xenv = ['AUTOPKGTEST_IS_SETUP_COMMAND=1']
         if self.user:
+            xenv.append('AUTOPKGTEST_NORMAL_USER=' + self.user)
             xenv.append('ADT_NORMAL_USER=' + self.user)
 
         for c in self.setup_commands:
             rc = self.execute(['sh', '-ec', c], xenv=xenv, kind='install')[0]
             if rc:
-                self.bomb('testbed setup commands failed with status %i' % rc)
+                # setup scripts should exit with 100 if it's the package's
+                # fault, otherwise it's considered a transient testbed failure
+                if rc == 100:
+                    self.badpkg('testbed setup commands failed with status 100')
+                else:
+                    self.bomb('testbed setup commands failed with status %i' % rc)
 
         # if the setup commands affected the boot, then reboot
         if self.setup_commands and 'reboot' in self.caps:
@@ -312,7 +330,7 @@ class Testbed:
             self._opened(pl)
         self.modified = False
 
-    def install_deps(self, deps_new, recommends):
+    def install_deps(self, deps_new, recommends, shell_on_failure=False):
         '''Install dependencies into testbed'''
         adtlog.debug('install_deps: deps_new=%s, recommends=%s' % (deps_new, recommends))
 
@@ -320,7 +338,7 @@ class Testbed:
         self.recommends_installed = recommends
         if not deps_new:
             return
-        self.satisfy_dependencies_string(', '.join(deps_new), 'install-deps', recommends)
+        self.satisfy_dependencies_string(', '.join(deps_new), 'install-deps', recommends, shell_on_failure=shell_on_failure)
 
     def needs_reset(self):
         # show what caused a reset
@@ -331,7 +349,7 @@ class Testbed:
 
     def bomb(self, m, _type=adtlog.TestbedFailure):
         adtlog.debug('%s %s' % (_type.__name__, m))
-        # self.stop()
+        self.stop()
         raise _type(m)
 
     def badpkg(self, m):
@@ -350,28 +368,28 @@ class Testbed:
                       format_exception_only(type, value))
 
     def expect(self, keyword, nresults):
-        l = self.sp.stdout.readline()
-        if not l:
+        line = self.sp.stdout.readline()
+        if not line:
             self.bomb('unexpected eof from the testbed')
-        if not l.endswith('\n'):
+        if not line.endswith('\n'):
             self.bomb('unterminated line from the testbed')
-        l = l.rstrip('\n')
-        adtlog.debug('got reply from testbed: ' + l)
-        ll = l.split()
+        line = line.rstrip('\n')
+        adtlog.debug('got reply from testbed: ' + line)
+        ll = line.split()
         if not ll:
             self.bomb('unexpected whitespace-only line from the testbed')
         if ll[0] != keyword:
             if self.lastsend is None:
                 self.bomb("got banner `%s', expected `%s...'" %
-                          (l, keyword))
+                          (line, keyword))
             else:
                 self.bomb("sent `%s', got `%s', expected `%s...'" %
-                          (self.lastsend, l, keyword))
+                          (self.lastsend, line, keyword))
         ll = ll[1:]
         if nresults is not None and len(ll) != nresults:
             self.bomb("sent `%s', got `%s' (%d result parameters),"
                       " expected %d result parameters" %
-                      (self.lastsend, l, len(ll), nresults))
+                      (self.lastsend, line, len(ll), nresults))
         return ll
 
     def command(self, cmd, args=(), nresults=0, unquote=True):
@@ -389,13 +407,10 @@ class Testbed:
             ll = list(map(urllib.parse.unquote, ll))
         return ll
 
-    # TODO: with stdout and stderr defaulting to None, this function
-    # eats all errors/output from its call, which is not the right
-    # thing.
     def execute(self, argv, xenv=[], stdout=None, stderr=None, kind='short'):
         '''Run command in testbed.
 
-        The commands stdout/err will be piped directly to adt-run and its log
+        The commands stdout/err will be piped directly to autopkgtest and its log
         files, unless redirection happens with the stdout/stderr arguments
         (passed to Popen).
 
@@ -416,7 +431,6 @@ class Testbed:
         if env:
             argv = ['env'] + env + argv
 
-        # import pdb; pdb.set_trace()
         VirtSubproc.timeout_start(timeouts[kind])
         try:
             proc = subprocess.Popen(self.exec_cmd + argv,
@@ -446,16 +460,12 @@ class Testbed:
         adtlog.debug('testbed command exited with code %i' % proc.returncode)
 
         if proc.returncode in (254, 255):
-            msg = 'testbed auxverb failed with exit code %i' % proc.returncode
-            if out:
-                msg += '\n---- stdout ----\n%s----------------\n' % out
-            if err:
-                msg += '\n---- stderr ----\n%s----------------\n' % err
-            self.bomb(msg)
+            self.command('auxverb_debug_fail')
+            self.bomb('testbed auxverb failed with exit code %i' % proc.returncode)
 
         return (proc.returncode, out, err)
 
-    def check_exec(self, argv, stdout=False, kind='short', xenv=[]):
+    def check_exec(self, argv, stdout=False, kind='short'):
         '''Run argv in testbed.
 
         If stdout is True, capture stdout and return it. Otherwise, don't
@@ -464,7 +474,6 @@ class Testbed:
         argv must succeed and not print any stderr.
         '''
         (code, out, err) = self.execute(argv,
-                                        xenv=xenv,
                                         stdout=(stdout and subprocess.PIPE or None),
                                         stderr=subprocess.PIPE, kind=kind)
         if err:
@@ -481,13 +490,13 @@ class Testbed:
         This requires root privileges and a writable file system.
         '''
         # create a dummy deb with the deps
-        pkgdir = tempfile.mkdtemp(prefix='adt-satdep.')
+        pkgdir = tempfile.mkdtemp(prefix='autopkgtest-satdep.')
         debdir = os.path.join(pkgdir, 'DEBIAN')
         os.chmod(pkgdir, 0o755)
         os.mkdir(debdir)
         os.chmod(debdir, 0o755)
         with open(os.path.join(debdir, 'control'), 'w') as f:
-            f.write('''Package: adt-satdep
+            f.write('''Package: autopkgtest-satdep
 Section: oldlibs
 Priority: extra
 Maintainer: autogenerated
@@ -497,7 +506,7 @@ Depends: %s
 Description: satisfy autopkgtest test dependencies
 ''' % (self.dpkg_arch, deps))
 
-        deb = TempPath(self, 'adt-satdep.deb')
+        deb = TempPath(self, 'autopkgtest-satdep.deb')
         subprocess.check_call(['dpkg-deb', '-b', pkgdir, deb.host],
                               stdout=subprocess.PIPE)
         shutil.rmtree(pkgdir)
@@ -514,6 +523,7 @@ Description: satisfy autopkgtest test dependencies
                                           '--assume-yes --fix-broken '
                                           '-o APT::Status-Fd=3 '
                                           '-o APT::Install-Recommends=%s '
+                                          '-o Dpkg::Options::=--force-confnew '
                                           '-o Debug::pkgProblemResolver=true 3>&2 2>&1' %
                                           (' '.join(self.eatmydata_prefix), recommends)],
                                          kind='install', stderr=subprocess.PIPE)
@@ -534,8 +544,8 @@ Description: satisfy autopkgtest test dependencies
                     self.run_shell()
             else:
                 # apt-get -f may succeed, but its solution might remove
-                # adt-satdep, which is still a failure
-                rc = self.execute(['dpkg', '--status', 'adt-satdep'],
+                # autopkgtest-satdep, which is still a failure
+                rc = self.execute(['dpkg', '--status', 'autopkgtest-satdep'],
                                   stdout=subprocess.PIPE,
                                   stderr=subprocess.PIPE)[0]
 
@@ -547,25 +557,27 @@ Description: satisfy autopkgtest test dependencies
                     self.check_exec(['/bin/sh', '-ec', 'rm /etc/apt/preferences.d/autopkgtest-*-' + pocket])
                     continue
 
+                if shell_on_failure:
+                    self.run_shell()
                 self.badpkg('Test dependencies are unsatisfiable. A common reason is '
                             'that your testbed is out of date with respect to the '
                             'archive, and you need to use a current testbed or run '
                             'apt-get update or use -U.')
             break
 
-        # remove adt-satdep to avoid confusing tests, but avoid marking our
+        # remove autopkgtest-satdep to avoid confusing tests, but avoid marking our
         # test dependencies for auto-removal
         out = self.check_exec(['apt-get', '--simulate', '--quiet',
                                '-o', 'APT::Get::Show-User-Simulation-Note=False',
                                '--auto-remove',
-                               'purge', 'adt-satdep'],
+                               'purge', 'autopkgtest-satdep'],
                               True)
         test_deps = []
         for line in out.splitlines():
             if not line.startswith('Purg '):
                 continue
             pkg = line.split()[1]
-            if pkg != 'adt-satdep':
+            if pkg != 'autopkgtest-satdep':
                 test_deps.append(pkg)
         if test_deps:
             adtlog.debug('Marking test dependencies as manually installed: %s' %
@@ -576,7 +588,7 @@ Description: satisfy autopkgtest test dependencies
                 self.check_exec(['apt-mark', 'manual', '-qq'] + test_deps[batch:batch + 20])
                 batch += 20
 
-        self.execute(['dpkg', '--purge', 'adt-satdep'])
+        self.execute(['dpkg', '--purge', 'autopkgtest-satdep'])
 
     def install_tmp(self, deps, recommends=False):
         '''Unpack dependencies into temporary directory
@@ -755,7 +767,7 @@ fi
         tp.copydown()
         # install it
         clickopts = ['--all-users']
-        if 'ADT_CLICK_NO_FRAMEWORK_CHECK' in os.environ:
+        if 'AUTOPKGTEST_CLICK_NO_FRAMEWORK_CHECK' in os.environ:
             # this is mostly for testing
             clickopts.append('--force-missing-framework')
         if 'root-on-testbed' in self.caps:
@@ -940,7 +952,7 @@ fi
 
         # create script to run test
         test_artifacts = '%s/%s-artifacts' % (self.scratch, test.name)
-        adttmp = '%s/adttmp' % (self.scratch)
+        autopkgtest_tmp = '%s/autopkgtest_tmp' % (self.scratch)
         assert self.nproc is not None
         script = 'set -e; ' \
                  'export USER=`id -nu`; ' \
@@ -948,19 +960,25 @@ fi
                  ' . ~/.profile >/dev/null 2>&1 || true; ' \
                  'buildtree="%(t)s"; ' \
                  'mkdir -p -m 1777 -- "%(a)s"; ' \
-                 'export ADT_ARTIFACTS="%(a)s"; ' \
-                 'mkdir -p -m 755 "%(tmp)s"; export ADTTMP="%(tmp)s" ' \
+                 'export AUTOPKGTEST_ARTIFACTS="%(a)s"; ' \
+                 'export ADT_ARTIFACTS="$AUTOPKGTEST_ARTIFACTS"; ' \
+                 'mkdir -p -m 755 "%(tmp)s"; export AUTOPKGTEST_TMP="%(tmp)s"; ' \
+                 'export ADTTMP="$AUTOPKGTEST_TMP"; ' \
                  'export DEBIAN_FRONTEND=noninteractive; ' \
                  'export LANG=C.UTF-8; ' \
                  '''export DEB_BUILD_OPTIONS=parallel=%(cpu)s; ''' \
                  'unset LANGUAGE LC_CTYPE LC_NUMERIC LC_TIME LC_COLLATE '\
                  '  LC_MONETARY LC_MESSAGES LC_PAPER LC_NAME LC_ADDRESS '\
                  '  LC_TELEPHONE LC_MEASUREMENT LC_IDENTIFICATION LC_ALL;' \
-                 'rm -f /tmp/adt_test_script_pid; set -C; echo $$ > /tmp/adt_test_script_pid; set +C; ' \
-                 'trap "rm -f /tmp/adt_test_script_pid" EXIT INT QUIT PIPE; '\
+                 'rm -f /tmp/autopkgtest_script_pid; set -C; echo $$ > /tmp/autopkgtest_script_pid; set +C; ' \
+                 'trap "rm -f /tmp/autopkgtest_script_pid" EXIT INT QUIT PIPE; '\
                  'cd "$buildtree"; '\
-                 % {'t': tree.tb, 'a': test_artifacts, 'tmp': adttmp,
+                 % {'t': tree.tb, 'a': test_artifacts, 'tmp': autopkgtest_tmp,
                     'cpu': build_parallel or self.nproc}
+
+        if 'needs-root' in test.restrictions and self.user is not None:
+            script += 'export AUTOPKGTEST_NORMAL_USER=%s; ' % self.user
+            script += 'export ADT_NORMAL_USER=%s; ' % self.user
 
         for e in extra_env:
             script += 'export \'%s\'; ' % e
@@ -982,7 +1000,7 @@ fi
             test_cmd = "bash -ec '%s'" % test.command
 
         script += 'touch %(o)s %(e)s; ' \
-                  '%(t)s 2> >(tee -a %(e)s >&2) > >(tee -a %(o)s); ' \
+                  '%(t)s 2> >(tee -a %(e)s >&2) > >(tee -a %(o)s);' \
                   % {'t': test_cmd, 'o': so.tb, 'e': se.tb}
 
         if 'needs-root' not in test.restrictions and self.user is not None:
@@ -1015,7 +1033,7 @@ fi
         timeout = False
         while True:
             if self.last_reboot_marker:
-                script_prefix = 'export ADT_REBOOT_MARK="%s"; ' % self.last_reboot_marker
+                script_prefix = 'export AUTOPKGTEST_REBOOT_MARK="%s"; export ADT_REBOOT_MARK="$AUTOPKGTEST_REBOOT_MARK"; ' % self.last_reboot_marker
             else:
                 script_prefix = ''
             try:
@@ -1058,9 +1076,21 @@ fi
         adtlog.debug('testbed executing test finished with exit status %i' % rc)
 
         # copy stdout/err files to host
-        so.copyup()
-        se.copyup()
-        se_size = os.path.getsize(se.host)
+        try:
+            so.copyup()
+            se.copyup()
+            se_size = os.path.getsize(se.host)
+        except adtlog.TestbedFailure:
+            if timeout:
+                # if the test timed out, it's likely that the test destroyed
+                # the testbed, so ignore this and call it a failure
+                adtlog.warning('Copying up test output timed out, ignoring')
+                se_size = 0
+                so.host = None
+                se.host = None
+            else:
+                # smells like a tmpfail
+                raise
 
         # avoid mixing up stdout (from report) and stderr (from logging) in output
         sys.stdout.flush()
@@ -1082,6 +1112,11 @@ fi
 
         sys.stdout.flush()
         sys.stderr.flush()
+
+        # skip the remaining processing if the testbed got broken
+        if se.host is None:
+            adtlog.debug('Skipping remaining log processing and testbed restore after timeout')
+            return
 
         if os.path.getsize(so.host) == 0:
             # don't produce empty -stdout files in --output-dir
@@ -1113,11 +1148,11 @@ fi
                 os.rmdir(ap.host)
 
         if shell or (shell_on_failure and not test.result):
-            self.run_shell(tree.tb, ['ADT_ARTIFACTS="%s"' % test_artifacts,
-                                     'ADTTMP="%s"' % adttmp])
+            self.run_shell(tree.tb, ['AUTOPKGTEST_ARTIFACTS="%s"' % test_artifacts,
+                                     'AUTOPKGTEST_TMP="%s"' % autopkgtest_tmp])
 
-        # clean up artifacts and ADTTMP dirs
-        self.check_exec(['rm', '-rf', test_artifacts, adttmp])
+        # clean up artifacts and AUTOPKGTEST_TMP dirs
+        self.check_exec(['rm', '-rf', test_artifacts, autopkgtest_tmp])
 
         if need_click_restore:
             self.apparmor_restore_click(test.clicks, test.installed_clicks)
