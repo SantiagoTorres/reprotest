@@ -33,7 +33,8 @@ import tempfile
 import shutil
 import urllib.parse
 
-from debian import debian_support
+# Don't need this in reprotest, try to be distro-agnostic
+#from debian import debian_support
 
 from reprotest.lib import adtlog
 from reprotest.lib import VirtSubproc
