@@ -13,6 +13,10 @@ reprotest (0.6.3) UNRELEASED; urgency=medium
   [ Ximin Luo ]
   * Import autopkgtest 4.4, with minimal patches.
 
+  [ Santiago Torres ]
+  * Abstract parts of autopkgtest to support running on non-Debian systems.
+  * Add a --host-distro flag to support that too.
+
  -- Ximin Luo <infinity0@debian.org>  Wed, 12 Jul 2017 13:53:05 +0200
 
 reprotest (0.6.2) unstable; urgency=medium
