@@ -4,14 +4,13 @@ reprotest (0.6.3) UNRELEASED; urgency=medium
   * Document when one should use --diffoscope-args=--exclude-directory-metadata
     and do this in our Debian package presets.
   * Bump diffoscope Recommends version to >= 84 to support this flag.
+  * Import autopkgtest 4.4, with minimal patches.
+  * Choose an existent HOME for the control build. (Closes: #860428)
 
   [ Mattia Rizzolo ]
   * Bump Standards-Version to 4.0.0.
     + Use https for the Format URI in debian/copyright.
   * Bump debhelper compat level to 10.
-
-  [ Ximin Luo ]
-  * Import autopkgtest 4.4, with minimal patches.
 
   [ Santiago Torres ]
   * Abstract parts of autopkgtest to support running on non-Debian systems.

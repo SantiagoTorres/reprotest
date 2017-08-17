@@ -248,8 +248,10 @@ def fileordering(script, env, tree, *args):
 # # def fileordering(script, env, tree):
 #     return script, env, tree
 
+# Note: this has to go after anything that might modify 'tree' e.g. build_path
 def home(script, env, tree, *args):
-    control = add(env.control, 'HOME', '/nonexistent/first-build')
+    # choose an existent HOME, see Debian bug #860428
+    control = add(env.control, 'HOME', tree.control)
     experiment = add(env.experiment, 'HOME', '/nonexistent/second-build')
     return script, Pair(control, experiment), tree
 
@@ -314,7 +316,7 @@ def timezone(script, env, tree, *args):
     experiment = add(env.experiment, 'TZ', 'GMT-14')
     return script, Pair(control, experiment), tree
 
-def faketime(script, env, tree, source_root):
+def faketime(script, env, tree, source_root, *args):
     # Get the latest modification date of all the files in the source root.
     # This tries hard to avoid bad interactions with faketime and make(1) etc.
     # However if you're building this too soon after changing one of the source
