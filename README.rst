@@ -188,6 +188,39 @@ This flag is already set in our presets, in the situations where it is
 appropriate to do so.
 
 
+Varying the user
+================
+
+If you also vary fileordering at the same time, each user you use needs to be
+in the "fuse" group. Do that by running `usermod -aG fuse $OTHERUSER` as root.
+
+Avoid sudo(1) password prompts
+------------------------------
+
+There is currently no good way to do this. The following is a very brittle and
+unclean solution. You will have to decide for yourself if it's worth it for
+your use-case::
+
+    $ OTHERUSER=(YOUR OTHER USER HERE)
+    $ a="[a-zA-Z0-9]"
+    $ cat <<EOF | sudo tee -a /etc/sudoers.d/local-reprotest
+    $USER ALL = ($OTHERUSER) NOPASSWD: ALL
+    $USER ALL = NOPASSWD: /bin/chown -R --from=$OTHERUSER $USER /tmp/autopkgtest.$a$a$a$a$a$a/const_build_path/
+    $USER ALL = NOPASSWD: /bin/chown -R --from=$OTHERUSER $USER /tmp/autopkgtest.$a$a$a$a$a$a/experiment/
+    $USER ALL = NOPASSWD: /bin/chown -R --from=$USER $OTHERUSER /tmp/autopkgtest.$a$a$a$a$a$a/const_build_path/
+    $USER ALL = NOPASSWD: /bin/chown -R --from=$USER $OTHERUSER /tmp/autopkgtest.$a$a$a$a$a$a/experiment/
+    EOF
+
+Repeat this for each user you'd like to use. Obviously, don't pick a privileged
+user for this purpose, such as root.
+
+(Simplifying the above using wildcards would open up passwordless access to
+chown anything on your system, because wildcards here match whitespace. I don't
+know what the sudo authors were thinking.)
+
+No, this is really not nice at all - suggestions and patches welcome.
+
+
 Known bugs
 ==========
 

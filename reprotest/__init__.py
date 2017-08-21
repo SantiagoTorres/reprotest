@@ -4,6 +4,8 @@
 import argparse
 import collections
 import configparser
+import getpass
+import grp
 import logging
 import os
 import pathlib
@@ -138,7 +140,10 @@ class Script(collections.namedtuple('_Script', 'build_command setup cleanup')):
         return self._replace(setup=new_setup)
 
     def append_setup_exec(self, *args):
-        return self.append_setup(_shell_ast.SimpleCommand.make(*map(_shell_ast.Quote, args)))
+        return self.append_setup_exec_raw(*map(_shell_ast.Quote, args))
+
+    def append_setup_exec_raw(self, *args):
+        return self.append_setup(_shell_ast.SimpleCommand.make(*args))
 
     def prepend_cleanup(self, command):
         '''Adds a command to the cleanup phase.
@@ -152,7 +157,10 @@ class Script(collections.namedtuple('_Script', 'build_command setup cleanup')):
         return self._replace(cleanup=new_cleanup)
 
     def prepend_cleanup_exec(self, *args):
-        return self.prepend_cleanup(_shell_ast.SimpleCommand.make(*map(_shell_ast.Quote, args)))
+        return self.prepend_cleanup_exec_raw(*map(_shell_ast.Quote, args))
+
+    def prepend_cleanup_exec_raw(self, *args):
+        return self.prepend_cleanup(_shell_ast.SimpleCommand.make(*args))
 
     def move_tree(self, source, target):
         return self.append_setup_exec(
@@ -234,19 +242,16 @@ build_path_same.negative = True
 
 def fileordering(script, env, tree, *args):
     old_tree = os.path.join(dirname(tree.experiment), basename(tree.experiment) + '-before-disorderfs', '')
-    disorderfs = ['sh', '-ec',
-        'disorderfs --shuffle-dirents=yes --multi-user="$(if [ $(id -u) = 0 ]; then echo yes; else echo no; fi)" "$@"',
-        '-', old_tree, tree.experiment]
     _ = script.experiment.move_tree(tree.experiment, old_tree)
     _ = _.append_setup_exec('mkdir', '-p', tree.experiment)
     _ = _.prepend_cleanup_exec('rmdir', tree.experiment)
-    _ = _.append_setup_exec(*disorderfs)
+    _ = _.append_setup_exec('disorderfs', '--shuffle-dirents=yes', old_tree, tree.experiment)
     _ = _.prepend_cleanup_exec('fusermount', '-u', tree.experiment)
+    # the "user_group" variation hacks PATH to run "sudo -u XXX" instead of various tools, pick it up here
+    binpath = os.path.join(dirname(tree.experiment), 'bin')
+    _ = _.prepend_cleanup_exec_raw('export', 'PATH="%s:$PATH"' % binpath)
     new_script = _
     return Pair(script.control, new_script), env, tree
-
-# # def fileordering(script, env, tree):
-#     return script, env, tree
 
 # Note: this has to go after anything that might modify 'tree' e.g. build_path
 def home(script, env, tree, *args):
@@ -343,9 +348,39 @@ def umask(script, env, tree, *args):
     new_experiment = script.experiment.append_setup_exec('umask', '0002')
     return Pair(new_control, new_experiment), env, tree
 
-# TODO: This requires superuser privileges.
-# # def user_group(script, env, tree, *args):
-#     return script, env, tree
+# Note: this needs to go before anything that might need to run setup commands
+# as the other user (e.g. due to permissions).
+#
+# TODO: add a default Debian-reprotest user in the Debian packaging and make this cross-distro
+V_USER_POSSIBLE_USERGROUPS = []
+def user_group(script, env, tree, *args):
+    if not V_USER_POSSIBLE_USERGROUPS:
+        logging.warn("IGNORING user_group variation, because no --user-groups were given.")
+        return script, env, tree
+    olduser = getpass.getuser()
+    oldgroup = grp.getgrgid(os.getgid()).gr_name
+    user, group = random.choice(list(set(V_USER_POSSIBLE_USERGROUPS) - set([(olduser, oldgroup)])))
+    sudobuild = _shell_ast.SimpleCommand.make('sudo', '-E', '-u', user, '-g', group)
+    binpath = os.path.join(dirname(tree.experiment), 'bin')
+
+    _ = script.experiment.append_command(sudobuild)
+    # disorderfs needs to run as a different user.
+    # we prefer that to running it as root, principle of least-privilege.
+    _ = _.append_setup_exec('sh', '-ec', r'''
+mkdir "{0}"
+printf '#!/bin/sh\nsudo -u "{1}" -g "{2}" /usr/bin/disorderfs "$@"\n' > "{0}"/disorderfs
+chmod +x "{0}"/disorderfs
+printf '#!/bin/sh\nsudo -u "{1}" -g "{2}" /bin/mkdir "$@"\n' > "{0}"/mkdir
+chmod +x "{0}"/mkdir
+printf '#!/bin/sh\nsudo -u "{1}" -g "{2}" /bin/fusermount "$@"\n' > "{0}"/fusermount
+chmod +x "{0}"/fusermount
+'''.format(binpath, user, group))
+    _ = _.append_setup_exec_raw('export', 'PATH="%s:$PATH"' % binpath)
+    _ = _.append_setup_exec('sudo', 'chown', '-R', '--from=%s' % olduser, user, tree.experiment)
+    # TODO: artifacts probably shouldn't be chown'd back
+    _ = _.prepend_cleanup_exec('sudo', 'chown', '-R', '--from=%s' % user, olduser, tree.experiment)
+    new_experiment = _
+    return Pair(script.control, new_experiment), env, tree
 
 
 # The order of the variations *is* important, because the command to
@@ -353,6 +388,7 @@ def umask(script, env, tree, *args):
 VARIATIONS = types.MappingProxyType(collections.OrderedDict([
     ('environment', environment),
     ('build_path', build_path_same),
+    ('user_group', user_group),
     # ('cpu', cpu),
     # ('domain_host', domain_host),
     ('fileordering', fileordering),
@@ -365,7 +401,6 @@ VARIATIONS = types.MappingProxyType(collections.OrderedDict([
     ('time', faketime),
     ('timezone', timezone),
     ('umask', umask),
-    # ('user_group', user_group),
 ]))
 
 
@@ -379,7 +414,8 @@ def build(script, env, source_root_orig, source_root_build, dist_root, artifact_
     testbed.check_exec(
         ['sh', '-ec', 'cd "%s" && rm -rf %s' %
         (source_root_orig, artifact_pattern)])
-    new_script = script.append_setup_exec('cd', source_root_build)
+    # this dance is necessary because the cwd can't be cd'd into during the setup phase under some variations like user_group
+    new_script = script.append_setup_exec_raw('export', 'REPROTEST_BUILD_PATH=%s' % source_root_build)
     logging.info("executing: %s", new_script)
     argv = ['sh', '-ec', str(new_script)]
     xenv = ['%s=%s' % (k, v) for k, v in env.items()]
@@ -421,7 +457,7 @@ def check(build_command, artifact_pattern, virtual_server_args, source_root,
                      os.path.join(store_dir, "experiment"))
 
     logging.debug("virtual_server_args: %r", virtual_server_args)
-    script = Pair.of(Script(build_command))
+    script = Pair.of(Script('cd "$REPROTEST_BUILD_PATH"; unset REPROTEST_BUILD_PATH; ' + build_command))
     env = Pair(types.MappingProxyType(os.environ.copy()),
                types.MappingProxyType(os.environ.copy()))
 
@@ -453,8 +489,8 @@ def check(build_command, artifact_pattern, virtual_server_args, source_root,
                 vary = VARIATIONS[variation]
                 negative = hasattr(vary, "negative") and vary.negative
                 if (variation in variations) != negative:
-                    script, env, tree = vary(script, env, tree, source_root)
                     logging.info("will %s: %s", "FIX" if negative else "vary", variation)
+                    script, env, tree = vary(script, env, tree, source_root)
                     logging.log(5, "builds: %r", (script, env, tree))
 
             try:
@@ -581,6 +617,11 @@ COMMAND_LINE_OPTIONS = types.MappingProxyType(collections.OrderedDict([
         'list (without spaces).  These take precedence over what '
         'you set for "variations". Default is nothing, i.e. test '
         'whatever you set for "variations".'})),
+    ('--user-groups', types.MappingProxyType({
+        'type': lambda s: frozenset(tuple(x.split(':',1)) for x in s.split(',')),
+        'default': frozenset(),
+        'help': 'Comma-separated list of possible user:group combinations which '
+        'will be randomly chosen to `sudo -i` to when varying user_group.'})),
     ('--diffoscope-arg', types.MappingProxyType({
         'default': [], 'action': 'append',
         'help': 'Give extra arguments to diffoscope when running it.'})),
@@ -699,6 +740,10 @@ def main():
         variations = command_line_options['variations']
     if 'dont_vary' in command_line_options:
         variations = variations - frozenset(command_line_options['dont_vary'])
+    user_groups = command_line_options.get(
+        'user_groups',
+        config_options.get('user_groups'))
+    V_USER_POSSIBLE_USERGROUPS.extend(user_groups)
     verbosity = command_line_options.get(
         'verbosity',
         config_options.get('verbosity', 0))
