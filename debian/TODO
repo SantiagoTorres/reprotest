@@ -1,0 +1,31 @@
+Make the CLI nicer
+==================
+
+Current:
+reprotest [options] --source-root <source_file_or_dir>   <build_command>      [<artifact>]
+reprotest [options]                                      auto                 [<artifact>]
+reprotest [options]                                      auto                  <source_file_or_dir>  # if the given artifact already exists
+
+Add:
+(if the given build_command already exists)
+reprotest [options] --build-command <build_command>      <source_file_or_dir> [<artifact>]
+reprotest [options]                                      <source_file_or_dir> [<artifact>]
+
+After this, we can add a "auto-sbuild" pseudo-command that selects sbuild to
+build .dsc files (and guess the command artefact output), this should help with
+#847805.
+
+Refactoring
+===========
+
+To allow to run N builds instead of just 2.
+
+Afterwards we can then implement Bernhard's algorithm #850284.
+
+Misc
+====
+
+--no-clean-on-error doesn't work since we did the shell-script based
+refactoring, fix it.
+
+add a default Debian-reprotest user in the Debian packaging and make this cross-distro
