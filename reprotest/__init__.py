@@ -359,7 +359,7 @@ def umask(ctx, script, env, tree, *args):
 # as the other user (e.g. due to permissions).
 def user_group(ctx, script, env, tree, *args):
     if not ctx.user_groups:
-        logging.warn("IGNORING user_group variation, because no --user-groups were given.")
+        logging.warn("IGNORING user_group variation, because no --user-groups were given. To suppress this warning, give --dont-vary user_group")
         return script, env, tree
     olduser = getpass.getuser()
     oldgroup = grp.getgrgid(os.getgid()).gr_name

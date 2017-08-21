@@ -8,7 +8,10 @@ export PYBUILD_NAME = reprotest
 
 # It's hard to make sure disorderfs works on buildds, so drop it.
 # The build user needs fuse access and this is not easily arranged.
-export REPROTEST_TEST_DONTVARY = fileordering
+#
+# To be user-friendly the user_group variation defaults to ON but is a no-op.
+# This causes tests to fail since they expect something to be captured. So ignore it here
+export REPROTEST_TEST_DONTVARY = fileordering,user_group
 
 override_dh_auto_configure:
 	test $$(python3 setup.py --version) = $$(dpkg-parsechangelog -SVersion)
