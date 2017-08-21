@@ -38,7 +38,7 @@ Depends: ${python3:Depends},
  python3-pkg-resources,
  ${misc:Depends}
 Recommends: diffutils | diffoscope (>= 84),
- disorderfs,
+ disorderfs (>= 0.5.2),
  faketime,
  locales-all,
  sudo,

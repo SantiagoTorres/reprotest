@@ -197,6 +197,12 @@ fi
             return str(subshell)
 
 
+class VariationContext(collections.namedtuple('_VariationContext', 'verbosity user_groups')):
+    @classmethod
+    def default(cls):
+        return cls(0, frozenset())
+
+
 def dirname(p):
     # works more intuitively for paths with a trailing /
     return os.path.normpath(os.path.dirname(os.path.normpath(p)))
@@ -219,19 +225,19 @@ VSRC_DIR = "source-root"
 # def cpu(script, env, tree):
 #     return script, env, tree
 
-def environment(script, env, tree, *args):
+def environment(ctx, script, env, tree, *args):
     new_env = add(env.experiment, 'CAPTURE_ENVIRONMENT',
                   'i_capture_the_environment')
     return script, Pair(env.control, new_env), tree
 
 # TODO: this requires superuser privileges.
-# def domain_host(script, env, tree):
+# def domain_host(ctx, script, env, tree):
 #     return script, env, tree
 
 # Note: this has to go before fileordering because we can't move mountpoints
 # TODO: this variation makes it impossible to parallelise the build, for most
 # of the current virtual servers. (It's theoretically possible to make it work)
-def build_path_same(script, env, tree, *args):
+def build_path_same(ctx, script, env, tree, *args):
     const_path = os.path.join(dirname(tree.control), 'const_build_path')
     assert const_path == os.path.join(dirname(tree.experiment), 'const_build_path')
     new_control = script.control.move_tree(tree.control, const_path)
@@ -240,12 +246,13 @@ def build_path_same(script, env, tree, *args):
     return Pair(new_control, new_experiment), env, Pair.of(const_path_dir)
 build_path_same.negative = True
 
-def fileordering(script, env, tree, *args):
+def fileordering(ctx, script, env, tree, *args):
     old_tree = os.path.join(dirname(tree.experiment), basename(tree.experiment) + '-before-disorderfs', '')
     _ = script.experiment.move_tree(tree.experiment, old_tree)
     _ = _.append_setup_exec('mkdir', '-p', tree.experiment)
     _ = _.prepend_cleanup_exec('rmdir', tree.experiment)
-    _ = _.append_setup_exec('disorderfs', '--shuffle-dirents=yes', old_tree, tree.experiment)
+    disorderfs = ['disorderfs'] + ([] if ctx.verbosity else ["-q"])
+    _ = _.append_setup_exec(*(disorderfs + ['--shuffle-dirents=yes', old_tree, tree.experiment]))
     _ = _.prepend_cleanup_exec('fusermount', '-u', tree.experiment)
     # the "user_group" variation hacks PATH to run "sudo -u XXX" instead of various tools, pick it up here
     binpath = os.path.join(dirname(tree.experiment), 'bin')
@@ -254,7 +261,7 @@ def fileordering(script, env, tree, *args):
     return Pair(script.control, new_script), env, tree
 
 # Note: this has to go after anything that might modify 'tree' e.g. build_path
-def home(script, env, tree, *args):
+def home(ctx, script, env, tree, *args):
     # choose an existent HOME, see Debian bug #860428
     control = add(env.control, 'HOME', tree.control)
     experiment = add(env.experiment, 'HOME', '/nonexistent/second-build')
@@ -265,7 +272,7 @@ def home(script, env, tree, *args):
 # FreeBSD changes uname with environment variables.  Wikipedia has a
 # reference to a setname command on another Unix variant:
 # https://en.wikipedia.org/wiki/Uname
-def kernel(script, env, tree, *args):
+def kernel(ctx, script, env, tree, *args):
     # set these two explicitly different. otherwise, when reprotest is
     # reprotesting itself, then one of the builds will fail its tests, because
     # its two child reprotests will see the same value for "uname" but the
@@ -288,7 +295,7 @@ def kernel(script, env, tree, *args):
 
 # TODO: what exact locales and how to many test is probably a mailing
 # list question.
-def locales(script, env, tree, *args):
+def locales(ctx, script, env, tree, *args):
     new_control = add(add(env.control, 'LANG', 'C.UTF-8'), 'LANGUAGE', 'en_US:en')
     # if there is an issue with this being random, we could instead select it
     # based on a deterministic hash of the inputs
@@ -298,22 +305,22 @@ def locales(script, env, tree, *args):
 
 # TODO: Linux-specific.  unshare --uts requires superuser privileges.
 # How is this related to host/domainname?
-# def namespace(script, env, tree, *args):
+# def namespace(ctx, script, env, tree, *args):
 #     # command1 = ['unshare', '--uts'] + command1
 #     # command2 = ['unshare', '--uts'] + command2
 #     return script, env, tree
 
-def exec_path(script, env, tree, *args):
+def exec_path(ctx, script, env, tree, *args):
     new_env = add(env.experiment, 'PATH', env.control['PATH'] +
                   ':/i_capture_the_path')
     return script, Pair(env.control, new_env), tree
 
 # This doesn't require superuser privileges, but the chsh command
 # affects all user shells, which would be bad.
-# # def shell(script, env, tree, *args):
+# # def shell(ctx, script, env, tree, *args):
 #     return script, env, tree
 
-def timezone(script, env, tree, *args):
+def timezone(ctx, script, env, tree, *args):
     # These time zones are theoretically in the POSIX time zone format
     # (http://pubs.opengroup.org/onlinepubs/9699919799/basedefs/V1_chap08.html#tag_08),
     # so they should be cross-platform compatible.
@@ -321,7 +328,7 @@ def timezone(script, env, tree, *args):
     experiment = add(env.experiment, 'TZ', 'GMT-14')
     return script, Pair(control, experiment), tree
 
-def faketime(script, env, tree, source_root, *args):
+def faketime(ctx, script, env, tree, source_root, *args):
     # Get the latest modification date of all the files in the source root.
     # This tries hard to avoid bad interactions with faketime and make(1) etc.
     # However if you're building this too soon after changing one of the source
@@ -343,23 +350,20 @@ def faketime(script, env, tree, source_root, *args):
     new_experiment_env = add(env.experiment, 'NO_FAKE_STAT', '1')
     return Pair(script.control, new_experiment), Pair(env.control, new_experiment_env), tree
 
-def umask(script, env, tree, *args):
+def umask(ctx, script, env, tree, *args):
     new_control = script.control.append_setup_exec('umask', '0022')
     new_experiment = script.experiment.append_setup_exec('umask', '0002')
     return Pair(new_control, new_experiment), env, tree
 
 # Note: this needs to go before anything that might need to run setup commands
 # as the other user (e.g. due to permissions).
-#
-# TODO: add a default Debian-reprotest user in the Debian packaging and make this cross-distro
-V_USER_POSSIBLE_USERGROUPS = []
-def user_group(script, env, tree, *args):
-    if not V_USER_POSSIBLE_USERGROUPS:
+def user_group(ctx, script, env, tree, *args):
+    if not ctx.user_groups:
         logging.warn("IGNORING user_group variation, because no --user-groups were given.")
         return script, env, tree
     olduser = getpass.getuser()
     oldgroup = grp.getgrgid(os.getgid()).gr_name
-    user, group = random.choice(list(set(V_USER_POSSIBLE_USERGROUPS) - set([(olduser, oldgroup)])))
+    user, group = random.choice(list(set(ctx.user_groups) - set([(olduser, oldgroup)])))
     sudobuild = _shell_ast.SimpleCommand.make('sudo', '-E', '-u', user, '-g', group)
     binpath = os.path.join(dirname(tree.experiment), 'bin')
 
@@ -441,8 +445,8 @@ def run_or_tee(progargs, filename, store_dir, *args, **kwargs):
 
 
 def check(build_command, artifact_pattern, virtual_server_args, source_root,
-          no_clean_on_error=False, variations=VARIATIONS,
-          store_dir=None, diffoscope_args=[],
+          no_clean_on_error=False, store_dir=None, diffoscope_args=[],
+          variations=VARIATIONS, variation_context=VariationContext.default(),
           testbed_pre=None, testbed_init=None, host_distro='debian'):
     # default argument [] is safe here because we never mutate it.
     if not source_root:
@@ -490,7 +494,7 @@ def check(build_command, artifact_pattern, virtual_server_args, source_root,
                 negative = hasattr(vary, "negative") and vary.negative
                 if (variation in variations) != negative:
                     logging.info("will %s: %s", "FIX" if negative else "vary", variation)
-                    script, env, tree = vary(script, env, tree, source_root)
+                    script, env, tree = vary(variation_context, script, env, tree, source_root)
                     logging.log(5, "builds: %r", (script, env, tree))
 
             try:
@@ -569,7 +573,7 @@ COMMAND_LINE_OPTIONS = types.MappingProxyType(collections.OrderedDict([
         'help': 'Show this help message and exit. When given an argument, '
         'show instead the help message for that virtual server and exit. '})),
     ('--verbosity', types.MappingProxyType({
-        'type': int, 'default': 1,
+        'type': int, 'default': 0,
         'help': 'An integer.  Control which messages are displayed.'})),
     ('--config-file', types.MappingProxyType({
         'type': str, 'default': '.reprotestrc',
@@ -730,6 +734,12 @@ def main():
     diffoscope_args = command_line_options.get('diffoscope_arg')
     if command_line_options.get('no_diffoscope'):
         diffoscope_args = None
+
+    verbosity = command_line_options.get(
+        'verbosity',
+        config_options.get('verbosity', 0))
+    adtlog.verbosity = verbosity
+
     # The default is to try all variations.
     variations = frozenset(VARIATIONS.keys())
     if 'variations' in config_options:
@@ -740,14 +750,13 @@ def main():
         variations = command_line_options['variations']
     if 'dont_vary' in command_line_options:
         variations = variations - frozenset(command_line_options['dont_vary'])
+
+    _ = VariationContext.default()
+    _ = _._replace(verbosity=verbosity)
     user_groups = command_line_options.get(
-        'user_groups',
-        config_options.get('user_groups'))
-    V_USER_POSSIBLE_USERGROUPS.extend(user_groups)
-    verbosity = command_line_options.get(
-        'verbosity',
-        config_options.get('verbosity', 0))
-    adtlog.verbosity = verbosity
+        'user_groups', config_options.get('user_groups'))
+    _ = _._replace(user_groups=_.user_groups | user_groups)
+    variation_context = _
 
     if not build_command:
         print("No build command provided. See --help for options.")
@@ -780,5 +789,6 @@ def main():
 
     # print(build_command, artifact, virtual_server_args)
     return check(build_command, artifact, virtual_server_args, source_root,
-                 no_clean_on_error, variations, store_dir, diffoscope_args,
+                 no_clean_on_error, store_dir, diffoscope_args,
+                 variations, variation_context,
                  testbed_pre, testbed_init, host_distro)
