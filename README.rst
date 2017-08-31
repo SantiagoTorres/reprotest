@@ -136,27 +136,27 @@ time-saving measure similar to ``auto`` presets; the difference is that
 these are more suited for local builds that are suited to your personal
 purposes. (You may use both presets and config files in the same build.)
 
-The config file has one section, basics, and the same options as the
-CLI, except there's no ``dont_vary`` option, and there are
-``build_command`` and ``artifact`` fields. If ``build_command`` and/or
-``artifact`` are set in the config file, reprotest can be run without
-passing those as command-line arguments. Command-line arguments always
-override config file options.
+The config file takes exactly the same options as the command-line interface,
+but with the additional restriction that the section name must match the ones
+given in the --help output. Whitespace is allowed if and only if the same
+command-line option allows whitespace. Finally, it is not possible to give
+positional arguments via this mechanism.
 
-Reprotest by default loads ``./.reprotestrc``, or you can tell it to
-load another file with the ``--config-file`` command line option.
+Reprotest by default does not load any config file. You can tell it to load one
+with the ``--config-file`` or ``-f`` command line options. If you give it a
+directory such as ``.``, it will load ``.reprotestrc`` within that directory.
 
 A sample config file is below.
 
 ::
 
     [basics]
-    build_command = setup.py sdist
-    artifact = dist/reprotest-0.2.tar.gz
-    source_root = reprotest/
+    verbosity = 1
     variations =
       environment
       build_path
+      user_group
+      fileordering
       home
       kernel
       locales
@@ -164,6 +164,15 @@ A sample config file is below.
       time
       timezone
       umask
+    store_dir =
+      /home/foo/build/reprotest-artifacts
+    user_groups =
+      builduser:builduser
+
+    [diff]
+    diffoscope_arg =
+      --exclude-directory-metadata
+      --debug
 
 
 Analysing diff output

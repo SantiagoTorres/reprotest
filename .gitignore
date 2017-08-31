@@ -3,5 +3,6 @@ __pycache__
 /.coverage.*
 /.cache
 /.tox
+/.reprotestrc
 /doc/reprotest.1
 /doc/reprotest.h2m

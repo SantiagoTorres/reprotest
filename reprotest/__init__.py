@@ -389,7 +389,7 @@ chmod +x "{0}"/fusermount
 
 # The order of the variations *is* important, because the command to
 # be executed in the container needs to be built from the inside out.
-VARIATIONS = types.MappingProxyType(collections.OrderedDict([
+VARIATIONS = collections.OrderedDict([
     ('environment', environment),
     ('build_path', build_path_same),
     ('user_group', user_group),
@@ -405,7 +405,7 @@ VARIATIONS = types.MappingProxyType(collections.OrderedDict([
     ('time', faketime),
     ('timezone', timezone),
     ('umask', umask),
-]))
+])
 
 
 def build(script, env, source_root_orig, source_root_build, dist_root, artifact_pattern, testbed):
@@ -547,127 +547,40 @@ def check(build_command, artifact_pattern, virtual_server_args, source_root,
         return retcode
 
 
-COMMAND_LINE_OPTIONS = types.MappingProxyType(collections.OrderedDict([
-    ('build_command', types.MappingProxyType({
-        'default': None, 'nargs': '?', # 'type': str.split
-        'help': 'Build command to execute, or "auto" to guess this. In '
-                'the latter case, the next argument \'artifact\' will not be '
-                'interpreted that way but instead as the source to build, '
-                'e.g. "." or some other path.'})),
-    ('artifact', types.MappingProxyType({
-        'default': None, 'nargs': '?',
-        'help': 'Build artifact to test for reproducibility. May be a shell '
-                'pattern such as "*.deb *.changes".'})),
-    ('virtual_server_args', types.MappingProxyType({
-        'default': None, 'nargs': '*',
-        'help': 'Arguments to pass to the virtual_server, the first argument '
-                'being the name of the server. If this itself contains options '
-                '(of the form -xxx or --xxx), you should put a "--" between '
-                'these arguments and reprotest\'s own options. '
-                'Default: "null", to run directly in /tmp. Choices: %s' %
-                ', '.join(get_all_servers())})),
-    ('--help', types.MappingProxyType({
-        'dest': 'help', 'default': None, 'const': True, 'nargs': '?',
-        'choices': get_all_servers(),
-        'metavar': 'VIRTUAL_SERVER_NAME',
-        'help': 'Show this help message and exit. When given an argument, '
-        'show instead the help message for that virtual server and exit. '})),
-    ('--verbosity', types.MappingProxyType({
-        'type': int, 'default': 0,
-        'help': 'An integer.  Control which messages are displayed.'})),
-    ('--config-file', types.MappingProxyType({
-        'type': str, 'default': '.reprotestrc',
-        'help': 'File to load configuration from. (Default: %(default)s)'})),
-    ('--host-distro', types.MappingProxyType({
-        'type': str, 'default': 'debian',
-        'help': 'The distribution that will run the tests (Default: %(default)s)'})),
-    ('--source-root', types.MappingProxyType({
-        'dest': 'source_root', 'type': pathlib.Path,
-        'help': 'Root of the source tree, if not the '
-        'current working directory.'})),
-    ('--store-dir', types.MappingProxyType({
-        'default': None, 'type': pathlib.Path,
-        'help': 'Save the artifacts in this directory, which must be empty or '
-        'non-existent. Otherwise, the artifacts will be deleted and you only '
-        'see their hashes (if reproducible) or the diff output (if not).'})),
-    ('--testbed-pre', types.MappingProxyType({
-        'default': None, 'metavar': 'COMMANDS',
-        'help': 'Shell commands to run before starting the test bed, in the '
-        'context of the current system environment. This may be used to e.g. '
-        'compute information needed by the build, where the computation needs '
-        'packages you don\'t want installed in the testbed itself.'})),
-    ('--testbed-init', types.MappingProxyType({
-        'default': None, 'metavar': 'COMMANDS',
-        'help': 'Shell commands to run after starting the test bed, but before '
-        'applying variations. Used to e.g. install disorderfs in a chroot.'})),
-    ('--auto-preset-expr', types.MappingProxyType({
-        'default': "_", 'metavar': 'PYTHON_EXPRESSION',
-        'help': 'This may be used to transform the presets returned by the '
-        'auto-detection feature. The value should be a python expression '
-        'that transforms the _ variable, which is of type reprotest.presets.ReprotestPreset. '
-        'See that class\'s documentation for ways you can write this '
-        'expression. Default: %(default)s'})),
-    ('--variations', types.MappingProxyType({
-        'type': lambda s: frozenset(s.split(',')),
-        'default': frozenset(VARIATIONS.keys()),
-        'help': 'Build variations to test as a comma-separated list '
-        '(without spaces).  Default is to test all available '
-        'variations: %s.' % ', '.join(VARIATIONS.keys())})),
-    ('--dont-vary', types.MappingProxyType({
-        'dest': 'dont_vary',
-        'type': lambda s: frozenset(s.split(',')),
-        'default': frozenset(),
-        'help': 'Build variations *not* to test as a comma-separated '
-        'list (without spaces).  These take precedence over what '
-        'you set for "variations". Default is nothing, i.e. test '
-        'whatever you set for "variations".'})),
-    ('--user-groups', types.MappingProxyType({
-        'type': lambda s: frozenset(tuple(x.split(':',1)) for x in s.split(',')),
-        'default': frozenset(),
-        'help': 'Comma-separated list of possible user:group combinations which '
-        'will be randomly chosen to `sudo -i` to when varying user_group.'})),
-    ('--diffoscope-arg', types.MappingProxyType({
-        'default': [], 'action': 'append',
-        'help': 'Give extra arguments to diffoscope when running it.'})),
-    ('--no-diffoscope', types.MappingProxyType({
-        'action': 'store_true', 'default': False,
-        'help': 'Don\'t run diffoscope; instead run diff(1). Useful if you '
-        'don\'t want to install diffoscope and/or just want a quick answer '
-        'on whether the reproduction was successful or not, without spending '
-        'time to compute all the detailed differences.'})),
-    ('--no-clean-on-error', types.MappingProxyType({
-        'action': 'store_true', 'default': False,
-        'help': 'Don\'t clean the virtual_server if there was an error. '
-                'Useful for debugging, but WARNING: this is currently not '
-                'implemented very well and may leave cruft on your system.'})),
-    ]))
-
-MULTIPLET_OPTIONS = frozenset(['dont_vary', 'variations', 'virtual_server_args'])
-
-CONFIG_OPTIONS = []
-for option in COMMAND_LINE_OPTIONS.keys():
-    if 'dest' in COMMAND_LINE_OPTIONS[option]:
-        CONFIG_OPTIONS.append(COMMAND_LINE_OPTIONS[option]['dest'])
-    else:
-        CONFIG_OPTIONS.append(option.strip('-'))
-CONFIG_OPTIONS = tuple(CONFIG_OPTIONS)
-
-def config(filename):
-    # Config file.
-    config = configparser.ConfigParser()
+def config_to_args(parser, filename):
+    if not filename:
+        return []
+    elif os.path.isdir(filename):
+        filename = os.path.join(filename, ".reprotestrc")
+    config = configparser.ConfigParser(dict_type=collections.OrderedDict)
     config.read(filename)
-    options = collections.OrderedDict()
-    if 'basics' in config:
-        for option in CONFIG_OPTIONS:
-            if option in config['basics']:
-                if option in MULTIPLET_OPTIONS:
-                    options[option] = config['basics'][option].split()
+    sections = {p.title: p for p in parser._action_groups[2:]}
+    args = []
+    for sectname, section in config.items():
+        if sectname == 'basics':
+            sectname = 'basic options'
+        elif not sectname.endswith(' options'):
+            sectname += ' options'
+        items = list(section.items())
+        if not items:
+            continue
+        sectacts = sections[sectname]._option_string_actions
+        for key, val in items:
+            key = "--" + key.replace("_", "-")
+            val = val.strip()
+            if key in sectacts.keys():
+                if 'Append' in sectacts[key].__class__.__name__:
+                    for v in val.split('\n'):
+                        args.append('%s=%s' % (key, v))
                 else:
-                    options[option] = config['basics'][option]
-    return types.MappingProxyType(options)
+                    args.append('%s=%s' % (key, val))
+            else:
+                raise ValueError("unexpected item in config: %s = %s" % (key, val))
+    return args
 
-def command_line(*argv):
-    arg_parser = argparse.ArgumentParser(
+
+def cli_parser():
+    parser = argparse.ArgumentParser(
         prog='reprotest',
         usage='''%(prog)s --help [<virtual_server_name>]
        %(prog)s [options] auto  <source_file_or_dir> [[more options] --|--]
@@ -676,10 +589,91 @@ def command_line(*argv):
                  [<virtual_server_args> [<virtual_server_args> ...]]''',
         description='Build packages and check them for reproducibility.',
         formatter_class=argparse.RawDescriptionHelpFormatter, add_help=False)
-    for option in COMMAND_LINE_OPTIONS:
-        arg_parser.add_argument(option, **COMMAND_LINE_OPTIONS[option])
-    args, remainder = arg_parser.parse_known_args(argv)
 
+    parser.add_argument('build_command', default=None, nargs='?',
+        help='Build command to execute, or "auto" to guess this. In '
+        'the latter case, the next argument \'artifact\' will not be '
+        'interpreted that way but instead as the source to build, '
+        'e.g. "." or some other path.'),
+    parser.add_argument('artifact', default=None, nargs= '?',
+        help='Build artifact to test for reproducibility. May be a shell '
+             'pattern such as "*.deb *.changes".'),
+    parser.add_argument('virtual_server_args', default=None, nargs= '*',
+        help='Arguments to pass to the virtual_server, the first argument '
+             'being the name of the server. If this itself contains options '
+             '(of the form -xxx or --xxx) you should put a "--" between '
+             'these arguments and reprotest\'s own options. '
+             'Default: "null", to run directly in /tmp. Choices: %s' %
+             ''.join(get_all_servers()))
+
+    parser.add_argument('--help', default=None, const=True, nargs='?',
+        choices=get_all_servers(), metavar='VIRTUAL_SERVER_NAME',
+        help='Show this help message and exit. When given an argument, '
+        'show instead the help message for that virtual server and exit. ')
+    parser.add_argument('-f', '--config-file', default=None,
+        help='File to load configuration from. (Default: %(default)s)')
+
+    group1 = parser.add_argument_group('basic options')
+    group1.add_argument('--verbosity', type=int, default=0,
+        help='An integer.  Control which messages are displayed.')
+    group1.add_argument('--host-distro', default='debian',
+        help='The distribution that will run the tests (Default: %(default)s)')
+    group1.add_argument('--source-root',
+        type=pathlib.Path, default=pathlib.Path.cwd(),
+        help='Root of the source tree. Default: current working directory.')
+    group1.add_argument('--store-dir', default=None, type=pathlib.Path,
+        help='Save the artifacts in this directory, which must be empty or '
+        'non-existent. Otherwise, the artifacts will be deleted and you only '
+        'see their hashes (if reproducible) or the diff output (if not).')
+    group1.add_argument('--variations', default=frozenset(VARIATIONS.keys()),
+        type=lambda s: frozenset(sss for ss in s.split(',') for sss in ss.split()),
+        help='Build variations to test as a whitespace-or-comma-separated '
+        'list.  Default is to test all available variations: %s.' %
+        ', '.join(VARIATIONS.keys()))
+    group1.add_argument('--dont-vary', default=frozenset(),
+        type=lambda s: frozenset(sss for ss in s.split(',') for sss in ss.split()),
+        help='Build variations *not* to test as a whitespace-or-comma-separated '
+        'list.  These take precedence over what you set for --variations. '
+        'Default is nothing, i.e. test whatever you set for --variations.')
+    group1.add_argument('--user-groups', default=frozenset(),
+        type=lambda s: frozenset(tuple(x.split(':',1)) for x in s.split(',')),
+        help='Comma-separated list of possible user:group combinations which '
+        'will be randomly chosen to `sudo -i` to when varying user_group.')
+
+    group2 = parser.add_argument_group('diff options')
+    group2.add_argument('--diffoscope-arg', default=[], action='append',
+        help='Give extra arguments to diffoscope when running it.')
+    group2.add_argument('--no-diffoscope', action='store_true', default=False,
+        help='Don\'t run diffoscope; instead run diff(1). Useful if you '
+        'don\'t want to install diffoscope and/or just want a quick answer '
+        'on whether the reproduction was successful or not, without spending '
+        'time to compute all the detailed differences.')
+
+    group3 = parser.add_argument_group('advanced options')
+    group3.add_argument('--testbed-pre', default=None, metavar='COMMANDS',
+        help='Shell commands to run before starting the test bed, in the '
+        'context of the current system environment. This may be used to e.g. '
+        'compute information needed by the build, where the computation needs '
+        'packages you don\'t want installed in the testbed itself.')
+    group3.add_argument('--testbed-init', default=None, metavar='COMMANDS',
+        help='Shell commands to run after starting the test bed, but before '
+        'applying variations. Used to e.g. install disorderfs in a chroot.')
+    group3.add_argument('--auto-preset-expr', default="_", metavar='PYTHON_EXPRESSION',
+        help='This may be used to transform the presets returned by the '
+        'auto-detection feature. The value should be a python expression '
+        'that transforms the _ variable, which is of type reprotest.presets.ReprotestPreset. '
+        'See that class\'s documentation for ways you can write this '
+        'expression. Default: %(default)s')
+    group3.add_argument('--no-clean-on-error', action='store_true', default=False,
+        help='Don\'t clean the virtual_server if there was an error. '
+        'Useful for debugging, but WARNING: this is currently not '
+        'implemented very well and may leave cruft on your system.')
+
+    return parser
+
+
+def command_line(parser, *argv):
+    args, remainder = parser.parse_known_args(*argv)
     # work around python issue 14191; this allows us to accept command lines like
     # $ reprotest build stuff --option=val --option=val -- schroot unstable-amd64-sbuild
     # where optional args appear in between positional args, but there must be a '--'
@@ -688,74 +682,51 @@ def command_line(*argv):
             # however we disallow split command lines that don't have '--', e.g.:
             # $ reprotest build stuff --option=val --option=val schroot unstable-amd64-sbuild
             # since it's too complex to support that in a way that's not counter-intuitive
-            arg_parser.parse_args(argv)
+            parser.parse_args(*argv)
         args.virtual_server_args = (args.virtual_server_args or []) + remainder[1:]
     args.virtual_server_args = args.virtual_server_args or ["null"]
     # print(args)
 
     if args.help:
-        if args.help == True:
-            arg_parser.print_help()
+        if args.help:
+            parser.print_help()
             sys.exit(0)
         else:
             sys.exit(subprocess.call([get_server_path(args.help), "-h"]))
 
-    return types.MappingProxyType({k:v for k, v in vars(args).items() if v is not None})
+    return args
 
 
 def main():
     # Argparse exits with status code 2 if something goes wrong, which
     # is already the right status exit code for reprotest.
-    command_line_options = command_line(*sys.argv[1:])
-    config_options = config(command_line_options.get('config_file'))
-
+    parser = cli_parser()
+    parsed_args = command_line(parser, sys.argv[1:])
+    config_args = config_to_args(parser, parsed_args.config_file)
     # Command-line arguments override config file settings.
-    build_command = command_line_options.get(
-        'build_command',
-        config_options.get('build_command'))
-    artifact = command_line_options.get(
-        'artifact',
-        config_options.get('artifact'))
-    virtual_server_args = command_line_options.get(
-        'virtual_server_args',
-        config_options.get('virtual_server_args'))
+    parsed_args = command_line(parser, config_args + sys.argv[1:])
 
-    host_distro = command_line_options.get('host_distro', 'debian')
+    build_command = parsed_args.build_command
+    artifact = parsed_args.artifact
+    virtual_server_args = parsed_args.virtual_server_args
+    host_distro = parsed_args.host_distro
 
     # Reprotest will copy this tree and then run the build command.
     # If a source root isn't provided, assume it's the current working
     # directory.
-    source_root = command_line_options.get(
-        'source_root',
-        config_options.get('source_root', pathlib.Path.cwd()))
-    no_clean_on_error = command_line_options.get(
-        'no_clean_on_error',
-        config_options.get('no_clean_on_error'))
-    diffoscope_args = command_line_options.get('diffoscope_arg')
-    if command_line_options.get('no_diffoscope'):
+    source_root = str(parsed_args.source_root)
+    no_clean_on_error = parsed_args.no_clean_on_error
+    diffoscope_args = parsed_args.diffoscope_arg
+    if parsed_args.no_diffoscope:
         diffoscope_args = None
 
-    verbosity = command_line_options.get(
-        'verbosity',
-        config_options.get('verbosity', 0))
+    verbosity = parsed_args.verbosity
     adtlog.verbosity = verbosity
 
-    # The default is to try all variations.
-    variations = frozenset(VARIATIONS.keys())
-    if 'variations' in config_options:
-        variations = frozenset(config_options['variations'])
-    if 'dont_vary' in config_options:
-        variations = variations - frozenset(config_options['dont_vary'])
-    if 'variations' in command_line_options:
-        variations = command_line_options['variations']
-    if 'dont_vary' in command_line_options:
-        variations = variations - frozenset(command_line_options['dont_vary'])
-
+    variations = parsed_args.variations - parsed_args.dont_vary
     _ = VariationContext.default()
     _ = _._replace(verbosity=verbosity)
-    user_groups = command_line_options.get(
-        'user_groups', config_options.get('user_groups'))
-    _ = _._replace(user_groups=_.user_groups | user_groups)
+    _ = _._replace(user_groups=_.user_groups | parsed_args.user_groups)
     variation_context = _
 
     if not build_command:
@@ -769,14 +740,15 @@ def main():
         sys.exit(2)
     logging.basicConfig(
         format='%(message)s', level=30-10*verbosity, stream=sys.stdout)
+    logging.debug('%r', parsed_args)
 
-    store_dir = command_line_options.get("store_dir")
-    testbed_pre = command_line_options.get("testbed_pre")
-    testbed_init = command_line_options.get("testbed_init")
+    store_dir = parsed_args.store_dir
+    testbed_pre = parsed_args.testbed_pre
+    testbed_init = parsed_args.testbed_init
 
     if build_command == 'auto':
         source_root = os.path.normpath(os.path.dirname(artifact)) if os.path.isfile(artifact) else artifact
-        auto_preset_expr = command_line_options.get("auto_preset_expr")
+        auto_preset_expr = parsed_args.auto_preset_expr
         values = presets.get_presets(artifact, virtual_server_args[0])
         values = eval(auto_preset_expr, {'_':values}, {})
         logging.info("preset auto-selected: %r", values)
