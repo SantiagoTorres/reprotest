@@ -622,6 +622,8 @@ def cli_parser():
     group1 = parser.add_argument_group('basic options')
     group1.add_argument('--verbosity', type=int, default=0,
         help='An integer.  Control which messages are displayed.')
+    group1.add_argument('-v', '--verbose', dest='verbosity', action='count',
+        help='Like --verbosity, but given multiple times without arguments.')
     group1.add_argument('--host-distro', default='debian',
         help='The distribution that will run the tests (Default: %(default)s)')
     group1.add_argument('-s', '--source-root', default=None,

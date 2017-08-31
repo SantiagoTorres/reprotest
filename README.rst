@@ -5,7 +5,7 @@ The easiest way to run reprotest is via our presets::
 
     # Build the current directory in a null server (/tmp)
     $ reprotest .
-    $ reprotest . -- null -d # for more verbose output
+    $ reprotest . -vv -- null -d # for very verbose output
 
     # Build the given Debian source package in an schroot
     # See https://wiki.debian.org/sbuild for instructions on setting that up.
