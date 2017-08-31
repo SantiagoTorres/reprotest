@@ -451,6 +451,8 @@ def check(build_command, artifact_pattern, virtual_server_args, source_root,
     # default argument [] is safe here because we never mutate it.
     if not source_root:
         raise ValueError("invalid source root: %s" % source_root)
+    if os.path.isfile(source_root):
+        source_root = os.path.normpath(os.path.dirname(source_root))
     if store_dir:
         store_dir = str(store_dir)
         if not os.path.exists(store_dir):
@@ -583,27 +585,31 @@ def cli_parser():
     parser = argparse.ArgumentParser(
         prog='reprotest',
         usage='''%(prog)s --help [<virtual_server_name>]
-       %(prog)s [options] auto  <source_file_or_dir> [[more options] --|--]
-                 [<virtual_server_args> [<virtual_server_args> ...]]
-       %(prog)s [options] <build_command> <artifact> [[more options] --|--]
-                 [<virtual_server_args> [<virtual_server_args> ...]]''',
+       %(prog)s [options] [-c <build-command>] <source_root> [<artifact_pattern>]
+                 [-- <virtual_server_args> [<virtual_server_args> ...]]
+       %(prog)s [options] [-s <source_root>] <build_command> [<artifact_pattern>]
+                 [-- <virtual_server_args> [<virtual_server_args> ...]]''',
         description='Build packages and check them for reproducibility.',
         formatter_class=argparse.RawDescriptionHelpFormatter, add_help=False)
 
-    parser.add_argument('build_command', default=None, nargs='?',
-        help='Build command to execute, or "auto" to guess this. In '
-        'the latter case, the next argument \'artifact\' will not be '
-        'interpreted that way but instead as the source to build, '
-        'e.g. "." or some other path.'),
-    parser.add_argument('artifact', default=None, nargs= '?',
+    parser.add_argument('source_root|build_command', default=None, nargs='?',
+        help='The first argument is treated either as a source_root (see the '
+        '-s option) or as a build-command (see the -c option) depending on '
+        'some heuristics. Specifically: if neither -c nor -s are given, then: '
+        'if this exists as a file or directory and is not "auto", then this is '
+        'treated as a source_root, else as a build_command. Otherwise, if one '
+        'of -c or -s is given, then this is treated as the other one. If both '
+        'are given, then this is a command-line syntax error and we exit code 2.'),
+    parser.add_argument('artifact', default=None, nargs='?',
         help='Build artifact to test for reproducibility. May be a shell '
              'pattern such as "*.deb *.changes".'),
-    parser.add_argument('virtual_server_args', default=None, nargs= '*',
+    parser.add_argument('virtual_server_args', default=None, nargs='*',
         help='Arguments to pass to the virtual_server, the first argument '
              'being the name of the server. If this itself contains options '
-             '(of the form -xxx or --xxx) you should put a "--" between '
-             'these arguments and reprotest\'s own options. '
-             'Default: "null", to run directly in /tmp. Choices: %s' %
+             '(of the form -xxx or --xxx), or if any of the previous arguments '
+             'are omitted, you should put a "--" between these arguments and '
+             'reprotest\'s own options. Default: "null", to run directly in '
+             '/tmp. Choices: %s' %
              ''.join(get_all_servers()))
 
     parser.add_argument('--help', default=None, const=True, nargs='?',
@@ -618,9 +624,15 @@ def cli_parser():
         help='An integer.  Control which messages are displayed.')
     group1.add_argument('--host-distro', default='debian',
         help='The distribution that will run the tests (Default: %(default)s)')
-    group1.add_argument('--source-root',
-        type=pathlib.Path, default=pathlib.Path.cwd(),
-        help='Root of the source tree. Default: current working directory.')
+    group1.add_argument('-s', '--source-root', default=None,
+        help='Root of the source tree, that is copied to the virtual server '
+        'and made available during the build. If a file is given here, then '
+        'all files in its parent directory are available during the build. '
+        'Default: "." (current working directory).')
+    group1.add_argument('-c', '--build-command', default=None,
+        help='Build command to execute. If this is "auto" then reprotest will '
+        'guess how to build the given source_root, in which case various other '
+        'options may be automatically set-if-unset. Default: auto'),
     group1.add_argument('--store-dir', default=None, type=pathlib.Path,
         help='Save the artifacts in this directory, which must be empty or '
         'non-existent. Otherwise, the artifacts will be deleted and you only '
@@ -668,24 +680,39 @@ def cli_parser():
         help='Don\'t clean the virtual_server if there was an error. '
         'Useful for debugging, but WARNING: this is currently not '
         'implemented very well and may leave cruft on your system.')
+    group3.add_argument('--dry-run', action='store_true', default=False,
+        help='Don\'t run the builds, just print what would happen.')
 
     return parser
 
 
-def command_line(parser, *argv):
-    args, remainder = parser.parse_known_args(*argv)
+def command_line(parser, argv):
+    # parse_known_args does not exactly do what we want - we want everything
+    # after '--' to belong to virtual_server_args, but parse_known_args instead
+    # treats them as any positional argument (e.g. ones that go before
+    # virtual_server_args). so, work around that here.
+    if '--' in argv:
+        idx = argv.index('--')
+        postargv = argv[idx:]
+        argv = argv[:idx]
+    else:
+        postargv = []
+
     # work around python issue 14191; this allows us to accept command lines like
     # $ reprotest build stuff --option=val --option=val -- schroot unstable-amd64-sbuild
     # where optional args appear in between positional args, but there must be a '--'
+    args, remainder = parser.parse_known_args(argv)
+    remainder += postargv
+
     if remainder:
         if remainder[0] != '--':
             # however we disallow split command lines that don't have '--', e.g.:
             # $ reprotest build stuff --option=val --option=val schroot unstable-amd64-sbuild
             # since it's too complex to support that in a way that's not counter-intuitive
-            parser.parse_args(*argv)
+            parser.parse_args(argv)
+            assert False # previous function should have raised an error
         args.virtual_server_args = (args.virtual_server_args or []) + remainder[1:]
     args.virtual_server_args = args.virtual_server_args or ["null"]
-    # print(args)
 
     if args.help:
         if args.help:
@@ -697,70 +724,105 @@ def command_line(parser, *argv):
     return args
 
 
-def main():
+def run(argv, check):
     # Argparse exits with status code 2 if something goes wrong, which
     # is already the right status exit code for reprotest.
     parser = cli_parser()
-    parsed_args = command_line(parser, sys.argv[1:])
+    parsed_args = command_line(parser, argv)
     config_args = config_to_args(parser, parsed_args.config_file)
     # Command-line arguments override config file settings.
-    parsed_args = command_line(parser, config_args + sys.argv[1:])
-
-    build_command = parsed_args.build_command
-    artifact = parsed_args.artifact
-    virtual_server_args = parsed_args.virtual_server_args
-    host_distro = parsed_args.host_distro
-
-    # Reprotest will copy this tree and then run the build command.
-    # If a source root isn't provided, assume it's the current working
-    # directory.
-    source_root = str(parsed_args.source_root)
-    no_clean_on_error = parsed_args.no_clean_on_error
-    diffoscope_args = parsed_args.diffoscope_arg
-    if parsed_args.no_diffoscope:
-        diffoscope_args = None
+    parsed_args = command_line(parser, config_args + argv)
 
     verbosity = parsed_args.verbosity
     adtlog.verbosity = verbosity
+    logging.basicConfig(
+        format='%(message)s', level=30-10*verbosity, stream=sys.stdout)
+    logging.debug('%r', parsed_args)
 
+    # Decide which form of the CLI we're using
+    build_command, source_root = None, None
+    first_arg = parsed_args.__dict__['source_root|build_command']
+    if parsed_args.build_command:
+        if parsed_args.source_root:
+            print("Both -c and -s were given; abort")
+            sys.exit(2)
+        else:
+            source_root = first_arg
+    else:
+        if parsed_args.source_root:
+            build_command = first_arg
+        elif not first_arg:
+            print("No <source_root> or <build_command> provided. See --help for options.")
+            sys.exit(2)
+        elif first_arg == "auto":
+            build_command = first_arg
+            if parsed_args.artifact:
+                logging.warn("old CLI form `reprotest auto <source_root>` detected, "
+                    "setting source_root to the second argument: %s", parsed_args.artifact)
+                logging.warn("to avoid this warning, use instead `reprotest <source_root>` "
+                    "or (if really necessary) `reprotest -s <source_root> auto <artifact>`")
+                source_root = parsed_args.artifact
+                parsed_args.artifact = None
+        elif os.path.exists(first_arg):
+            source_root = first_arg
+        else:
+            build_command = first_arg
+    build_command = build_command or parsed_args.build_command or "auto"
+    source_root = source_root or parsed_args.source_root or '.'
+
+    # Args that might be affected by presets
+    virtual_server_args = parsed_args.virtual_server_args
+    artifact_pattern = parsed_args.artifact
+    testbed_pre = parsed_args.testbed_pre
+    testbed_init = parsed_args.testbed_init
+    diffoscope_args = parsed_args.diffoscope_arg
+
+    # Do presets
+    if build_command == 'auto':
+        auto_preset_expr = parsed_args.auto_preset_expr
+        values = presets.get_presets(source_root, virtual_server_args[0])
+        values = eval(auto_preset_expr, {'_': values}, {})
+        logging.info("preset auto-selected: %r", values)
+        build_command = values.build_command
+        artifact_pattern = artifact_pattern or values.artifact
+        testbed_pre = testbed_pre or values.testbed_pre
+        testbed_init = testbed_init or values.testbed_init
+        if diffoscope_args is not None:
+            diffoscope_args = values.diffoscope_args + diffoscope_args
+
+    # Variations args
     variations = parsed_args.variations - parsed_args.dont_vary
     _ = VariationContext.default()
     _ = _._replace(verbosity=verbosity)
     _ = _._replace(user_groups=_.user_groups | parsed_args.user_groups)
     variation_context = _
 
-    if not build_command:
-        print("No build command provided. See --help for options.")
-        sys.exit(2)
-    if not artifact:
-        print("No build artifact to test for differences provided.")
-        sys.exit(2)
-    if not virtual_server_args:
-        print("No virtual_server to run the build in specified.")
-        sys.exit(2)
-    logging.basicConfig(
-        format='%(message)s', level=30-10*verbosity, stream=sys.stdout)
-    logging.debug('%r', parsed_args)
-
+    # Remaining args
+    host_distro = parsed_args.host_distro
     store_dir = parsed_args.store_dir
-    testbed_pre = parsed_args.testbed_pre
-    testbed_init = parsed_args.testbed_init
+    no_clean_on_error = parsed_args.no_clean_on_error
+    if parsed_args.no_diffoscope:
+        diffoscope_args = None
 
-    if build_command == 'auto':
-        source_root = os.path.normpath(os.path.dirname(artifact)) if os.path.isfile(artifact) else artifact
-        auto_preset_expr = parsed_args.auto_preset_expr
-        values = presets.get_presets(artifact, virtual_server_args[0])
-        values = eval(auto_preset_expr, {'_':values}, {})
-        logging.info("preset auto-selected: %r", values)
-        build_command = values.build_command
-        artifact = values.artifact
-        testbed_pre = values.testbed_pre
-        testbed_init = values.testbed_init
-        if diffoscope_args is not None:
-            diffoscope_args = values.diffoscope_args + diffoscope_args
+    if not artifact_pattern:
+        print("No <artifact> to test for differences provided. See --help for options.")
+        sys.exit(2)
 
-    # print(build_command, artifact, virtual_server_args)
-    return check(build_command, artifact, virtual_server_args, source_root,
-                 no_clean_on_error, store_dir, diffoscope_args,
-                 variations, variation_context,
-                 testbed_pre, testbed_init, host_distro)
+    check_args_keys = (
+        "build_command", "artifact_pattern", "virtual_server_args", "source_root",
+        "no_clean_on_error", "store_dir", "diffoscope_args",
+        "variations", "variation_context",
+        "testbed_pre", "testbed_init", "host_distro")
+    l = locals()
+    check_args = collections.OrderedDict([(k, l[k]) for k in check_args_keys])
+    if parsed_args.dry_run:
+        return check_args
+    else:
+        return check(**check_args)
+
+def main():
+    r = run(sys.argv[1:], check)
+    if isinstance(r, collections.OrderedDict):
+        print("check(%s)" % ", ".join("%s=%r" % (k, v) for k, v in r.items()))
+    else:
+        return r

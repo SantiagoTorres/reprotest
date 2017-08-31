@@ -1,7 +1,8 @@
 reprotest (0.7) UNRELEASED; urgency=medium
 
   BACKWARDS INCOMPATIBLE CHANGES:
-  * The reprotest config file (-f <FILE>) no longer supports the
-    build_command, artifact, or virtual_server_args keys.
+  * The reprotest config file (-f <FILE>) no longer supports the artifact or
+    virtual_server_args keys. The build_command key is now only supported if
+    there is no source_root key at the same time.
 
  -- Ximin Luo <infinity0@debian.org>  Thu, 31 Aug 2017 18:38:47 +0200

@@ -1,49 +1,49 @@
 Command-line examples
 =====================
 
-The easiest way to run reprotest is via our presets:
-
-::
+The easiest way to run reprotest is via our presets::
 
     # Build the current directory in a null server (/tmp)
-    $ reprotest auto .
-    $ reprotest auto . -- null -d # for more verbose output
+    $ reprotest .
+    $ reprotest . -- null -d # for more verbose output
 
     # Build the given Debian source package in an schroot
     # See https://wiki.debian.org/sbuild for instructions on setting that up.
-    $ reprotest auto reprotest_0.3.3.dsc -- schroot unstable-amd64-sbuild
+    $ reprotest reprotest_0.3.3.dsc -- schroot unstable-amd64-sbuild
 
 Currently, we only support this for Debian packages, but are keen on
 adding more. If we don't have knowledge on how to build your file or
 directory, you can send a patch to us on adding this intelligence - see
 the reprotest.presets python module, and adapt the existing logic.
 
-In the meantime, you can use the more advanced CLI to build arbitrary
-things. This takes two mandatory arguments, the build command to run and
-the build artifact file/pattern to test after running the build. For
-example:
-
-::
+In the meantime, you can use other parts of the CLI to build arbitrary things.
+You'll need to give two mandatory arguments, the build command to run and the
+build artifact file/pattern to test after running the build. For example::
 
     $ reprotest 'python3 setup.py bdist' 'dist/*.tar.gz'
 
-When using this from a shell:
+This runs the command on ``.``, the current working directory. To run it on a
+project located elsewhere::
 
-If the build command has spaces, you will need to quote them, e.g.
-``reprotest "debuild -b -uc -us" [..]``.
+    $ reprotest -s ../path/to/other/project 'python3 setup.py bdist' 'dist/*.tar.gz'
+    $ reprotest -c 'python3 setup.py bdist' ../path/to/other/project 'dist/*.tar.gz'
 
-If you want to use several build artifact patterns, or if you want to
-use shell wildcards as a pattern, you will also need to quote them, e.g.
-``reprotest [..] "*.tar.gz *.tar.xz"``.
+These two invocations are equivalent; you can pick the most convenient one
+for your use-case. When using these from a shell:
 
-If your build artifacts have spaces in their names, you will need to
-quote these twice, e.g. ``'"a file with spaces.gz"'`` for a single
-artifact or ``'"dir 1"/* "dir 2"/*'`` for multiple patterns.
+  * If the build command has spaces, you will need to quote them, e.g.
+    ``reprotest "debuild -b -uc -us" [..]``.
+
+  * If you want to use several build artifact patterns, or if you want to
+    use shell wildcards as a pattern, you will also need to quote them, e.g.
+    ``reprotest [..] "*.tar.gz *.tar.xz"``.
+
+  * If your build artifacts have spaces in their names, you will need to
+    quote these twice, e.g. ``'"a file with spaces.gz"'`` for a single
+    artifact or ``'"dir 1"/* "dir 2"/*'`` for multiple patterns.
 
 To get more help for the CLI, including documentation on optional
-arguments and what they do, run:
-
-::
+arguments and what they do, run::
 
     $ reprotest --help
 
@@ -52,40 +52,37 @@ Running in a virtual server
 ===========================
 
 You can also run the build inside what is called a "virtual server".
-This could be a container, a chroot, etc. You run them like this:
+This could be a container, a chroot, etc. You run them like this::
 
-::
-
-    $ reprotest 'python3 setup.py bdist_wheel' 'dist/*.whl' qemu    /path/to/qemu.img
-    $ reprotest 'debuild -b -uc -us'           '../*.deb'   schroot unstable-amd64
+    $ reprotest 'python3 setup.py bdist_wheel' 'dist/*.whl' -- qemu    /path/to/qemu.img
+    $ reprotest 'debuild -b -uc -us'           '../*.deb'   -- schroot unstable-amd64
 
 There are different server types available. See ``--help`` for a list of
 them, which appears near the top, in the "virtual\_server\_args" part of
 the "positional arguments" section.
 
 For each virtual server (e.g. "schroot"), you see which extra arguments
-it supports:
-
-::
+it supports::
 
     $ reprotest --help schroot
 
 When running builds inside a virtual server, you will probably have to
 give extra commands, in order to set up your build dependencies inside
 the virtual server. For example, to take you through what the "Debian
-directory" preset would look like, if we ran it via the advanced CLI:
-
-::
+directory" preset would look like, if we ran it using the full CLI::
 
     # "Debian directory" preset
-    $ reprotest auto . -- schroot unstable-amd64-sbuild
-    # In the advanced CLI, this is equivalent to roughly:
+    $ reprotest . -- schroot unstable-amd64-sbuild
+    # This is exactly equivalent to this:
+    $ reprotest -c auto . -- schroot unstable-amd64-sbuild
+    # In the non-preset full CLI, this is roughly similar to:
     $ reprotest \
         --testbed-init 'apt-get -y --no-install-recommends install \
                         util-linux disorderfs 2>/dev/null; \
                         test -c /dev/fuse || mknod -m 666 /dev/fuse c 10 229' \
-        'PATH=/sbin:/usr/sbin:$PATH apt-get -y --no-install-recommends build-dep ./; \
-         dpkg-buildpackage -uc -us -b' \
+        --build-command 'PATH=/sbin:/usr/sbin:$PATH apt-get -y --no-install-recommends build-dep ./; \
+                         dpkg-buildpackage -uc -us -b' \
+        . \
         '../*.deb' \
         -- \
         schroot unstable-amd64-sbuild
@@ -95,12 +92,12 @@ reprotest needs in order to make the variations in the first place. This
 should be the same regardless of what package is being built, but might
 differ depending on what virtual\_server is being used.
 
-Next, we have the build\_command. For our Debian directory, we install
-build-dependencies using apt-get, then we run the actual build command
-itself using dpkg-buildpackage(1).
+Next, we have ``--build-command`` (or ``-c``). For our Debian directory, we
+install build-dependencies using ``apt-get``, then we run the actual build
+command itself using ``dpkg-buildpackage(1)``.
 
-Then, we have the artifact pattern. For reproducibility, we're only
-interested in the binary packages.
+Then, we have the ``source_root`` and the ``artifact_pattern``. For
+reproducibility, we're only interested in the binary packages.
 
 Finally, we specify that this is to take place in the "schroot"
 virtual\_server with arguments "unstable-amd64-sbuild".
@@ -112,16 +109,14 @@ be good.
 Here is a more complex example. It tells reprotest to store the build products
 into ``./artifacts`` to analyse later; and also tweaks the "Debian dsc" preset
 so that it uses our `experimental toolchain
-<https://wiki.debian.org/ReproducibleBuilds/ExperimentalToolchain>`__.
-
-::
+<https://wiki.debian.org/ReproducibleBuilds/ExperimentalToolchain>`__::
 
     $ reprotest --store-dir=artifacts \
         --auto-preset-expr '_.prepend.testbed_init("apt-get install -y wget 2>/dev/null; \
             echo deb http://reproducible.alioth.debian.org/debian/ ./ >> /etc/apt/sources.list; \
             wget -q -O- https://reproducible.alioth.debian.org/reproducible.asc | apt-key add -; \
             apt-get update; apt-get upgrade -y 2>/dev/null; ")' \
-        auto ./bash_4.4-4.0~reproducible1.dsc \
+        ./bash_4.4-4.0~reproducible1.dsc \
         -- \
         schroot unstable-amd64-sbuild
 
@@ -146,9 +141,7 @@ Reprotest by default does not load any config file. You can tell it to load one
 with the ``--config-file`` or ``-f`` command line options. If you give it a
 directory such as ``.``, it will load ``.reprotestrc`` within that directory.
 
-A sample config file is below.
-
-::
+A sample config file is below::
 
     [basics]
     verbosity = 1

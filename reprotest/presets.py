@@ -92,4 +92,5 @@ def get_presets(buildfile, virtual_server):
                 return preset_deb_dsc(fn)
             else:
                 return preset_deb_schroot(preset_deb_dsc(fn))
-    raise ValueError("unrecognised file type: %s" % buildfile)
+    raise ValueError('unrecognised file type: "%s"; try giving '
+                     'an appropriate --build-command' % buildfile)

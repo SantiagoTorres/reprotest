@@ -28,6 +28,20 @@ def check_return_code(command, virtual_server, code):
         else:
             assert(retcode in code)
 
+def check_command_line(command_line, code=None):
+    try:
+        retcode = 0
+        return reprotest.run(command_line, lambda **x: x)
+    except SystemExit as system_exit:
+        retcode = system_exit.args[0]
+    finally:
+        if code is None:
+            assert(retcode == 0)
+        elif isinstance(code, int):
+            assert(retcode == code)
+        else:
+            assert(retcode in code)
+
 @pytest.fixture(scope='module', params=REPROTEST_TEST_SERVERS)
 def virtual_server(request):
     if request.param == 'null':
@@ -58,6 +72,36 @@ def test_self_build(virtual_server):
     assert(1 == subprocess.call(REPROTEST + ['python3 setup.py bdist', 'dist/*.tar.gz'] + virtual_server))
     assert(1 == subprocess.call(REPROTEST + ['python3 setup.py sdist; sleep 2', 'dist/*.tar.gz'] + virtual_server))
     assert(1 == subprocess.call(REPROTEST + ['python3 setup.py bdist_wheel', 'dist/*.whl'] + virtual_server))
+
+def test_command_lines():
+    r = check_command_line(".".split(), 0)
+    assert r['artifact_pattern'] is not None
+    r = check_command_line(". -- null -d".split(), 0)
+    assert r['artifact_pattern'] is not None
+    check_command_line("--dry-run . --verbosity 2 -- null -d".split(), 0)
+    assert r['artifact_pattern'] is not None
+    check_command_line(". null -d".split(), 2)
+    check_command_line(". --verbosity 2 null -d".split(), 2)
+    check_command_line("--dry-run . --verbosity 2 null -d".split(), 2)
+    check_command_line("--dry-run . null -d".split(), 2)
+
+    r = check_command_line("auto".split(), 0)
+    assert r['artifact_pattern'] is not None
+    r = check_command_line("auto -- null -d".split(), 0)
+    assert r['artifact_pattern'] is not None
+    check_command_line("--dry-run auto --verbosity 2 -- null -d".split(), 0)
+    assert r['artifact_pattern'] is not None
+    check_command_line("auto null -d".split(), 2)
+    check_command_line("auto --verbosity 2 null -d".split(), 2)
+    check_command_line("--dry-run auto --verbosity 2 null -d".split(), 2)
+    check_command_line("--dry-run auto null -d".split(), 2)
+
+    r = check_command_line("auto -- schroot unstable-amd64-sbuild".split(), 0)
+    assert r['virtual_server_args'] == ['schroot', 'unstable-amd64-sbuild']
+    r = check_command_line(". -- schroot unstable-amd64-sbuild".split(), 0)
+    assert r['virtual_server_args'] == ['schroot', 'unstable-amd64-sbuild']
+    r = check_command_line("auto . schroot unstable-amd64-sbuild".split(), 0)
+    assert r['virtual_server_args'] == ['schroot', 'unstable-amd64-sbuild']
 
 # TODO: don't call it if we don't have debian/, e.g. for other distros
 def test_debian_build(virtual_server):

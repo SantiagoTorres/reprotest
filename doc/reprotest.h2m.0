@@ -3,10 +3,10 @@ reprotest \- Build packages and check them for reproducibility.
 [SYNOPSIS]
 .nf
 \fBreprotest\fR \-\-help\ [<virtual_server_name>]
-\fBreprotest\fR [options] \fIauto\fR  <source_file_or_dir> [[more options] --|--] \
-[<virtual_server_args> [<virtual_server_args> ...]]
-\fBreprotest\fR [options] <build_command> <artifact> [[more options] --|--] \
-[<virtual_server_args> [<virtual_server_args> ...]]
+\fBreprotest\fR [options] [\-c <build_command>] <source_root> [<artifact_pattern>] \
+[-- <virtual_server_args> [<virtual_server_args> ...]]
+\fBreprotest\fR [options] [\-s <source_root>] <build_command> [<artifact_pattern>] \
+[-- <virtual_server_args> [<virtual_server_args> ...]]
 .fi
 [<DESCRIPTION]
 .B reprotest

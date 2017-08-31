@@ -1,19 +1,8 @@
 Make the CLI nicer
 ==================
 
-Current:
-reprotest [options] --source-root <source_file_or_dir>   <build_command>      [<artifact>]
-reprotest [options]                                      auto                 [<artifact>]
-reprotest [options]                                      auto                  <source_file_or_dir>  # if the given artifact already exists
-
-Add:
-(if the given build_command already exists)
-reprotest [options] --build-command <build_command>      <source_file_or_dir> [<artifact>]
-reprotest [options]                                      <source_file_or_dir> [<artifact>]
-
-After this, we can add a "auto-sbuild" pseudo-command that selects sbuild to
-build .dsc files (and guess the command artefact output), this should help with
-#847805.
+Add a "auto-sbuild" pseudo-command that selects sbuild to build .dsc files (and
+guess the command artifact output), this should help with #847805.
 
 Refactoring
 ===========
