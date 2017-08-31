@@ -205,10 +205,10 @@ your use-case::
     $ a="[a-zA-Z0-9]"
     $ cat <<EOF | sudo tee -a /etc/sudoers.d/local-reprotest
     $USER ALL = ($OTHERUSER) NOPASSWD: ALL
-    $USER ALL = NOPASSWD: /bin/chown -R --from=$OTHERUSER $USER /tmp/autopkgtest.$a$a$a$a$a$a/const_build_path/
-    $USER ALL = NOPASSWD: /bin/chown -R --from=$OTHERUSER $USER /tmp/autopkgtest.$a$a$a$a$a$a/experiment/
-    $USER ALL = NOPASSWD: /bin/chown -R --from=$USER $OTHERUSER /tmp/autopkgtest.$a$a$a$a$a$a/const_build_path/
-    $USER ALL = NOPASSWD: /bin/chown -R --from=$USER $OTHERUSER /tmp/autopkgtest.$a$a$a$a$a$a/experiment/
+    $USER ALL = NOPASSWD: /bin/chown -h -R --from=$OTHERUSER $USER /tmp/autopkgtest.$a$a$a$a$a$a/const_build_path/
+    $USER ALL = NOPASSWD: /bin/chown -h -R --from=$OTHERUSER $USER /tmp/autopkgtest.$a$a$a$a$a$a/experiment/
+    $USER ALL = NOPASSWD: /bin/chown -h -R --from=$USER $OTHERUSER /tmp/autopkgtest.$a$a$a$a$a$a/const_build_path/
+    $USER ALL = NOPASSWD: /bin/chown -h -R --from=$USER $OTHERUSER /tmp/autopkgtest.$a$a$a$a$a$a/experiment/
     EOF
 
 Repeat this for each user you'd like to use. Obviously, don't pick a privileged

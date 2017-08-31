@@ -380,9 +380,9 @@ printf '#!/bin/sh\nsudo -u "{1}" -g "{2}" /bin/fusermount "$@"\n' > "{0}"/fuserm
 chmod +x "{0}"/fusermount
 '''.format(binpath, user, group))
     _ = _.append_setup_exec_raw('export', 'PATH="%s:$PATH"' % binpath)
-    _ = _.append_setup_exec('sudo', 'chown', '-R', '--from=%s' % olduser, user, tree.experiment)
+    _ = _.append_setup_exec('sudo', 'chown', '-h', '-R', '--from=%s' % olduser, user, tree.experiment)
     # TODO: artifacts probably shouldn't be chown'd back
-    _ = _.prepend_cleanup_exec('sudo', 'chown', '-R', '--from=%s' % user, olduser, tree.experiment)
+    _ = _.prepend_cleanup_exec('sudo', 'chown', '-h', '-R', '--from=%s' % user, olduser, tree.experiment)
     new_experiment = _
     return Pair(script.control, new_experiment), env, tree
 
