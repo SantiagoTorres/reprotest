@@ -44,7 +44,7 @@ def get_all_servers():
     global all_servers
     if all_servers is None:
         server_dir = get_server_path(None)
-        all_servers = sorted(fn[:-len(VIRT_PREFIX)] for fn in os.listdir(server_dir)
+        all_servers = sorted(fn[len(VIRT_PREFIX):] for fn in os.listdir(server_dir)
                              if is_executable(server_dir, fn) and fn.startswith(VIRT_PREFIX))
     return all_servers
 
@@ -610,7 +610,7 @@ def cli_parser():
              'are omitted, you should put a "--" between these arguments and '
              'reprotest\'s own options. Default: "null", to run directly in '
              '/tmp. Choices: %s' %
-             ''.join(get_all_servers()))
+             ', '.join(get_all_servers()))
 
     parser.add_argument('--help', default=None, const=True, nargs='?',
         choices=get_all_servers(), metavar='VIRTUAL_SERVER_NAME',
